@@ -1,0 +1,4 @@
+# Pendientes para el microservicio de usuarios y autenticacion
+
+- Establecer comunicacion con otros microservicios.
+- Definir bien que puede hacer cada rol sobre cada ruta.
