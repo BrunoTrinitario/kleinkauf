@@ -14,4 +14,6 @@ public class ErrorMessages {
     public static String INVALID_CREDENTIALS = "Invalid username or password.";
     public static String EMAIL_ALREADY_IN_USE = "The email is already in use.";
     public static String INVALID_ROLE = "The role provided is invalid.";
+    public static String ROLES_MUST_BE_EMPTY = "Should not be any role";
+    public static String INVALID_TOKEN = "The access token is invalid.";
 }

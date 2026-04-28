@@ -7,6 +7,7 @@ package com.decor.users.decorusers.repositories;
 
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -25,5 +26,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
         existsById(id)
     */
    Optional<User> findByName(String name);
+
    boolean existsByEmail(String email);
+
 }

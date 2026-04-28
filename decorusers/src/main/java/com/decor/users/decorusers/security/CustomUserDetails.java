@@ -1,8 +1,11 @@
 package com.decor.users.decorusers.security;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
+import com.decor.users.decorusers.services.UserService;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,8 +17,13 @@ public class CustomUserDetails implements UserDetails {
 
     private final User user;
 
-    public CustomUserDetails(User user) {
+    private ArrayList<GrantedAuthority> authorities = new ArrayList<>();
+
+    public CustomUserDetails(User user, Set<String> roles) {
         this.user = user;
+        for (String r : roles) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_"+r));
+        }
     }
 
     public User getUser() {
@@ -24,11 +32,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        ArrayList<GrantedAuthority> authorities = new ArrayList<>();
-        for (Role role : user.getRoles()) {
-            authorities.add(new SimpleGrantedAuthority(role.getType()));
-        }
-        return authorities;
+        return this.authorities;
     }
 
     @Override

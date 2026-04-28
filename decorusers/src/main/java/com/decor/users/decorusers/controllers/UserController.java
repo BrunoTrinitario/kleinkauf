@@ -6,8 +6,14 @@
 package com.decor.users.decorusers.controllers;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import com.decor.users.decorusers.constants.RolesType;
+import com.decor.users.decorusers.constants.SuccessMessages;
+import com.decor.users.decorusers.dtos.LoggedUser;
+import com.decor.users.decorusers.dtos.RegisterUserDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -42,6 +48,12 @@ public class UserController {
         return new ResponseEntity<>(users, org.springframework.http.HttpStatus.OK);
     }
 
+    @PostMapping("/")
+    public ResponseEntity<FullUserDto> createUser(@RequestBody RegisterUserDto userData) throws ApiException {
+        FullUserDto createdUser = userService.createUser(userData.name(), userData.email(), userData.password(), userData.roles());
+        return new ResponseEntity<>(createdUser, org.springframework.http.HttpStatus.CREATED);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<FullUserDto> getUserById(@PathVariable Long id) throws ApiException {
         FullUserDto user = userService.getUserById(id);
@@ -49,9 +61,9 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Boolean> deleteUserById(@PathVariable Long id) throws ApiException {
+    public ResponseEntity<String> deleteUserById(@PathVariable Long id) throws ApiException {
         boolean deleted = userService.deleteUserById(id);
-        return new ResponseEntity<>(deleted, org.springframework.http.HttpStatus.OK);
+        return new ResponseEntity<>(SuccessMessages.USER_DELETED, org.springframework.http.HttpStatus.OK);
     }
 
     @PostMapping("/{id}/roles")
@@ -74,10 +86,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}/roles")
-    public ResponseEntity<List<String>> getUserRoles(@PathVariable Long userId) throws ApiException {
-        List<String> roles = userService.getUserById(userId).roles();
+    public ResponseEntity<Set<String>> getUserRoles(@PathVariable Long userId) throws ApiException {
+        Set<String> roles = userService.getUserRoles(userId);
         return new ResponseEntity<>(roles, org.springframework.http.HttpStatus.OK);
     }
-    
 
 }

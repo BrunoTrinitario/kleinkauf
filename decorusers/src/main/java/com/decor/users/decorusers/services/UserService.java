@@ -91,13 +91,19 @@ public class UserService {
         newUser.setPassword(password);
         newUser = this.userRepository.save(newUser);
         Set<Role> userRoles = new HashSet<>();
-        Role newRole = new Role();
-        newRole.setType(RolesType.CLIENTE.name());
-        newRole.setUser(newUser);
-        userRoles.add(newRole);
-        roleRepository.saveAll(userRoles);
-        newUser.setRoles(userRoles);
-        newUser = this.userRepository.save(newUser);
+        for (String rol: roles){
+            if (RoleUtility.existsRole(rol)){
+                Role newRole = new Role();
+                newRole.setType(rol);
+                newRole.setUser(newUser);
+                userRoles.add(newRole);
+            }
+        }
+        if (!userRoles.isEmpty()){
+            roleRepository.saveAll(userRoles);
+            newUser.setRoles(userRoles);
+            newUser = this.userRepository.save(newUser);
+        }
         return Parser.fromUserEntityToFullDto(newUser);
     }
 
@@ -173,6 +179,14 @@ public class UserService {
         }else{
             throw new ApiException(ErrorMessages.INVALID_CREDENTIALS,HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    public Set<String> getUserRoles(Long id){
+        Set<String> roles = new HashSet<>();
+        for (Role role: this.roleRepository.findByUser_Id(id)){
+            roles.add(role.getType());
+        }
+        return roles;
     }
 
 }

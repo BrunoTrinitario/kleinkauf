@@ -1,7 +1,12 @@
 package com.decor.users.decorusers.security;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
+import com.decor.users.decorusers.entities.Role;
+import com.decor.users.decorusers.repositories.RoleRepository;
+import com.decor.users.decorusers.services.UserService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -21,11 +26,13 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final RoleRepository roleRepository;
     private final UserRepository userRepository;
 
-    public JwtFilter(JwtUtil jwtUtil, UserRepository userRepository) {
+    public JwtFilter(JwtUtil jwtUtil, RoleRepository roleRepository, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
     }
 
     @Override
@@ -54,16 +61,25 @@ public class JwtFilter extends OncePerRequestFilter {
 
             String token = header.substring(7);
 
+            if (!jwtUtil.validateToken(token)) {
+                return;
+            }
+
             Claims claims = jwtUtil.getClaims(token);
 
-            Long userId = claims.get("userId", Long.class);
+            Long userId = claims.get("id", Long.class);
 
             User user = userRepository.findById(userId)
                     .orElse(null);
 
             if (user != null) {
 
-                CustomUserDetails userDetails = new CustomUserDetails(user);
+                Set<String> roles = new HashSet<>();
+                for  (Role role : roleRepository.findByUser_Id(userId)) {
+                    roles.add(role.getType());
+                }
+
+                CustomUserDetails userDetails = new CustomUserDetails(user,roles);
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
@@ -74,6 +90,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
+
         }
 
         filterChain.doFilter(request, response);

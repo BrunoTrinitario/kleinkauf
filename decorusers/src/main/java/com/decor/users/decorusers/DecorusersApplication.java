@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Bean;
 
 import com.decor.users.decorusers.services.UserService;
 
+import java.util.Set;
+
 @SpringBootApplication
 public class DecorusersApplication {
 
@@ -19,6 +21,7 @@ public class DecorusersApplication {
         return args -> {
             
 			try{
+                userService.createUser("bruno","bruno","bruno", Set.of("ADMINISTRADOR"));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

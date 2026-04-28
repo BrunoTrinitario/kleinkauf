@@ -6,6 +6,7 @@
 package com.decor.users.decorusers.entities;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -56,6 +57,9 @@ public class User {
 
     public List<String> getRolesAsString() {
         Set<Role> roles = this.getRoles();
+        if (roles == null) {
+            return new ArrayList<>();
+        }
         return roles.stream()
                 .map(r -> r.getType())
                 .toList();
