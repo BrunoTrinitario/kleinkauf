@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.decor.users.decorusers.constants.ErrorMessages;
+import com.decor.users.decorusers.constants.RolesType;
 import com.decor.users.decorusers.dtos.FullUserDto;
 import com.decor.users.decorusers.dtos.LoggedUser;
 import com.decor.users.decorusers.entities.Role;
@@ -79,7 +80,7 @@ public class UserService {
         }
     }
 
-    public FullUserDto createUser(String name, String email, String password,Set<String> roles) throws ApiException {
+    public FullUserDto createUser(String name, String email, String password, Set<String> roles) throws ApiException {
         if (userExistsByEmail(email)){
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.BAD_REQUEST);
         }
@@ -90,16 +91,10 @@ public class UserService {
         newUser.setPassword(password);
         newUser = this.userRepository.save(newUser);
         Set<Role> userRoles = new HashSet<>();
-        for (String r: roles){
-            if (RoleUtility.existsRole(r)){
-                Role newRole = new Role();
-                newRole.setType(r);
-                newRole.setUser(newUser);
-                userRoles.add(newRole);
-            }else{
-                throw new ApiException(ErrorMessages.INVALID_ROLE + " " + r,HttpStatus.BAD_REQUEST);
-            }
-        }
+        Role newRole = new Role();
+        newRole.setType(RolesType.CLIENTE.name());
+        newRole.setUser(newUser);
+        userRoles.add(newRole);
         roleRepository.saveAll(userRoles);
         newUser.setRoles(userRoles);
         newUser = this.userRepository.save(newUser);
