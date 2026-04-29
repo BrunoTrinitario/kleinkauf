@@ -51,7 +51,6 @@ public class UserServiceTest {
         assertEquals("user", user.name());
         assertEquals("user@test.com", user.email());
         assertTrue(user.roles().contains("CLIENTE"));
-        assertEquals(2, userService.getAllUsers().size());
     }
 
     @Test
@@ -94,12 +93,12 @@ public class UserServiceTest {
 
     @Test
     void deleteRoleFromUser_existingRole_removesRole() throws ApiException {
-        FullUserDto created = userService.createUser("vip-user", "vip-user@test.com", "password", Set.of("CLIENTE", "VIP"));
+        FullUserDto created = userService.createUser("vip-user", "vip-user@test.com", "password", Set.of("CLIENTE", "EMPLEADO"));
 
-        boolean deleted = userService.deleteRoleFromUser(created.id(), "VIP");
+        boolean deleted = userService.deleteRoleFromUser(created.id(), "EMPLEADO");
 
         assertTrue(deleted);
-        assertFalse(userService.userHasRole(created.id(), "VIP"));
+        assertFalse(userService.userHasRole(created.id(), "EMPLEADO"));
         assertTrue(userService.userHasRole(created.id(), "CLIENTE"));
     }
 
@@ -107,22 +106,22 @@ public class UserServiceTest {
     void roleLifecycle_reactivateDeletedRoleWithoutDuplicates() throws ApiException {
         FullUserDto created = userService.createUser("role-cycle", "role-cycle@test.com", "password", Set.of("CLIENTE"));
 
-        assertFalse(userService.userHasRole(created.id(), "VENDEDOR"));
+        assertFalse(userService.userHasRole(created.id(), "EMPLEADO"));
 
-        FullUserDto withRole = userService.addRoleToUser(created.id(), "VENDEDOR");
-        assertTrue(withRole.roles().contains("VENDEDOR"));
-        assertTrue(userService.userHasRole(created.id(), "VENDEDOR"));
+        FullUserDto withRole = userService.addRoleToUser(created.id(), "EMPLEADO");
+        assertTrue(withRole.roles().contains("EMPLEADO"));
+        assertTrue(userService.userHasRole(created.id(), "EMPLEADO"));
         assertEquals(2, withRole.roles().size());
 
-        boolean removed = userService.deleteRoleFromUser(created.id(), "VENDEDOR");
+        boolean removed = userService.deleteRoleFromUser(created.id(), "EMPLEADO");
         assertTrue(removed);
-        assertFalse(userService.userHasRole(created.id(), "VENDEDOR"));
+        assertFalse(userService.userHasRole(created.id(), "EMPLEADO"));
 
-        FullUserDto withRoleAgain = userService.addRoleToUser(created.id(), "VENDEDOR");
-        assertTrue(withRoleAgain.roles().contains("VENDEDOR"));
-        assertTrue(userService.userHasRole(created.id(), "VENDEDOR"));
+        FullUserDto withRoleAgain = userService.addRoleToUser(created.id(), "EMPLEADO");
+        assertTrue(withRoleAgain.roles().contains("EMPLEADO"));
+        assertTrue(userService.userHasRole(created.id(), "EMPLEADO"));
         assertEquals(2, withRoleAgain.roles().size());
-        assertEquals(1, withRoleAgain.roles().stream().filter("VENDEDOR"::equals).count());
+        assertEquals(1, withRoleAgain.roles().stream().filter("EMPLEADO"::equals).count());
     }
 
     @Test

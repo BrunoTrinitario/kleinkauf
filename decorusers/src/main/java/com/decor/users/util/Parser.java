@@ -6,19 +6,25 @@
 package com.decor.users.util;
 
 import com.decor.users.dtos.FullUserDto;
+import com.decor.users.dtos.RoleDto;
+import com.decor.users.entities.Role;
 import com.decor.users.entities.User;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  *
  * @author bruno.trinitario
  */
 public class Parser {
-    public static FullUserDto fromUserEntityToFullDto(User user){
+    public static FullUserDto fromUserEntityToFullDto(User user, List<RoleDto> roles){
         return new FullUserDto(
             user.getId(),
             user.getName(),
             user.getEmail(),
-            user.getRolesAsString()
+            roles
         );
     }
 }

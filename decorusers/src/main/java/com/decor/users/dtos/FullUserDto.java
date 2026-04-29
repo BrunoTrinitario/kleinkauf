@@ -15,5 +15,5 @@ public record FullUserDto(
     Long id,
     String name,
     String email,
-    List<String> roles
+    List<RoleDto> roles
 ) {}

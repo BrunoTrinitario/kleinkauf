@@ -55,14 +55,4 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    public List<String> getRolesAsString() {
-        Set<Role> roles = this.getRoles();
-        if (roles == null) {
-            return new ArrayList<>();
-        }
-        return roles.stream()
-                .map(r -> r.getType())
-                .toList();
-    }
-
 }

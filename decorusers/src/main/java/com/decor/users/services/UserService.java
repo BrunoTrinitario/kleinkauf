@@ -5,11 +5,9 @@
 
 package com.decor.users.services;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
+import com.decor.users.dtos.RoleDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,16 +48,17 @@ public class UserService {
         ArrayList<FullUserDto> userList = new ArrayList<>();
         rawUsers.forEach(u -> {
             userList.add(
-                Parser.fromUserEntityToFullDto(u)
+                Parser.fromUserEntityToFullDto(u,this.getUserRoles(u.getId()))
             );
         });
         return userList;
     }
 
+
     public FullUserDto getUserById(Long id) throws ApiException {
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null){
-            return Parser.fromUserEntityToFullDto(rawUser);
+            return Parser.fromUserEntityToFullDto(rawUser,this.getUserRoles(rawUser.getId()));
         }else{
             throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
         }
@@ -103,7 +102,7 @@ public class UserService {
             newUser.setRoles(userRoles);
             newUser = this.userRepository.save(newUser);
         }
-        return Parser.fromUserEntityToFullDto(newUser);
+        return Parser.fromUserEntityToFullDto(newUser,this.getUserRoles(newUser.getId()));
     }
 
     public boolean userExistsByEmail(String email){
@@ -113,7 +112,7 @@ public class UserService {
     public boolean userHasRole(Long id, String role) throws ApiException {
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null){
-            return rawUser.getRolesAsString().contains(role);
+            return this.getUserRoles(rawUser.getId()).stream().anyMatch(r -> r.type().equals(role));
         }else{
             throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
         }
@@ -130,14 +129,14 @@ public class UserService {
         if (roleEntity != null) {
             if (roleEntity.getDeletedAt() != null)
                 roleEntity.setDeletedAt(null);
-            return Parser.fromUserEntityToFullDto(user);
+            return Parser.fromUserEntityToFullDto(user,this.getUserRoles(user.getId()));
         }
 
         Role newRole = new Role();
         newRole.setType(role);
         newRole.setUser(user);
         user.getRoles().add(newRole);
-        return Parser.fromUserEntityToFullDto(user);
+        return Parser.fromUserEntityToFullDto(user,this.getUserRoles(user.getId()));
     }
 
     public boolean deleteRoleFromUser(Long id, String role) throws ApiException {
@@ -164,7 +163,8 @@ public class UserService {
         if (rawUser != null){
             if (name != null) rawUser.setName(name);
             if (password != null ) rawUser.setPassword(passwordEncoder.encode(password));
-            return Parser.fromUserEntityToFullDto(this.userRepository.save(rawUser));
+            rawUser = this.userRepository.save(rawUser);
+            return Parser.fromUserEntityToFullDto(rawUser,this.getUserRoles(rawUser.getId()));
         }else{
             throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
         }
@@ -180,12 +180,16 @@ public class UserService {
         }
     }
 
-    public Set<String> getUserRoles(Long id){
-        Set<String> roles = new HashSet<>();
-        for (Role role: this.roleRepository.findByUser_Id(id)){
-            roles.add(role.getType());
+    public List<RoleDto> getUserRoles(Long id){
+        Collection<Role> roleList = this.roleRepository.findByUser_Id(id);
+        List<RoleDto> list = new ArrayList<>();
+        for (Role role : roleList){
+            list.add(new RoleDto(
+                    role.getType(),
+                    role.getPermission()
+            ));
         }
-        return roles;
+        return list;
     }
 
 }
