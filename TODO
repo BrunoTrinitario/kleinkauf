@@ -1,6 +1,7 @@
-# Pendientes para el microservicio de usuarios y autenticacion
+# Pendientes para el microservicio de productos
 
-- Establecer comunicacion con otros microservicios.
-- Definir bien que puede hacer cada rol sobre cada ruta.
-- Pasar la logica de validaciones al APIGATEWAY
-- definir un servicio eureka
+- desarrollar los productos
+- comunicacion con el modulo de usuarios
+- definir la seguridad de los mismos
+
+# NO ENTRA EN ESTE MS ventas y logistica
