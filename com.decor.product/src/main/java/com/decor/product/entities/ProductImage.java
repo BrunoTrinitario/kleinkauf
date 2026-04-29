@@ -26,5 +26,5 @@ public class ProductImage {
 
     private String path;
 
-    private int order;
+    private int imageOrder;
 }

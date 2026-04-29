@@ -1,9 +1,6 @@
 package com.decor.product.controllers;
 
-import com.decor.product.dto.FullProductDto;
-import com.decor.product.dto.ImageDto;
-import com.decor.product.dto.LightProductDto;
-import com.decor.product.dto.MetaDataDto;
+import com.decor.product.dto.*;
 import com.decor.product.exceptions.ApiException;
 import com.decor.product.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +42,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateProduct(dto));
     }
     @PostMapping
-    public ResponseEntity<FullProductDto> createProduct(@RequestBody LightProductDto dto) throws ApiException {
+    public ResponseEntity<FullProductDto> createProduct(@RequestBody NewProductDto dto) throws ApiException {
         return ResponseEntity.ok(productService.createProduct(dto));
     }
 
@@ -54,7 +51,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductImages(id));
     }
 
-    @PostMapping("/{id}/images")
+    @PostMapping(value = "/{id}/images", consumes = "multipart/form-data")
     public ResponseEntity<Boolean> addImages(
             @PathVariable Long id,
             @RequestParam("files") List<MultipartFile> files

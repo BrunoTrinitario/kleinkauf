@@ -12,4 +12,5 @@ package com.decor.product.constants;
 public class ErrorMessages {
     public static String PRODUCT_NOT_FOUND = "Product not found";
     public static String IMAGE_NOT_FOUND = "Image not found";
+    public static String PRODUCT_NAME_IN_USE = "The Product name is already in use";
 }

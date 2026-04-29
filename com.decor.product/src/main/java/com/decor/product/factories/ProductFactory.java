@@ -30,8 +30,9 @@ public class ProductFactory {
         ArrayList<ImageDto> images = new ArrayList<>();
         for  (ProductImage productImage : im) {
             images.add(new ImageDto(
+                    productImage.getId(),
                     productImage.getPath(),
-                    productImage.getOrder()
+                    productImage.getImageOrder()
             ));
         }
         FullProductDto fullProductDto = new FullProductDto(

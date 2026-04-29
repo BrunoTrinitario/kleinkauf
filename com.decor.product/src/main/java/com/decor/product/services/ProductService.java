@@ -1,10 +1,7 @@
 package com.decor.product.services;
 
 import com.decor.product.constants.ErrorMessages;
-import com.decor.product.dto.FullProductDto;
-import com.decor.product.dto.ImageDto;
-import com.decor.product.dto.LightProductDto;
-import com.decor.product.dto.MetaDataDto;
+import com.decor.product.dto.*;
 import com.decor.product.entities.Product;
 import com.decor.product.entities.ProductImage;
 import com.decor.product.entities.ProductMetaData;
@@ -38,6 +35,9 @@ public class ProductService {
     @Autowired
     private ProductFactory  productFactory;
 
+    @Autowired
+    private FileManager fileManager;
+
     public ArrayList<LightProductDto> getAllProducts(){
         ArrayList<LightProductDto> products = new ArrayList<>();
         Collection<Product> productCollection = productRepository.findAll();
@@ -65,8 +65,9 @@ public class ProductService {
         Collection<ProductImage> im = this.productImageRepository.findByProduct_Id(id);
         for  (ProductImage product : im) {
             images.add(new ImageDto(
+                    product.getId(),
                     product.getPath(),
-                    product.getOrder()
+                    product.getImageOrder()
             ));
         }
         return images;
@@ -90,11 +91,11 @@ public class ProductService {
         ProductImage image = productImageRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.IMAGE_NOT_FOUND, HttpStatus.NOT_FOUND));
         Long productId = image.getProduct().getId();
-        FileManager.deleteImage(image.getPath());
+        fileManager.deleteImage(image.getPath());
         productImageRepository.delete(image);
-        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByPositionAsc(productId);
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByImageOrderAsc(productId);
         for (int i = 0; i < images.size(); i++)
-            images.get(i).setOrder(i);
+            images.get(i).setImageOrder(i);
         productImageRepository.saveAll(images);
         return true;
     }
@@ -119,11 +120,17 @@ public class ProductService {
         return productFactory.getFullProductInfo(product);
     }
 
-    public FullProductDto createProduct(LightProductDto updatedData) throws ApiException{
+    public FullProductDto createProduct(NewProductDto updatedData) throws ApiException{
+        if (this.productRepository.existsByName(updatedData.name())) {
+            throw new ApiException(ErrorMessages.PRODUCT_NAME_IN_USE, HttpStatus.CONFLICT);
+        }
         Product product = new Product();
         product.setName(updatedData.name());
-        productRepository.save(product);
-        return this.updateProduct(updatedData);
+        product.setCategory(updatedData.category());
+        product.setDescription(updatedData.description());
+        product.setStock(updatedData.stock());
+        product = productRepository.save(product);
+        return this.getProductById(product.getId());
     }
 
     public FullProductDto updateMetadata(Long productId, MetaDataDto updatedData) throws ApiException{
@@ -147,15 +154,15 @@ public class ProductService {
         return this.getProductById(productId);
     }
 
-    public ArrayList<ImageDto> addProductImages(Long productId, ArrayList<ImageDto> images) throws ApiException {
+    public ArrayList<ImageDto> addProductImages(Long productId, List<String> imagePaths) throws ApiException {
         ArrayList<ImageDto> actualImages = this.getProductImages(productId);
         Product product = productRepository.findById(productId).orElse(null);
         int cont = actualImages.size();
-        for(ImageDto image : images) {
+        for(String path : imagePaths) {
             ProductImage realImage = new ProductImage();
             realImage.setProduct(product);
-            realImage.setPath(image.path());
-            realImage.setOrder(cont);
+            realImage.setPath(path);
+            realImage.setImageOrder(cont);
             cont++;
             productImageRepository.save(realImage);
         }
@@ -163,12 +170,8 @@ public class ProductService {
     }
 
     public boolean saveImages(Long productId, List<MultipartFile> files) throws ApiException {
-        List<String> imagesPaths = FileManager.SaveAllImages(files);
-        ArrayList<ImageDto> images = new ArrayList<>();
-        for (String path : imagesPaths) {
-            images.add(new ImageDto(path, 0));
-        }
-        this.addProductImages(productId, images);
+        List<String> imagesPaths = fileManager.SaveAllImages(files);
+        this.addProductImages(productId, imagesPaths);
         return true;
     }
 
