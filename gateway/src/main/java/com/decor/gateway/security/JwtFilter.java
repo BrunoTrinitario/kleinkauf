@@ -1,25 +1,20 @@
-package com.decor.gateway.util;
+package com.decor.gateway.security;
 
 
 
+import com.decor.gateway.util.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Component
 public class JwtFilter implements WebFilter {
@@ -27,8 +22,8 @@ public class JwtFilter implements WebFilter {
     private final JwtUtil jwtUtil;
 
     private final List<String> excludedPaths = List.of(
-            "api/auth/login",
-            "api/auth/register"
+            "/api/auth/login",
+            "/api/auth/register"
     );
 
     public JwtFilter(JwtUtil jwtUtil) {

@@ -9,6 +9,7 @@ import java.util.*;
 
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.util.CacheUtil;
+import com.decor.users.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,9 +42,9 @@ public class UserService {
     @Autowired
     private RoleRepository roleRepository;
     @Autowired
-    private JwtUtil jwtUtil;
-    @Autowired
     private CacheUtil cacheUtil;
+    @Autowired
+    private JwtUtil  jwtUtil;
 
     public ArrayList<FullUserDto> getAllUsers(){
         Collection<User> rawUsers = this.userRepository.findAll();
@@ -176,10 +177,10 @@ public class UserService {
         }
     }
 
-    public LoggedUser login(String name, String password) throws ApiException {
-        User rawUser = this.userRepository.findByName(name).orElse(null);
+    public LoggedUser login(String email, String password) throws ApiException {
+        User rawUser = this.userRepository.findByEmail(email).orElse(null);
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
-            String token = jwtUtil.generateAccessToken(rawUser.getId(), rawUser.getEmail(), rawUser.getName());
+            String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName());
             return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token);
         }else{
             throw new ApiException(ErrorMessages.INVALID_CREDENTIALS,HttpStatus.UNAUTHORIZED);

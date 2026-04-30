@@ -12,8 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import com.decor.users.entities.User;
 import com.decor.users.exceptions.ApiException;
 import com.decor.users.services.UserService;
 import java.util.Set;
@@ -43,7 +41,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<LoggedUser> Register(@RequestBody NewUserDto userData) throws ApiException {
         userService.createUser(userData.name(), userData.email(), userData.password(), Set.of("CLIENTE"));
-        LoggedUser loggedUser = userService.login(userData.name(), userData.password());
+        LoggedUser loggedUser = userService.login(userData.email(), userData.password());
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.CREATED);
     }
 

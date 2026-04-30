@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
+
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {
 
@@ -28,11 +30,24 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
     @Autowired
     RoleRepository roleRepository;
 
+
+    private final List<String> excludedPaths = List.of(
+            "/auth/login",
+            "/auth/register"
+    );
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return excludedPaths.stream().anyMatch(path::startsWith);
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+
 
         String userIdHeader = request.getHeader("X-User-Id");
 
