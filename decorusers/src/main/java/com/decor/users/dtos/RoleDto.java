@@ -1,7 +1,19 @@
 package com.decor.users.dtos;
 
-public record RoleDto(
-        String type,
-        int permissions
-) {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.io.Serializable;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class RoleDto implements Serializable {
+
+    private String type;
+    private int permissions;
+
 }

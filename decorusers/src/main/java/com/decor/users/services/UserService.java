@@ -8,6 +8,7 @@ package com.decor.users.services;
 import java.util.*;
 
 import com.decor.users.dtos.RoleDto;
+import com.decor.users.util.CacheUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +43,8 @@ public class UserService {
     private RoleRepository roleRepository;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private CacheUtil cacheUtil;
 
     public ArrayList<FullUserDto> getAllUsers(){
         Collection<User> rawUsers = this.userRepository.findAll();
@@ -72,6 +75,7 @@ public class UserService {
                 this.roleRepository.delete(r);
             }
             this.userRepository.deleteById(id);
+            cacheUtil.deleteUser(id);
             return true;
         }else{
             throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
@@ -102,6 +106,7 @@ public class UserService {
             newUser.setRoles(userRoles);
             newUser = this.userRepository.save(newUser);
         }
+        cacheUtil.saveOrUpdateUserCache(newUser.getId(), this.getUserRoles(newUser.getId()));
         return Parser.fromUserEntityToFullDto(newUser,this.getUserRoles(newUser.getId()));
     }
 
@@ -112,7 +117,7 @@ public class UserService {
     public boolean userHasRole(Long id, String role) throws ApiException {
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null){
-            return this.getUserRoles(rawUser.getId()).stream().anyMatch(r -> r.type().equals(role));
+            return this.getUserRoles(rawUser.getId()).stream().anyMatch(r -> r.getType().equals(role));
         }else{
             throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
         }
@@ -136,6 +141,7 @@ public class UserService {
         newRole.setType(role);
         newRole.setUser(user);
         user.getRoles().add(newRole);
+        cacheUtil.saveOrUpdateUserCache(id, this.getUserRoles(id));
         return Parser.fromUserEntityToFullDto(user,this.getUserRoles(user.getId()));
     }
 
@@ -149,6 +155,7 @@ public class UserService {
             if (roleToDelete != null){
                 rawUser.getRoles().remove(roleToDelete);
                 roleRepository.delete(roleToDelete);
+                cacheUtil.saveOrUpdateUserCache(id, this.getUserRoles(id));
                 return true;
             }else{
                 throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);

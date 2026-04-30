@@ -7,17 +7,13 @@ package com.decor.users.controllers;
 
 import com.decor.users.constants.ErrorMessages;
 import com.decor.users.constants.SuccessMessages;
+import com.decor.users.dtos.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import com.decor.users.dtos.FullUserDto;
-import com.decor.users.dtos.LoggedUser;
-import com.decor.users.dtos.LoginUserDto;
-import com.decor.users.dtos.PatchUserDto;
-import com.decor.users.dtos.RegisterUserDto;
 import com.decor.users.entities.User;
 import com.decor.users.exceptions.ApiException;
 import com.decor.users.security.CustomUserDetails;
@@ -47,10 +43,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<LoggedUser> Register(@RequestBody RegisterUserDto userData) throws ApiException {
-        if (!userData.roles().isEmpty()){
-            throw new ApiException(ErrorMessages.ROLES_MUST_BE_EMPTY, HttpStatus.BAD_GATEWAY);
-        }
+    public ResponseEntity<LoggedUser> Register(@RequestBody NewUserDto userData) throws ApiException {
         userService.createUser(userData.name(), userData.email(), userData.password(), Set.of("CLIENTE"));
         LoggedUser loggedUser = userService.login(userData.name(), userData.password());
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.CREATED);
