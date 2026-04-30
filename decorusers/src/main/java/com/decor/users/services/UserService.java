@@ -22,7 +22,6 @@ import com.decor.users.entities.User;
 import com.decor.users.exceptions.ApiException;
 import com.decor.users.repositories.RoleRepository;
 import com.decor.users.repositories.UserRepository;
-import com.decor.users.util.JwtUtil;
 import com.decor.users.util.Parser;
 import com.decor.users.util.RoleUtility;
 

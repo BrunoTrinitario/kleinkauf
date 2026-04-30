@@ -5,18 +5,16 @@
 
 package com.decor.users.controllers;
 
-import com.decor.users.constants.ErrorMessages;
 import com.decor.users.constants.SuccessMessages;
 import com.decor.users.dtos.*;
+import com.decor.users.security.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.decor.users.entities.User;
 import com.decor.users.exceptions.ApiException;
-import com.decor.users.security.CustomUserDetails;
 import com.decor.users.services.UserService;
 import java.util.Set;
 
@@ -32,7 +30,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<FullUserDto> getOwnData(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
-        FullUserDto user = userService.getUserById(userDetails.getUser().getId());
+        FullUserDto user = userService.getUserById(userDetails.getId());
         return new ResponseEntity<>(user, org.springframework.http.HttpStatus.OK);
     }
 
@@ -51,14 +49,13 @@ public class AuthController {
 
     @DeleteMapping("/delete")
     public ResponseEntity<String> Delete(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
-        boolean deleted = userService.deleteUserById(userDetails.getUser().getId());
+        boolean deleted = userService.deleteUserById(userDetails.getId());
         return new ResponseEntity<>(SuccessMessages.USER_DELETED, org.springframework.http.HttpStatus.OK);
     }
 
     @PutMapping("/update")
     public ResponseEntity<FullUserDto> Update(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody PatchUserDto userData) throws ApiException {
-        User user = userDetails.getUser();
-        FullUserDto updatedUser = userService.updateUser(user.getId(), userData.name(), userData.password());
+        FullUserDto updatedUser = userService.updateUser(userDetails.getId(), userData.name(), userData.password());
         return new ResponseEntity<>(updatedUser, org.springframework.http.HttpStatus.OK);
     }
 }

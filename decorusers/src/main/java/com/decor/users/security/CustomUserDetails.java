@@ -1,42 +1,37 @@
 package com.decor.users.security;
 
-import java.util.*;
 
+import com.decor.users.dtos.RoleDto;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.decor.users.entities.User;
+import java.util.Collection;
+import java.util.List;
 
+@Getter
+@Setter
 public class CustomUserDetails implements UserDetails {
 
-    private final User user;
+    private Long id;
+    private Collection<GrantedAuthority> authorities;
 
-    private ArrayList<GrantedAuthority> authorities = new ArrayList<>();
-
-    public CustomUserDetails(User user, Set<String> roles) {
-        this.user = user;
-        for (String r : roles) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_"+r));
+    public CustomUserDetails(Long id, List<RoleDto> roles) {
+        this.id = id;
+        for  (RoleDto role : roles) {
+            this.authorities.add(new SimpleGrantedAuthority("ROLE_"+role.getType()));
         }
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.authorities;
     }
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return "";
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return "";
     }
 }
