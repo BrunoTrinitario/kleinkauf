@@ -181,7 +181,9 @@ public class UserService {
         User rawUser = this.userRepository.findByEmail(email).orElse(null);
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
             String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName());
-            return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token);
+            List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
+            cacheUtil.saveOrUpdateUserCache(rawUser.getId(),roleList);
+            return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token, roleList);
         }else{
             throw new ApiException(ErrorMessages.INVALID_CREDENTIALS,HttpStatus.UNAUTHORIZED);
         }

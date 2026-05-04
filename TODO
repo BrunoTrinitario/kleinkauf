@@ -1,7 +1,8 @@
 # Pendientes para el microservicio de productos
 
-- desarrollar los productos
-- comunicacion con el modulo de usuarios
-- definir la seguridad de los mismos
+- Hacer el todo del security de productos
+- terminar la logica de tentas
+- hacer que las bd sean por tenants
+- que el gateawy defina el tenant desde url a header
 
 # NO ENTRA EN ESTE MS ventas y logistica

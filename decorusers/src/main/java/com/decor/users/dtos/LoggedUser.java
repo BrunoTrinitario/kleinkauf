@@ -5,6 +5,8 @@
 
 package com.decor.users.dtos;
 
+import java.util.List;
+
 /**
  *
  * @author bruno.trinitario
@@ -13,6 +15,7 @@ public record LoggedUser(
     String name,
     Long id,
     String email,
-    String token
+    String token,
+    List<RoleDto> roles
 ) {
 }

@@ -35,6 +35,8 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
             List<RoleDto> roles = cacheUtil.getUserRoles(userId);
 
+            //TODO: Si no esta en cache pedirle al MS de usuarios
+
             CustomUserDetails userDetails =
                     new CustomUserDetails(userId, roles);
 

@@ -5,9 +5,11 @@
 
 package com.decor.users.util;
 
+import com.decor.users.dtos.FullTenantDto;
 import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.entities.Role;
+import com.decor.users.entities.Tenant;
 import com.decor.users.entities.User;
 
 import java.util.ArrayList;
@@ -25,6 +27,17 @@ public class Parser {
             user.getName(),
             user.getEmail(),
             roles
+        );
+    }
+
+    public static FullTenantDto fromTenantEntityToFullDto(Tenant t){
+        return new FullTenantDto(
+                t.getId().toString(),
+                t.getName(),
+                t.getUrl(),
+                t.getCreated_at(),
+                t.getDeleted_at(),
+                t.isEnable()
         );
     }
 }
