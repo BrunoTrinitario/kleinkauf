@@ -11,6 +11,7 @@ import com.decor.users.dtos.RoleDto;
 import com.decor.users.entities.Role;
 import com.decor.users.entities.Tenant;
 import com.decor.users.entities.User;
+import com.decor.users.services.TenantService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,9 +36,25 @@ public class Parser {
                 t.getId().toString(),
                 t.getName(),
                 t.getUrl(),
+                t.getDbName(),
+                t.getDbUser(),
+                t.getDbPassword(),
                 t.getCreated_at(),
                 t.getDeleted_at(),
                 t.isEnable()
         );
+    }
+
+    public static Tenant formDtoToTenant(FullTenantDto dto){
+        Tenant t = new Tenant();
+        t.setName(dto.name());
+        t.setUrl(dto.url());
+        t.setDbName(dto.dbName());
+        t.setDbUser(dto.dbUser());
+        t.setDbPassword(dto.dbPassword());
+        t.setCreated_at(dto.createdAt());
+        t.setDeleted_at(dto.deletedAt());
+        t.setEnable(dto.enabled());
+        return t;
     }
 }

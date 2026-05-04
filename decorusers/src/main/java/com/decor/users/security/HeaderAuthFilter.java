@@ -33,7 +33,8 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
     private final List<String> excludedPaths = List.of(
             "/auth/login",
-            "/auth/register"
+            "/auth/register",
+            "/internal/tenants"
     );
 
     @Override

@@ -1,5 +1,6 @@
 package com.decor.users.util;
 
+import com.decor.users.dtos.ComTenantDto;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.entities.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -37,6 +38,18 @@ public class CacheUtil {
     public void deleteUser(Long userId) {
         redisTemplate.opsForHash().delete(
                 "user:" + userId);
+    }
+
+    public void saveOrUpdateTenantCache(String tenantUrl, ComTenantDto tenant) {
+        String key = "tenant:" + tenantUrl;
+        String dataJson = null;
+        try {
+            dataJson = objectMapper.writeValueAsString(tenant);
+            redisTemplate.opsForHash().put(key, "data", dataJson);
+            redisTemplate.expire(key, Duration.ofHours(1));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

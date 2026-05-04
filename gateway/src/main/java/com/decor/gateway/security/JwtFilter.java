@@ -3,6 +3,7 @@ package com.decor.gateway.security;
 
 
 import com.decor.gateway.util.JwtUtil;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

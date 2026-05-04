@@ -12,9 +12,12 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final TenantGatewayFilter tenantGatewayFilter;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
+    public SecurityConfig(JwtFilter jwtFilter,  TenantGatewayFilter tenantGatewayFilter) {
+
         this.jwtFilter = jwtFilter;
+        this.tenantGatewayFilter = tenantGatewayFilter;
     }
 
     @Bean
@@ -26,7 +29,6 @@ public class SecurityConfig {
                         .pathMatchers("/**").permitAll()
                         .anyExchange().authenticated()
                 )
-                .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
     }
 }

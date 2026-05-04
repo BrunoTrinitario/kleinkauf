@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 
 @RestController
-@RequestMapping("/api/private/users")
+@RequestMapping("/api/internal/users")
 public class MSUserController {
 
     @Autowired

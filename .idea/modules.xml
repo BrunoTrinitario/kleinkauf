@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/decor.iml" filepath="$PROJECT_DIR$/.idea/decor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decorusers.main.iml" filepath="$PROJECT_DIR$/.idea/modules/decorusers.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decorusers.test.iml" filepath="$PROJECT_DIR$/.idea/modules/decorusers.test.iml" />
     </modules>
   </component>
 </project>
