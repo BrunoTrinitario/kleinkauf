@@ -1,8 +1,7 @@
 # Pendientes para el microservicio de productos
 
 - Hacer el todo del security de productos
-- terminar la logica de tentas
-- hacer que las bd sean por tenants
-- que el gateawy defina el tenant desde url a header
+- estoy intentando resolver que por cada request valide el tenant el gateway
+- multiples bd por schema 1 sola por tenants
 
 # NO ENTRA EN ESTE MS ventas y logistica
