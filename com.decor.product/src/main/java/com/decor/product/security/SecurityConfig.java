@@ -16,9 +16,8 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/v1/products/**").permitAll()
                         .anyRequest().authenticated()
                 ).addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

@@ -7,6 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,7 +16,7 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private Long id;
-    private Collection<GrantedAuthority> authorities;
+    private Collection<GrantedAuthority> authorities = new ArrayList<>();
 
     public CustomUserDetails(Long id, List<RoleDto> roles) {
         this.id = id;

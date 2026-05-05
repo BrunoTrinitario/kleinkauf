@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.test.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/decor.iml" filepath="$PROJECT_DIR$/.idea/decor.iml" />

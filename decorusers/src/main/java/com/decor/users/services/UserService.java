@@ -191,6 +191,7 @@ public class UserService {
 
     public List<RoleDto> getUserRoles(Long id){
         Collection<Role> roleList = this.roleRepository.findByUser_Id(id);
+
         List<RoleDto> list = new ArrayList<>();
         for (Role role : roleList){
             list.add(new RoleDto(
@@ -198,6 +199,7 @@ public class UserService {
                     role.getPermission()
             ));
         }
+        cacheUtil.saveOrUpdateUserCache(id,list);
         return list;
     }
 

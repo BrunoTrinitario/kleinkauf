@@ -1,6 +1,7 @@
 package com.decor.product.security;
 
 import com.decor.product.CacheUtil;
+import com.decor.product.constants.PermittedUrls;
 import com.decor.product.dto.RoleDto;
 import com.decor.product.services.UserService;
 import jakarta.servlet.FilterChain;
@@ -31,6 +32,13 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
         String userIdHeader = request.getHeader("X-User-Id");
 
         boolean isInternal = Boolean.parseBoolean(request.getHeader("X-internal-request"));
+
+        String path = request.getRequestURI();
+
+        if (PermittedUrls.isPermitted(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (isInternal) {
             filterChain.doFilter(request, response);

@@ -17,13 +17,9 @@ public class DecorusersApplication {
 	}
 
     @Bean
-    CommandLineRunner init(UserService userService) {
+    CommandLineRunner init() {
         return args -> {
-			try{
-                userService.createUser("bruno","bruno","bruno", Set.of("ADMINISTRADOR"));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+
         };
     }
 
