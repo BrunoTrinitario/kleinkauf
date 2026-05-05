@@ -1,6 +1,7 @@
 package com.decor.users.controllers;
 
 import com.decor.users.dtos.FullUserDto;
+import com.decor.users.dtos.RoleDto;
 import com.decor.users.exceptions.ApiException;
 import com.decor.users.services.UserService;
 import com.decor.users.util.CacheUtil;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/internal/users")
@@ -35,4 +37,9 @@ public class MSUserController {
         return new ResponseEntity<>(user, org.springframework.http.HttpStatus.OK);
     }
 
+    @GetMapping("/roles/{id}")
+    public ResponseEntity<List<RoleDto>> getUserRolesById(@PathVariable Long id) throws ApiException {
+        List<RoleDto> roles = userService.getUserRoles(id);
+        return new ResponseEntity<>(roles, org.springframework.http.HttpStatus.OK);
+    }
 }

@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
-                .requestMatchers("/api/v1/internal/**").permitAll()
+                .requestMatchers("/api/internal/**").permitAll()
                 .anyRequest().authenticated()
             ).csrf(csrf -> csrf.disable())
             .headers(headers -> headers

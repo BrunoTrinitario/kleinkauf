@@ -11,7 +11,6 @@ public class GatewayRoutes {
     @Bean
     public RouteLocator routes(RouteLocatorBuilder builder) {
         return builder.routes()
-
                 .route("products", r -> r
                         .path("/api/v1/products/**")
                         .uri("http://localhost:3002"))

@@ -2,6 +2,7 @@ package com.decor.product.security;
 
 import com.decor.product.CacheUtil;
 import com.decor.product.dto.RoleDto;
+import com.decor.product.services.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,7 +20,7 @@ import java.util.List;
 public class HeaderAuthFilter extends OncePerRequestFilter {
 
     @Autowired
-    CacheUtil cacheUtil;
+    UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,9 +41,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
             Long userId = Long.parseLong(userIdHeader);
 
-            List<RoleDto> roles = cacheUtil.getUserRoles(userId);
-
-            //TODO: Si no esta en cache pedirle al MS de usuarios
+            List<RoleDto> roles = userService.getUserRolesById(userId);
 
             CustomUserDetails userDetails =
                     new CustomUserDetails(userId, roles);

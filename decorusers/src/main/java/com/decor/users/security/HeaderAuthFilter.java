@@ -1,5 +1,6 @@
 package com.decor.users.security;
 
+import com.decor.users.constants.PermittedUrls;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.entities.Role;
 import com.decor.users.repositories.RoleRepository;
@@ -25,21 +26,13 @@ import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
 public class HeaderAuthFilter extends OncePerRequestFilter {
 
     @Autowired
-    CacheUtil cacheUtil;
-
-    @Autowired
     RoleRepository roleRepository;
 
-
-    private final List<String> excludedPaths = List.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/register"
-    );
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return excludedPaths.stream().anyMatch(path::startsWith);
+        return PermittedUrls.getExcludedPaths().stream().anyMatch(path::startsWith);
     }
 
     @Override

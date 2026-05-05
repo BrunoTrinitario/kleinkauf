@@ -1,7 +1,8 @@
 # Pendientes para el microservicio de productos
 
 - Hacer el todo del security de productos
-- estoy intentando resolver que por cada request valide el tenant el gateway
-- multiples bd por schema 1 sola por tenants
+- hacer cumnicacion de MS - gw - MS
 
-# NO ENTRA EN ESTE MS ventas y logistica
+# NO ENTRA
+# MS ventas y logistica
+# ESTRATEGIA DE TENANTS
