@@ -29,6 +29,7 @@ public class TenantService {
 
         return webClient.get()
                 .uri(tenantUrl + "?url=" + url)
+                .header("X-Internal-Request", "true")
                 .retrieve()
                 .bodyToMono(ComTenantDto.class);
     }

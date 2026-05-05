@@ -19,9 +19,10 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/api/users/**").hasRole("ADMINISTRADOR")
+                .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
+                .requestMatchers("/api/v1/internal/**").permitAll()
                 .anyRequest().authenticated()
             ).csrf(csrf -> csrf.disable())
             .headers(headers -> headers

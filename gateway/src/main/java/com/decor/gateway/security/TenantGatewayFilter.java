@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 
 @Component
+@Order(2)
 public class TenantGatewayFilter implements WebFilter {
 
     @Autowired
@@ -52,9 +54,17 @@ public class TenantGatewayFilter implements WebFilter {
                 }).onErrorResume(ex -> {
 
                     if (ex instanceof WebClientResponseException e) {
-                        return writeError(exchange, e.getStatusCode(), "Error de respuesta");
+                        return writeError(exchange, e.getStatusCode(), ex.getMessage());
                     }
 
+                    if (ex instanceof ErrorResponse errorResponse) {
+                        HttpStatusCode statusCode = errorResponse.getStatusCode();
+                        return writeError(
+                                exchange,
+                                HttpStatus.valueOf(statusCode.value()),
+                                ex.getMessage()
+                        );
+                    }
                     return writeError(exchange, HttpStatus.SERVICE_UNAVAILABLE, "Error de respuesta");
                 });
     }

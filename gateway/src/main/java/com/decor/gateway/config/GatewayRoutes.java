@@ -13,14 +13,14 @@ public class GatewayRoutes {
         return builder.routes()
 
                 .route("products", r -> r
-                        .path("/api/products/**")
+                        .path("/api/v1/products/**")
                         .uri("http://localhost:3002"))
 
                 .route("users", r -> r
-                        .path("/api/users/**")
+                        .path("/api/v1/users/**")
                         .uri("http://localhost:3001"))
                 .route("auth", r -> r
-                        .path("/api/auth/**")
+                        .path("/api/v1/auth/**")
                         .uri("http://localhost:3001"))
                 .build();
     }

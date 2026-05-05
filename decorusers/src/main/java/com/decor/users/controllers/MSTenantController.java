@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 public class MSTenantController {
     @Autowired
     TenantService tenantService;
-    @GetMapping("/")
+    @GetMapping()
     public ResponseEntity<ComTenantDto> getUserById(@RequestParam String url) throws ApiException {
         ComTenantDto tenant = tenantService.getTenantByUrl(url);
         return new ResponseEntity<>(tenant, org.springframework.http.HttpStatus.OK);

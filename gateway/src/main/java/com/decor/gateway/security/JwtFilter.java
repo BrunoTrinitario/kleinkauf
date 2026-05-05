@@ -2,6 +2,7 @@ package com.decor.gateway.security;
 
 
 
+import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -18,14 +19,10 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Component
+@Order(3)
 public class JwtFilter implements WebFilter {
 
     private final JwtUtil jwtUtil;
-
-    private final List<String> excludedPaths = List.of(
-            "/api/auth/login",
-            "/api/auth/register"
-    );
 
     public JwtFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
@@ -36,7 +33,7 @@ public class JwtFilter implements WebFilter {
 
         String path = exchange.getRequest().getURI().getPath();
 
-        if (excludedPaths.stream().anyMatch(path::startsWith)) {
+        if (PermittedUrls.isPermitted(path)) {
             return chain.filter(exchange);
         }
 

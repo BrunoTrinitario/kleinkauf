@@ -35,7 +35,7 @@ import com.decor.users.services.UserService;
  * @author bruno.trinitario
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 public class UserController {
     @Autowired
     private UserService userService;

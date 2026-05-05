@@ -32,9 +32,8 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
 
     private final List<String> excludedPaths = List.of(
-            "/auth/login",
-            "/auth/register",
-            "/internal/tenants"
+            "/api/v1/auth/login",
+            "/api/v1/auth/register"
     );
 
     @Override
@@ -52,6 +51,13 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
         String userIdHeader = request.getHeader("X-User-Id");
 
+        boolean isInternal = Boolean.parseBoolean(request.getHeader("X-internal-request"));
+
+        if (isInternal) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if (userIdHeader != null) {
 
             Long userId = Long.parseLong(userIdHeader);
@@ -68,8 +74,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
                 );
             }
 
-            CustomUserDetails userDetails =
-                    new CustomUserDetails(userId, roles);
+            CustomUserDetails userDetails = new CustomUserDetails(userId, roles);
 
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(

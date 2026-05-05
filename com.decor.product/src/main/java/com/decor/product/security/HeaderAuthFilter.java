@@ -29,6 +29,13 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
         String userIdHeader = request.getHeader("X-User-Id");
 
+        boolean isInternal = Boolean.parseBoolean(request.getHeader("X-internal-request"));
+
+        if (isInternal) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if (userIdHeader != null) {
 
             Long userId = Long.parseLong(userIdHeader);
