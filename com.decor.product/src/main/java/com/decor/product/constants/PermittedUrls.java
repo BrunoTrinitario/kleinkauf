@@ -6,18 +6,19 @@ public class PermittedUrls {
 
     public static String INTERNAL_PATH = "/api/internal";
 
-    public static List<String> getExcludedPaths() {
-        return List.of(
-                "/api/v1/products/all"
-        );
-    }
+    private static final List<String> PATTERNS = List.of(
+            "^/all$",
+            "^/\\d+$",
+            "^/search(\\?.*)?$",
+            "^/\\d+/images$",
+            "^/\\d+/metadata$"
+    );
 
     public static boolean isPermitted(String path) {
-        for(String allowed : PermittedUrls.getExcludedPaths()) {
-            if (path.startsWith(allowed)) {
-                return true;
-            }
-        }
-        return false;
+
+        String cleanPath = path.split("\\?")[0];
+
+        return PATTERNS.stream()
+                .anyMatch(cleanPath::matches);
     }
 }
