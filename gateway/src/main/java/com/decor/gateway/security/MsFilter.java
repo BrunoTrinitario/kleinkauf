@@ -1,6 +1,9 @@
 package com.decor.gateway.security;
 
+import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.constants.PermittedUrls;
+import com.decor.gateway.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -14,17 +17,17 @@ import reactor.core.publisher.Mono;
 @Order(-1)
 public class MsFilter implements WebFilter {
 
-    @Value("${api.internal.key}")
-    private String apiInternalKey;
+    @Autowired
+    JwtUtil jwtUtil;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         if (path.startsWith(PermittedUrls.INTERNAL_PATH)) {
-            String msIdentfier = exchange.getRequest()
+            String token = exchange.getRequest()
                     .getHeaders()
-                    .getFirst("X-Internal-Key");
-            if (msIdentfier.equals(apiInternalKey)) {
+                    .getFirst(CustomHeaders.INTERNAL_TOKEN_HEADER);
+            if (jwtUtil.validateInternalToken(token)) {
                 return chain.filter(exchange);
             }else{
                 return unauthorized(exchange);

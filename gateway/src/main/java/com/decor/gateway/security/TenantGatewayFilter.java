@@ -1,5 +1,6 @@
 package com.decor.gateway.security;
 
+import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.dtos.ComTenantDto;
 import com.decor.gateway.services.TenantService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +44,9 @@ public class TenantGatewayFilter implements WebFilter {
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
-                            .header("X-Tenant-DB", tenant.dbName())
-                            .header("X-Tenant-User", tenant.dbUser())
-                            .header("X-Tenant-Password", tenant.dbPassword())
+                            .header(CustomHeaders.TENANT_DB_HEADER, tenant.dbName())
+                            .header(CustomHeaders.TENANT_USER_HEADER, tenant.dbUser())
+                            .header(CustomHeaders.TENANT_PASSWORD_HEADER, tenant.dbPassword())
                             .build();
 
                     return chain.filter(exchange.mutate()

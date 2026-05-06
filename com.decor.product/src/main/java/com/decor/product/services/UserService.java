@@ -2,6 +2,7 @@ package com.decor.product.services;
 
 import com.decor.product.CacheUtil;
 import com.decor.product.dto.RoleDto;
+import com.decor.product.util.JwtUtil;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +25,9 @@ public class UserService {
     @Value("${gateway.url}")
     private String gatewayUrl;
 
-    @Value("${api.internal.key}")
-    private String apiInternalKey;
+    @Autowired
+    private JwtUtil jwtUtil;
+
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -33,7 +35,7 @@ public class UserService {
         List<RoleDto> roles = cache.getUserRoles(userId);
         if (roles.isEmpty()){
             HttpHeaders headers = new HttpHeaders();
-            headers.set("X-Internal-Key", apiInternalKey);
+            headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
 
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 

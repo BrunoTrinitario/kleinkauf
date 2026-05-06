@@ -1,7 +1,11 @@
-# Pendientes para el microservicio de productos
+# Pendientes
 
-- hacer cumnicacion de MS - gw - MS
+- Eureka server
 
 # NO ENTRA
-# MS ventas y logistica
-# ESTRATEGIA DE TENANTS
+- MS ventas y logistica
+- ESTRATEGIA DE TENANTS
+
+# Tener en cuenta
+- los endpoints publicos son: /api/v1/**
+- los endpoints privados son: /api/internal/**

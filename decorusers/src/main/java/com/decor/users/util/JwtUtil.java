@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +30,9 @@ public class JwtUtil {
 
     private SecretKey key;
 
+    @Value("${api.secret.key}")
+    private String apiSecret;
+
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
@@ -37,26 +41,39 @@ public class JwtUtil {
     // 🔥 GENERATE TOKENS
 
     public String generateAccessToken(Long id, String email, String name) {
-        return createToken(id, email, name, 1000 * 60 * 60); // 1h
-    }
-
-    public String generateRefreshToken(Long id, String email, String name) {
-        return createToken(id, email, name, 1000 * 60 * 60 * 24); // 24h
-    }
-
-    private String createToken(Long id, String email, String name, long expirationMillis) {
-
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("name", name);
         claims.put("email", email);
+        claims.put("subject", email);
+        return createToken(claims, 1000 * 60 * 60, this.key); // 1h
+    }
+
+    public String generateMicroServiceToken(String serviceName){
+        SecretKey apiKey = Keys.hmacShaKeyFor(apiSecret.getBytes());
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", serviceName);
+        claims.put("subject", serviceName);
+        return createToken(claims, 1000 * 10, apiKey);
+    }
+
+    public String generateRefreshToken(Long id, String email, String name) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", id);
+        claims.put("name", name);
+        claims.put("email", email);
+        claims.put("subject", email);
+        return createToken(claims, 1000 * 60 * 60 * 24, this.key); // 24h
+    }
+
+    private String createToken(Map<String, Object> claims, long expirationMillis, SecretKey key) {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(email)
+                .setSubject(claims.get("subject").toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
-                .signWith(key) // 🔥 ya no hace falta pasar algoritmo
+                .signWith(key)
                 .compact();
     }
 

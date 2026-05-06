@@ -27,14 +27,17 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    private SecretKey key;
+    @Value("${api.internal.key}")
+    private String apiSecret;
+
+    private SecretKey key, apiKey;
 
     @PostConstruct
     public void init() {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
-    }
 
-    // 🔥 GENERATE TOKENS
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        this.apiKey = Keys.hmacShaKeyFor(apiSecret.getBytes());
+    }
 
     public String generateAccessToken(Long id, String email, String name) {
         return createToken(id, email, name, 1000 * 60 * 60); // 1h
@@ -60,20 +63,25 @@ public class JwtUtil {
                 .compact();
     }
 
-    // 🔥 VALIDATE
-
     public boolean validateToken(String token) {
         try {
-            parseClaims(token);
+            parseClaims(token, this.key);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    // 🔥 CENTRAL PARSER
+    public boolean validateInternalToken(String token) {
+        try {
+            parseClaims(token, this.key);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-    private Claims parseClaims(String token) {
+    private Claims parseClaims(String token, SecretKey key) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
@@ -81,11 +89,9 @@ public class JwtUtil {
                 .getBody();
     }
 
-    // 🔥 GETTERS
-
     public Claims getClaims(String token) {
         try {
-            return parseClaims(token);
+            return parseClaims(token, this.key);
         } catch (Exception e) {
             return null;
         }
@@ -96,13 +102,4 @@ public class JwtUtil {
         return claims != null ? claims.get("id", Long.class) : null;
     }
 
-    public String getEmail(String token) {
-        Claims claims = getClaims(token);
-        return claims != null ? claims.getSubject() : null;
-    }
-
-    public String getName(String token) {
-        Claims claims = getClaims(token);
-        return claims != null ? claims.get("name", String.class) : null;
-    }
 }

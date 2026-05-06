@@ -1,5 +1,6 @@
 package com.decor.gateway.security;
 
+import com.decor.gateway.constants.CustomHeaders;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -15,10 +16,10 @@ public class HeadersFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest mutatedRequest = exchange.getRequest()
                 .mutate()
-                .header("X-Tenant-DB", "")
-                .header("X-Tenant-User", "")
-                .header("X-Tenant-Password", "")
-                .header("X-Internal-Request", "")
+                .header(CustomHeaders.TENANT_DB_HEADER, "")
+                .header(CustomHeaders.TENANT_USER_HEADER, "")
+                .header(CustomHeaders.TENANT_PASSWORD_HEADER, "")
+                .header(CustomHeaders.INTERNAL_REQ_HEADER, "")
                 .build();
 
         return chain.filter(exchange.mutate()

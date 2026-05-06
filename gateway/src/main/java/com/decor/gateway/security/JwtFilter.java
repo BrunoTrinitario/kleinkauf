@@ -2,6 +2,7 @@ package com.decor.gateway.security;
 
 
 
+import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;
 import org.springframework.core.annotation.Order;
@@ -60,7 +61,7 @@ public class JwtFilter implements WebFilter {
 
             ServerHttpRequest mutatedRequest = exchange.getRequest()
                     .mutate()
-                    .header("X-User-Id", String.valueOf(userId))
+                    .header(CustomHeaders.USER_ID_HEADER, String.valueOf(userId))
                     .build();
 
             ServerWebExchange mutatedExchange = exchange.mutate()
