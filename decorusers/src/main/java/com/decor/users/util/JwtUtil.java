@@ -30,15 +30,11 @@ public class JwtUtil {
 
     private SecretKey key;
 
-    @Value("${api.secret.key}")
-    private String apiSecret;
-
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // 🔥 GENERATE TOKENS
 
     public String generateAccessToken(Long id, String email, String name) {
         Map<String, Object> claims = new HashMap<>();
@@ -49,13 +45,6 @@ public class JwtUtil {
         return createToken(claims, 1000 * 60 * 60, this.key); // 1h
     }
 
-    public String generateMicroServiceToken(String serviceName){
-        SecretKey apiKey = Keys.hmacShaKeyFor(apiSecret.getBytes());
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("name", serviceName);
-        claims.put("subject", serviceName);
-        return createToken(claims, 1000 * 10, apiKey);
-    }
 
     public String generateRefreshToken(Long id, String email, String name) {
         Map<String, Object> claims = new HashMap<>();

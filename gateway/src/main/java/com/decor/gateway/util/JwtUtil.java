@@ -74,7 +74,7 @@ public class JwtUtil {
 
     public boolean validateInternalToken(String token) {
         try {
-            parseClaims(token, this.key);
+            parseClaims(token, this.apiKey);
             return true;
         } catch (Exception e) {
             return false;
