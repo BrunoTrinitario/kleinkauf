@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -38,11 +40,15 @@ public class ProductService {
     @Autowired
     private FileManager fileManager;
 
-    public ArrayList<LightProductDto> getAllProducts(){
+    public ArrayList<LightProductDto> getAllProducts() throws ApiException {
         ArrayList<LightProductDto> products = new ArrayList<>();
         Collection<Product> productCollection = productRepository.findAll();
         for  (Product product : productCollection) {
-            products.add(productFactory.getLightProductInfo(product));
+            ArrayList<ImageDto> images = this.getProductImages(product.getId());
+            List<String> imagesPath = images.stream().map(i->{
+                 return i.path();
+            }).toList();
+            products.add(productFactory.getLightProductInfo(product,imagesPath));
         }
         return products;
     }
@@ -161,7 +167,8 @@ public class ProductService {
         for(String path : imagePaths) {
             ProductImage realImage = new ProductImage();
             realImage.setProduct(product);
-            realImage.setPath(path);
+            String fileName = Paths.get(path).getFileName().toString();
+            realImage.setPath(fileName);
             realImage.setImageOrder(cont);
             cont++;
             productImageRepository.save(realImage);

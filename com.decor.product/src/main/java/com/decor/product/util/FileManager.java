@@ -27,7 +27,7 @@ public class FileManager {
     }
     private String saveImage(MultipartFile file){
         try {
-            String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String filename = UUID.randomUUID() + "_" + System.currentTimeMillis() + ".png";
 
             Path uploadPath = Paths.get(imagePath).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);

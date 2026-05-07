@@ -22,6 +22,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/v1/products/**").permitAll()
+                        .requestMatchers("/products/images/**").permitAll()
                         .anyRequest().authenticated()
                 ).addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

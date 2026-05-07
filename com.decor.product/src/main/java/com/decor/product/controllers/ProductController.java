@@ -18,7 +18,7 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping("/all")
-    public ResponseEntity<ArrayList<LightProductDto>> getAllProducts() {
+    public ResponseEntity<ArrayList<LightProductDto>> getAllProducts() throws ApiException {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 

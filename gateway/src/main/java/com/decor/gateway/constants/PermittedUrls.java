@@ -13,9 +13,9 @@ public class PermittedUrls {
                 "/api/v1/products/all",
 
                 "/api/v1/products/{id}",
-                "/api/v1/products/{id}/images",
                 "/api/v1/products/{id}/metadata",
-                "/api/v1/products/search"
+                "/api/v1/products/search",
+                "/products/images/{any}"
         );
     }
 
@@ -24,9 +24,9 @@ public class PermittedUrls {
         String cleanPath = path.split("\\?")[0]; // remover query params
 
         for (String allowed : getExcludedPaths()) {
-
             String regex = allowed
                     .replace("{id}", "\\d+")
+                    .replace("{any}",".*$")
                     .replace("/", "\\/");
 
             regex = "^" + regex + "$";

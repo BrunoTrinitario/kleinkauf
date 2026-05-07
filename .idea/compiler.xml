@@ -5,18 +5,41 @@
       <profile name="Gradle Imported" enabled="true">
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
-          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.46/a5cfe99fdf320e84955ef653f2ce1bf789d11385/lombok-1.18.46.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.44/503fd0b002dbb237fa4656cf4b8021666a8aebac/lombok-1.18.44.jar" />
         </processorPath>
-        <module name="com.decor.product.main" />
-        <module name="com.decor.product.test" />
+        <module name="com.decor.decorusers.main" />
+        <module name="com.decor.decorusers.test" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="com.decor.product" target="21" />
+      <module name="com.decor.product.main" target="21" />
+      <module name="com.decor.product.test" target="21" />
+      <module name="decorusers" target="21" />
+      <module name="decorusers.main" target="21" />
+      <module name="decorusers.test" target="21" />
+      <module name="eureka" target="21" />
+      <module name="eureka.main" target="21" />
+      <module name="eureka.test" target="21" />
+      <module name="gateway" target="21" />
+      <module name="gateway.main" target="21" />
+      <module name="gateway.test" target="21" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="com.decor.decorusers" options="-parameters" />
+      <module name="com.decor.decorusers.main" options="-parameters" />
+      <module name="com.decor.decorusers.test" options="-parameters" />
+      <module name="com.decor.gateway" options="-parameters" />
+      <module name="com.decor.gateway.main" options="-parameters" />
+      <module name="com.decor.gateway.test" options="-parameters" />
       <module name="com.decor.product" options="-parameters" />
       <module name="com.decor.product.main" options="-parameters" />
       <module name="com.decor.product.test" options="-parameters" />
+      <module name="decor.com.decor.product" options="-parameters" />
+      <module name="decor.com.decor.product.main" options="-parameters" />
+      <module name="decor.com.decor.product.test" options="-parameters" />
       <module name="decorusers" options="-parameters" />
       <module name="decorusers.main" options="-parameters" />
       <module name="decorusers.test" options="-parameters" />

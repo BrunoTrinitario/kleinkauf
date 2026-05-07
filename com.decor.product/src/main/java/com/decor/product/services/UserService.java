@@ -3,7 +3,6 @@ package com.decor.product.services;
 import com.decor.product.CacheUtil;
 import com.decor.product.dto.RoleDto;
 import com.decor.product.util.JwtUtil;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -35,7 +34,7 @@ public class UserService {
         List<RoleDto> roles = cache.getUserRoles(userId);
         if (roles.isEmpty()){
             HttpHeaders headers = new HttpHeaders();
-            headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
+            headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("public/images/products"));
 
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 

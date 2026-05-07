@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 @Service
 public class ProductFactory {
@@ -59,13 +60,14 @@ public class ProductFactory {
         return fullProductDto;
     }
 
-    public LightProductDto getLightProductInfo(Product p){
+    public LightProductDto getLightProductInfo(Product p, List<String> imagesPath){
         return  new LightProductDto(
                 p.getId(),
                 p.getName(),
                 p.getCategory(),
                 p.getDescription(),
-                p.getStock()
+                p.getStock(),
+                imagesPath
         );
     }
 }

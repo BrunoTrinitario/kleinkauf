@@ -15,6 +15,10 @@ public class GatewayRoutes {
                         .path("/api/v1/products/**")
                         .uri("http://localhost:3002"))
 
+                .route("products", r -> r
+                        .path("/products/images/**")
+                        .uri("http://localhost:3002"))
+
                 .route("users", r -> r
                         .path("/api/v1/users/**")
                         .uri("http://localhost:3001"))

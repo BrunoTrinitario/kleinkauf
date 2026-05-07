@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeExchange(ex -> ex
                         .pathMatchers("/api/v1/**").permitAll()
                         .pathMatchers("/api/internal/**").permitAll()
+                        .pathMatchers("/products/images/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .build();
