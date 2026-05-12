@@ -12,7 +12,6 @@ import org.hibernate.annotations.SQLRestriction;
 @Table(name = "productmetadata")
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
 public class ProductMetaData {
     @Id
@@ -30,5 +29,15 @@ public class ProductMetaData {
     private double width;
     private double length;
     private double weight;
+
+    public ProductMetaData(){
+        this.material = "unknown";
+        this.color = "unknown";
+        this.style = "unknown";
+        this.height = 0.0;
+        this.width = 0.0;
+        this.length = 0.0;
+        this.weight = 0.0;
+    }
 
 }

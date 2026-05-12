@@ -32,9 +32,10 @@ public class JwtFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
 
+        String method = exchange.getRequest().getMethod().name();
         String path = exchange.getRequest().getURI().getPath();
 
-        if (PermittedUrls.isPermitted(path)) {
+        if (PermittedUrls.isPermitted(method, path) || method.equals("OPTIONS")) {
             return chain.filter(exchange);
         }
 

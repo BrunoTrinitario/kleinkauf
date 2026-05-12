@@ -112,8 +112,8 @@ public class ProductService {
         return productFactory.getFullProductInfo(product);
     }
 
-    public FullProductDto updateProduct(LightProductDto updatedData) throws ApiException{
-        Product product = productRepository.findById(updatedData.id()).orElse(null);
+    public FullProductDto updateProduct(Long id, BasicUpdateDto updatedData) throws ApiException{
+        Product product = productRepository.findById(id).orElse(null);
         if (product == null){
             throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }else{
