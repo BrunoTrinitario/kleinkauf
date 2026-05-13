@@ -61,7 +61,7 @@ public class ProductService {
 
     public boolean deleteProductById(Long id) throws ApiException {
         FullProductDto product = this.getProductById(id);
-        if (product!=null) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        if (product==null) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
         product.getImages().stream().forEach(image -> {
             this.deleteImagePhyscally(image.path());
         });
