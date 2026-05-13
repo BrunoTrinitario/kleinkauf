@@ -1,1 +1,13 @@
 ./com.decor.product/uploads
+# v0 sandbox internal files
+./frontend/__v0_runtime_loader.js
+./frontend/__v0_devtools.tsx
+./frontend/__v0_jsx-dev-runtime.ts
+./frontend/.snowflake/
+./frontend/.v0-trash/
+./frontend/.vercel/
+./frontend/# Environment variables
+./frontend/.env*.local
+./frontend/node_modules
+./frontend/.next/
+./frontend/.DS_Store
