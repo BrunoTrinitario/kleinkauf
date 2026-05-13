@@ -37,7 +37,8 @@ public class CacheUtil {
 
     public void deleteUser(Long userId) {
         redisTemplate.opsForHash().delete(
-                "user:" + userId);
+                "user:" + userId,
+                "roles");
     }
 
     public void saveOrUpdateTenantCache(String tenantUrl, ComTenantDto tenant) {

@@ -43,7 +43,8 @@ public class FileManager {
 
     public void deleteImage(String path){
         try {
-            Path filePath = Paths.get(path);
+            Path uploadPath = Paths.get(imagePath).toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(path).normalize();
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
             throw new RuntimeException("Error eliminando archivo");

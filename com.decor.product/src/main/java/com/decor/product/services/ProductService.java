@@ -60,8 +60,11 @@ public class ProductService {
     }
 
     public boolean deleteProductById(Long id) throws ApiException {
-        boolean exists = productRepository.existsById(id);
-        if (!exists) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        FullProductDto product = this.getProductById(id);
+        if (product!=null) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        product.getImages().stream().forEach(image -> {
+            this.deleteImagePhyscally(image.path());
+        });
         productRepository.deleteById(id);
         return true;
     }
@@ -96,14 +99,17 @@ public class ProductService {
     public boolean deleteImageById(Long id) throws ApiException {
         ProductImage image = productImageRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.IMAGE_NOT_FOUND, HttpStatus.NOT_FOUND));
-        Long productId = image.getProduct().getId();
-        fileManager.deleteImage(image.getPath());
         productImageRepository.delete(image);
-        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByImageOrderAsc(productId);
+        deleteImagePhyscally(image.getPath());
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByImageOrderAsc(image.getProduct().getId());
         for (int i = 0; i < images.size(); i++)
             images.get(i).setImageOrder(i);
         productImageRepository.saveAll(images);
         return true;
+    }
+
+    public void deleteImagePhyscally(String path){
+        fileManager.deleteImage(path);
     }
 
     public FullProductDto getProductByName(String name) throws ApiException {
