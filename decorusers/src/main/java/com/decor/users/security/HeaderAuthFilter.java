@@ -4,7 +4,7 @@ import com.decor.users.constants.PermittedUrls;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.entities.Role;
 import com.decor.users.repositories.RoleRepository;
-import com.decor.users.util.CacheUtil;
+import com.decor.users.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +28,8 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
     @Autowired
     RoleRepository roleRepository;
 
+    @Autowired
+    JwtUtil jwtUtil;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -47,7 +49,12 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
         boolean isInternal = Boolean.parseBoolean(request.getHeader("X-internal-request"));
 
         if (isInternal) {
-            filterChain.doFilter(request, response);
+            String token = request.getHeader("X-Internal-Token");
+            if (jwtUtil.validateInternalToken(token)) {
+                filterChain.doFilter(request, response);
+            }else{
+                rejectRequest(response, "Token invalido");
+            }
             return;
         }
 
@@ -78,7 +85,20 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
+    }
+    private void rejectRequest(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
 
-        filterChain.doFilter(request, response);
+        response.getWriter().write("""
+        {
+          "status": 403,
+          "error": "Forbidden",
+          "message": "%s"
+        }
+        """.formatted(message));
+
+        response.getWriter().flush();
     }
 }

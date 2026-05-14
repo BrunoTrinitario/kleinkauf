@@ -1,9 +1,6 @@
 package com.decor.users.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,15 +16,46 @@ import java.util.UUID;
 @Setter
 public class Tenant {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private UUID id;
 
-    private String name, dbName, dbUser, dbPassword, configId;
+    @Column(name = "config_id", nullable = false, unique = true, length = 100)
+    private String configId;
 
-    @Column(unique = true)
+    @Column(name = "name", unique = true, nullable = false)
+    private String name;
+
+    @Column(name = "url", nullable = false, length = 500)
     private String url;
 
-    private LocalDateTime created_at, deleted_at;
+    @Column(name = "db_name", nullable = false, length = 100)
+    private String dbName;
 
-    private boolean enable;
+    @Column(name = "db_user", nullable = false, length = 100)
+    private String dbUser;
+
+    @Column(name = "db_password", nullable = false, length = 255)
+    private String dbPassword;
+
+    @Column(name = "enable", nullable = false)
+    private Boolean enable = true;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "driver_class_name")
+    private String driverClassName;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (enable == null) {
+            enable = true;
+        }
+    }
 }

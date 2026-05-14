@@ -1,11 +1,8 @@
 package com.decor.gateway.security;
 
 import com.decor.gateway.constants.CustomHeaders;
-import com.decor.gateway.dtos.ComTenantDto;
 import com.decor.gateway.services.TenantService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -44,9 +41,8 @@ public class TenantGatewayFilter implements WebFilter {
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
-                            .header(CustomHeaders.TENANT_DB_HEADER, tenant.dbName())
-                            .header(CustomHeaders.TENANT_USER_HEADER, tenant.dbUser())
-                            .header(CustomHeaders.TENANT_PASSWORD_HEADER, tenant.dbPassword())
+                            .header(CustomHeaders.TENANT_DB_HEADER, baseUrl)
+                            .header("X-Forwarded-Host", baseUrl)
                             .build();
 
                     return chain.filter(exchange.mutate()

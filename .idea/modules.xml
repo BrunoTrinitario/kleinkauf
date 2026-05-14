@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/decor.iml" filepath="$PROJECT_DIR$/.idea/decor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decor.com.decor.product.main.iml" filepath="$PROJECT_DIR$/.idea/modules/decor.com.decor.product.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/decorusers.iml" filepath="$PROJECT_DIR$/.idea/modules/decorusers.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/eureka.iml" filepath="$PROJECT_DIR$/.idea/modules/eureka.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/eureka.main.iml" filepath="$PROJECT_DIR$/.idea/modules/eureka.main.iml" />

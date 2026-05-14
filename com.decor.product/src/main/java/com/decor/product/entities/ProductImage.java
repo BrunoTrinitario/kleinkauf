@@ -26,5 +26,6 @@ public class ProductImage {
 
     private String path;
 
+    @Column(name = "image_order")
     private int imageOrder;
 }

@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TenantRepository extends JpaRepository<Tenant, UUID> {
-    Optional<Tenant> findByUrl(String url);
+    Optional<Tenant> findByName(String name);
 }

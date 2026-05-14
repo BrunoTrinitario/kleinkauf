@@ -1,7 +1,5 @@
 package com.decor.gateway.security;
 
-
-
 import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;

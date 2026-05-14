@@ -8,6 +8,7 @@ package com.decor.users.util;
 import com.decor.users.dtos.FullTenantDto;
 import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.RoleDto;
+import com.decor.users.dtos.TenantDto;
 import com.decor.users.entities.Role;
 import com.decor.users.entities.Tenant;
 import com.decor.users.entities.User;
@@ -31,17 +32,19 @@ public class Parser {
         );
     }
 
-    public static FullTenantDto fromTenantEntityToFullDto(Tenant t){
-        return new FullTenantDto(
-                t.getId().toString(),
+    public static TenantDto fromTenantEntityToFullDto(Tenant t){
+        return new TenantDto(
+                t.getId(),
+                t.getConfigId(),
                 t.getName(),
                 t.getUrl(),
                 t.getDbName(),
                 t.getDbUser(),
                 t.getDbPassword(),
-                t.getCreated_at(),
-                t.getDeleted_at(),
-                t.isEnable()
+                t.getEnable(),
+                t.getCreatedAt(),
+                t.getDeletedAt(),
+                t.getDriverClassName()
         );
     }
 
@@ -52,8 +55,8 @@ public class Parser {
         t.setDbName(dto.dbName());
         t.setDbUser(dto.dbUser());
         t.setDbPassword(dto.dbPassword());
-        t.setCreated_at(dto.createdAt());
-        t.setDeleted_at(dto.deletedAt());
+        t.setCreatedAt(dto.createdAt());
+        t.setDeletedAt(dto.deletedAt());
         t.setEnable(dto.enabled());
         return t;
     }
