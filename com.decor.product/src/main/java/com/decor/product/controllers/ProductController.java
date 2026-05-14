@@ -18,7 +18,7 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping("/all")
-    public ResponseEntity<ArrayList<LightProductDto>> getAllProducts() {
+    public ResponseEntity<ArrayList<LightProductDto>> getAllProducts() throws ApiException {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
@@ -37,9 +37,9 @@ public class ProductController {
         return ResponseEntity.ok(productService.deleteProductById(id));
     }
 
-    @PutMapping
-    public ResponseEntity<FullProductDto> updateProduct(@RequestBody LightProductDto dto) throws ApiException {
-        return ResponseEntity.ok(productService.updateProduct(dto));
+    @PutMapping("/{id}")
+    public ResponseEntity<FullProductDto> updateProduct(@PathVariable Long id, @RequestBody BasicUpdateDto dto) throws ApiException {
+        return ResponseEntity.ok(productService.updateProduct(id, dto));
     }
     @PostMapping
     public ResponseEntity<FullProductDto> createProduct(@RequestBody NewProductDto dto) throws ApiException {

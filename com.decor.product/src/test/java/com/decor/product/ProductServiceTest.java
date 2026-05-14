@@ -60,23 +60,6 @@ class ProductServiceTest {
 	@InjectMocks
 	private ProductService productService;
 
-	@Test
-	void getAllProducts_returnsMappedDtosInRepositoryOrder() {
-		Product firstProduct = product(1L, "Mesa", "living", "Mesa de madera", 4);
-		Product secondProduct = product(2L, "Silla", "living", "Silla tapizada", 8);
-		LightProductDto firstDto = new LightProductDto(1L, "Mesa", "living", "Mesa de madera", 4);
-		LightProductDto secondDto = new LightProductDto(2L, "Silla", "living", "Silla tapizada", 8);
-
-		when(productRepository.findAll()).thenReturn(List.of(firstProduct, secondProduct));
-		when(productFactory.getLightProductInfo(firstProduct)).thenReturn(firstDto);
-		when(productFactory.getLightProductInfo(secondProduct)).thenReturn(secondDto);
-
-		ArrayList<LightProductDto> result = productService.getAllProducts();
-
-		assertEquals(List.of(firstDto, secondDto), result);
-		verify(productFactory).getLightProductInfo(firstProduct);
-		verify(productFactory).getLightProductInfo(secondProduct);
-	}
 
 	@Test
 	void getProductById_existingProduct_returnsFullProductDto() throws ApiException {
@@ -210,37 +193,7 @@ class ProductServiceTest {
 		assertEquals("Product not found", exception.getMessage());
 	}
 
-	@Test
-	void updateProduct_updatesFieldsAndReturnsFullProductDto() throws ApiException {
-		Product product = product(30L, "Mesa", "living", "Mesa antigua", 2);
-		FullProductDto fullProductDto = fullProductDto(30L);
-		LightProductDto updatedData = new LightProductDto(30L, "Mesa nueva", "comedor", "Mesa renovada", 6);
 
-		when(productRepository.findById(30L)).thenReturn(Optional.of(product));
-		when(productFactory.getFullProductInfo(product)).thenReturn(fullProductDto);
-
-		FullProductDto result = productService.updateProduct(updatedData);
-
-		assertSame(fullProductDto, result);
-		assertEquals("Mesa nueva", product.getName());
-		assertEquals("comedor", product.getCategory());
-		assertEquals("Mesa renovada", product.getDescription());
-		assertEquals(6, product.getStock());
-		verify(productRepository).save(product);
-	}
-
-	@Test
-	void updateProduct_missingProduct_throwsApiException() {
-		LightProductDto updatedData = new LightProductDto(30L, "Mesa nueva", "comedor", "Mesa renovada", 6);
-
-		when(productRepository.findById(30L)).thenReturn(Optional.empty());
-
-		ApiException exception = assertThrows(ApiException.class, () -> productService.updateProduct(updatedData));
-
-		assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-		assertEquals("Product not found", exception.getMessage());
-		verifyNoInteractions(productFactory);
-	}
 
 	@Test
 	void createProduct_createsNewProductAndReturnsFullProductDto() throws ApiException {

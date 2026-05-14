@@ -27,7 +27,7 @@ public class FileManager {
     }
     private String saveImage(MultipartFile file){
         try {
-            String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String filename = UUID.randomUUID() + "_" + System.currentTimeMillis() + ".png";
 
             Path uploadPath = Paths.get(imagePath).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
@@ -43,7 +43,8 @@ public class FileManager {
 
     public void deleteImage(String path){
         try {
-            Path filePath = Paths.get(path);
+            Path uploadPath = Paths.get(imagePath).toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(path).normalize();
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
             throw new RuntimeException("Error eliminando archivo");

@@ -11,7 +11,8 @@ public class PermittedUrls {
             "^/\\d+$",
             "^/search(\\?.*)?$",
             "^/\\d+/images$",
-            "^/\\d+/metadata$"
+            "^/\\d+/metadata$",
+            "^/products/images/.*$"
     );
 
     public static boolean isPermitted(String path) {

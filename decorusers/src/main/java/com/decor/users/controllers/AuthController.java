@@ -34,7 +34,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoggedUser> Login(@RequestBody LoginUserDto userData) throws ApiException {
-        LoggedUser loggedUser = userService.login(userData.name(), userData.password());
+        LoggedUser loggedUser = userService.login(userData.email(), userData.password());
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.OK);
     }
 

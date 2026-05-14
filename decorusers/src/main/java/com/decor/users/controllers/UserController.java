@@ -46,7 +46,7 @@ public class UserController {
         return new ResponseEntity<>(users, org.springframework.http.HttpStatus.OK);
     }
 
-    @PostMapping("/")
+    @PostMapping()
     public ResponseEntity<FullUserDto> createUser(@RequestBody RegisterUserDto userData) throws ApiException {
         FullUserDto createdUser = userService.createUser(userData.name(), userData.email(), userData.password(), userData.roles());
         return new ResponseEntity<>(createdUser, org.springframework.http.HttpStatus.CREATED);

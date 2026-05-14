@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -38,11 +40,15 @@ public class ProductService {
     @Autowired
     private FileManager fileManager;
 
-    public ArrayList<LightProductDto> getAllProducts(){
+    public ArrayList<LightProductDto> getAllProducts() throws ApiException {
         ArrayList<LightProductDto> products = new ArrayList<>();
         Collection<Product> productCollection = productRepository.findAll();
         for  (Product product : productCollection) {
-            products.add(productFactory.getLightProductInfo(product));
+            ArrayList<ImageDto> images = this.getProductImages(product.getId());
+            List<String> imagesPath = images.stream().map(i->{
+                 return i.path();
+            }).toList();
+            products.add(productFactory.getLightProductInfo(product,imagesPath));
         }
         return products;
     }
@@ -54,8 +60,11 @@ public class ProductService {
     }
 
     public boolean deleteProductById(Long id) throws ApiException {
-        boolean exists = productRepository.existsById(id);
-        if (!exists) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        FullProductDto product = this.getProductById(id);
+        if (product==null) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        product.getImages().stream().forEach(image -> {
+            this.deleteImagePhyscally(image.path());
+        });
         productRepository.deleteById(id);
         return true;
     }
@@ -90,14 +99,17 @@ public class ProductService {
     public boolean deleteImageById(Long id) throws ApiException {
         ProductImage image = productImageRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.IMAGE_NOT_FOUND, HttpStatus.NOT_FOUND));
-        Long productId = image.getProduct().getId();
-        fileManager.deleteImage(image.getPath());
         productImageRepository.delete(image);
-        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByImageOrderAsc(productId);
+        deleteImagePhyscally(image.getPath());
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByImageOrderAsc(image.getProduct().getId());
         for (int i = 0; i < images.size(); i++)
             images.get(i).setImageOrder(i);
         productImageRepository.saveAll(images);
         return true;
+    }
+
+    public void deleteImagePhyscally(String path){
+        fileManager.deleteImage(path);
     }
 
     public FullProductDto getProductByName(String name) throws ApiException {
@@ -106,8 +118,8 @@ public class ProductService {
         return productFactory.getFullProductInfo(product);
     }
 
-    public FullProductDto updateProduct(LightProductDto updatedData) throws ApiException{
-        Product product = productRepository.findById(updatedData.id()).orElse(null);
+    public FullProductDto updateProduct(Long id, BasicUpdateDto updatedData) throws ApiException{
+        Product product = productRepository.findById(id).orElse(null);
         if (product == null){
             throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }else{
@@ -161,7 +173,8 @@ public class ProductService {
         for(String path : imagePaths) {
             ProductImage realImage = new ProductImage();
             realImage.setProduct(product);
-            realImage.setPath(path);
+            String fileName = Paths.get(path).getFileName().toString();
+            realImage.setPath(fileName);
             realImage.setImageOrder(cont);
             cont++;
             productImageRepository.save(realImage);

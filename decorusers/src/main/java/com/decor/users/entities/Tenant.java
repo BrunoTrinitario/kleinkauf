@@ -1,9 +1,6 @@
 package com.decor.users.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,15 +16,31 @@ import java.util.UUID;
 @Setter
 public class Tenant {
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private String name, dbName, dbUser, dbPassword, configId;
+    @Column(name = "config_id", nullable = false, unique = true, length = 100)
+    private String configId;
 
-    @Column(unique = true)
-    private String url;
+    @Column(name = "schema", unique = true, nullable = false)
+    private String schema;
 
-    private LocalDateTime created_at, deleted_at;
+    @Column(name = "enable", nullable = false)
+    private Boolean enable = true;
 
-    private boolean enable;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (enable == null) {
+            enable = true;
+        }
+    }
 }

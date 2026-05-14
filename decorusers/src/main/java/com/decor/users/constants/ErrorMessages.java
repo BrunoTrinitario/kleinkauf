@@ -16,4 +16,5 @@ public class ErrorMessages {
     public static String INVALID_ROLE = "The role provided is invalid.";
     public static String ROLES_MUST_BE_EMPTY = "Should not be any role";
     public static String INVALID_TOKEN = "The access token is invalid.";
+    public static String TENANT_NOT_FOUND = "The tenant was not found.";
 }

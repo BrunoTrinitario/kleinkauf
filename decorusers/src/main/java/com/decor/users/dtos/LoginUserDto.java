@@ -12,7 +12,7 @@ import java.util.List;
  * @author bruno.trinitario
  */
 public record LoginUserDto(
-        String name,
+        String email,
         String password
 ) {
 

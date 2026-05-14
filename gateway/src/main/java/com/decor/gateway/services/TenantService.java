@@ -1,7 +1,8 @@
 package com.decor.gateway.services;
 
-import com.decor.gateway.dtos.ComTenantDto;
+import com.decor.gateway.dtos.TenantDto;
 import com.decor.gateway.util.CacheUtil;
+import com.decor.gateway.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,20 +18,24 @@ public class TenantService {
     @Value("${tenant.url}")
     private String tenantUrl;
 
+    @Autowired
+    JwtUtil jwtUtil;
+
     private final WebClient webClient = WebClient.create();
 
-    public Mono<ComTenantDto> getTenant(String url) {
+    public Mono<TenantDto> getTenant(String schema) {
 
-        ComTenantDto cached = cacheUtil.getFullTenant(url);
-
-        if (cached != null) {
-            return Mono.just(cached);
-        }
+        //TenantDto cached = cacheUtil.getFullTenant(url);
+//
+        //if (cached != null) {
+        //    return Mono.just(cached);
+        //}
 
         return webClient.get()
-                .uri(tenantUrl + "?url=" + url)
+                .uri(tenantUrl + "/id?schema=" + schema)
                 .header("X-Internal-Request", "true")
+                .header("X-Internal-Token",jwtUtil.generateMicroServiceToken("gateway"))
                 .retrieve()
-                .bodyToMono(ComTenantDto.class);
+                .bodyToMono(TenantDto.class);
     }
 }

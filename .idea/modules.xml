@@ -2,11 +2,16 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.test.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.decor.product.iml" filepath="$PROJECT_DIR$/.idea/modules/com.decor.product.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/decor.iml" filepath="$PROJECT_DIR$/.idea/decor.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decorusers.main.iml" filepath="$PROJECT_DIR$/.idea/modules/decorusers.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decorusers.test.iml" filepath="$PROJECT_DIR$/.idea/modules/decorusers.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decor.com.decor.product.main.iml" filepath="$PROJECT_DIR$/.idea/modules/decor.com.decor.product.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/decorusers.iml" filepath="$PROJECT_DIR$/.idea/modules/decorusers.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/eureka.iml" filepath="$PROJECT_DIR$/.idea/modules/eureka.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/eureka.main.iml" filepath="$PROJECT_DIR$/.idea/modules/eureka.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/eureka.test.iml" filepath="$PROJECT_DIR$/.idea/modules/eureka.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway.main.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway.test.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway.test.iml" />
     </modules>
   </component>
 </project>

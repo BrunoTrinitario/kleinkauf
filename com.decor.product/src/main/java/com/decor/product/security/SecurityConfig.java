@@ -13,7 +13,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, HeaderAuthFilter headerAuthFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, TenantFilter tenantFilter,HeaderAuthFilter headerAuthFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
@@ -22,8 +22,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/v1/products/**").permitAll()
+                        .requestMatchers("/products/images/**").permitAll()
                         .anyRequest().authenticated()
-                ).addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                )
+                .addFilterBefore(
+                        tenantFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
