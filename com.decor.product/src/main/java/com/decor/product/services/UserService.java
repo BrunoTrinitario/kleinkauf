@@ -29,8 +29,8 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private RestTemplate restTemplate;
 
     public List<RoleDto> getUserRolesById(Long userId){
         List<RoleDto> roles = cache.getUserRoles(userId);

@@ -19,14 +19,17 @@ public class TenantService {
     private String tenantUrl;
 
     @Autowired
-    JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;
 
-    private final WebClient webClient = WebClient.create();
+    private final WebClient webClient;
+
+    public TenantService(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder.build();
+    }
 
     public Mono<TenantDto> getTenant(String schema) {
 
         //TenantDto cached = cacheUtil.getFullTenant(url);
-//
         //if (cached != null) {
         //    return Mono.just(cached);
         //}
@@ -34,7 +37,7 @@ public class TenantService {
         return webClient.get()
                 .uri(tenantUrl + "/id?schema=" + schema)
                 .header("X-Internal-Request", "true")
-                .header("X-Internal-Token",jwtUtil.generateMicroServiceToken("gateway"))
+                .header("X-Internal-Token", jwtUtil.generateMicroServiceToken("gateway"))
                 .retrieve()
                 .bodyToMono(TenantDto.class);
     }

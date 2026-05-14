@@ -42,12 +42,12 @@ public class TenantDataSource implements Serializable {
 
     @PostConstruct
     public void initAllSchemas() {
-        List<TenantDto> tenants = this.userService.getTenants();
-        for (TenantDto tenant : tenants) {
-            if (!this.existsSchema(tenant.schema()))
-                createSchemaIfNotExists(tenant.schema());
-            runMigration(tenant.schema());
-        }
+        //List<TenantDto> tenants = this.userService.getTenants();
+        //for (TenantDto tenant : tenants) {
+        //    if (!this.existsSchema(tenant.schema()))
+        //        createSchemaIfNotExists(tenant.schema());
+        //    runMigration(tenant.schema());
+        //}
     }
 
     public boolean existsSchema(String name) {
