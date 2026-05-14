@@ -32,12 +32,6 @@ public class TenantDataSource implements Serializable {
     public void initAllSchemas() {
         createSchemaIfNotExists("public");
         runMigration("public");
-        //List<TenantDto> tenants = this.tenantService.getAllTenant();
-        //for (TenantDto tenant : tenants) {
-        //    if (!this.existsSchema(tenant.dbName()))
-        //        createSchemaIfNotExists(tenant.dbName());
-        //    runMigration(tenant.dbName());
-        //}
     }
 
     public boolean existsSchema(String name) {
