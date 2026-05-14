@@ -26,17 +26,18 @@ public class TenantService {
         Collection<Tenant> rawTenantsList = this.tenantRepository.findAll();
         ArrayList<TenantDto> tenantsList = new ArrayList<>();
         for (Tenant t: rawTenantsList){
-            tenantsList.add(Parser.fromTenantEntityToFullDto(t));
+            TenantDto dto = Parser.fromTenantEntityToFullDto(t);
+            tenantsList.add(dto);
+            cacheUtil.saveOrUpdateTenantCache(t.getSchema(),dto);
         }
         return tenantsList;
     }
-
 
     public TenantDto getTenantBySchema(String schema){
         Tenant t = tenantRepository.findBySchema(schema).orElse(null);
         if  (t == null) return null;
         TenantDto dto = Parser.fromTenantEntityToFullDto(t);
-        //cacheUtil.saveOrUpdateTenantCache(t.getUrl(),TenantDto);
+        cacheUtil.saveOrUpdateTenantCache(t.getSchema(),dto);
         return dto;
     }
 

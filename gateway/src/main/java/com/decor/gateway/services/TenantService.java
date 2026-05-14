@@ -29,10 +29,10 @@ public class TenantService {
 
     public Mono<TenantDto> getTenant(String schema) {
 
-        //TenantDto cached = cacheUtil.getFullTenant(url);
-        //if (cached != null) {
-        //    return Mono.just(cached);
-        //}
+        TenantDto cached = cacheUtil.getTenantBySchema(schema);
+        if (cached != null) {
+            return Mono.just(cached);
+        }
 
         return webClient.get()
                 .uri(tenantUrl + "/id?schema=" + schema)

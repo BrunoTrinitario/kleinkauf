@@ -1,7 +1,7 @@
-package com.decor.product;
-
+package com.decor.product.util;
 
 import com.decor.product.dto.RoleDto;
+import com.decor.product.dto.TenantDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,7 +27,17 @@ public class CacheUtil {
         try {
             return objectMapper.readValue(rolesJson, new TypeReference<List<RoleDto>>() {});
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            return null;
+        }
+    }
+
+    public TenantDto getTenantBySchema(String schema) {
+        String key = "tenant:" + schema;
+        String rolesJson = (String) redisTemplate.opsForHash().get(key, "data");
+        try {
+            return objectMapper.readValue(rolesJson, new TypeReference<TenantDto>() {});
+        } catch (JsonProcessingException e) {
+            return null;
         }
     }
 

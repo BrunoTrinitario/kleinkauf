@@ -1,8 +1,8 @@
 package com.decor.product.services;
 
-import com.decor.product.CacheUtil;
 import com.decor.product.dto.RoleDto;
 import com.decor.product.dto.TenantDto;
+import com.decor.product.util.CacheUtil;
 import com.decor.product.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +34,7 @@ public class UserService {
 
     public List<RoleDto> getUserRolesById(Long userId){
         List<RoleDto> roles = cache.getUserRoles(userId);
-        if (roles.isEmpty()){
+        if (roles == null || roles.isEmpty()){
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-internal-request", Boolean.toString(true));
             headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
@@ -75,22 +75,21 @@ public class UserService {
     }
 
     public TenantDto getTenant(String schema){
-        TenantDto tenant = null;
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
-        headers.set("X-internal-request", Boolean.toString(true));
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<TenantDto> response =
-                restTemplate.exchange(
-                        usersUrl + "api/internal/tenants/id?schema="+ schema,
-                        HttpMethod.GET,
-                        entity,
-                        new ParameterizedTypeReference<TenantDto>() {}
-                );
-        tenant = response.getBody();
+        TenantDto tenant = cache.getTenantBySchema(schema);
+        if (tenant == null){
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
+            headers.set("X-internal-request", Boolean.toString(true));
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<TenantDto> response =
+                    restTemplate.exchange(
+                            usersUrl + "api/internal/tenants/id?schema="+ schema,
+                            HttpMethod.GET,
+                            entity,
+                            new ParameterizedTypeReference<TenantDto>() {}
+                    );
+            tenant = response.getBody();
+        }
         return tenant ;
     }
 

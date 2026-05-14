@@ -2,6 +2,7 @@ package com.decor.users.util;
 
 import com.decor.users.dtos.ComTenantDto;
 import com.decor.users.dtos.RoleDto;
+import com.decor.users.dtos.TenantDto;
 import com.decor.users.entities.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,8 +42,8 @@ public class CacheUtil {
                 "roles");
     }
 
-    public void saveOrUpdateTenantCache(String tenantUrl, ComTenantDto tenant) {
-        String key = "tenant:" + tenantUrl;
+    public void saveOrUpdateTenantCache(String tenantSchema, TenantDto tenant) {
+        String key = "tenant:" + tenantSchema;
         String dataJson = null;
         try {
             dataJson = objectMapper.writeValueAsString(tenant);
