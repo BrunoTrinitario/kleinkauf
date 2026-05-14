@@ -17,25 +17,13 @@ import java.util.UUID;
 public class Tenant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private UUID id;
+    private Long id;
 
     @Column(name = "config_id", nullable = false, unique = true, length = 100)
     private String configId;
 
-    @Column(name = "name", unique = true, nullable = false)
-    private String name;
-
-    @Column(name = "url", nullable = false, length = 500)
-    private String url;
-
-    @Column(name = "db_name", nullable = false, length = 100)
-    private String dbName;
-
-    @Column(name = "db_user", nullable = false, length = 100)
-    private String dbUser;
-
-    @Column(name = "db_password", nullable = false, length = 255)
-    private String dbPassword;
+    @Column(name = "schema", unique = true, nullable = false)
+    private String schema;
 
     @Column(name = "enable", nullable = false)
     private Boolean enable = true;
@@ -45,9 +33,6 @@ public class Tenant {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    @Column(name = "driver_class_name")
-    private String driverClassName;
 
     @PrePersist
     public void prePersist() {

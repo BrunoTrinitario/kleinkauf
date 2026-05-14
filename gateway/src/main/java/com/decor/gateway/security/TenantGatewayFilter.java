@@ -39,14 +39,14 @@ public class TenantGatewayFilter implements WebFilter {
                 .replace("https://", "")
                 .replace(":", "");
 
-        return tenantService.getTenant(baseUrl)
+        return tenantService.getTenant(tenantIdentifier)
                 .switchIfEmpty(Mono.error(new RuntimeException("Tenant not found")))
                 .flatMap(tenant -> {
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
                             .header(CustomHeaders.TENANT_DB_HEADER, baseUrl)
-                            .header("X-Forwarded-Host", tenant.dbName())
+                            .header("X-Forwarded-Host", tenant.schema())
                             .build();
 
                     return chain.filter(exchange.mutate()

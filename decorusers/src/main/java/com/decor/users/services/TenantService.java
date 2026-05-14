@@ -32,8 +32,8 @@ public class TenantService {
     }
 
 
-    public TenantDto getTenantByName(String name){
-        Tenant t = tenantRepository.findByName(name).orElse(null);
+    public TenantDto getTenantBySchema(String schema){
+        Tenant t = tenantRepository.findBySchema(schema).orElse(null);
         if  (t == null) return null;
         TenantDto dto = Parser.fromTenantEntityToFullDto(t);
         //cacheUtil.saveOrUpdateTenantCache(t.getUrl(),TenantDto);

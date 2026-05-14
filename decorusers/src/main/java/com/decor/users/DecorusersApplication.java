@@ -21,14 +21,14 @@ public class DecorusersApplication {
     @Bean
     CommandLineRunner init(UserService userService) {
         return args -> {
-            boolean exist = userService.userExistsByEmail("admin@admin");
-            if (!exist){
-                Set<String> roles = new HashSet<>();
-                roles.add("EMPLEADO");
-                roles.add("ADMINISTRADOR");
-                roles.add("CLIENTE");
-                userService.createUser("admin", "admin@admin", "admin", roles);
-            }
+//            boolean exist = userService.userExistsByEmail("admin@admin");
+//            if (!exist){
+//                Set<String> roles = new HashSet<>();
+//                roles.add("EMPLEADO");
+//                roles.add("ADMINISTRADOR");
+//                roles.add("CLIENTE");
+//                userService.createUser("admin", "admin@admin", "admin", roles);
+//            }
         };
     }
 

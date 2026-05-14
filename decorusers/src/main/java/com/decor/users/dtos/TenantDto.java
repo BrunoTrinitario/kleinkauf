@@ -4,16 +4,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record TenantDto(
-        UUID id,
+        Long id,
         String configId,
-        String name,
-        String url,
-        String dbName,
-        String dbUser,
-        String dbPassword,
+        String schema,
         Boolean enable,
         LocalDateTime createdAt,
-        LocalDateTime deletedAt,
-        String driverClassName
+        LocalDateTime deletedAt
 ) {
 }

@@ -36,28 +36,11 @@ public class Parser {
         return new TenantDto(
                 t.getId(),
                 t.getConfigId(),
-                t.getName(),
-                t.getUrl(),
-                t.getDbName(),
-                t.getDbUser(),
-                t.getDbPassword(),
+                t.getSchema(),
                 t.getEnable(),
                 t.getCreatedAt(),
-                t.getDeletedAt(),
-                t.getDriverClassName()
+                t.getDeletedAt()
         );
     }
 
-    public static Tenant formDtoToTenant(FullTenantDto dto){
-        Tenant t = new Tenant();
-        t.setName(dto.name());
-        t.setUrl(dto.url());
-        t.setDbName(dto.dbName());
-        t.setDbUser(dto.dbUser());
-        t.setDbPassword(dto.dbPassword());
-        t.setCreatedAt(dto.createdAt());
-        t.setDeletedAt(dto.deletedAt());
-        t.setEnable(dto.enabled());
-        return t;
-    }
 }

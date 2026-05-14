@@ -23,8 +23,8 @@ public class MSTenantController {
     }
 
     @GetMapping("/id")
-    public ResponseEntity<TenantDto> getUserById(@RequestParam String name) throws ApiException {
-        TenantDto tenant = tenantService.getTenantByName(name);
+    public ResponseEntity<TenantDto> getUserById(@RequestParam String schema) throws ApiException {
+        TenantDto tenant = tenantService.getTenantBySchema(schema);
         return new ResponseEntity<>(tenant, org.springframework.http.HttpStatus.OK);
     }
 }

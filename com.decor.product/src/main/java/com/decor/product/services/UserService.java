@@ -72,7 +72,7 @@ public class UserService {
         return tenants;
     }
 
-    public TenantDto getTenant(String name){
+    public TenantDto getTenant(String schema){
         TenantDto tenant = null;
 
         HttpHeaders headers = new HttpHeaders();
@@ -83,7 +83,7 @@ public class UserService {
 
         ResponseEntity<TenantDto> response =
                 restTemplate.exchange(
-                        usersUrl + "api/internal/tenants/id?name="+ name,
+                        usersUrl + "api/internal/tenants/id?schema="+ schema,
                         HttpMethod.GET,
                         entity,
                         new ParameterizedTypeReference<TenantDto>() {}

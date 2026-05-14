@@ -23,7 +23,7 @@ public class TenantService {
 
     private final WebClient webClient = WebClient.create();
 
-    public Mono<TenantDto> getTenant(String url) {
+    public Mono<TenantDto> getTenant(String schema) {
 
         //TenantDto cached = cacheUtil.getFullTenant(url);
 //
@@ -32,7 +32,7 @@ public class TenantService {
         //}
 
         return webClient.get()
-                .uri(tenantUrl + "/id?name=" + url)
+                .uri(tenantUrl + "/id?schema=" + schema)
                 .header("X-Internal-Request", "true")
                 .header("X-Internal-Token",jwtUtil.generateMicroServiceToken("gateway"))
                 .retrieve()
