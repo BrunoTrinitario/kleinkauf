@@ -24,8 +24,8 @@ public class CacheUtil {
     @Autowired
     ObjectMapper objectMapper;
 
-    public void saveOrUpdateUserCache(Long userId, List<RoleDto> roles) {
-        String key = "user:" + userId;
+    public void saveOrUpdateUserCache(Long userId,String tenantSchema, List<RoleDto> roles) {
+        String key = "user:" + userId + ":" + tenantSchema;
         String rolesJson = null;
         try {
             rolesJson = objectMapper.writeValueAsString(roles);

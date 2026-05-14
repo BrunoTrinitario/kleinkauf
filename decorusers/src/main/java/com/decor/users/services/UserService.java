@@ -7,6 +7,7 @@ package com.decor.users.services;
 
 import java.util.*;
 
+import com.decor.users.config.TenantContext;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.JwtUtil;
@@ -106,7 +107,7 @@ public class UserService {
             newUser.setRoles(userRoles);
             newUser = this.userRepository.save(newUser);
         }
-        cacheUtil.saveOrUpdateUserCache(newUser.getId(), this.getUserRoles(newUser.getId()));
+        cacheUtil.saveOrUpdateUserCache(newUser.getId(), TenantContext.getCurrentTenant(), this.getUserRoles(newUser.getId()));
         return Parser.fromUserEntityToFullDto(newUser,this.getUserRoles(newUser.getId()));
     }
 
@@ -141,7 +142,7 @@ public class UserService {
         newRole.setType(role);
         newRole.setUser(user);
         user.getRoles().add(newRole);
-        cacheUtil.saveOrUpdateUserCache(id, this.getUserRoles(id));
+        cacheUtil.saveOrUpdateUserCache(id, TenantContext.getCurrentTenant(), this.getUserRoles(id));
         return Parser.fromUserEntityToFullDto(user,this.getUserRoles(user.getId()));
     }
 
@@ -155,7 +156,7 @@ public class UserService {
             if (roleToDelete != null){
                 rawUser.getRoles().remove(roleToDelete);
                 roleRepository.delete(roleToDelete);
-                cacheUtil.saveOrUpdateUserCache(id, this.getUserRoles(id));
+                cacheUtil.saveOrUpdateUserCache(id,TenantContext.getCurrentTenant(), this.getUserRoles(id));
                 return true;
             }else{
                 throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
@@ -182,7 +183,7 @@ public class UserService {
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
             String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName());
             List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
-            cacheUtil.saveOrUpdateUserCache(rawUser.getId(),roleList);
+            cacheUtil.saveOrUpdateUserCache(rawUser.getId(), TenantContext.getCurrentTenant(),roleList);
             return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token, roleList);
         }else{
             throw new ApiException(ErrorMessages.INVALID_CREDENTIALS,HttpStatus.UNAUTHORIZED);
@@ -199,7 +200,7 @@ public class UserService {
                     role.getPermission()
             ));
         }
-        cacheUtil.saveOrUpdateUserCache(id,list);
+        cacheUtil.saveOrUpdateUserCache(id, TenantContext.getCurrentTenant(),list);
         return list;
     }
 

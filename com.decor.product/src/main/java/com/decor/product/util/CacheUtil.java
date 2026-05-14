@@ -21,8 +21,8 @@ public class CacheUtil {
     @Autowired
     ObjectMapper objectMapper;
 
-    public List<RoleDto> getUserRoles(Long userId) {
-        String key = "user:" + userId;
+    public List<RoleDto> getUserRoles(Long userId, String tenantSchema) {
+        String key = "user:" + userId + ":" + tenantSchema;
         String rolesJson = (String) redisTemplate.opsForHash().get(key, "roles");
         try {
             return objectMapper.readValue(rolesJson, new TypeReference<List<RoleDto>>() {});

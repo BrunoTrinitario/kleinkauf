@@ -2,6 +2,7 @@ package com.decor.product.services;
 
 import com.decor.product.dto.RoleDto;
 import com.decor.product.dto.TenantDto;
+import com.decor.product.interceptor.TenantContext;
 import com.decor.product.util.CacheUtil;
 import com.decor.product.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,7 @@ public class UserService {
     private RestTemplate restTemplate;
 
     public List<RoleDto> getUserRolesById(Long userId){
-        List<RoleDto> roles = cache.getUserRoles(userId);
+        List<RoleDto> roles = cache.getUserRoles(userId, TenantContext.getCurrentTenant());
         if (roles == null || roles.isEmpty()){
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-internal-request", Boolean.toString(true));
