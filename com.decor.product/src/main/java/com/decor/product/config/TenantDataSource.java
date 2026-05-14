@@ -42,15 +42,21 @@ public class TenantDataSource implements Serializable {
 
     @PostConstruct
     public void initAllSchemas() {
-        //List<TenantDto> tenants = this.userService.getTenants();
-        //for (TenantDto tenant : tenants) {
-        //    if (!this.existsSchema(tenant.schema()))
-        //        createSchemaIfNotExists(tenant.schema());
-        //    runMigration(tenant.schema());
-        //}
+        List<TenantDto> tenants = this.userService.getTenants();
+        if (tenants != null && !tenants.isEmpty()) {
+            for (TenantDto tenant : tenants) {
+                if (!this.existsSchema(tenant.schema()))
+                    createSchemaIfNotExists(tenant.schema());
+                runMigration(tenant.schema());
+            }
+        }
     }
 
     public boolean existsSchema(String name) {
+        TenantDto tenant = userService.getTenant(name);
+        if (tenant == null) {
+            return false;
+        }
         String sql = "SELECT 1 FROM information_schema.schemata WHERE schema_name = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

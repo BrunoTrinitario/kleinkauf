@@ -1,7 +1,9 @@
 package com.decor.product.security;
 
 import com.decor.product.constants.ErrorMessages;
+import com.decor.product.constants.Headers;
 import com.decor.product.interceptor.TenantContext;
+import com.decor.product.util.ResponseUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,13 +26,10 @@ public class TenantFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String tenant = request.getHeader("X-Forwarded-Host");
+        String tenant = request.getHeader(Headers.FORWARDED_HOST);
 
         if (tenant == null || tenant.isBlank()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("application/json");
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            response.getWriter().write(ErrorMessages.TENANT_NOT_FOUND);
+            ResponseUtil.tenantNotFoundResponse(response);
             return;
         }
 

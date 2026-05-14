@@ -54,21 +54,23 @@ public class UserService {
     }
 
     public List<TenantDto> getTenants(){
-        List<TenantDto> tenants = new ArrayList<>();
-
+        List<TenantDto> tenants;
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
         headers.set("X-internal-request", Boolean.toString(true));
         HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<List<TenantDto>> response =
-                restTemplate.exchange(
-                        usersUrl + "api/internal/tenants/all",
-                        HttpMethod.GET,
-                        entity,
-                        new ParameterizedTypeReference<List<TenantDto>>() {}
-                );
-        tenants = response.getBody();
+        try{
+            ResponseEntity<List<TenantDto>> response =
+                    restTemplate.exchange(
+                            usersUrl + "api/internal/tenants/all",
+                            HttpMethod.GET,
+                            entity,
+                            new ParameterizedTypeReference<List<TenantDto>>() {}
+                    );
+            tenants = response.getBody();
+        }catch (Exception e){
+            return null;
+        }
         return tenants;
     }
 
