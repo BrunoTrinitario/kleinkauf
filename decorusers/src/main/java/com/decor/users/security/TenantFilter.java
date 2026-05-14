@@ -2,6 +2,7 @@ package com.decor.users.security;
 
 import com.decor.users.config.TenantContext;
 import com.decor.users.constants.ErrorMessages;
+import com.decor.users.constants.Headers;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,7 +25,7 @@ public class TenantFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String tenant = request.getHeader("X-Forwarded-Host");
+        String tenant = request.getHeader(Headers.FORWARDED_HOST);
 
         if (tenant == null || tenant.isBlank())
             TenantContext.setCurrentTenant(null);

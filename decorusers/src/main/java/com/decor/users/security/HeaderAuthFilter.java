@@ -1,5 +1,6 @@
 package com.decor.users.security;
 
+import com.decor.users.constants.Headers;
 import com.decor.users.constants.PermittedUrls;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.entities.Role;
@@ -44,12 +45,12 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
 
-        String userIdHeader = request.getHeader("X-User-Id");
+        String userIdHeader = request.getHeader(Headers.USER_ID);
 
-        boolean isInternal = Boolean.parseBoolean(request.getHeader("X-internal-request"));
+        boolean isInternal = Boolean.parseBoolean(request.getHeader(Headers.INTERNAL_REQUEST));
 
         if (isInternal) {
-            String token = request.getHeader("X-Internal-Token");
+            String token = request.getHeader(Headers.INTERNAL_TOKEN);
             if (jwtUtil.validateInternalToken(token)) {
                 filterChain.doFilter(request, response);
             }else{

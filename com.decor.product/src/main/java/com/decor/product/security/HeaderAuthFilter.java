@@ -4,6 +4,7 @@ import com.decor.product.constants.Headers;
 import com.decor.product.constants.PermittedUrls;
 import com.decor.product.dto.RoleDto;
 import com.decor.product.services.UserService;
+import com.decor.product.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,8 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
     @Autowired
     UserService userService;
+    @Autowired
+    JwtUtil jwtUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,7 +43,12 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
         }
 
         if (isInternal) {
-            filterChain.doFilter(request, response);
+            String token = request.getHeader(Headers.INTERNAL_TOKEN);
+            if (jwtUtil.validateInternalToken(token)) {
+                filterChain.doFilter(request, response);
+            }else{
+                rejectRequest(response, "Token invalido");
+            }
             return;
         }
 
@@ -64,5 +72,21 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void rejectRequest(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        response.getWriter().write("""
+        {
+          "status": 403,
+          "error": "Forbidden",
+          "message": "%s"
+        }
+        """.formatted(message));
+
+        response.getWriter().flush();
     }
 }
