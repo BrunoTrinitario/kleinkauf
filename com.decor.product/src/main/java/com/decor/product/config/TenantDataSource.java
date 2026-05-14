@@ -18,6 +18,10 @@ import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -29,81 +33,76 @@ Encargada de definir el buffer de conexiones de todas lsa bds
 @Component
 public class TenantDataSource implements Serializable {
 
-    private final HashMap<String, DataSource> dataSources = new HashMap<>();
-
     @Autowired
     private UserService userService;
 
-    public DataSource getDataSource(String name) {
+    @Autowired
+    private DataSource dataSource;
 
-        if (dataSources.containsKey(name)) {
-            return dataSources.get(name);
-        }
-
-        DataSource dataSource = createDataSource(name);
-
-        if (dataSource != null) {
-
-            initializeTenantDatabase(dataSource, name);
-
-            dataSources.put(name, dataSource);
-        }
-
-        return dataSource;
-    }
 
     @PostConstruct
-    public Map<String, DataSource> getAll() {
-
-        List<TenantDto> configList = userService.getTenants();
-
-        Map<String, DataSource> result = new HashMap<>();
-
-        for (TenantDto config : configList) {
-            DataSource dataSource = getDataSource(config.name());
-            result.put(config.name(), dataSource);
+    public void initAllSchemas() {
+        List<TenantDto> tenants = this.userService.getTenants();
+        for (TenantDto tenant : tenants) {
+            if (!this.existsSchema(tenant.dbName()))
+                createSchemaIfNotExists(tenant.dbName());
+            runMigration(tenant.dbName());
         }
-
-        return result;
     }
 
-    private DataSource createDataSource(String name) {
+    public boolean existsSchema(String name) {
+        String sql = "SELECT 1 FROM information_schema.schemata WHERE schema_name = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name);
 
-        TenantDto config = userService.getTenant(name);
-
-        if (config != null) {
-
-            return DataSourceBuilder.create()
-                    .driverClassName(config.driverClassName())
-                    .username(config.dbUser())
-                    .password(config.dbPassword())
-                    .url(config.url())
-                    .build();
-        }
-
-        return null;
-    }
-
-    private void initializeTenantDatabase(DataSource dataSource, String tenant) {
-        LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
-        emfb.setDataSource(dataSource);
-
-        emfb.setPackagesToScan("com.decor.product.entities");
-
-        emfb.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-
-        HashMap<String, Object> properties = new HashMap<>();
-        properties.put("hibernate.hbm2ddl.auto", "update");
-        properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-
-        emfb.setJpaPropertyMap(properties);
-
-        try {
-            emfb.afterPropertiesSet();
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (Exception e) {
-            System.err.println("Error actualizando el esquema para el tenant " + tenant + ": " + e.getMessage());
-        } finally {
+            throw new RuntimeException("Error checking schema existence: " + name, e);
+        }
+    }
+
+    public void createSchema(String name) {
+        createSchemaIfNotExists(name);
+        runMigration(name);
+    }
+
+    private void createSchemaIfNotExists(String schema) {
+
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+             st.execute("CREATE SCHEMA IF NOT EXISTS " + schema);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void runMigration(String schema) {
+
+        try (Connection conn = dataSource.getConnection()) {
+
+            conn.createStatement().execute("SET search_path TO " + schema);
+
+            LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
+            emfb.setDataSource(dataSource);
+
+            emfb.setPackagesToScan("com.decor.product.entities");
+            emfb.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+
+            HashMap<String, Object> props = new HashMap<>();
+            props.put("hibernate.hbm2ddl.auto", "update");
+            props.put("hibernate.default_schema", schema);
+            props.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+
+            emfb.setJpaPropertyMap(props);
+
+            emfb.afterPropertiesSet();
             emfb.destroy();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

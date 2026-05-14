@@ -34,6 +34,10 @@ public class TenantGatewayFilter implements WebFilter {
         URI uri = exchange.getRequest().getURI();
 
         String baseUrl = uri.getScheme() + "://" + uri.getAuthority();
+        String tenantIdentifier = baseUrl
+                .replace("http://", "")
+                .replace("https://", "")
+                .replace(":", "");
 
         return tenantService.getTenant(baseUrl)
                 .switchIfEmpty(Mono.error(new RuntimeException("Tenant not found")))
@@ -42,7 +46,7 @@ public class TenantGatewayFilter implements WebFilter {
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
                             .header(CustomHeaders.TENANT_DB_HEADER, baseUrl)
-                            .header("X-Forwarded-Host", baseUrl)
+                            .header("X-Forwarded-Host", tenant.dbName())
                             .build();
 
                     return chain.filter(exchange.mutate()

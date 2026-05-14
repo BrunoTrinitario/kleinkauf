@@ -24,10 +24,6 @@ public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnect
         return dataSource.getConnection();
     }
 
-    public Connection getTenantConnection(String name) throws SQLException {
-        return this.connectionProvider.getDataSource(name).getConnection();
-    }
-
     @Override public void releaseAnyConnection(Connection connection) throws SQLException {
         connection.close();
     }
@@ -41,12 +37,11 @@ public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnect
      */
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
-        Connection connection = null;
-        if (tenantIdentifier.equals("public"))
-            connection = getAnyConnection();
-        else
-            connection = this.getTenantConnection(tenantIdentifier);
-        //connection.setSchema(tenantIdentifier);
+        Connection connection = getAnyConnection();
+        if (!this.connectionProvider.existsSchema(tenantIdentifier)) {
+            this.connectionProvider.createSchema(tenantIdentifier);
+        }
+        connection.setSchema(tenantIdentifier);
         return connection;
     }
     @Override public void releaseConnection(String tenantIdentifier, Connection connection) throws SQLException {
