@@ -20,9 +20,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/api/internal/**").permitAll()
-                .anyRequest().authenticated()
+                    .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
+                    .anyRequest().denyAll()
             ).csrf(csrf -> csrf.disable())
             .headers(headers -> headers
                 .frameOptions(frame -> frame.disable())

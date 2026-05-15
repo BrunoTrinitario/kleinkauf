@@ -1,5 +1,6 @@
 package com.decor.product.services;
 
+import com.decor.product.constants.Headers;
 import com.decor.product.dto.RoleDto;
 import com.decor.product.dto.TenantDto;
 import com.decor.product.interceptor.TenantContext;
@@ -39,7 +40,7 @@ public class UserService {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-internal-request", Boolean.toString(true));
             headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
-
+            headers.set(Headers.FORWARDED_HOST, TenantContext.getCurrentTenant());
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
             ResponseEntity<List<RoleDto>> response =

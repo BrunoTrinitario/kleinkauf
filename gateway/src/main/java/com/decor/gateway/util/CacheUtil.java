@@ -20,9 +20,12 @@ public class CacheUtil {
 
     public TenantDto getTenantBySchema(String schema) {
         String key = "tenant:" + schema;
-        String rolesJson = (String) redisTemplate.opsForHash().get(key, "data");
+        String tenantDataString = (String) redisTemplate.opsForHash().get(key, "data");
         try {
-            return objectMapper.readValue(rolesJson, new TypeReference<TenantDto>() {});
+            if (tenantDataString == null) {
+                return null;
+            }
+            return objectMapper.readValue(tenantDataString, new TypeReference<TenantDto>() {});
         } catch (JsonProcessingException e) {
             return null;
         }

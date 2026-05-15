@@ -40,23 +40,31 @@ public class JwtUtil {
     }
 
     public String generateAccessToken(Long id, String email, String name) {
-        return createToken(id, email, name, 1000 * 60 * 60); // 1h
-    }
-
-    public String generateRefreshToken(Long id, String email, String name) {
-        return createToken(id, email, name, 1000 * 60 * 60 * 24); // 24h
-    }
-
-    private String createToken(Long id, String email, String name, long expirationMillis) {
-
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("name", name);
         claims.put("email", email);
+        return createToken(claims, 1000 * 60 * 60); // 1h
+    }
+
+    public String generateRefreshToken(Long id, String email, String name) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", id);
+        claims.put("name", name);
+        claims.put("email", email);
+        return createToken(claims, 1000 * 60 * 60 * 24); // 24h
+    }
+
+    public String generateInternalToken(String microserviceName) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("service-name", microserviceName);
+        return createToken(claims, 1000 * 60 * 60); // 1h
+    }
+
+    private String createToken(Map<String, Object> claims, long expirationMillis) {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(key) // 🔥 ya no hace falta pasar algoritmo
@@ -71,6 +79,7 @@ public class JwtUtil {
             return false;
         }
     }
+
 
     public boolean validateInternalToken(String token) {
         try {

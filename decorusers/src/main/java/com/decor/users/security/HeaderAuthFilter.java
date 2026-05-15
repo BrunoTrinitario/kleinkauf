@@ -85,6 +85,9 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
                     );
 
             SecurityContextHolder.getContext().setAuthentication(auth);
+            filterChain.doFilter(request, response);
+        }else{
+            rejectRequest(response, "usuario invalido");
         }
     }
     private void rejectRequest(HttpServletResponse response, String message) throws IOException {
