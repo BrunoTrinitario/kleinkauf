@@ -1,30 +1,49 @@
 package com.decor.gateway.config;
 
+import com.decor.gateway.services.TenantService;
+import com.decor.gateway.util.CacheUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+import reactor.core.publisher.Mono;
 
 @Configuration
+@RequiredArgsConstructor
 public class CorsConfig {
+
+    private final TenantService tenantService;
 
     @Bean
     public CorsWebFilter corsWebFilter() {
+        return new CorsWebFilter(exchange -> {
 
-        CorsConfiguration config = new CorsConfiguration();
+            String origin = exchange.getRequest()
+                    .getHeaders()
+                    .getOrigin();
 
-        config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("http://localhost:2999");
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
+            CorsConfiguration config = new CorsConfiguration();
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+            if (origin == null || origin.isBlank()) {
+                return config;
+            }
 
-        source.registerCorsConfiguration("/**", config);
+            Boolean allowed = tenantService
+                    .getTenantForCors(origin)
+                    .onErrorReturn(false)
+                    .block();
 
-        return new CorsWebFilter(source);
+            if (Boolean.TRUE.equals(allowed)) {
+                config.setAllowCredentials(true);
+                config.addAllowedOrigin(origin);
+                config.addAllowedHeader("*");
+                config.addAllowedMethod("*");
+            }
+
+            return config;
+        });
     }
 }

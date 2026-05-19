@@ -41,4 +41,18 @@ public class TenantService {
                 .retrieve()
                 .bodyToMono(TenantDto.class);
     }
+
+    public Mono<Boolean> getTenantForCors(String url){
+        boolean cached = cacheUtil.existsTenantByUrl(url);
+        if (cached) {
+            return Mono.just(cached);
+        }
+
+        return webClient.get()
+                .uri(tenantUrl + "cors?url=" + url)
+                .header("X-Internal-Request", "true")
+                .header("X-Internal-Token", jwtUtil.generateMicroServiceToken("gateway"))
+                .retrieve()
+                .bodyToMono(Boolean.class);
+    }
 }
