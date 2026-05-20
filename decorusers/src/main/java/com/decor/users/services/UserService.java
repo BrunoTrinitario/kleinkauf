@@ -218,7 +218,7 @@ public class UserService {
         return list;
     }
 
-    public UserStatsDto getServiceStats(LocalDate startDate, LocalDate endDate){
+    public UserStatsDto getServiceStats(LocalDateTime startDate, LocalDateTime endDate){
         /* TODO:
             Usuarios registrados
             Usuarios activos (DAU/MAU)
@@ -234,18 +234,28 @@ public class UserService {
                 .filter(lastLogin -> lastLogin.isAfter(now.minusHours(1)))
                 .count();
 
-        Map<String, Integer> periods = allUsers.stream()
-                .collect(Collectors.groupingBy(
-                        user -> {
-                            long weeks = ChronoUnit.WEEKS.between(
-                                    startDate,
-                                    user.getCreatedAt().toLocalDate()
-                            );
-                            return "week_" + (weeks + 1);
-                        },
-                        LinkedHashMap::new,
-                        Collectors.summingInt(user -> 1)
-                ));
+        Map<String, Integer> periods = new LinkedHashMap<>();
+
+        if (!allUsers.isEmpty()) {
+
+            LocalDate oldestDate = allUsers.stream()
+                    .map(user -> user.getCreatedAt().toLocalDate())
+                    .min(LocalDate::compareTo)
+                    .orElse(startDate.toLocalDate());
+
+            periods = allUsers.stream()
+                    .collect(Collectors.groupingBy(
+                            user -> {
+                                long weeks = ChronoUnit.WEEKS.between(
+                                        oldestDate,
+                                        user.getCreatedAt().toLocalDate()
+                                );
+                                return "week_" + (weeks + 1);
+                            },
+                            LinkedHashMap::new,
+                            Collectors.summingInt(user -> 1)
+                    ));
+        }
 
         UserStatsDto dto = new UserStatsDto();
         dto.setUsersTotal(allUsers.size());

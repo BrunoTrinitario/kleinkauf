@@ -6,6 +6,7 @@
 package com.decor.users.controllers;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -15,6 +16,7 @@ import com.decor.users.dtos.RegisterUserDto;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.dtos.stats.UserStatsDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -92,10 +94,31 @@ public class UserController {
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<UserStatsDto> getUserStats(@RequestParam LocalDate startDate,
-                                                     @RequestParam LocalDate endDate) throws ApiException {
-        UserStatsDto stats = userService.getServiceStats(startDate, endDate);
-        return new ResponseEntity<>(stats, org.springframework.http.HttpStatus.OK);
+    public ResponseEntity<UserStatsDto> getUserStats(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate
+    ) throws ApiException {
+
+        LocalDateTime startDateTime;
+        LocalDateTime endDateTime;
+
+        // Si no se envían, usar rango completo
+        if (startDate == null) {
+            startDateTime = LocalDateTime.of(1900, 1, 1, 0, 0, 0);
+        } else {
+            startDateTime = startDate.atStartOfDay();
+        }
+
+        if (endDate == null) {
+            endDateTime = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+        } else {
+            endDateTime = endDate.atTime(23, 59, 59);
+        }
+
+        UserStatsDto stats =
+                userService.getServiceStats(startDateTime, endDateTime);
+
+        return ResponseEntity.ok(stats);
     }
 
 }
