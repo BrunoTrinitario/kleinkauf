@@ -49,10 +49,25 @@ public class TenantService {
         }
 
         return webClient.get()
-                .uri(tenantUrl + "cors?url=" + url)
+                .uri(tenantUrl + "/cors?url=" + url)
                 .header("X-Internal-Request", "true")
                 .header("X-Internal-Token", jwtUtil.generateMicroServiceToken("gateway"))
                 .retrieve()
                 .bodyToMono(Boolean.class);
+    }
+
+    public boolean getTenantForCorsSync(String url) {
+        boolean cached = cacheUtil.existsTenantByUrl(url);
+        if (cached) return true;
+        Boolean allowed = webClient.get()
+                .uri(tenantUrl + "/cors?url=" + url)
+                .header("X-Internal-Request", "true")
+                .header("X-Internal-Token",
+                        jwtUtil.generateMicroServiceToken("gateway"))
+                .retrieve()
+                .bodyToMono(Boolean.class)
+                .onErrorReturn(false)
+                .block();
+        return Boolean.TRUE.equals(allowed);
     }
 }
