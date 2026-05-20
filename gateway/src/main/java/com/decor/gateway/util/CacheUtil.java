@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 public class CacheUtil {
 
@@ -38,5 +40,13 @@ public class CacheUtil {
             return false;
         }
         return true;
+    }
+
+    public long requestCounter(String key){
+        Long value = redisTemplate.opsForValue().increment(key);
+        if (value != null && value == 1L) {
+            redisTemplate.expire(key, Duration.ofMinutes(1));
+        }
+        return value != null ? value : 0L;
     }
 }

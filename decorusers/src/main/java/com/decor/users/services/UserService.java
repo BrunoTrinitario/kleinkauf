@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.decor.users.config.TenantContext;
+import com.decor.users.dtos.CachedUser;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.dtos.stats.UserStatsDto;
 import com.decor.users.util.CacheUtil;
@@ -81,7 +82,8 @@ public class UserService {
                 this.roleRepository.delete(r);
             }
             this.userRepository.deleteById(id);
-            cacheUtil.deleteUser(id);
+            CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(), null);
+            cacheUtil.deleteUser(cu);
             return true;
         }else{
             throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
@@ -112,7 +114,8 @@ public class UserService {
             newUser.setRoles(userRoles);
             newUser = this.userRepository.save(newUser);
         }
-        cacheUtil.saveOrUpdateUserCache(newUser.getId(), TenantContext.getCurrentTenant(), this.getUserRoles(newUser.getId()));
+        CachedUser cu = new CachedUser(newUser.getId(), TenantContext.getCurrentTenant(), this.getUserRoles(newUser.getId()));
+        cacheUtil.saveOrUpdateUserCache(cu);
         return Parser.fromUserEntityToFullDto(newUser,this.getUserRoles(newUser.getId()));
     }
 
@@ -147,7 +150,8 @@ public class UserService {
         newRole.setType(role);
         newRole.setUser(user);
         user.getRoles().add(newRole);
-        cacheUtil.saveOrUpdateUserCache(id, TenantContext.getCurrentTenant(), this.getUserRoles(id));
+        CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(),  this.getUserRoles(id));
+        cacheUtil.saveOrUpdateUserCache(cu);
         return Parser.fromUserEntityToFullDto(user,this.getUserRoles(user.getId()));
     }
 
@@ -161,7 +165,8 @@ public class UserService {
             if (roleToDelete != null){
                 rawUser.getRoles().remove(roleToDelete);
                 roleRepository.delete(roleToDelete);
-                cacheUtil.saveOrUpdateUserCache(id,TenantContext.getCurrentTenant(), this.getUserRoles(id));
+                CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(),  this.getUserRoles(id));
+                cacheUtil.saveOrUpdateUserCache(cu);
                 return true;
             }else{
                 throw new ApiException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND);
@@ -190,7 +195,8 @@ public class UserService {
             List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
             rawUser.setLastLogin(LocalDateTime.now());
             userRepository.saveAndFlush(rawUser);
-            cacheUtil.saveOrUpdateUserCache(rawUser.getId(), TenantContext.getCurrentTenant(),roleList);
+            CachedUser cu = new CachedUser(rawUser.getId(), TenantContext.getCurrentTenant(), this.getUserRoles(rawUser.getId()));
+            cacheUtil.saveOrUpdateUserCache(cu);
             return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token, roleList);
         }else{
             throw new ApiException(ErrorMessages.INVALID_CREDENTIALS,HttpStatus.UNAUTHORIZED);
@@ -207,7 +213,8 @@ public class UserService {
                     role.getPermission()
             ));
         }
-        cacheUtil.saveOrUpdateUserCache(id, TenantContext.getCurrentTenant(),list);
+        CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(), list);
+        cacheUtil.saveOrUpdateUserCache(cu);
         return list;
     }
 

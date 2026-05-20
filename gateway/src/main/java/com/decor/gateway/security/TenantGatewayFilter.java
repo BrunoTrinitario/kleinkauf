@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.ErrorResponse;
@@ -33,17 +34,13 @@ public class TenantGatewayFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        URI uri = exchange.getRequest().getURI();
-        String baseUrl = uri.getScheme() + "://" + uri.getAuthority();
-        String tenantIdentifier = Parser.getParsedUrlFromRequest(baseUrl);
-
-        return tenantService.getTenant(tenantIdentifier)
+        return tenantService.getTenant(Parser.getTenantIdentifierFromRequest(exchange))
                 .switchIfEmpty(Mono.error(new RuntimeException(ErrorMessages.TENANT_NOT_FOUND)))
                 .flatMap(tenant -> {
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
-                            .header(CustomHeaders.TENANT_DB_HEADER, baseUrl)
+                            .header(CustomHeaders.TENANT_DB_HEADER, Parser.getBaseUrlFromRequest(exchange))
                             .header(CustomHeaders.INTERNAL_HOST, tenant.schema())
                             .build();
 

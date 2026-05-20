@@ -1,5 +1,7 @@
 package com.decor.users.services;
 
+import com.decor.users.constants.CacheKeys;
+import com.decor.users.dtos.CachedTenant;
 import com.decor.users.dtos.ComTenantDto;
 import com.decor.users.dtos.FullTenantDto;
 import com.decor.users.dtos.TenantDto;
@@ -28,7 +30,8 @@ public class TenantService {
         for (Tenant t: rawTenantsList){
             TenantDto dto = Parser.fromTenantEntityToFullDto(t);
             tenantsList.add(dto);
-            cacheUtil.saveOrUpdateTenantCache(t.getSchema(),dto);
+            CachedTenant ct = new CachedTenant(t.getSchema(),dto);
+            cacheUtil.saveOrUpdateTenantCache(ct);
         }
         return tenantsList;
     }
@@ -37,14 +40,16 @@ public class TenantService {
         Tenant t = tenantRepository.findBySchema(schema).orElse(null);
         if  (t == null) return null;
         TenantDto dto = Parser.fromTenantEntityToFullDto(t);
-        cacheUtil.saveOrUpdateTenantCache(t.getSchema(),dto);
+        CachedTenant ct = new CachedTenant(t.getSchema(),dto);
+        cacheUtil.saveOrUpdateTenantCache(ct);
         return dto;
     }
 
     public Boolean existsTenantByUrl(String url){
         boolean t = tenantRepository.existsByUrl(url);
         if(!t) return false;
-        cacheUtil.saveOrUpdateTenantCors(url);
+        CachedTenant ct = new CachedTenant(CacheKeys.GATEWAY_CORS,url,5);
+        cacheUtil.saveOrUpdateTenantCors(ct);
         return true;
     }
 

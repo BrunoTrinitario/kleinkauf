@@ -1,8 +1,6 @@
 package com.decor.users.util;
 
-import com.decor.users.dtos.ComTenantDto;
-import com.decor.users.dtos.RoleDto;
-import com.decor.users.dtos.TenantDto;
+import com.decor.users.dtos.*;
 import com.decor.users.entities.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,41 +22,38 @@ public class CacheUtil {
     @Autowired
     ObjectMapper objectMapper;
 
-    public void saveOrUpdateUserCache(Long userId,String tenantSchema, List<RoleDto> roles) {
-        String key = "user:" + userId + ":" + tenantSchema;
+    public void saveOrUpdateUserCache(CachedUser cachedUser) {
         String rolesJson = null;
         try {
-            rolesJson = objectMapper.writeValueAsString(roles);
-            redisTemplate.opsForHash().put(key, "roles", rolesJson);
-            redisTemplate.expire(key, Duration.ofHours(1));
+            rolesJson = objectMapper.writeValueAsString(cachedUser.getRoles());
+            redisTemplate.opsForHash().put(cachedUser.getKey(), cachedUser.getHashKey(), rolesJson);
+            redisTemplate.expire(cachedUser.getKey(), Duration.ofHours(cachedUser.getDuration()));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void deleteUser(Long userId) {
+    public void deleteUser(CachedUser cachedUser) {
         redisTemplate.opsForHash().delete(
-                "user:" + userId,
-                "roles");
+                cachedUser.getKey(),
+                cachedUser.getHashKey());
     }
 
-    public void saveOrUpdateTenantCache(String tenantSchema, TenantDto tenant) {
-        String key = "tenant:" + tenantSchema;
+    public void saveOrUpdateTenantCache(CachedTenant cachedTenant) {
         String dataJson = null;
         try {
-            dataJson = objectMapper.writeValueAsString(tenant);
-            redisTemplate.opsForHash().put(key, "data", dataJson);
-            redisTemplate.expire(key, Duration.ofHours(1));
+            dataJson = objectMapper.writeValueAsString(cachedTenant.getTenantData());
+            redisTemplate.opsForHash().put(cachedTenant.getKey(), cachedTenant.getHashKey(), dataJson);
+            redisTemplate.expire(cachedTenant.getKey(), Duration.ofHours(1));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
-    public void saveOrUpdateTenantCors(String url){
-        String key = "gateway:cors:" + url;
+    public void saveOrUpdateTenantCors(CachedTenant cachedTenant){
         redisTemplate.opsForValue().set(
-                key,
+                cachedTenant.getKey(),
                 "true",
-                Duration.ofHours(5)
+                cachedTenant.getDuration()
         );
     }
 
