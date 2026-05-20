@@ -21,8 +21,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/internal/**").permitAll()
-                    .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
-                    .anyRequest().denyAll()
+                .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
+                .anyRequest().denyAll()
             ).csrf(csrf -> csrf.disable())
             .headers(headers -> headers
                 .frameOptions(frame -> frame.disable())
