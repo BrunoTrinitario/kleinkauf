@@ -40,7 +40,6 @@ public class TenantGatewayFilter implements WebFilter {
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
-                            .header(CustomHeaders.TENANT_DB_HEADER, Parser.getBaseUrlFromRequest(exchange))
                             .header(CustomHeaders.INTERNAL_HOST, tenant.schema())
                             .build();
 

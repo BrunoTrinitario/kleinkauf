@@ -45,6 +45,15 @@ public class TenantService {
         return dto;
     }
 
+    public TenantDto getTenantByUrl(String url){
+        Tenant t = tenantRepository.findByUrl(url).orElse(null);
+        if  (t == null) return null;
+        TenantDto dto = Parser.fromTenantEntityToFullDto(t);
+        CachedTenant ct = new CachedTenant(t.getSchema(),dto);
+        cacheUtil.saveOrUpdateTenantCache(ct);
+        return dto;
+    }
+
     public Boolean existsTenantByUrl(String url){
         boolean t = tenantRepository.existsByUrl(url);
         if(!t) return false;

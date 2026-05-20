@@ -23,7 +23,7 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
         return http
-                .cors(Customizer.withDefaults())
+                .cors(ServerHttpSecurity.CorsSpec::disable)
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(SecurityPassPaths.configureSecurityPaths())
                 .build();

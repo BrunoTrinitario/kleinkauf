@@ -35,7 +35,7 @@ public class TenantService {
         }
 
         return webClient.get()
-                .uri(tenantUrl + "/id?schema=" + schema)
+                .uri(tenantUrl + "/id?url=" + schema)
                 .header("X-Internal-Request", "true")
                 .header("X-Internal-Token", jwtUtil.generateMicroServiceToken("gateway"))
                 .retrieve()

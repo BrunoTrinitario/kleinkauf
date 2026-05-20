@@ -23,13 +23,11 @@ public class Parser {
     }
 
     public static String getTenantIdentifierFromRequest(ServerWebExchange exchange){
-        String baseUrl = getBaseUrlFromRequest(exchange);
-        return Parser.getParsedUrlFromRequest(baseUrl);
+        return exchange.getRequest().getHeaders().getOrigin();
     }
 
     public static String getBaseUrlFromRequest(ServerWebExchange exchange) {
-        URI uri = exchange.getRequest().getURI();
-        return uri.getScheme() + "://" + uri.getAuthority();
+        return exchange.getRequest().getHeaders().getOrigin();
     }
 
     public static String generateRequestIdentifier(ServerWebExchange exchange) {
