@@ -27,4 +27,10 @@ public class MSTenantController {
         TenantDto tenant = tenantService.getTenantBySchema(schema);
         return new ResponseEntity<>(tenant, org.springframework.http.HttpStatus.OK);
     }
+
+    @GetMapping("/cors")
+    public ResponseEntity<Boolean> getUserByUrl(@RequestParam String url) throws ApiException {
+        Boolean exists = tenantService.existsTenantByUrl(url);
+        return new ResponseEntity<>(exists, org.springframework.http.HttpStatus.OK);
+    }
 }

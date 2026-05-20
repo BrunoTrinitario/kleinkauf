@@ -16,7 +16,7 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 @Component
-@Order(-1)
+@Order(1)
 public class MsFilter implements WebFilter {
 
     @Autowired

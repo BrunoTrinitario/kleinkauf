@@ -41,4 +41,11 @@ public class TenantService {
         return dto;
     }
 
+    public Boolean existsTenantByUrl(String url){
+        boolean t = tenantRepository.existsByUrl(url);
+        if(!t) return false;
+        cacheUtil.saveOrUpdateTenantCors(url);
+        return true;
+    }
+
 }

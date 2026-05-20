@@ -5,10 +5,15 @@
 
 package com.decor.users.services;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.decor.users.config.TenantContext;
 import com.decor.users.dtos.RoleDto;
+import com.decor.users.dtos.stats.UserStatsDto;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -183,6 +188,8 @@ public class UserService {
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
             String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName());
             List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
+            rawUser.setLastLogin(LocalDateTime.now());
+            userRepository.saveAndFlush(rawUser);
             cacheUtil.saveOrUpdateUserCache(rawUser.getId(), TenantContext.getCurrentTenant(),roleList);
             return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token, roleList);
         }else{
@@ -202,6 +209,43 @@ public class UserService {
         }
         cacheUtil.saveOrUpdateUserCache(id, TenantContext.getCurrentTenant(),list);
         return list;
+    }
+
+    public UserStatsDto getServiceStats(LocalDate startDate, LocalDate endDate){
+        /* TODO:
+            Usuarios registrados
+            Usuarios activos (DAU/MAU)
+            Nuevos usuarios por período
+         */
+        List<User> allUsers = userRepository.findByCreatedAtBetween(startDate, endDate);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        int activeUsers = (int) allUsers.stream()
+                .map(User::getLastLogin)
+                .filter(Objects::nonNull)
+                .filter(lastLogin -> lastLogin.isAfter(now.minusHours(1)))
+                .count();
+
+        Map<String, Integer> periods = allUsers.stream()
+                .collect(Collectors.groupingBy(
+                        user -> {
+                            long weeks = ChronoUnit.WEEKS.between(
+                                    startDate,
+                                    user.getCreatedAt().toLocalDate()
+                            );
+                            return "week_" + (weeks + 1);
+                        },
+                        LinkedHashMap::new,
+                        Collectors.summingInt(user -> 1)
+                ));
+
+        UserStatsDto dto = new UserStatsDto();
+        dto.setUsersTotal(allUsers.size());
+        dto.setUsersActive(activeUsers);
+        dto.setPeriodRegistration(new HashMap<>(periods));
+
+        return dto;
     }
 
 }

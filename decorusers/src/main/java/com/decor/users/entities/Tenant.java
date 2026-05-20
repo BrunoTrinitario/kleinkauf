@@ -34,6 +34,8 @@ public class Tenant {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    private String url;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {

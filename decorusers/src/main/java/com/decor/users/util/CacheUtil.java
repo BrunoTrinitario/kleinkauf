@@ -53,5 +53,13 @@ public class CacheUtil {
             throw new RuntimeException(e);
         }
     }
+    public void saveOrUpdateTenantCors(String url){
+        String key = "gateway:cors:" + url;
+        redisTemplate.opsForValue().set(
+                key,
+                "true",
+                Duration.ofHours(5)
+        );
+    }
 
 }

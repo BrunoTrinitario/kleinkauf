@@ -30,4 +30,13 @@ public class CacheUtil {
             return null;
         }
     }
+
+    public boolean existsTenantByUrl(String url) {
+        String key = "gateway:cors:" + url;
+        String tenantDataString = (String) redisTemplate.opsForHash().get(key, "true");
+        if (tenantDataString == null) {
+            return false;
+        }
+        return true;
+    }
 }
