@@ -3,6 +3,7 @@ package com.decor.gateway.security;
 import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;
+import com.decor.gateway.util.ResponseUtil;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -40,14 +41,14 @@ public class JwtFilter implements WebFilter {
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorized(exchange);
+            return ResponseUtil.unauthorized(exchange);
         }
 
         String token = authHeader.substring(7);
 
         try {
             if (!jwtUtil.validateToken(token)) {
-                return unauthorized(exchange);
+                return ResponseUtil.unauthorized(exchange);
             }
 
             Long userId = jwtUtil.getUserId(token);
@@ -71,12 +72,7 @@ public class JwtFilter implements WebFilter {
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
 
         } catch (Exception e) {
-            return unauthorized(exchange);
+            return ResponseUtil.unauthorized(exchange);
         }
-    }
-
-    private Mono<Void> unauthorized(ServerWebExchange exchange) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
     }
 }

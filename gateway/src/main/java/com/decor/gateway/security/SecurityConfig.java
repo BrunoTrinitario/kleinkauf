@@ -16,22 +16,16 @@ public class SecurityConfig {
     private final TenantGatewayFilter tenantGatewayFilter;
 
     public SecurityConfig(JwtFilter jwtFilter,  TenantGatewayFilter tenantGatewayFilter) {
-
         this.jwtFilter = jwtFilter;
         this.tenantGatewayFilter = tenantGatewayFilter;
     }
 
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
-
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .authorizeExchange(ex -> ex
-                        .pathMatchers("/api/v1/**").permitAll()
-                        .pathMatchers("/products/images/**").permitAll()
-                        .anyExchange().authenticated()
-                )
+                .authorizeExchange(SecurityPassPaths.configureSecurityPaths())
                 .build();
     }
 }
