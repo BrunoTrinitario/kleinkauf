@@ -3,7 +3,7 @@ package com.decor.gateway.factories;
 public class RequestTenantFactory {
     public static String generatePathType(String path){
         String result;
-        if (path.startsWith("/api/v1/login"))
+        if (path.startsWith("/api/v1/auth/login"))
             result = "login";
         else
             result = "global";

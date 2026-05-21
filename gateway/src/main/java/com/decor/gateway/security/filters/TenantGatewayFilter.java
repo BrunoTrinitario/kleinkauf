@@ -1,4 +1,4 @@
-package com.decor.gateway.security;
+package com.decor.gateway.security.filters;
 
 import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.constants.ErrorMessages;
@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.ErrorResponse;
@@ -17,8 +16,6 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
-
-import java.net.URI;
 
 @Component
 @Order(2)
