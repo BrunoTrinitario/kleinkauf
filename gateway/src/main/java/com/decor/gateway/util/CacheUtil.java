@@ -1,6 +1,7 @@
 package com.decor.gateway.util;
 
 
+import com.decor.gateway.constants.CacheKeys;
 import com.decor.gateway.dtos.TenantDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,7 +26,7 @@ public class CacheUtil {
     private int minutesLimit;
 
     public TenantDto getTenantBySchema(String schema) {
-        String key = "tenant:" + schema;
+        String key = CacheKeys.TENANT_CACHE + schema;
         String tenantDataString = (String) redisTemplate.opsForHash().get(key, "data");
         try {
             if (tenantDataString == null) {
@@ -38,7 +39,7 @@ public class CacheUtil {
     }
 
     public boolean existsTenantByUrl(String url) {
-        String key = "gateway:cors:" + url;
+        String key = CacheKeys.GATEWAY_CORS + url;
         Boolean exists = redisTemplate.hasKey(key);
         return Boolean.TRUE.equals(exists);
     }
