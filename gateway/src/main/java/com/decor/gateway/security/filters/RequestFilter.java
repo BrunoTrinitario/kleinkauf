@@ -1,5 +1,6 @@
 package com.decor.gateway.security.filters;
 
+import com.decor.gateway.services.LocalCacheService;
 import com.decor.gateway.util.CacheUtil;
 import com.decor.gateway.util.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ import reactor.core.publisher.Mono;
 public class RequestFilter implements WebFilter {
 
     @Autowired
-    private CacheUtil cacheUtil;
+    private LocalCacheService localCacheService;
     @Value("${limit.login}")
     private int loginLimit;
 
@@ -26,7 +27,7 @@ public class RequestFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String requestIdentifier = Parser.generateRequestIdentifier(exchange);
-        long count = cacheUtil.requestCounter(requestIdentifier);
+        long count = localCacheService.rateLimitCache(requestIdentifier);
         if (isExceeded(count,requestIdentifier.split(":")[1])){
             exchange.getResponse()
                     .setStatusCode(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.lang.annotation.IncompleteAnnotationException;
+
 @Service
 public class TenantService {
 
@@ -21,6 +23,9 @@ public class TenantService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    public LocalCacheService localCacheService;
+
     private final WebClient webClient;
 
     public TenantService(WebClient.Builder webClientBuilder) {
@@ -29,7 +34,12 @@ public class TenantService {
 
     public Mono<TenantDto> getTenant(String schema) {
 
-        TenantDto cached = cacheUtil.getTenantBySchema(schema);
+        TenantDto cached = localCacheService.getTenant(schema);
+        if (cached != null) {
+            return Mono.just(cached);
+        }
+
+        cached = cacheUtil.getTenantBySchema(schema);
         if (cached != null) {
             return Mono.just(cached);
         }
@@ -43,8 +53,14 @@ public class TenantService {
     }
 
     public boolean getTenantForCorsSync(String url) {
-        boolean cached = cacheUtil.existsTenantByUrl(url);
+        boolean cached = false;
+
+        cached = localCacheService.existsUrl(url);
         if (cached) return true;
+
+        cached = cacheUtil.existsTenantByUrl(url);
+        if (cached) return true;
+
         Boolean allowed = webClient.get()
                 .uri(tenantUrl + "/cors?url=" + url)
                 .header("X-Internal-Request", "true")
@@ -54,6 +70,9 @@ public class TenantService {
                 .bodyToMono(Boolean.class)
                 .onErrorReturn(false)
                 .block();
+
+        localCacheService.saveCorsTenant(url);
+
         return Boolean.TRUE.equals(allowed);
     }
 }

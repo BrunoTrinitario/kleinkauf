@@ -11,10 +11,12 @@ import com.decor.product.repositories.BundleProductRepository;
 import com.decor.product.repositories.BundleRepository;
 import com.decor.product.repositories.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class BundleService {
     @Autowired
     private BundleRepository bundleRepository;

@@ -34,8 +34,16 @@ public class UserService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private LocalCacheService localCacheService;
+
     public List<RoleDto> getUserRolesById(Long userId){
-        List<RoleDto> roles = cache.getUserRoles(userId, TenantContext.getCurrentTenant());
+        List<RoleDto> roles = localCacheService.getUserRoles(userId, TenantContext.getCurrentTenant());
+
+        if (roles != null) return roles;
+
+        roles = cache.getUserRoles(userId, TenantContext.getCurrentTenant());
+
         if (roles == null || roles.isEmpty()){
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-internal-request", Boolean.toString(true));
@@ -52,6 +60,7 @@ public class UserService {
                     );
             roles = response.getBody();
         }
+        localCacheService.saveUserRoles(userId, TenantContext.getCurrentTenant(), roles);
         return roles;
     }
 
@@ -77,7 +86,12 @@ public class UserService {
     }
 
     public TenantDto getTenant(String schema){
-        TenantDto tenant = cache.getTenantBySchema(schema);
+        TenantDto tenant = localCacheService.getTenant(schema);
+
+        if (tenant != null) return tenant;
+
+        tenant = cache.getTenantBySchema(schema);
+
         if (tenant == null){
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
@@ -92,6 +106,7 @@ public class UserService {
                     );
             tenant = response.getBody();
         }
+        localCacheService.saveTenant(tenant);
         return tenant ;
     }
 

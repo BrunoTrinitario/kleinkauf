@@ -35,6 +35,8 @@ public class TenantGatewayFilter implements WebFilter {
                 .switchIfEmpty(Mono.error(new RuntimeException(ErrorMessages.TENANT_NOT_FOUND)))
                 .flatMap(tenant -> {
 
+                    tenantService.localCacheService.saveTenant(tenant);
+
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
                             .header(CustomHeaders.INTERNAL_HOST, tenant.schema())
