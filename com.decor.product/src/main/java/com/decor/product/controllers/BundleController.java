@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/bundles")
@@ -45,6 +46,11 @@ public class BundleController {
     @PutMapping("/{id}/product")
     public ResponseEntity<BundleDto> addOrUpdateProductFromBundle(@PathVariable Long id, @RequestBody NewBundleProductDto bundleProduct) throws ApiException {
         return ResponseEntity.ok(bundleService.addOrUpdateProductToBundle(id,bundleProduct));
+    }
+
+    @PutMapping("/{id}/product/bulk")
+    public ResponseEntity<BundleDto> addOrUpdateProductFromBundle(@PathVariable Long id, @RequestBody List<NewBundleProductDto> bundleProduct) throws ApiException {
+        return ResponseEntity.ok(bundleService.bulkUpdateBundle(id,bundleProduct));
     }
 
     @DeleteMapping("/{id}/product")

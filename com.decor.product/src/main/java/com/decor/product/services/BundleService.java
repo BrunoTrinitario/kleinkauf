@@ -65,6 +65,14 @@ public class BundleService {
         return true;
     }
 
+    public BundleDto bulkUpdateBundle(Long bundleId, List<NewBundleProductDto> newBundleDtos) {
+        BundleDto b = null;
+        for  (NewBundleProductDto newBundleDto : newBundleDtos) {
+            b = this.addOrUpdateProductToBundle(bundleId, newBundleDto);
+        }
+        return b;
+    }
+
     public BundleDto addOrUpdateProductToBundle(Long bundleId, NewBundleProductDto bundleProduct) {
         Bundle b = this.bundleRepository.findById(bundleId).orElse(null);
         Product p = this.productRepository.findById(bundleProduct.productId()).orElse(null);
