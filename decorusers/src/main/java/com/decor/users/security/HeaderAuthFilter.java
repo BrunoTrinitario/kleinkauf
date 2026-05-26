@@ -59,6 +59,12 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        boolean isOpenPath = Boolean.parseBoolean(request.getHeader(Headers.OPEN_PATH));
+
+        if (isOpenPath){
+            filterChain.doFilter(request, response);
+        }
+
         if (userIdHeader != null) {
 
             Long userId = Long.parseLong(userIdHeader);

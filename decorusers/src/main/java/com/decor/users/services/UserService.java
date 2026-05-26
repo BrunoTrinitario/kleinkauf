@@ -12,19 +12,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.decor.users.config.TenantContext;
-import com.decor.users.dtos.CachedUser;
-import com.decor.users.dtos.RoleDto;
+import com.decor.users.constants.MailConstants;
+import com.decor.users.dtos.*;
 import com.decor.users.dtos.stats.UserStatsDto;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.JwtUtil;
+import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.DiscoveryClient;
+import com.netflix.discovery.EurekaClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.decor.users.constants.ErrorMessages;
-import com.decor.users.dtos.FullUserDto;
-import com.decor.users.dtos.LoggedUser;
 import com.decor.users.entities.Role;
 import com.decor.users.entities.User;
 import com.decor.users.exceptions.ApiException;
@@ -52,6 +54,11 @@ public class UserService {
     private CacheUtil cacheUtil;
     @Autowired
     private JwtUtil  jwtUtil;
+    @Autowired
+    private MailService mailService;
+    @Autowired
+    private EurekaClient eurekaClient;
+
 
     public ArrayList<FullUserDto> getAllUsers(){
         Collection<User> rawUsers = this.userRepository.findAll();
@@ -263,6 +270,35 @@ public class UserService {
         dto.setPeriodRegistration(new HashMap<>(periods));
 
         return dto;
+    }
+
+    public boolean forgotPasswordRequest(EmailDto userData) throws ApiException {
+        User u = this.userRepository.findByEmail(userData.email()).orElse(null);
+        if (u == null) return false;
+        String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail());
+
+        InstanceInfo gateway = eurekaClient
+                .getNextServerFromEureka("gateway-microservice", false);
+        String url = gateway.getHomePageUrl()
+                + "/api/v1/auth/forgot-password/"
+                + jwt;
+
+        try{
+            mailService.sendMail(
+                    u.getEmail(),
+                    MailConstants.FORGOT_SUBJECT,
+                    MailConstants.FORGOT_MAIL_CONTENT(url)
+            );
+        }catch (Exception e){
+            //implementar estrategia de caida para mailer
+        }finally {
+            return true;
+        }
+    }
+
+    public FullUserDto refreshPassword(String jwt, String newPassword) throws ApiException {
+        Long id = jwtUtil.getUserId(jwt);
+        return this.updateUser(id, null, newPassword);
     }
 
 }

@@ -7,6 +7,7 @@ package com.decor.users.controllers;
 
 import com.decor.users.constants.SuccessMessages;
 import com.decor.users.dtos.*;
+import com.decor.users.dtos.stats.PasswordDto;
 import com.decor.users.security.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -55,5 +56,17 @@ public class AuthController {
     public ResponseEntity<FullUserDto> Update(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody PatchUserDto userData) throws ApiException {
         FullUserDto updatedUser = userService.updateUser(userDetails.getId(), userData.name(), userData.password());
         return new ResponseEntity<>(updatedUser, org.springframework.http.HttpStatus.OK);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Boolean> forgotPasswordRequest(@RequestBody EmailDto userData) throws ApiException {
+        this.userService.forgotPasswordRequest(userData);
+        return new ResponseEntity<>(true, org.springframework.http.HttpStatus.OK);
+    }
+
+    @PostMapping("/forgot-password/{token}")
+    public ResponseEntity<FullUserDto> forgotPassword(@PathVariable String token, @RequestBody PasswordDto userData) throws ApiException {
+        FullUserDto user = this.userService.refreshPassword(token, userData.newPassword());
+        return new ResponseEntity<>(user, org.springframework.http.HttpStatus.OK);
     }
 }

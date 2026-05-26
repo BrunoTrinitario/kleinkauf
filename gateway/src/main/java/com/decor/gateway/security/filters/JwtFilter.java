@@ -32,7 +32,14 @@ public class JwtFilter implements WebFilter {
         String path = exchange.getRequest().getURI().getPath();
 
         if (PermittedUrls.isPermitted(method, path) || method.equals("OPTIONS")) {
-            return chain.filter(exchange);
+            ServerHttpRequest mutatedRequest = exchange.getRequest()
+                    .mutate()
+                    .header(CustomHeaders.OPEN_PATH, "true")
+                    .build();
+            return chain.filter(exchange.mutate()
+                    .request(mutatedRequest)
+                    .build()
+            );
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
