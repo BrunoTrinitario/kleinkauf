@@ -23,8 +23,8 @@ public class BundleService {
     @Autowired
     private BundleProductRepository bundleProductRepository;
 
-    public List<BundleDto> getAllBundles() {
-        List<BundleDto> bundleDtos = new ArrayList<>();
+    public ArrayList<BundleDto> getAllBundles() {
+        ArrayList<BundleDto> bundleDtos = new ArrayList<>();
         for  (Bundle bundle : bundleRepository.findAll()) {
             bundleDtos.add(
                     BundleFactory.getBundle(bundle)
@@ -65,8 +65,8 @@ public class BundleService {
         return true;
     }
 
-    public BundleDto addOrUpdateProductToBundle(NewBundleProductDto bundleProduct) {
-        Bundle b = this.bundleRepository.findById(bundleProduct.bundleId()).orElse(null);
+    public BundleDto addOrUpdateProductToBundle(Long bundleId, NewBundleProductDto bundleProduct) {
+        Bundle b = this.bundleRepository.findById(bundleId).orElse(null);
         Product p = this.productRepository.findById(bundleProduct.productId()).orElse(null);
         BundleProduct bp = this.bundleProductRepository.findByBundleAndProduct(b,p).orElse(null);
         if (bp == null){
@@ -80,8 +80,8 @@ public class BundleService {
         return BundleFactory.getBundle(b);
     }
 
-    public boolean removeProductFromBundle(NewBundleProductDto bundleProduct) {
-        Bundle b = this.bundleRepository.findById(bundleProduct.bundleId()).orElse(null);
+    public boolean removeProductFromBundle(Long bundleId, NewBundleProductDto bundleProduct) {
+        Bundle b = this.bundleRepository.findById(bundleId).orElse(null);
         Product p = this.productRepository.findById(bundleProduct.productId()).orElse(null);
         BundleProduct bp = this.bundleProductRepository.findByBundleAndProduct(b,p).orElse(null);
         if (bp!= null){
