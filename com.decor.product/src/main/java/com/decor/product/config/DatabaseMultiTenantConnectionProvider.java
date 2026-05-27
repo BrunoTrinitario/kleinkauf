@@ -27,14 +27,7 @@ public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnect
     @Override public void releaseAnyConnection(Connection connection) throws SQLException {
         connection.close();
     }
-    /*
-    Este metodo es CLAVE, lo que hace es buscar en el buffer de conexiones,
-    la de la base de datos que necesita y el schema necsario, usa en este caso
-    el buffer es "TenantDataSource" y se setea al iniciar el container, importante
-    luego el tema del tenantidentifier nace de varias cosas.
-    1. Se setea el identificador en el hilo de ejecucion mediante el "TenantContext"
-    2. Luego se consulta al "TenantIdentifierResolver" si esta devuelve el mismo nombre, si no null
-     */
+
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
         Connection connection = getAnyConnection();

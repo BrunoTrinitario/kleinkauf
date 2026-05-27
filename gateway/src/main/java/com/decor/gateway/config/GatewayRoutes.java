@@ -26,6 +26,10 @@ public class GatewayRoutes {
                         .path("/products/images/**")
                         .uri(productUrl))
 
+                .route("bundles", r -> r
+                        .path("/api/v1/bundles/**")
+                        .uri(productUrl))
+
                 .route("users", r -> r
                         .path("/api/v1/users/**")
                         .uri(userUrl))

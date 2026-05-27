@@ -25,6 +25,7 @@ public class BundleFactory {
             );
             bundleProducts.add(bpdto);
         }
+        bundleDto.setProducts(bundleProducts);
         return bundleDto;
     }
 }

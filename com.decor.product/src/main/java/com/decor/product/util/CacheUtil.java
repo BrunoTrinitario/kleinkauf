@@ -10,7 +10,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class CacheUtil {
@@ -32,6 +35,30 @@ public class CacheUtil {
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    public List<TenantDto> getAllTenants() {
+        Set<String> keys = redisTemplate.keys("tenant:*");
+        if (keys == null || keys.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<TenantDto> tenants = new ArrayList<>();
+        for (String key : keys) {
+            String tenantJson =
+                    (String) redisTemplate.opsForHash().get(key, "data");
+            if (tenantJson == null) {
+                continue;
+            }
+            try {
+                TenantDto tenant = objectMapper.readValue(
+                        tenantJson,
+                        new TypeReference<TenantDto>() {}
+                );
+                tenants.add(tenant);
+            } catch (JsonProcessingException ignored) {
+            }
+        }
+        return tenants;
     }
 
     public TenantDto getTenantBySchema(String schema) {

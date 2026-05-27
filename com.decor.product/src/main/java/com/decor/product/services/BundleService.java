@@ -85,8 +85,8 @@ public class BundleService {
             bp.setProduct(p);
         }
         bp.setQuantity(bundleProduct.quantity());
-        bp = this.bundleProductRepository.save(bp);
         b.getProducts().add(bp);
+        bp = this.bundleProductRepository.save(bp);
         return BundleFactory.getBundle(b);
     }
 

@@ -25,5 +25,5 @@
 - GUARDA gateway:cors:[url] / boolean
 
 ## Products
-- BUSCA - LOCAL/REDIS tenant:[schema] / TenantDto
+- BUSCA - REDIS tenant:[schema] / TenantDto
 - BUSCA - LOCAL/REDIS user:[user id]:[tenant identifier] / List<RoleDto>

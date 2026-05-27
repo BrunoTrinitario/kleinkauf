@@ -65,7 +65,8 @@ public class UserService {
     }
 
     public List<TenantDto> getTenants(){
-        List<TenantDto> tenants;
+        List<TenantDto> tenants = cache.getAllTenants();
+        if  (tenants != null) return tenants;
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
         headers.set("X-internal-request", Boolean.toString(true));
