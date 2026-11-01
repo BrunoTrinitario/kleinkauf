@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -27,20 +28,23 @@ public class CacheUtil {
     @Autowired
     private ReactiveStringRedisTemplate reactiveRedisTemplate;
 
+    @Autowired
+    private ReactiveRedisTemplate<String, Object> reactiveJsonRedisTemplate;
+
     @Value("${limit.minutes}")
     private int minutesLimit;
 
-    public TenantDto getTenantBySchema(String schema) {
+    // Reactivo: se usa desde TenantGatewayFilter en cada request. Vacio si no esta o no se puede leer
+    public Mono<TenantDto> getTenantBySchema(String schema) {
         String key = CacheKeys.TENANT_CACHE + schema;
-        String tenantDataString = (String) redisTemplate.opsForHash().get(key, "data");
-        try {
-            if (tenantDataString == null) {
-                return null;
-            }
-            return objectMapper.readValue(tenantDataString, new TypeReference<TenantDto>() {});
-        } catch (JsonProcessingException e) {
-            return null;
-        }
+        return reactiveJsonRedisTemplate.<String, Object>opsForHash().get(key, "data")
+                .flatMap(tenantData -> {
+                    try {
+                        return Mono.just(objectMapper.readValue((String) tenantData, new TypeReference<TenantDto>() {}));
+                    } catch (JsonProcessingException e) {
+                        return Mono.empty();
+                    }
+                });
     }
 
     // Reactivo: se usa desde el filtro de CORS, que corre en el event loop de Netty

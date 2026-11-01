@@ -1,5 +1,6 @@
 package com.decor.gateway;
 
+import com.decor.common.dto.TenantDto;
 import com.decor.gateway.services.LocalCacheService;
 import com.decor.gateway.services.TenantClient;
 import com.decor.gateway.services.TenantService;
@@ -11,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -20,7 +22,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TenantServiceCorsTest {
+class TenantServiceTest {
 
     private static final String ORIGIN = "http://tienda1.com";
 
@@ -35,6 +37,44 @@ class TenantServiceCorsTest {
 
     @InjectMocks
     private TenantService tenantService;
+
+    private final TenantDto tenant = new TenantDto(1L, "cfg", "tienda1", true, null, null);
+
+    // getTenant
+
+    @Test
+    void getTenant_enCacheLocal_noConsultaRedisNiUsers() {
+        when(localCacheService.getTenant(ORIGIN)).thenReturn(tenant);
+
+        assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
+        verifyNoInteractions(cacheUtil, tenantClient);
+    }
+
+    @Test
+    void getTenant_enRedis_noConsultaUsers() {
+        when(cacheUtil.getTenantBySchema(ORIGIN)).thenReturn(Mono.just(tenant));
+
+        assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
+        verifyNoInteractions(tenantClient);
+    }
+
+    @Test
+    void getTenant_noEstaEnRedis_consultaAUsers() {
+        when(cacheUtil.getTenantBySchema(ORIGIN)).thenReturn(Mono.empty());
+        when(tenantClient.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
+
+        assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
+    }
+
+    @Test
+    void getTenant_redisCaido_consultaAUsers() {
+        when(cacheUtil.getTenantBySchema(ORIGIN)).thenReturn(Mono.error(new RuntimeException("redis down")));
+        when(tenantClient.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
+
+        assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
+    }
+
+    // isCorsAllowed
 
     @Test
     void enCacheLocal_noConsultaRedisNiUsers() {

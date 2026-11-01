@@ -26,12 +26,10 @@ public class TenantService {
             return Mono.just(cached);
         }
 
-        cached = cacheUtil.getTenantBySchema(schema);
-        if (cached != null) {
-            return Mono.just(cached);
-        }
-
-        return tenantClient.getTenantByUrl(schema);
+        // Si no esta en Redis (o Redis falla) se consulta a users
+        return cacheUtil.getTenantBySchema(schema)
+                .onErrorResume(ex -> Mono.empty())
+                .switchIfEmpty(Mono.defer(() -> tenantClient.getTenantByUrl(schema)));
     }
 
     /*

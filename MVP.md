@@ -94,9 +94,8 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 - ~~**CORS del gateway bloquea el event loop**~~ **Resuelto:** `CorsConfig` ahora es un `WebFilter` reactivo
   (caché local → Redis reactivo → users), sin `.block()`.
-- **`getTenant` del gateway todavía lee Redis de forma bloqueante:** `TenantGatewayFilter` llama a
-  `CacheUtil.getTenantBySchema`, que usa el `RedisTemplate` sincrónico dentro del event loop. Conviene pasarlo
-  a `ReactiveStringRedisTemplate`, igual que se hizo con CORS.
+- ~~**`getTenant` del gateway lee Redis de forma bloqueante**~~ **Resuelto:** `CacheUtil.getTenantBySchema`
+  usa un `ReactiveRedisTemplate` con los mismos serializers que el `redisTemplate` de `decor-common`.
 - **users migra el schema en cada conexión:** su `TenantDataSource.prepareSchema` corre `runMigration`
   (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
   si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
