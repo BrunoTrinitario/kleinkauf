@@ -1,17 +1,13 @@
 package com.decor.users.util;
 
 import com.decor.users.dtos.*;
-import com.decor.users.entities.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
 
 @Component
 public class CacheUtil {

@@ -5,7 +5,6 @@
 
 package com.decor.users.dtos;
 
-import java.util.List;
 
 /**
  *

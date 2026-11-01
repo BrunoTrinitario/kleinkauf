@@ -1,6 +1,5 @@
 package com.decor.users;
 
-import com.decor.users.dtos.FullUserDto;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

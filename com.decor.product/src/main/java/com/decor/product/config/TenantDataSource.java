@@ -3,15 +3,7 @@ package com.decor.product.config;
 import com.decor.product.dto.TenantDto;
 import com.decor.product.services.UserService;
 import jakarta.annotation.PostConstruct;
-import org.hibernate.boot.Metadata;
-import org.hibernate.boot.MetadataSources;
-import org.hibernate.boot.registry.StandardServiceRegistry;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.AvailableSettings;
-import org.hibernate.tool.schema.TargetType;
-import org.hibernate.tool.schema.internal.exec.GenerationTarget;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.stereotype.Component;
@@ -22,10 +14,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /*
 Encargada de definir el buffer de conexiones de todas lsa bds

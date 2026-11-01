@@ -1,16 +1,12 @@
 package com.decor.gateway.config;
 
 import com.decor.gateway.services.TenantService;
-import com.decor.gateway.util.CacheUtil;
 import com.decor.gateway.util.Parser;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-import reactor.core.publisher.Mono;
 
 @Configuration
 @RequiredArgsConstructor

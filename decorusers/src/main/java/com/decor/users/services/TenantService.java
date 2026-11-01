@@ -2,8 +2,6 @@ package com.decor.users.services;
 
 import com.decor.users.constants.CacheKeys;
 import com.decor.users.dtos.CachedTenant;
-import com.decor.users.dtos.ComTenantDto;
-import com.decor.users.dtos.FullTenantDto;
 import com.decor.users.dtos.TenantDto;
 import com.decor.users.entities.Tenant;
 import com.decor.users.repositories.TenantRepository;
@@ -14,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.UUID;
 
 @Service
 public class TenantService {

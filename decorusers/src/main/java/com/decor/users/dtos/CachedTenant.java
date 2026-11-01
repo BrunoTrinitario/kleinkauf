@@ -1,7 +1,6 @@
 package com.decor.users.dtos;
 
 import com.decor.users.constants.CacheKeys;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter

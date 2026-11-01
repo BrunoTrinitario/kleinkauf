@@ -9,14 +9,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import com.decor.users.constants.SuccessMessages;
 import com.decor.users.dtos.RegisterUserDto;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.dtos.stats.UserStatsDto;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -64,9 +64,9 @@ public class JwtUtil {
     private String createToken(Map<String, Object> claims, long expirationMillis) {
 
         return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
+                .claims(claims)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(key)
                 .compact();
     }
@@ -91,10 +91,10 @@ public class JwtUtil {
 
     private Claims parseClaims(String token, SecretKey key) {
         return Jwts.parser()
-                .setSigningKey(key)
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     public Claims getClaims(String token) {

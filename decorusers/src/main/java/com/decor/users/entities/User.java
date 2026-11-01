@@ -6,8 +6,6 @@
 package com.decor.users.entities;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import org.hibernate.annotations.SQLDelete;

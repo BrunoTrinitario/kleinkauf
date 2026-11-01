@@ -1,6 +1,5 @@
 package com.decor.product.dto;
 
-import java.io.File;
 import java.util.List;
 
 public record LightProductDto(

@@ -5,17 +5,12 @@
 
 package com.decor.users.util;
 
-import com.decor.users.dtos.FullTenantDto;
 import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.RoleDto;
 import com.decor.users.dtos.TenantDto;
-import com.decor.users.entities.Role;
 import com.decor.users.entities.Tenant;
 import com.decor.users.entities.User;
-import com.decor.users.services.TenantService;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**

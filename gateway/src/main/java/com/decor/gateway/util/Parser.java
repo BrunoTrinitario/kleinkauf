@@ -4,7 +4,6 @@ import com.decor.gateway.constants.CustomHeaders;
 import com.decor.gateway.factories.RequestTenantFactory;
 import org.springframework.web.server.ServerWebExchange;
 
-import java.net.URI;
 
 public class Parser {
     public static String getParsedUrlFromRequest(String request){

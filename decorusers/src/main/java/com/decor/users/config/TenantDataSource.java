@@ -1,8 +1,5 @@
 package com.decor.users.config;
 
-import com.decor.users.dtos.TenantDto;
-import com.decor.users.services.TenantService;
-import com.decor.users.services.UserService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -16,7 +13,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
-import java.util.List;
 
 /*
 Encargada de definir el buffer de conexiones de todas lsa bds

@@ -2,7 +2,6 @@ package com.decor.product;
 
 import com.decor.product.dto.FullProductDto;
 import com.decor.product.dto.ImageDto;
-import com.decor.product.dto.LightProductDto;
 import com.decor.product.dto.MetaDataDto;
 import com.decor.product.dto.NewProductDto;
 import com.decor.product.entities.Product;

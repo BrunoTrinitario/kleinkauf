@@ -1,7 +1,6 @@
 package com.decor.gateway.security.filters;
 
 import com.decor.gateway.services.LocalCacheService;
-import com.decor.gateway.util.CacheUtil;
 import com.decor.gateway.util.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

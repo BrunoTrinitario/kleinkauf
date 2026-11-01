@@ -1,7 +1,6 @@
 package com.decor.users.security;
 
 import com.decor.users.config.TenantContext;
-import com.decor.users.constants.ErrorMessages;
 import com.decor.users.constants.Headers;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
