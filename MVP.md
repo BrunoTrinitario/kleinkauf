@@ -53,7 +53,57 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 ---
 
-## 3. Mejoras técnicas
+## 3. Gestión presencial
+
+La idea es que decor sirva también como **app de gestión del negocio físico**, no solo como tienda online: que
+el local y lo online compartan stock, clientes, ventas y caja. Lo de abajo es lo que falta para eso, además de lo
+que ya está o está planificado (stock único con movimientos, precio y costo, combos, permisos, ventas online y del
+local en el mismo historial, reportes por canal y medio de pago, auditoría).
+
+Cada punto se planifica con preguntas antes de implementarlo, como ventas.
+
+### 3.1 Vender en el mostrador
+
+| # | Funcionalidad | Qué agrega | Decisión |
+|---|---|---|---|
+| P1 | **Que vendan los empleados**: área `VENTAS` delegable a `EMPLEADO` | En el local suele atender un empleado. Hoy el plan de ventas deja la gestión solo al administrador | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
+| P2 | **Código de producto / código de barras** y búsqueda rápida | Buscar o escanear en el mostrador. Hoy `Product` no tiene código | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
+| P3 | **Caja**: apertura y cierre por turno, arqueo de efectivo (esperado vs. real), ingresos y egresos que no son ventas (gastos, retiros) | El control diario del local. No está en ningún plan | ☐ Sí ☐ No ☐ Después |
+| P4 | **Precio según medio de pago**: descuento por efectivo o transferencia, recargo por crédito o cuotas | Muy común en Argentina. Hoy solo existe el descuento a mano | ☐ Sí ☐ No ☐ Después |
+
+### 3.2 Unir lo online con lo presencial
+
+| # | Funcionalidad | Qué agrega | Decisión |
+|---|---|---|---|
+| P5 | **Stock reservado visible**: "3 en stock, 1 reservado por pedido online" | Un pedido online pendiente ya descontó stock; en el mostrador hay que verlo y decidir si se puede vender lo reservado | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
+| P6 | **Pagar al retirar**: pedido online que se paga en el local | Hoy el online solo se paga por transferencia. Se cierra con una venta del local a partir del pedido | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
+| P7 | **Ficha de cliente única** (por email o teléfono) con el historial online y del local | Conocer al cliente y volver a contactarlo; base de la cuenta corriente | ☐ Sí ☐ No ☐ Después |
+| P8 | **Señas y saldo** (pagos parciales) | Clave para muebles a medida: se paga una parte al encargar y el resto al entregar | ☐ Sí ☐ No ☐ Después |
+| P9 | **Presupuestos y pedidos a medida**: se pide desde el catálogo, el administrador cotiza y se convierte en pedido (con seña) | Les da salida a los productos "a consultar" | ☐ Sí ☐ No ☐ Después |
+
+### 3.3 Gestionar el negocio
+
+| # | Funcionalidad | Qué agrega | Decisión |
+|---|---|---|---|
+| P10 | **Proveedores y compras**: orden de compra y recepción (entrada de stock con costo) | Saber de quién vino la mercadería, actualizar el costo solo y lo que se le debe a cada proveedor | ☐ Sí ☐ No ☐ Después |
+| P11 | **Gastos y resultado del mes** (alquiler, sueldos, servicios) | La ganancia de ventas no incluye los gastos fijos; con esto se ve el resultado real | ☐ Sí ☐ No ☐ Después |
+| P12 | **Factura electrónica (ARCA)** | Obligatoria para muchos negocios. Integración compleja con certificados: después o con un servicio externo | ☐ Sí ☐ No ☐ Después |
+| P13 | **Avisos por WhatsApp o email** ("tu pedido está listo", "llegó un comprobante") | Ya anotado como "después" en ventas y observabilidad | ☐ Sí ☐ No ☐ Después |
+| P14 | **Uso en el local**: tablet o celular, impresión de ticket, funcionar un rato sin internet | Depende del frontend nuevo, pero la API tiene que acompañar | ☐ Sí ☐ No ☐ Después |
+| P15 | **Varias sucursales o depósitos**: stock por lugar y traspasos | Para negocios que crecen | ☐ Sí ☐ No ☐ Después |
+
+### Orden sugerido
+
+1. **P1, P2, P5 y P6** dentro del plan de [ventas](docs/ventas.md), antes de la etapa 2: son cambios chicos sobre
+   algo ya diseñado.
+2. **Caja (P3)** y **precio según medio de pago (P4)**, como etapa nueva de ventas.
+3. **Ficha de cliente, señas y presupuestos (P7, P8, P9)** como módulo propio: la parte "a medida" del negocio.
+4. **Proveedores y compras (P10)** y después **gastos y resultado (P11)**.
+5. **P12 a P15**, más adelante.
+
+---
+
+## 4. Mejoras técnicas
 
 | Mejora | Para qué | Decisión |
 |---|---|---|
@@ -65,7 +115,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 ---
 
-## 4. Orden sugerido
+## 5. Orden sugerido
 
 1. ~~**Precios** (punto 1)~~ — **hecho**.
 2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
@@ -73,10 +123,11 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
    (`SALIDA` por cada producto o por cada producto del combo) y lo devuelve si se cancela o vence.
 4. **Panel de administración** (punto 4) con los datos de ventas y stock.
 5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
+6. **Gestión presencial** (sección 3): P1, P2, P5 y P6 junto con ventas; el resto después, en el orden de esa sección.
 
 ---
 
-## 5. Decisiones tomadas
+## 6. Decisiones tomadas
 
 <!-- Completar a medida que se decida -->
 
