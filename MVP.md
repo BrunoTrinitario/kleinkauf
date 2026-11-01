@@ -1,5 +1,7 @@
 # Decor — Análisis y propuesta de MVP
 
+_Última actualización: 2026-11-01_
+
 Objetivos del proyecto:
 - Probar tecnologías y arquitecturas modernas: microservicios, caché distribuida, multi-tenant.
 - Construir un software libre de administración para pequeños emprendimientos.
@@ -12,14 +14,17 @@ Objetivos del proyecto:
 - **Gateway** (Spring Cloud Gateway): punto de entrada. Valida JWT, tenant, CORS y rate limit.
 - **decorusers**: auth (login, registro, refresh, recupero de contraseña), usuarios, roles
   (`ADMINISTRADOR` / `EMPLEADO` / `CLIENTE`) y estadísticas de usuarios.
-- **product**: productos con imágenes y metadatos (material, color, medidas), combos (bundles) y búsqueda.
+- **product**: productos con imágenes y metadatos (material, color, medidas), combos (bundles), búsqueda,
+  **precio y costo**, **movimientos de stock** con alerta de stock bajo y **productos destacados**.
+- **decor-common**: librería común (DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros).
 - **Multi-tenant por schema** en Postgres.
 - **Caché en dos niveles**: Caffeine (local) + Redis (distribuido).
-- **Comunicación entre servicios** con token interno firmado aparte (`/api/internal/**`).
+- **Comunicación entre servicios** con token interno firmado aparte (`/api/internal/**`), protegida con
+  **Resilience4j** (circuit breaker, reintentos y timeouts).
 
 ### Faltantes detectados
-1. **Los productos no tienen precio.** `Product` tiene `stock`, pero no tiene precio ni costo. Los combos tampoco.
-2. **El stock es un número que se sobreescribe** con `PUT`. No queda registro de quién lo cambió, cuándo ni por qué.
+1. ~~**Los productos no tienen precio.**~~ **Resuelto:** precio y costo en productos y combos (punto 1).
+2. ~~**El stock es un número que se sobreescribe** con `PUT`.~~ **Resuelto:** el stock solo cambia con movimientos (punto 2).
 3. **No hay alta de tenants.** Solo existen endpoints internos de lectura, así que un emprendimiento no puede registrarse solo.
 4. **El campo `permission` de `Role` no se usa** en el servicio de productos. Hoy los permisos dependen solo del rol.
 
@@ -39,6 +44,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☐ Sí ☐ No ☐ Después |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Hibernate Envers o `@CreatedBy` | ☐ Sí ☐ No ☐ Después |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☐ Sí ☐ No ☐ Después |
+| 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
 
 > **Sobre ventas:** el `TODO` marca "MS ventas y logística" como **no entra**. Se recomienda incluir al menos
 > una versión mínima de ventas (punto 3). Sin ventas el sistema queda como un catálogo, y además es lo que
@@ -61,9 +67,10 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 ## 4. Orden sugerido
 
-1. **Precios** (punto 1): cambio chico, solo en el servicio de productos.
-2. **Movimientos de stock** (punto 2): prepara el terreno para ventas.
-3. **Ventas mínimas** (punto 3) con mensajería entre servicios.
+1. ~~**Precios** (punto 1)~~ — **hecho**.
+2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
+3. **Ventas mínimas** (punto 3) con mensajería entre servicios — **próximo paso**. Una venta registra una `SALIDA`
+   de stock por cada producto (o por cada producto del combo).
 4. **Panel de administración** (punto 4) con los datos de ventas y stock.
 5. **Onboarding de tenants** (punto 5) para abrirlo a otros emprendimientos.
 
@@ -105,9 +112,15 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
   (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
   si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
 - **Tests que ya fallaban:** los `contextLoads` y el `UserServiceTest` de users necesitan Postgres levantado;
-  dos tests de `ProductServiceTest` no coinciden con `ProductService` (stub de más y "Product not found").
+  dos tests de `ProductServiceTest` (`deleteProductById_*`) no coinciden con `ProductService` (stub de más y
+  "Product not found").
+- **Bugs corregidos en el camino:**
+  - CORS del gateway: se cacheaban orígenes no permitidos, así que desde el segundo request pasaba cualquiera.
+  - products pedía el tenant con `?schema=` a un endpoint que solo aceptaba `url` (400).
+  - `UserController`: 4 endpoints con `{id}` en la ruta leían `userId` y respondían 500.
+  - `POST /products` y la subida de imágenes no exigían administrador.
 
-### Detalle de precios y stock
+### Detalle de precios, stock y destacados
 
 | Endpoint | Quién | Qué hace |
 |---|---|---|
@@ -121,8 +134,9 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | `PUT /api/v1/products/{id}/featured` | Administrador | Marca o desmarca como destacado: `{"featured": true, "order": 1}` |
 
 - **Cambios de API:** `POST /products` recibe además `minStock`, `price` y `cost` (el stock inicial queda como movimiento de
-  `ENTRADA`). `PUT /products/{id}` recibe `minStock` en lugar de `stock`. Los productos y combos devuelven `price`; los
-  combos además `listPrice` y `available`.
+  `ENTRADA`). `PUT /products/{id}` recibe `minStock` en lugar de `stock`. Los productos devuelven `price` y `featured`;
+  los combos `price`, `listPrice` y `available`.
 - **Seguridad:** `POST /products` y la subida de imágenes ahora exigen administrador (antes cualquier usuario logueado podía).
-- **Datos existentes:** los productos actuales quedan sin precio ni costo y con `minStock = 0`; su stock actual no tiene
-  movimientos previos en el historial.
+- **Gateway:** `GET /api/v1/products/featured` es ruta pública; pricing, stock y marcar destacado piden login.
+- **Datos existentes:** los productos actuales quedan sin precio ni costo, con `minStock = 0` y no destacados; su stock
+  actual no tiene movimientos previos en el historial.
