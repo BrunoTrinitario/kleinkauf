@@ -34,9 +34,9 @@ public class CacheUtil {
     @Value("${limit.minutes}")
     private int minutesLimit;
 
-    // Reactivo: se usa desde TenantGatewayFilter en cada request. Vacio si no esta o no se puede leer
-    public Mono<TenantDto> getTenantBySchema(String schema) {
-        String key = CacheKeys.TENANT_CACHE + schema;
+    // Reactivo: se usa desde TenantGatewayFilter en cada request (por la URL del Origin). Vacio si no esta o no se puede leer
+    public Mono<TenantDto> getTenantByUrl(String url) {
+        String key = CacheKeys.TENANT_URL_CACHE + url;
         return reactiveJsonRedisTemplate.<String, Object>opsForHash().get(key, "data")
                 .flatMap(tenantData -> {
                     try {

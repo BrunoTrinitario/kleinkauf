@@ -1,5 +1,6 @@
 package com.decor.common.servlet.tenant;
 
+import com.decor.common.constants.TenantConstants;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 
 /*
@@ -8,7 +9,7 @@ Define en tiempo de ejecucion a que tenant/db debe consultar
 public class TenantIdentifierResolver
         implements CurrentTenantIdentifierResolver<String> {
 
-    private static final String DEFAULT_TENANT = "public";
+    private static final String DEFAULT_TENANT = TenantConstants.PUBLIC;
 
     @Override
     public String resolveCurrentTenantIdentifier() {

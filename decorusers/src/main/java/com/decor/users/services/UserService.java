@@ -5,6 +5,7 @@
 
 package com.decor.users.services;
 
+import com.decor.common.constants.TenantConstants;
 import com.decor.common.dto.RoleDto;
 
 import java.time.LocalDate;
@@ -198,7 +199,7 @@ public class UserService {
     public LoggedUser login(String email, String password) throws ApiException {
         User rawUser = this.userRepository.findByEmail(email).orElse(null);
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
-            String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName());
+            String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName(), currentTenant());
             List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
             rawUser.setLastLogin(LocalDateTime.now());
             userRepository.saveAndFlush(rawUser);
@@ -275,7 +276,7 @@ public class UserService {
     public boolean forgotPasswordRequest(EmailDto userData) throws ApiException {
         User u = this.userRepository.findByEmail(userData.email()).orElse(null);
         if (u == null) return false;
-        String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail());
+        String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant());
 
         InstanceInfo gateway = eurekaClient
                 .getNextServerFromEureka("gateway-microservice", false);
@@ -295,9 +296,18 @@ public class UserService {
         return true;
     }
 
+    // El token tiene que ser valido y del mismo tenant (los ids de usuario se repiten entre tenants)
     public FullUserDto refreshPassword(String jwt, String newPassword) throws ApiException {
         Long id = jwtUtil.getUserId(jwt);
+        if (id == null || !currentTenant().equals(jwtUtil.getTenant(jwt))) {
+            throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
+        }
         return this.updateUser(id, null, newPassword);
+    }
+
+    private String currentTenant() {
+        String tenant = TenantContext.getCurrentTenant();
+        return tenant != null ? tenant : TenantConstants.PUBLIC;
     }
 
 }

@@ -18,6 +18,18 @@ class PermittedUrlsTest {
     }
 
     @Test
+    void plataforma_altaYLoginPublicos_panelPideLogin() {
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/tenants"));
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/auth/login"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/tenants"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/admin/tenants"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/platform/admin/tenants"));
+
+        assertTrue(PermittedUrls.isPlatformPath("/api/v1/platform/admin/tenants"));
+        assertFalse(PermittedUrls.isPlatformPath("/api/v1/products/all"));
+    }
+
+    @Test
     void marcarDestacadoPideLogin() {
         assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/products/5/featured"));
     }

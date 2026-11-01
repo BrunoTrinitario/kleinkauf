@@ -5,6 +5,7 @@
 
 package com.decor.gateway.util;
 
+import com.decor.common.constants.TenantConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -89,6 +90,11 @@ public class JwtUtil {
     public Long getUserId(String token) {
         Claims claims = getClaims(token);
         return claims != null ? claims.get("id", Long.class) : null;
+    }
+
+    public String getTenant(String token) {
+        Claims claims = getClaims(token);
+        return claims != null ? claims.get(TenantConstants.TOKEN_CLAIM, String.class) : null;
     }
 
 }

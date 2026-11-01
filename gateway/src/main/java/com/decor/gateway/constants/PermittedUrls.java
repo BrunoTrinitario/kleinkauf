@@ -6,12 +6,21 @@ public class PermittedUrls {
 
     public static String INTERNAL_PATH = "/api/internal";
 
+    // Rutas de la plataforma (alta de tenants y panel del superadmin): no pertenecen a ningun tenant
+    public static String PLATFORM_PATH = "/api/v1/platform/";
+
+    public static boolean isPlatformPath(String path) {
+        return path.startsWith(PLATFORM_PATH);
+    }
+
     public static List<String> getExcludedPaths() {
         return List.of(
                 "/api/v1/auth/login",
                 "/api/v1/auth/register",
                 "POST:/api/v1/auth/forgot-password",
                 "POST:/api/v1/auth/forgot-password/{any}",
+                "POST:/api/v1/platform/tenants",
+                "POST:/api/v1/platform/auth/login",
                 "GET:/api/v1/products/all",
                 "GET:/api/v1/products/featured",
                 "GET:/api/v1/products/{id}",

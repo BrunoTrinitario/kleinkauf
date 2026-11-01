@@ -3,6 +3,7 @@ package com.decor.gateway.config;
 import com.decor.gateway.services.TenantService;
 import com.decor.gateway.util.Parser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.cors.CorsConfiguration;
@@ -26,6 +27,9 @@ public class CorsConfig implements WebFilter {
 
     private final TenantService tenantService;
 
+    @Value("${platform.url}")
+    private String platformUrl;
+
     private final CorsProcessor processor = new DefaultCorsProcessor();
 
     @Override
@@ -36,7 +40,11 @@ public class CorsConfig implements WebFilter {
         }
 
         String origin = Parser.getBaseUrlFromRequest(exchange);
-        return tenantService.isCorsAllowed(origin)
+        // El frontend de la plataforma (alta de tenants, panel del superadmin) no es un tenant
+        Mono<Boolean> isAllowed = origin.equals(platformUrl)
+                ? Mono.just(true)
+                : tenantService.isCorsAllowed(origin);
+        return isAllowed
                 .map(allowed -> allowed ? allowedConfig(origin) : new CorsConfiguration())
                 .flatMap(config -> {
                     boolean isValid = processor.process(config, exchange);

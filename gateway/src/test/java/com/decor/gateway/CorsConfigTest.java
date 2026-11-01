@@ -8,6 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
@@ -68,6 +69,19 @@ class CorsConfigTest {
 
         assertFalse(chainCalled.get());
         assertEquals(ORIGIN, exchange.getResponse().getHeaders().getAccessControlAllowOrigin());
+    }
+
+    @Test
+    void frontendDeLaPlataforma_sePermiteSinBuscarTenant() {
+        ReflectionTestUtils.setField(filter, "platformUrl", "http://localhost:3000");
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("http://gateway/api/v1/platform/tenants").header(HttpHeaders.ORIGIN, "http://localhost:3000"));
+
+        filter.filter(exchange, chain).block();
+
+        assertTrue(chainCalled.get());
+        assertEquals("http://localhost:3000", exchange.getResponse().getHeaders().getAccessControlAllowOrigin());
+        verifyNoInteractions(tenantService);
     }
 
     @Test

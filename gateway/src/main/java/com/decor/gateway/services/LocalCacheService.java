@@ -3,38 +3,50 @@ package com.decor.gateway.services;
 import com.decor.common.dto.TenantDto;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+
+import java.time.Clock;
 
 @Service
 public class LocalCacheService {
     @Autowired
-    private Cache<String, Object> cache;
+    @Qualifier("tenantCache")
+    private Cache<String, Object> tenantCache;
     @Autowired
     private Cache<String, Integer> rateLimitCache;
 
-    public void saveTenant(TenantDto tenantDto) {
-        cache.put("tenant:"+tenantDto.schema(), tenantDto);
+    private Clock clock = Clock.systemUTC();
+
+    // El tenant se busca por la URL del frontend (Origin), igual que en users
+    public void saveTenant(String url, TenantDto tenantDto) {
+        tenantCache.put("tenant:url:"+url, tenantDto);
     }
 
-    public TenantDto getTenant(String schema) {
-        return ((TenantDto) cache.getIfPresent("tenant:"+schema));
+    public TenantDto getTenant(String url) {
+        return ((TenantDto) tenantCache.getIfPresent("tenant:url:"+url));
     }
 
     public void saveCorsTenant(String url){
-        cache.put("cors:"+url,Boolean.TRUE);
+        tenantCache.put("cors:"+url,Boolean.TRUE);
     }
 
     public boolean existsUrl(String url){
-        return cache.getIfPresent("cors:"+url) != null;
+        return tenantCache.getIfPresent("cors:"+url) != null;
     }
 
+    /*
+    Cuenta las requests del identificador en la ventana del minuto actual y devuelve el total.
+    Antes nunca incrementaba (siempre devolvia 1), asi que el rate limit no funcionaba.
+     */
     public int rateLimitCache(String requestIdentifier ){
-        Integer cont = rateLimitCache.getIfPresent(requestIdentifier);
-        if (cont == null){
-            cont = 1;
-            rateLimitCache.put(requestIdentifier, cont);
-        }
-        return cont;
+        long window = clock.millis() / 60_000;
+        return rateLimitCache.asMap().merge(requestIdentifier + ":" + window, 1, Integer::sum);
+    }
+
+    // Para tests
+    void setClock(Clock clock) {
+        this.clock = clock;
     }
 
 }

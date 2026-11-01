@@ -63,6 +63,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
         if (isOpenPath){
             filterChain.doFilter(request, response);
+            return;
         }
 
         if (userIdHeader != null) {

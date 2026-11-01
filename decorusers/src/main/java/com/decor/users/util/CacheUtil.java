@@ -1,5 +1,7 @@
 package com.decor.users.util;
 
+import com.decor.common.dto.TenantDto;
+import com.decor.users.constants.CacheKeys;
 import com.decor.users.dtos.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +10,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.List;
 
 @Component
 public class CacheUtil {
@@ -46,11 +49,32 @@ public class CacheUtil {
         }
     }
     public void saveOrUpdateTenantCors(CachedTenant cachedTenant){
+        // Antes usaba set(key, value, long): eso es SETRANGE y la clave nunca vencia
         redisTemplate.opsForValue().set(
                 cachedTenant.getKey(),
                 "true",
-                cachedTenant.getDuration()
+                Duration.ofHours(cachedTenant.getDuration())
         );
+    }
+
+    // Lo lee el gateway en cada request (por la URL del Origin)
+    public void saveTenantByUrl(String url, TenantDto tenant) {
+        try {
+            String key = CacheKeys.CACHE_TENANT_URL + url;
+            redisTemplate.opsForHash().put(key, "data", objectMapper.writeValueAsString(tenant));
+            redisTemplate.expire(key, Duration.ofHours(1));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Al deshabilitar o borrar un tenant: que el gateway no siga usando datos viejos
+    public void deleteTenant(String schema, String url) {
+        redisTemplate.delete(List.of(
+                CacheKeys.CACHE_TENANT + schema,
+                CacheKeys.CACHE_TENANT_URL + url,
+                CacheKeys.GATEWAY_CORS + url
+        ));
     }
 
 }

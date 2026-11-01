@@ -1,6 +1,7 @@
 package com.decor.gateway.security.filters;
 
 import com.decor.common.constants.Headers;
+import com.decor.common.constants.TenantConstants;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;
 import com.decor.gateway.util.ResponseUtil;
@@ -55,6 +56,11 @@ public class JwtFilter implements WebFilter {
                 return ResponseUtil.unauthorized(exchange);
             }
 
+            // Los ids de usuario se repiten entre tenants: el token tiene que ser del tenant de la request
+            if (!expectedTenant(exchange, path).equals(jwtUtil.getTenant(token))) {
+                return ResponseUtil.unauthorized(exchange);
+            }
+
             Long userId = jwtUtil.getUserId(token);
 
             Authentication auth = new UsernamePasswordAuthenticationToken(
@@ -78,5 +84,14 @@ public class JwtFilter implements WebFilter {
         } catch (Exception e) {
             return ResponseUtil.unauthorized(exchange);
         }
+    }
+
+    // Plataforma: public. Tienda: el schema que puso TenantGatewayFilter (corre antes, Order 2)
+    private String expectedTenant(ServerWebExchange exchange, String path) {
+        if (PermittedUrls.isPlatformPath(path)) {
+            return TenantConstants.PUBLIC;
+        }
+        String schema = exchange.getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST);
+        return schema != null ? schema : "";
     }
 }

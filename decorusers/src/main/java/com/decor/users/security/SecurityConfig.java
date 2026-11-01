@@ -4,6 +4,7 @@ import com.decor.common.servlet.tenant.TenantFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,6 +24,9 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/internal/**").permitAll()
                 .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
+                // Plataforma: alta por autoservicio y login del superadmin son publicos
+                .requestMatchers(HttpMethod.POST, "/api/v1/platform/tenants", "/api/v1/platform/auth/login").permitAll()
+                .requestMatchers("/api/v1/platform/admin/**").hasRole("SUPERADMIN")
                 .anyRequest().denyAll()
             ).csrf(csrf -> csrf.disable())
             .headers(headers -> headers

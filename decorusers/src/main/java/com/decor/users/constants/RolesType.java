@@ -12,5 +12,7 @@ package com.decor.users.constants;
 public enum RolesType {
     ADMINISTRADOR,
     EMPLEADO,
-    CLIENTE
+    CLIENTE,
+    // Administrador de la plataforma: solo existe en el schema public, no se asigna desde una tienda
+    SUPERADMIN
 }

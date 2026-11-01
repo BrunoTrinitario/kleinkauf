@@ -4,6 +4,7 @@
  */
 package com.decor.users.util;
 
+import com.decor.common.constants.TenantConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -34,27 +35,32 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateAccessToken(Long id, String email, String name) {
+    // tenant: schema al que pertenece el usuario (los ids se repiten entre tenants);
+    // el gateway rechaza el token si no coincide con el tenant de la request
+    public String generateAccessToken(Long id, String email, String name, String tenant) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("name", name);
         claims.put("email", email);
+        claims.put(TenantConstants.TOKEN_CLAIM, tenant);
         return createToken(claims, 1000 * 60 * 60); // 1h
     }
 
-    public String generateRefreshToken(Long id, String email, String name) {
+    public String generateRefreshToken(Long id, String email, String name, String tenant) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("name", name);
         claims.put("email", email);
+        claims.put(TenantConstants.TOKEN_CLAIM, tenant);
         return createToken(claims, 1000 * 60 * 60 * 24); // 24h
     }
 
-    public String generatePasswordToken(Long id, String email){
+    public String generatePasswordToken(Long id, String email, String tenant){
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("email", email);
-        return createToken(claims, 1000 * 60 * 15); //10 min
+        claims.put(TenantConstants.TOKEN_CLAIM, tenant);
+        return createToken(claims, 1000 * 60 * 15); //15 min
     }
 
     private String createToken(Map<String, Object> claims, long expirationMillis) {
@@ -95,6 +101,11 @@ public class JwtUtil {
     public Long getUserId(String token) {
         Claims claims = getClaims(token);
         return claims != null ? claims.get("id", Long.class) : null;
+    }
+
+    public String getTenant(String token) {
+        Claims claims = getClaims(token);
+        return claims != null ? claims.get(TenantConstants.TOKEN_CLAIM, String.class) : null;
     }
 
 }

@@ -6,5 +6,7 @@ public class CacheKeys {
         return "user:" + userId + ":" + tenantSchema;
     }
     public static String CACHE_TENANT = "tenant:";
+    // El gateway busca el tenant por la URL del frontend (Origin)
+    public static String CACHE_TENANT_URL = "tenant:url:";
 
 }

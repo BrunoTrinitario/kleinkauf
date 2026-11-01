@@ -52,7 +52,7 @@ class TenantServiceTest {
 
     @Test
     void getTenant_enRedis_noConsultaUsers() {
-        when(cacheUtil.getTenantBySchema(ORIGIN)).thenReturn(Mono.just(tenant));
+        when(cacheUtil.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
 
         assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
         verifyNoInteractions(tenantClient);
@@ -60,15 +60,17 @@ class TenantServiceTest {
 
     @Test
     void getTenant_noEstaEnRedis_consultaAUsers() {
-        when(cacheUtil.getTenantBySchema(ORIGIN)).thenReturn(Mono.empty());
+        when(cacheUtil.getTenantByUrl(ORIGIN)).thenReturn(Mono.empty());
         when(tenantClient.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
 
         assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
+        // Queda en el cache local por URL (TTL de 1 minuto)
+        verify(localCacheService).saveTenant(ORIGIN, tenant);
     }
 
     @Test
     void getTenant_redisCaido_consultaAUsers() {
-        when(cacheUtil.getTenantBySchema(ORIGIN)).thenReturn(Mono.error(new RuntimeException("redis down")));
+        when(cacheUtil.getTenantByUrl(ORIGIN)).thenReturn(Mono.error(new RuntimeException("redis down")));
         when(tenantClient.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
 
         assertEquals(tenant, tenantService.getTenant(ORIGIN).block());

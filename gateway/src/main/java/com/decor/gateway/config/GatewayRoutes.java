@@ -39,6 +39,9 @@ public class GatewayRoutes {
                 .route("internal tenants", r -> r
                         .path("/api/internal/tenants/**")
                         .uri(userUrl))
+                .route("platform", r -> r
+                        .path("/api/v1/platform/**")
+                        .uri(userUrl))
                 .build();
     }
 }

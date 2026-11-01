@@ -19,17 +19,19 @@ public class TenantService {
     @Autowired
     public LocalCacheService localCacheService;
 
-    public Mono<TenantDto> getTenant(String schema) {
+    // url: el Origin de la request (cada tenant tiene su URL de frontend)
+    public Mono<TenantDto> getTenant(String url) {
 
-        TenantDto cached = localCacheService.getTenant(schema);
+        TenantDto cached = localCacheService.getTenant(url);
         if (cached != null) {
             return Mono.just(cached);
         }
 
         // Si no esta en Redis (o Redis falla) se consulta a users
-        return cacheUtil.getTenantBySchema(schema)
+        return cacheUtil.getTenantByUrl(url)
                 .onErrorResume(ex -> Mono.empty())
-                .switchIfEmpty(Mono.defer(() -> tenantClient.getTenantByUrl(schema)));
+                .switchIfEmpty(Mono.defer(() -> tenantClient.getTenantByUrl(url)))
+                .doOnNext(tenant -> localCacheService.saveTenant(url, tenant));
     }
 
     /*

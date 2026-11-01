@@ -25,7 +25,7 @@ Objetivos del proyecto:
 ### Faltantes detectados
 1. ~~**Los productos no tienen precio.**~~ **Resuelto:** precio y costo en productos y combos (punto 1).
 2. ~~**El stock es un número que se sobreescribe** con `PUT`.~~ **Resuelto:** el stock solo cambia con movimientos (punto 2).
-3. **No hay alta de tenants.** Solo existen endpoints internos de lectura, así que un emprendimiento no puede registrarse solo.
+3. ~~**No hay alta de tenants.**~~ **Resuelto:** alta por autoservicio y panel del superadmin (punto 5).
 4. **El campo `permission` de `Role` no se usa** en el servicio de productos. Hoy los permisos dependen solo del rol.
 
 ---
@@ -40,7 +40,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) — pendiente para cuando exista ventas | ☑ Sí — **hecho** (sin eventos todavía) |
 | 3 | **Ventas simples** (caja básica): elegir productos o combos, cobrar y descontar stock | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☐ Sí ☐ No ☐ Después |
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☐ Sí ☐ No ☐ Después |
-| 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☐ Sí ☐ No ☐ Después |
+| 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☐ Sí ☐ No ☐ Después |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Hibernate Envers o `@CreatedBy` | ☐ Sí ☐ No ☐ Después |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☐ Sí ☐ No ☐ Después |
@@ -72,7 +72,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 3. **Ventas mínimas** (punto 3) con mensajería entre servicios — **próximo paso**. Una venta registra una `SALIDA`
    de stock por cada producto (o por cada producto del combo).
 4. **Panel de administración** (punto 4) con los datos de ventas y stock.
-5. **Onboarding de tenants** (punto 5) para abrirlo a otros emprendimientos.
+5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
 
 ---
 
@@ -92,6 +92,17 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | Los movimientos los registran administrador y empleado; bloqueo de fila (`PESSIMISTIC_WRITE`) por producto | El empleado es quien recibe mercadería; el bloqueo evita que dos movimientos simultáneos se pisen |
 | 2026-11-01 | El combo tiene su propio precio; muestra además el precio de lista (suma de productos) y cuántos se pueden armar con el stock | El combo no tiene stock propio: depende del de sus productos |
 | 2026-11-01 | **Productos destacados**: `featured` + `featuredOrder` opcional. La lista es pública; marcar/desmarcar es solo del administrador | Mostrar productos elegidos en la home del catálogo, en el orden que quiera el negocio |
+| 2026-11-01 | **Alta de tenants** por autoservicio público y por un **superadmin**; toda la lógica en decorusers | Que un emprendimiento pueda registrarse solo y que la plataforma pueda administrar los tenants |
+| 2026-11-01 | URL del tenant = **subdominio automático** `<identificador>.<platform.domain>` (dev: `http://mitienda.localhost:3000`). El identificador lo elige el usuario: 3–30 caracteres, empieza con letra, `a-z 0-9 -`, único y no reservado; el schema usa `_` | El gateway reconoce al tenant por la URL; la validación estricta evita inyección SQL en `CREATE SCHEMA` |
+| 2026-11-01 | El alta crea al **dueño como ADMINISTRADOR y EMPLEADO**; el tenant queda **activo al instante**; devuelve los datos y la URL (sin token) | Sin dueño nadie podría administrar el tenant; el token queda atado al tenant y se loguea en su subdominio |
+| 2026-11-01 | `configId` = UUID generado en el alta | Referencia a la configuración propia de cada tenant (próximamente) |
+| 2026-11-01 | **Superadmin** en el schema `public` con rol `SUPERADMIN` (no asignable desde una tienda); el primero se crea al arrancar con `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. Puede crear, listar, habilitar/deshabilitar y borrar (soft delete) tenants | Usuarios de plataforma separados de los de cada tienda |
+| 2026-11-01 | Tenant **deshabilitado → 403** en el gateway; **borrado → 404** (no existe para la app, el identificador queda reservado) | La decisión la toma users; el gateway solo lee el flag que ya recibe |
+| 2026-11-01 | Schemas: users al dar de alta, products al primer uso | Products ya crea el schema solo; no hace falta acoplar los servicios |
+| 2026-11-01 | **JWT atado al tenant** (claim `tenant`; `public` para el superadmin) y validado en el gateway; también el token de reset de contraseña | Los ids de usuario se repiten entre tenants: un token de una tienda servía en otra |
+| 2026-11-01 | El gateway **borra los headers internos** (`X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name`) que mande el cliente | Los servicios confían en esos headers |
+| 2026-11-01 | **Rate limit** arreglado (ventanas de 1 minuto): login 5, alta de tenants 3, global 300 (sin contar imágenes) por IP y origen. La IP sale de `X-Forwarded-For` | Frenar abuso del alta pública sin cortar la navegación del catálogo |
+| 2026-11-01 | **Caché de tenants del gateway por URL con TTL de 1 minuto** (antes nunca acertaba) | Menos llamadas a users; deshabilitar o borrar tarda hasta 1 minuto en aplicarse |
 
 ### Detalle de la librería común
 
@@ -106,7 +117,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 - ~~**CORS del gateway bloquea el event loop**~~ **Resuelto:** `CorsConfig` ahora es un `WebFilter` reactivo
   (caché local → Redis reactivo → users), sin `.block()`.
-- ~~**`getTenant` del gateway lee Redis de forma bloqueante**~~ **Resuelto:** `CacheUtil.getTenantBySchema`
+- ~~**`getTenant` del gateway lee Redis de forma bloqueante**~~ **Resuelto:** `CacheUtil.getTenantByUrl`
   usa un `ReactiveRedisTemplate` con los mismos serializers que el `redisTemplate` de `decor-common`.
 - **users migra el schema en cada conexión:** su `TenantDataSource.prepareSchema` corre `runMigration`
   (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
@@ -114,11 +125,23 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 - **Tests que ya fallaban:** los `contextLoads` y el `UserServiceTest` de users necesitan Postgres levantado;
   dos tests de `ProductServiceTest` (`deleteProductById_*`) no coinciden con `ProductService` (stub de más y
   "Product not found").
+- **Rate limit por `X-Forwarded-For`:** ese header lo puede mandar el cliente, así que se puede esquivar el límite
+  (también el del alta de tenants) cambiándolo en cada request. Si el gateway queda expuesto directo a internet,
+  conviene tomar la IP de la conexión o confiar en el header solo detrás de un proxy propio.
+- **Tokens anteriores al alta de tenants:** no tienen el claim `tenant`, así que todos los usuarios tienen que volver
+  a iniciar sesión una vez.
+- **Tenants creados a mano antes del alta:** siguen funcionando con la `url` que tengan cargada; su identificador en el
+  panel del superadmin se deriva del schema.
 - **Bugs corregidos en el camino:**
   - CORS del gateway: se cacheaban orígenes no permitidos, así que desde el segundo request pasaba cualquiera.
   - products pedía el tenant con `?schema=` a un endpoint que solo aceptaba `url` (400).
   - `UserController`: 4 endpoints con `{id}` en la ruta leían `userId` y respondían 500.
   - `POST /products` y la subida de imágenes no exigían administrador.
+  - Gateway: el rate limit nunca contaba (siempre devolvía 1); un tenant inexistente respondía 503; los errores de
+    los servicios se convertían en 503.
+  - users: `TenantRepository` declaraba id `UUID` (la entidad usa `Long`); la clave de CORS en Redis se escribía con
+    `SETRANGE` y nunca vencía; el reset de contraseña no validaba el token (500 con uno inválido); el `HeaderAuthFilter`
+    seguía de largo después de una ruta abierta.
 
 ### Detalle de precios, stock y destacados
 
@@ -140,3 +163,20 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 - **Gateway:** `GET /api/v1/products/featured` es ruta pública; pricing, stock y marcar destacado piden login.
 - **Datos existentes:** los productos actuales quedan sin precio ni costo, con `minStock = 0` y no destacados; su stock
   actual no tiene movimientos previos en el historial.
+
+### Detalle del alta de tenants (decorusers, `/api/v1/platform`)
+
+| Endpoint | Quién | Qué hace |
+|---|---|---|
+| `POST /api/v1/platform/tenants` | Público (3 por minuto) | Alta: `{"identifier", "ownerName", "ownerEmail", "ownerPassword"}`. Devuelve el tenant y su URL |
+| `POST /api/v1/platform/auth/login` | Público (5 por minuto) | Login del superadmin (token con `tenant = public`) |
+| `GET /api/v1/platform/admin/tenants` | Superadmin | Lista de tenants (sin los borrados) |
+| `GET /api/v1/platform/admin/tenants/{id}` | Superadmin | Detalle de un tenant |
+| `POST /api/v1/platform/admin/tenants` | Superadmin | Alta de un tenant (igual que el autoservicio) |
+| `PUT /api/v1/platform/admin/tenants/{id}/enabled` | Superadmin | `{"enabled": false}` deshabilita (403 en el gateway) |
+| `DELETE /api/v1/platform/admin/tenants/{id}` | Superadmin | Soft delete (404 en el gateway; el identificador queda reservado) |
+
+- **Configuración:** users `platform.scheme`, `platform.domain`, `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD`;
+  gateway `platform.url` (frontend de la plataforma, permitido por CORS) y `limit.signup`.
+- Las rutas `/api/v1/platform/**` no pasan por el filtro de tenant del gateway; users igual verifica que no
+  haya tenant en la request.
