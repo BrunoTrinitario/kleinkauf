@@ -146,6 +146,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
   del tenant en cada llamada a la API (también si llama desde el servidor), porque el gateway reconoce el tenant por ese
   header. Cuando esté, se pueden cerrar los endpoints públicos viejos (`/products/all`, `/{id}`, `/search`,
   `/featured`), que muestran el stock exacto.
+- **Bugs corregidos en el camino:**
   - CORS del gateway: se cacheaban orígenes no permitidos, así que desde el segundo request pasaba cualquiera.
   - products pedía el tenant con `?schema=` a un endpoint que solo aceptaba `url` (400).
   - `UserController`: 4 endpoints con `{id}` en la ruta leían `userId` y respondían 500.
