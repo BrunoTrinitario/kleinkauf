@@ -2,11 +2,8 @@ package com.decor.gateway.services;
 
 import com.decor.common.dto.TenantDto;
 import com.decor.gateway.util.CacheUtil;
-import com.decor.common.security.InternalTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 
@@ -16,20 +13,11 @@ public class TenantService {
     @Autowired
     private CacheUtil cacheUtil;
 
-    @Value("${tenant.url}")
-    private String tenantUrl;
-
     @Autowired
-    private InternalTokenService internalTokenService;
+    private TenantClient tenantClient;
 
     @Autowired
     public LocalCacheService localCacheService;
-
-    private final WebClient webClient;
-
-    public TenantService(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.build();
-    }
 
     public Mono<TenantDto> getTenant(String schema) {
 
@@ -43,12 +31,7 @@ public class TenantService {
             return Mono.just(cached);
         }
 
-        return webClient.get()
-                .uri(tenantUrl + "/id?url=" + schema)
-                .header("X-Internal-Request", "true")
-                .header("X-Internal-Token", internalTokenService.generateMicroServiceToken("gateway"))
-                .retrieve()
-                .bodyToMono(TenantDto.class);
+        return tenantClient.getTenantByUrl(schema);
     }
 
     public boolean getTenantForCorsSync(String url) {
@@ -60,17 +43,14 @@ public class TenantService {
         cached = cacheUtil.existsTenantByUrl(url);
         if (cached) return true;
 
-        Boolean allowed = webClient.get()
-                .uri(tenantUrl + "/cors?url=" + url)
-                .header("X-Internal-Request", "true")
-                .header("X-Internal-Token",
-                        internalTokenService.generateMicroServiceToken("gateway"))
-                .retrieve()
-                .bodyToMono(Boolean.class)
+        Boolean allowed = tenantClient.isCorsAllowed(url)
                 .onErrorReturn(false)
                 .block();
 
-        localCacheService.saveCorsTenant(url);
+        // Solo se cachean los origenes permitidos
+        if (Boolean.TRUE.equals(allowed)) {
+            localCacheService.saveCorsTenant(url);
+        }
 
         return Boolean.TRUE.equals(allowed);
     }

@@ -20,9 +20,18 @@ public class MSTenantController {
         return new ResponseEntity<>(tenant, org.springframework.http.HttpStatus.OK);
     }
 
+    // El gateway busca por url y products por schema
     @GetMapping("/id")
-    public ResponseEntity<TenantDto> getTenantByUrl(@RequestParam String url) throws ApiException {
-        TenantDto tenant = tenantService.getTenantByUrl(url);
+    public ResponseEntity<TenantDto> getTenant(@RequestParam(required = false) String url,
+                                               @RequestParam(required = false) String schema) throws ApiException {
+        TenantDto tenant;
+        if (schema != null) {
+            tenant = tenantService.getTenantBySchema(schema);
+        } else if (url != null) {
+            tenant = tenantService.getTenantByUrl(url);
+        } else {
+            throw new ApiException("Falta el parametro url o schema", org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
         return new ResponseEntity<>(tenant, org.springframework.http.HttpStatus.OK);
     }
 

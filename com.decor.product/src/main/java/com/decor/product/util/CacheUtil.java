@@ -64,6 +64,9 @@ public class CacheUtil {
         String key = "tenant:" + schema;
         String rolesJson = (String) redisTemplate.opsForHash().get(key, "data");
         try {
+            if (rolesJson == null) {
+                return null;
+            }
             return objectMapper.readValue(rolesJson, new TypeReference<TenantDto>() {});
         } catch (JsonProcessingException e) {
             return null;
