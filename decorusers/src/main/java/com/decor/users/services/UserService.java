@@ -291,9 +291,8 @@ public class UserService {
             );
         }catch (Exception e){
             //implementar estrategia de caida para mailer
-        }finally {
-            return true;
         }
+        return true;
     }
 
     public FullUserDto refreshPassword(String jwt, String newPassword) throws ApiException {
