@@ -21,5 +21,6 @@ public class ErrorMessages {
     public static String STOCK_ADJUSTMENT_REASON_REQUIRED = "A reason is required for a stock adjustment";
     public static String INSUFFICIENT_STOCK = "Not enough stock";
     public static String INVALID_MIN_STOCK = "The minimum stock must be zero or greater";
+    public static String INVALID_FEATURED_ORDER = "The featured order must be zero or greater";
 
 }

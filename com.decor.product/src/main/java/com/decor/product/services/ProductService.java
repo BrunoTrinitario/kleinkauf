@@ -45,8 +45,28 @@ public class ProductService {
     private StockService stockService;
 
     public ArrayList<LightProductDto> getAllProducts() throws ApiException {
+        return toLightProducts(productRepository.findAll());
+    }
+
+    // Destacados ordenados por featuredOrder (sin orden al final) y despues por nombre
+    public ArrayList<LightProductDto> getFeaturedProducts() throws ApiException {
+        return toLightProducts(productRepository.findFeatured());
+    }
+
+    public FullProductDto setFeatured(Long id, FeaturedDto dto) throws ApiException {
+        if (dto.featured() && dto.order() != null && dto.order() < 0) {
+            throw new ApiException(ErrorMessages.INVALID_FEATURED_ORDER, HttpStatus.BAD_REQUEST);
+        }
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        product.setFeatured(dto.featured());
+        product.setFeaturedOrder(dto.featured() ? dto.order() : null);
+        productRepository.save(product);
+        return productFactory.getFullProductInfo(product);
+    }
+
+    private ArrayList<LightProductDto> toLightProducts(Collection<Product> productCollection) throws ApiException {
         ArrayList<LightProductDto> products = new ArrayList<>();
-        Collection<Product> productCollection = productRepository.findAll();
         for  (Product product : productCollection) {
             ArrayList<ImageDto> images = this.getProductImages(product.getId());
             List<String> imagesPath = images.stream().map(i->{

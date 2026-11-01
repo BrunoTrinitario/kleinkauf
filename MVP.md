@@ -84,6 +84,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | El stock **solo cambia con movimientos** (`ENTRADA`, `SALIDA`, `AJUSTE`); `PUT /products/{id}` ya no lo modifica | Trazabilidad: quién cambió el stock, cuándo y por qué |
 | 2026-11-01 | Los movimientos los registran administrador y empleado; bloqueo de fila (`PESSIMISTIC_WRITE`) por producto | El empleado es quien recibe mercadería; el bloqueo evita que dos movimientos simultáneos se pisen |
 | 2026-11-01 | El combo tiene su propio precio; muestra además el precio de lista (suma de productos) y cuántos se pueden armar con el stock | El combo no tiene stock propio: depende del de sus productos |
+| 2026-11-01 | **Productos destacados**: `featured` + `featuredOrder` opcional. La lista es pública; marcar/desmarcar es solo del administrador | Mostrar productos elegidos en la home del catálogo, en el orden que quiera el negocio |
 
 ### Detalle de la librería común
 
@@ -116,6 +117,8 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | `GET /api/v1/products/{id}/stock/movements` | Administrador, empleado | Historial de movimientos, del más nuevo al más viejo |
 | `GET /api/v1/products/stock/low` | Administrador, empleado | Productos con stock menor o igual a su mínimo |
 | `PUT /api/v1/bundles/{id}/price` | Administrador | Cambia el precio del combo |
+| `GET /api/v1/products/featured` | Público | Destacados: primero por `featuredOrder`, los que no tienen orden al final por nombre |
+| `PUT /api/v1/products/{id}/featured` | Administrador | Marca o desmarca como destacado: `{"featured": true, "order": 1}` |
 
 - **Cambios de API:** `POST /products` recibe además `minStock`, `price` y `cost` (el stock inicial queda como movimiento de
   `ENTRADA`). `PUT /products/{id}` recibe `minStock` en lugar de `stock`. Los productos y combos devuelven `price`; los

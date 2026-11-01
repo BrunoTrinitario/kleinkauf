@@ -64,6 +64,20 @@ class StockRepositoryTest {
 	}
 
 	@Test
+	void destacados_porOrdenYLosSinOrdenAlFinalPorNombre() {
+		featured(persist("Zeta sin orden", 1, 0), null);
+		featured(persist("Segundo", 1, 0), 2);
+		persist("No destacado", 1, 0);
+		featured(persist("Alfa sin orden", 1, 0), null);
+		featured(persist("Primero", 1, 0), 1);
+		em.flush();
+
+		List<String> names = productRepository.findFeatured().stream().map(Product::getName).toList();
+
+		assertEquals(List.of("Primero", "Segundo", "Alfa sin orden", "Zeta sin orden"), names);
+	}
+
+	@Test
 	void findByIdForUpdate_encuentraElProducto() {
 		Product product = persist("Silla", 5, 0);
 
@@ -87,6 +101,11 @@ class StockRepositoryTest {
 		product.setStock(stock);
 		product.setMinStock(minStock);
 		return em.persist(product);
+	}
+
+	private static void featured(Product product, Integer order) {
+		product.setFeatured(true);
+		product.setFeaturedOrder(order);
 	}
 
 	private StockMovement movement(Product product, LocalDateTime createdAt) {

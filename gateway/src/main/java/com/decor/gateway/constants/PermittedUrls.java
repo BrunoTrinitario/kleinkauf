@@ -13,7 +13,7 @@ public class PermittedUrls {
                 "POST:/api/v1/auth/forgot-password",
                 "POST:/api/v1/auth/forgot-password/{any}",
                 "GET:/api/v1/products/all",
-
+                "GET:/api/v1/products/featured",
                 "GET:/api/v1/products/{id}",
                 "GET:/api/v1/products/{id}/metadata",
                 "GET:/api/v1/products/search",

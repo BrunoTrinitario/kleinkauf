@@ -22,6 +22,18 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
+    // Publico: destacados para la home del catalogo
+    @GetMapping("/featured")
+    public ResponseEntity<ArrayList<LightProductDto>> getFeaturedProducts() throws ApiException {
+        return ResponseEntity.ok(productService.getFeaturedProducts());
+    }
+
+    // Solo administrador (PUT /api/v1/products/** en SecurityConfig)
+    @PutMapping("/{id}/featured")
+    public ResponseEntity<FullProductDto> setFeatured(@PathVariable Long id, @RequestBody FeaturedDto dto) throws ApiException {
+        return ResponseEntity.ok(productService.setFeatured(id, dto));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<FullProductDto> getProductById(@PathVariable Long id) throws ApiException {
         return ResponseEntity.ok(productService.getProductById(id));

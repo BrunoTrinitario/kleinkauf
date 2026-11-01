@@ -43,6 +43,7 @@ public class ProductFactory {
                 p.getDescription(),
                 p.getStock(),
                 p.getPrice(),
+                p.isFeatured(),
                 null,
                 images
         );
@@ -69,6 +70,7 @@ public class ProductFactory {
                 p.getDescription(),
                 p.getStock(),
                 p.getPrice(),
+                p.isFeatured(),
                 imagesPath
         );
     }

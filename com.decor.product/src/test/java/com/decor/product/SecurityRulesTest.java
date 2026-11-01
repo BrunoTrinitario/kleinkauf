@@ -126,6 +126,16 @@ class SecurityRulesTest {
 	}
 
 	@Test
+	void destacados_listaPublicaYMarcarSoloAdministrador() throws Exception {
+		mockMvc.perform(as(null, get("/api/v1/products/featured"))).andExpect(status().isOk());
+
+		String body = "{\"featured\":true,\"order\":1}";
+		mockMvc.perform(as(null, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
+		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isOk());
+	}
+
+	@Test
 	void precioDelCombo_soloAdministrador() throws Exception {
 		String body = "{\"price\":90000}";
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isForbidden());

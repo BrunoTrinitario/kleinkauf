@@ -19,6 +19,7 @@ public class FullProductDto{
     private String description;
     private int stock;
     private BigDecimal price;
+    private boolean featured;
     private MetaDataDto metadata;
     private List<ImageDto> images;
 }

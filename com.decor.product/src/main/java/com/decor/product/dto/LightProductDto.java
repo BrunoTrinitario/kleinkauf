@@ -10,6 +10,7 @@ public record LightProductDto(
         String description,
         int stock,
         BigDecimal price,
+        boolean featured,
         List<String> images
 ) {
 }

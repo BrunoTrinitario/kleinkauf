@@ -52,6 +52,15 @@ public class Product {
     @Column(precision = 12, scale = 2)
     private BigDecimal cost;
 
+    // Destacado en el catalogo (home)
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean featured;
+
+    // Orden entre los destacados (menor primero); null = al final, por nombre
+    @Column(name = "featured_order")
+    private Integer featuredOrder;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 

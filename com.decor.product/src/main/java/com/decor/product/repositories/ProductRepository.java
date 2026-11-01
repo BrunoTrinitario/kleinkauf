@@ -23,4 +23,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE p.minStock > 0 AND p.stock <= p.minStock ORDER BY p.stock ASC")
     List<Product> findLowStock();
+
+    @Query("SELECT p FROM Product p WHERE p.featured = true ORDER BY p.featuredOrder ASC NULLS LAST, p.name ASC")
+    List<Product> findFeatured();
 }
