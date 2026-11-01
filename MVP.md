@@ -51,10 +51,10 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 | Mejora | Para qué | Decisión |
 |---|---|---|
-| **Resilience4j** (circuit breaker + reintentos) | Proteger las llamadas de productos a usuarios, que hoy usan `RestTemplate` sin protección | ☐ Sí ☐ No ☐ Después |
+| **Resilience4j** (circuit breaker + reintentos) | Proteger las llamadas de productos a usuarios, que hoy usan `RestTemplate` sin protección | ☑ Sí — **hecho** |
 | **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☐ Sí ☐ No ☐ Después |
 | **Testcontainers** | Tests de integración con Postgres y Redis reales | ☐ Sí ☐ No ☐ Después |
-| **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☐ Sí ☐ No ☐ Después |
+| **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`decor-common`) |
 | **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☐ Sí ☐ No ☐ Después |
 
 ---
@@ -75,4 +75,28 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
-| | | |
+| 2026-11-01 | Antes de sumar funcionalidades: **librería común** y **Resilience4j** | Ordenar la base antes de agregar servicios nuevos (ventas, etc.) |
+| 2026-11-01 | Librería como **build compuesto de Gradle** (`decor-common`, con `includeBuild`) en vez de un build multi-proyecto en la raíz | Cada servicio sigue siendo un proyecto Gradle independiente; no hay que publicar nada |
+| 2026-11-01 | Dos módulos: `decor-common-core` (todos) y `decor-common-servlet` (users, products) | El gateway es reactivo (WebFlux) y no puede depender de Servlet/JPA |
+| 2026-11-01 | La librería se configura sola con **autoconfiguración de Spring Boot** | Los servicios solo agregan la dependencia; cada bean se puede reemplazar |
+| 2026-11-01 | Resilience4j en products → users y gateway → users (circuit breaker + retry + timeouts). Los 4xx no cuentan como falla | Si users se cae, el resto responde rápido con caché o con un error claro, sin quedarse colgado |
+
+### Detalle de la librería común
+
+- **`decor-common-core`**: `TenantDto`, `RoleDto`, `Headers`, `RedisTemplate`, caché Caffeine e
+  `InternalTokenService` (tokens entre servicios).
+- **`decor-common-servlet`**: Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
+  `CustomUserDetails`, `ApiException` y `GlobalExceptionHandler`.
+- Cada servicio implementa `TenantSchemaManager` en su `TenantDataSource`.
+- En users el tenant es opcional: `decor.tenant.required=false`.
+
+### Pendientes detectados en el camino
+
+- **CORS del gateway bloquea el event loop:** `CorsConfig` llama a `getTenantForCorsSync`, que hace `.block()`
+  dentro de un hilo de Netty. Si el origen no está en caché, Reactor puede rechazarlo. Conviene pasar el
+  chequeo de CORS a un `WebFilter` reactivo.
+- **users migra el schema en cada conexión:** su `TenantDataSource.prepareSchema` corre `runMigration`
+  (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
+  si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
+- **Tests que ya fallaban:** los `contextLoads` y el `UserServiceTest` de users necesitan Postgres levantado;
+  dos tests de `ProductServiceTest` no coinciden con `ProductService` (stub de más y "Product not found").
