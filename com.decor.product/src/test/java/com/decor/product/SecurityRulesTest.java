@@ -5,12 +5,14 @@ import com.decor.common.dto.RoleDto;
 import com.decor.common.security.InternalTokenService;
 import com.decor.common.servlet.tenant.TenantFilter;
 import com.decor.product.controllers.BundleController;
+import com.decor.product.controllers.CatalogController;
 import com.decor.product.controllers.ProductCsvController;
 import com.decor.product.controllers.ProductController;
 import com.decor.product.controllers.StockController;
 import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.security.SecurityConfig;
 import com.decor.product.services.BundleService;
+import com.decor.product.services.CatalogService;
 import com.decor.product.services.ProductCsvService;
 import com.decor.product.services.ProductService;
 import com.decor.product.services.StockService;
@@ -41,7 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class})
+@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -78,6 +80,9 @@ class SecurityRulesTest {
 	@MockitoBean
 	private ProductCsvService productCsvService;
 
+	@MockitoBean
+	private CatalogService catalogService;
+
 	private MockHttpServletRequestBuilder as(Long userId, MockHttpServletRequestBuilder request) {
 		when(userService.getUserRolesById(ADMIN)).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
 		when(userService.getUserRolesById(EMPLEADO)).thenReturn(List.of(new RoleDto("EMPLEADO", 0)));
@@ -95,6 +100,14 @@ class SecurityRulesTest {
 	void catalogoPublico_sinLogin() throws Exception {
 		mockMvc.perform(as(null, get("/api/v1/products/all"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/bundles/all"))).andExpect(status().isOk());
+	}
+
+	@Test
+	void catalogoNuevo_sinLogin() throws Exception {
+		mockMvc.perform(as(null, get("/api/v1/catalog/products").param("q", "mesa").param("sort", "price_asc")))
+				.andExpect(status().isOk());
+		mockMvc.perform(as(null, get("/api/v1/catalog/products/mesa-de-roble"))).andExpect(status().isOk());
+		mockMvc.perform(as(null, get("/api/v1/catalog/categories"))).andExpect(status().isOk());
 	}
 
 	@Test

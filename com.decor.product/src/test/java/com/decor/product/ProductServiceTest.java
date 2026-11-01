@@ -12,6 +12,7 @@ import com.decor.product.factories.ProductFactory;
 import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.ProductService;
 import com.decor.product.services.StockService;
 import com.decor.product.util.FileManager;
@@ -60,6 +61,9 @@ class ProductServiceTest {
 
 	@Mock
 	private StockService stockService;
+
+	@Mock
+	private CatalogCacheService catalogCache;
 
 	@InjectMocks
 	private ProductService productService;
@@ -215,6 +219,7 @@ class ProductServiceTest {
 			savedProduct.setMinStock(productToSave.getMinStock());
 			savedProduct.setPrice(productToSave.getPrice());
 			savedProduct.setCost(productToSave.getCost());
+			savedProduct.setSlug(productToSave.getSlug());
 			return savedProduct;
 		});
 		when(productRepository.findById(99L)).thenReturn(Optional.of(savedProduct));
@@ -232,6 +237,9 @@ class ProductServiceTest {
 		assertEquals(new BigDecimal("9000.00"), savedProduct.getCost());
 		verify(productRepository).existsByName("Silla");
 		verify(stockService).registerInitialStock(savedProduct);
+		// Slug para el link del catalogo
+		assertEquals("silla", savedProduct.getSlug());
+		verify(catalogCache).invalidate();
 	}
 
 	@Test

@@ -32,4 +32,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Incluye los borrados (soft delete): el nombre es unique en la tabla aunque el producto este borrado
     @Query(value = "SELECT COUNT(*) > 0 FROM product WHERE name = :name", nativeQuery = true)
     boolean existsByNameIncludingDeleted(@Param("name") String name);
+
+    // Igual que el nombre: el slug es unique aunque el producto este borrado
+    @Query(value = "SELECT COUNT(*) > 0 FROM product WHERE slug = :slug", nativeQuery = true)
+    boolean existsBySlugIncludingDeleted(@Param("slug") String slug);
+
+    Optional<Product> findBySlug(String slug);
 }

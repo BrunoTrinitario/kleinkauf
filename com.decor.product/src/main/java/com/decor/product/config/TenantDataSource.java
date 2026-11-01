@@ -106,6 +106,8 @@ public class TenantDataSource implements Serializable, TenantSchemaManager {
             emfb.afterPropertiesSet();
             emfb.destroy();
 
+            SlugBackfill.fill(dataSource, schema);
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

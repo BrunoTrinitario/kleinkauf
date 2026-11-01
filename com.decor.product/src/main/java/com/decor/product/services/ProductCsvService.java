@@ -7,6 +7,7 @@ import com.decor.product.entities.ProductMetaData;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
 import com.decor.product.util.ArgentineNumbers;
+import com.decor.product.util.Slugs;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
@@ -80,6 +81,9 @@ public class ProductCsvService {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private CatalogCacheService catalogCache;
 
     public byte[] exportCsv() {
         StringBuilder out = new StringBuilder().append(BOM);
@@ -165,6 +169,7 @@ public class ProductCsvService {
                 }
             }
         });
+        catalogCache.invalidate();
         return new ImportResultDto(counts[0], counts[1], List.of());
     }
 
@@ -250,6 +255,7 @@ public class ProductCsvService {
         product.setPrice(row.numbers().get(Column.PRECIO));
         product.setCost(row.numbers().get(Column.COSTO));
         product.setStock(0);
+        product.setSlug(Slugs.unique(row.name(), productRepository::existsBySlugIncludingDeleted));
         product.setMinStock(0);
         product = productRepository.save(product);
 

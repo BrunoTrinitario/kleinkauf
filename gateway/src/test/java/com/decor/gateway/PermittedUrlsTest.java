@@ -15,6 +15,9 @@ class PermittedUrlsTest {
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/featured"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/5"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/bundles/all"));
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/products"));
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/products/mesa-de-roble"));
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/categories"));
     }
 
     @Test

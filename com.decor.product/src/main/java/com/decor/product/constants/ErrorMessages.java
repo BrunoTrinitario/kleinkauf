@@ -23,5 +23,7 @@ public class ErrorMessages {
     public static String INVALID_MIN_STOCK = "The minimum stock must be zero or greater";
     public static String INVALID_FEATURED_ORDER = "The featured order must be zero or greater";
     public static String IMAGE_TOO_LARGE = "Each image must be 1 MB or smaller";
+    public static String INVALID_CATALOG_SORT = "The sort must be name, price_asc or price_desc";
+    public static String INVALID_CATALOG_PAGE = "The page must be 0 or greater and the size between 1 and 100";
 
 }

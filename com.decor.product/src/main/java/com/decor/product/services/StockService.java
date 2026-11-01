@@ -33,6 +33,9 @@ public class StockService {
     @Autowired
     private StockMovementRepository stockMovementRepository;
 
+    @Autowired
+    private CatalogCacheService catalogCache;
+
     @Transactional
     public StockMovementDto registerMovement(Long productId, NewStockMovementDto dto) throws ApiException {
         validate(dto);
@@ -53,7 +56,10 @@ public class StockService {
         product.setStock(newStock);
         productRepository.save(product);
 
-        return toDto(save(product, dto.type(), delta, dto.reason()));
+        StockMovementDto movement = toDto(save(product, dto.type(), delta, dto.reason()));
+        // La disponibilidad del catalogo cambia con el stock (se aplica despues del commit)
+        catalogCache.invalidate();
+        return movement;
     }
 
     // Lo usa ProductService al crear un producto con stock

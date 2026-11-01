@@ -11,6 +11,7 @@ import com.decor.product.entities.StockMovement;
 import com.decor.product.entities.StockMovementType;
 import com.decor.product.repositories.ProductRepository;
 import com.decor.product.repositories.StockMovementRepository;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.StockService;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,9 @@ class StockServiceTest {
 
 	@Mock
 	private StockMovementRepository stockMovementRepository;
+
+	@Mock
+	private CatalogCacheService catalogCache;
 
 	@InjectMocks
 	private StockService stockService;

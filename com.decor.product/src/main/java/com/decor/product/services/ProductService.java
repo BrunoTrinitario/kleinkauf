@@ -11,6 +11,7 @@ import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
 import com.decor.product.util.FileManager;
+import com.decor.product.util.Slugs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,9 @@ public class ProductService {
     @Autowired
     private StockService stockService;
 
+    @Autowired
+    private CatalogCacheService catalogCache;
+
     public ArrayList<LightProductDto> getAllProducts() throws ApiException {
         return toLightProducts(productRepository.findAll());
     }
@@ -64,6 +68,7 @@ public class ProductService {
         product.setFeatured(dto.featured());
         product.setFeaturedOrder(dto.featured() ? dto.order() : null);
         productRepository.save(product);
+        catalogCache.invalidate();
         return productFactory.getFullProductInfo(product);
     }
 
@@ -92,6 +97,7 @@ public class ProductService {
             this.deleteImagePhyscally(image.path());
         });
         productRepository.deleteById(id);
+        catalogCache.invalidate();
         return true;
     }
 
@@ -131,6 +137,7 @@ public class ProductService {
         for (int i = 0; i < images.size(); i++)
             images.get(i).setImageOrder(i);
         productImageRepository.saveAll(images);
+        catalogCache.invalidate();
         return true;
     }
 
@@ -155,6 +162,7 @@ public class ProductService {
             product.setDescription(updatedData.description());
             product.setMinStock(updatedData.minStock());
             productRepository.save(product);
+            catalogCache.invalidate();
         }
         return productFactory.getFullProductInfo(product);
     }
@@ -176,8 +184,11 @@ public class ProductService {
         product.setMinStock(updatedData.minStock());
         product.setPrice(updatedData.price());
         product.setCost(updatedData.cost());
+        // Slug fijo para el link del catalogo (no cambia si despues cambia el nombre)
+        product.setSlug(Slugs.unique(product.getName(), productRepository::existsBySlugIncludingDeleted));
         product = productRepository.save(product);
         stockService.registerInitialStock(product);
+        catalogCache.invalidate();
         return this.getProductById(product.getId());
     }
 
@@ -194,6 +205,7 @@ public class ProductService {
         product.setPrice(dto.price());
         product.setCost(dto.cost());
         productRepository.save(product);
+        catalogCache.invalidate();
         return toPricing(product);
     }
 
@@ -242,6 +254,7 @@ public class ProductService {
         productMetaData.setLength(updatedData.length());
         productMetaData.setWeight(updatedData.weight());
         productMetaDataRepository.save(productMetaData);
+        catalogCache.invalidate();
         return this.getProductById(productId);
     }
 
@@ -258,6 +271,7 @@ public class ProductService {
             cont++;
             productImageRepository.save(realImage);
         }
+        catalogCache.invalidate();
         return this.getProductImages(productId);
     }
 

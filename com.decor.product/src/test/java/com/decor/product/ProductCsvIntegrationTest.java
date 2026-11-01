@@ -4,6 +4,7 @@ import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.entities.Product;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.ProductCsvService;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,6 +39,10 @@ class ProductCsvIntegrationTest {
 
 	@Autowired
 	private TestEntityManager em;
+
+	// Redis no esta en el test
+	@MockitoBean
+	private CatalogCacheService catalogCache;
 
 	@Test
 	void importaYActualizaContraLaBase() {

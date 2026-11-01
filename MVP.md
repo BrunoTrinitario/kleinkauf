@@ -41,7 +41,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 3 | **Ventas simples** (caja básica): elegir productos o combos, cobrar y descontar stock | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☐ Sí ☐ No ☐ Después |
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☐ Sí ☐ No ☐ Después |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
-| 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☐ Sí ☐ No ☐ Después |
+| 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Hibernate Envers o `@CreatedBy` | ☐ Sí ☐ No ☐ Después |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
@@ -108,6 +108,11 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | Formato: `;`, UTF-8 con BOM y **números en formato argentino** (`15.000,50`); un formato ambiguo como `15.5` es error. Apache Commons CSV | Excel en español lo abre bien con doble clic; nadie carga 15 queriendo 15.000 |
 | 2026-11-01 | Importar: el **nombre identifica al producto**; si existe se actualiza y **una celda vacía no cambia el dato**; si no existe se crea con stock 0. **Todo o nada**, con errores por fila. Columnas desconocidas = error | Sirve para cargar el catálogo y para actualizar precios en masa sin pisar datos |
 | 2026-11-01 | Límites: 5.000 filas y 5 MB. El límite general de subida pasa a 5 MB y **las imágenes siguen en 1 MB** (validación propia); archivo más grande que el límite → 413 | Evitar que un archivo enorme bloquee el servicio |
+| 2026-11-01 | **Catálogo público** en `/api/v1/catalog` (paginado, búsqueda, categoría, orden por nombre o precio, detalle por slug y categorías). Los endpoints públicos viejos quedan como están porque el frontend los usa | No romper el frontend; cerrar los viejos en otra rama cuando el front migre |
+| 2026-11-01 | El catálogo **no muestra el stock exacto**: `DISPONIBLE`, `POCAS_UNIDADES` (stock ≤ mínimo) o `AGOTADO`. Sin precio = "consultar" (`price: null`), al final al ordenar por precio | No exponer el inventario; muebles a medida sin precio fijo |
+| 2026-11-01 | **Slug fijo** por producto (se genera al crear, no cambia con el nombre; si se repite, `-2`). Los productos existentes lo reciben al migrar el schema del tenant | Los links compartidos no se rompen |
+| 2026-11-01 | Búsqueda sin distinguir mayúsculas pero **sí acentos** (sin `unaccent`). 24 por página, máximo 100. Sin combos en el catálogo por ahora | Simple, sin extensiones de Postgres |
+| 2026-11-01 | **Caché del catálogo en Redis** con versión por tenant (cada cambio de producto, precio, stock, imágenes o importación la sube después del commit) y TTL de 1 hora; si Redis falla se lee de la base | Probar caché distribuida sin mostrar datos viejos |
 
 ### Detalle de la librería común
 
@@ -137,6 +142,11 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
   a iniciar sesión una vez.
 - **Tenants creados a mano antes del alta:** siguen funcionando con la `url` que tengan cargada; su identificador en el
   panel del superadmin se deriva del schema.
+- **El frontend llama a la API desde el servidor de Next.js sin `Origin`** (`app/api/products/route.ts`): el gateway
+  reconoce el tenant por el `Origin`, así que esas llamadas no encuentran tenant. Hay que mandar el `Origin` del tenant
+  (o llamar desde el navegador) al pasar al catálogo nuevo.
+- **Endpoints públicos viejos** (`/products/all`, `/{id}`, `/search`, `/featured`) siguen mostrando el stock exacto;
+  cerrarlos cuando el frontend use `/api/v1/catalog`.
 - **Bugs corregidos en el camino:**
   - CORS del gateway: se cacheaban orígenes no permitidos, así que desde el segundo request pasaba cualquiera.
   - products pedía el tenant con `?schema=` a un endpoint que solo aceptaba `url` (400).
@@ -203,3 +213,16 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 - **Productos nuevos:** stock 0 y stock mínimo 0. Al crear metadatos, `ProductMetaData` pone `unknown` en material,
   color y estilo si no vienen (comportamiento que ya tenía el modelo).
 - Los mensajes de error están en inglés, como el resto de la API.
+
+### Detalle del catálogo público (products, sin login)
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/v1/catalog/products?q&category&sort&page&size` | Página de productos. `q` busca en nombre, descripción y categoría; `sort` = `name` (defecto), `price_asc`, `price_desc`; `size` 24 por defecto, máximo 100. Devuelve `{items, page, size, totalItems, totalPages}` |
+| `GET /api/v1/catalog/products/{slug}` | Detalle para el link compartido (imágenes en orden y metadatos) |
+| `GET /api/v1/catalog/categories` | Categorías con la cantidad de productos |
+
+- Cada producto devuelve `slug, name, category, description, price, availability, featured, images`. El listado y el
+  detalle del panel (`/api/v1/products`) también devuelven `slug`, para armar el botón de compartir.
+- **Vistas previas en WhatsApp/Instagram:** las etiquetas Open Graph las genera el frontend (Next.js `generateMetadata`)
+  con el detalle por slug.

@@ -5,6 +5,7 @@ import com.decor.product.dto.PricingDto;
 import com.decor.product.dto.UpdatePricingDto;
 import com.decor.product.entities.Product;
 import com.decor.product.repositories.ProductRepository;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.ProductService;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -26,6 +27,9 @@ class PricingTest {
 
 	@Mock
 	private ProductRepository productRepository;
+
+	@Mock
+	private CatalogCacheService catalogCache;
 
 	@InjectMocks
 	private ProductService productService;

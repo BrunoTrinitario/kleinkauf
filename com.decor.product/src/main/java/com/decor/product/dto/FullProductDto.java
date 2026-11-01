@@ -15,6 +15,7 @@ import java.util.List;
 public class FullProductDto{
     private Long id;
     private String name;
+    private String slug;
     private String category;
     private String description;
     private int stock;

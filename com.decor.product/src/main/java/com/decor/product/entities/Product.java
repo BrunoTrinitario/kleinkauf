@@ -36,6 +36,10 @@ public class Product {
 
     private String description;
 
+    // Para los links del catalogo publico ('mesa-de-roble'). Se genera al crear y no cambia con el nombre
+    @Column(unique = true, length = 100)
+    private String slug;
+
     // Solo se modifica con movimientos de stock (StockService)
     private int stock;
 

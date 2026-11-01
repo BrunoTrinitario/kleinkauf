@@ -39,6 +39,7 @@ public class ProductFactory {
         FullProductDto fullProductDto = new FullProductDto(
                 p.getId(),
                 p.getName(),
+                p.getSlug(),
                 p.getCategory(),
                 p.getDescription(),
                 p.getStock(),
@@ -66,6 +67,7 @@ public class ProductFactory {
         return  new LightProductDto(
                 p.getId(),
                 p.getName(),
+                p.getSlug(),
                 p.getCategory(),
                 p.getDescription(),
                 p.getStock(),

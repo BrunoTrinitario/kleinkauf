@@ -5,6 +5,7 @@ import com.decor.product.entities.Product;
 import com.decor.product.entities.ProductMetaData;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.ProductCsvService;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,9 @@ class ProductCsvServiceTest {
 
 	@Mock
 	private PlatformTransactionManager transactionManager;
+
+	@Mock
+	private CatalogCacheService catalogCache;
 
 	@InjectMocks
 	private ProductCsvService service;

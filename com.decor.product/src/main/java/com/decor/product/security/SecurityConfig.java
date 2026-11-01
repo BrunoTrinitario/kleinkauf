@@ -20,6 +20,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Catalogo publico
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                         // Stock: administrador y empleado
                         .requestMatchers("/api/v1/products/*/stock/movements", "/api/v1/products/stock/low")
                             .hasAnyRole("ADMINISTRADOR", "EMPLEADO")

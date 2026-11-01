@@ -7,6 +7,7 @@ import com.decor.product.entities.Product;
 import com.decor.product.factories.ProductFactory;
 import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductRepository;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.ProductService;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,9 @@ class FeaturedTest {
 
 	@Mock
 	private ProductFactory productFactory;
+
+	@Mock
+	private CatalogCacheService catalogCache;
 
 	@InjectMocks
 	private ProductService productService;
@@ -90,7 +94,7 @@ class FeaturedTest {
 		when(productRepository.findFeatured()).thenReturn(List.of(primero, segundo));
 		when(productFactory.getLightProductInfo(any(Product.class), anyList())).thenAnswer(invocation -> {
 			Product p = invocation.getArgument(0);
-			return new LightProductDto(p.getId(), "P" + p.getId(), null, null, 0, null, true, List.of());
+			return new LightProductDto(p.getId(), "P" + p.getId(), null, null, null, 0, null, true, List.of());
 		});
 
 		List<Long> ids = productService.getFeaturedProducts().stream().map(LightProductDto::id).toList();

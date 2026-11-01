@@ -1,6 +1,7 @@
 package com.decor.product;
 
 import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.product.services.CatalogCacheService;
 import com.decor.product.services.ProductService;
 import com.decor.product.util.FileManager;
 import java.util.List;
@@ -22,6 +23,9 @@ class ImageUploadLimitTest {
 
 	@Mock
 	private FileManager fileManager;
+
+	@Mock
+	private CatalogCacheService catalogCache;
 
 	@InjectMocks
 	private ProductService productService;

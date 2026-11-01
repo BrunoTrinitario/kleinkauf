@@ -26,6 +26,9 @@ public class PermittedUrls {
                 "GET:/api/v1/products/{id}",
                 "GET:/api/v1/products/{id}/metadata",
                 "GET:/api/v1/products/search",
+                "GET:/api/v1/catalog/products",
+                "GET:/api/v1/catalog/products/{any}",
+                "GET:/api/v1/catalog/categories",
                 "GET:/api/v1/bundles/all",
                 "GET:/api/v1/bundles/{id}",
                 "/products/images/{any}"

@@ -6,6 +6,7 @@ import java.util.List;
 public record LightProductDto(
         Long id,
         String name,
+        String slug,
         String category,
         String description,
         int stock,
