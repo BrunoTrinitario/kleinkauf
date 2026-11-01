@@ -67,26 +67,26 @@ public class UserController {
     }
 
     @PostMapping("/{id}/roles")
-    public ResponseEntity<FullUserDto> giveRoleToUser(@PathVariable Long userId, @RequestParam String roleName) throws ApiException {
+    public ResponseEntity<FullUserDto> giveRoleToUser(@PathVariable("id") Long userId, @RequestParam String roleName) throws ApiException {
         FullUserDto user = userService.addRoleToUser(userId, roleName);
         return new ResponseEntity<>(user, org.springframework.http.HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}/roles")
-    public ResponseEntity<FullUserDto> removeRoleFromUser(@PathVariable Long userId, @RequestParam String roleName) throws ApiException {
+    public ResponseEntity<FullUserDto> removeRoleFromUser(@PathVariable("id") Long userId, @RequestParam String roleName) throws ApiException {
         userService.deleteRoleFromUser(userId, roleName);
         FullUserDto user = userService.getUserById(userId);
         return new ResponseEntity<>(user, org.springframework.http.HttpStatus.OK);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<FullUserDto> updateUser(@PathVariable Long userId, @RequestBody PatchUserDto userDto) throws ApiException {
+    public ResponseEntity<FullUserDto> updateUser(@PathVariable("id") Long userId, @RequestBody PatchUserDto userDto) throws ApiException {
         FullUserDto user = userService.updateUser(userId, userDto.name(), userDto.password());
         return new ResponseEntity<>(user, org.springframework.http.HttpStatus.OK);
     }
 
     @GetMapping("/{id}/roles")
-    public ResponseEntity<List<RoleDto>> getUserRoles(@PathVariable Long userId) throws ApiException {
+    public ResponseEntity<List<RoleDto>> getUserRoles(@PathVariable("id") Long userId) throws ApiException {
         List<RoleDto> roles = userService.getUserRoles(userId);
         return new ResponseEntity<>(roles, org.springframework.http.HttpStatus.OK);
     }
