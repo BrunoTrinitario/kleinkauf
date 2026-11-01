@@ -42,7 +42,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☐ Sí ☐ No ☐ Después |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
-| 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Hibernate Envers o `@CreatedBy` | ☐ Sí ☐ No ☐ Después |
+| 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **planificado** ([docs/auditoria.md](docs/auditoria.md)) |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
 
@@ -58,7 +58,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | Mejora | Para qué | Decisión |
 |---|---|---|
 | **Resilience4j** (circuit breaker + reintentos) | Proteger las llamadas de productos a usuarios, que hoy usan `RestTemplate` sin protección | ☑ Sí — **hecho** |
-| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☐ Sí ☐ No ☐ Después |
+| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **planificado** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator, OpenTelemetry, Prometheus, Grafana, Tempo, Loki y panel en tiempo real por WS |
 | **Testcontainers** | Tests de integración con Postgres y Redis reales | ☐ Sí ☐ No ☐ Después |
 | **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`decor-common`) |
 | **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☑ Sí — **hecho** (permisos por área y por rol) |
@@ -124,6 +124,8 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | El pedido **reserva stock al crearse** (llamada síncrona e idempotente a products) y lo devuelve si se cancela o **vence a las 48 h** sin comprobante. Eventos después | No vender dos veces lo mismo mientras se espera la transferencia |
 | 2026-11-01 | Cuenta como venta **al validar el pago**. Reportes por período, por producto, ganancia (costo guardado al vender) y contador `vendidos` solo en el panel | Medir lo vendido y lo generado sin contar pedidos que no se pagan |
 | 2026-11-01 | El invitado sigue su pedido con **email + número aleatorio** (`K7QM-4X2P`) | Un número correlativo se podría recorrer y exponer datos de otros compradores |
+| 2026-11-01 | **Observabilidad**: Actuator con `/health`, `/ready` y `/metrics` en un puerto de gestión interno; OpenTelemetry + Prometheus + Grafana + Tempo + Loki; MS nuevo `decor-observability` con panel de plataforma y de tienda en tiempo real por **WebSocket puro** con ticket corto | Saber cómo está la plataforma y cada tienda en vivo, sin exponer métricas afuera |
+| 2026-11-01 | **Auditoría** de cambios de datos, acciones de plataforma y lecturas sensibles, con antes/después de los campos cambiados, por **outbox** hacia observability; se guarda **para siempre** y cada uno ve lo suyo (admin su tienda, superadmin la plataforma) | Control sobre lo que hace cada usuario sin perder eventos ni mezclar datos de tiendas |
 
 ### Detalle de la librería común
 
