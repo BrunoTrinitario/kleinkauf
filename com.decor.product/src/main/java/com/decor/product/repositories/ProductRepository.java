@@ -26,4 +26,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE p.featured = true ORDER BY p.featuredOrder ASC NULLS LAST, p.name ASC")
     List<Product> findFeatured();
+
+    List<Product> findAllByOrderByNameAsc();
+
+    // Incluye los borrados (soft delete): el nombre es unique en la tabla aunque el producto este borrado
+    @Query(value = "SELECT COUNT(*) > 0 FROM product WHERE name = :name", nativeQuery = true)
+    boolean existsByNameIncludingDeleted(@Param("name") String name);
 }

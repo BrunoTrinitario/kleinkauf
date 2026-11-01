@@ -26,6 +26,8 @@ import java.util.List;
 @Service
 public class ProductService {
 
+    public static final long MAX_IMAGE_BYTES = 1024 * 1024; // 1 MB
+
     @Autowired
     private ProductRepository productRepository;
 
@@ -260,6 +262,12 @@ public class ProductService {
     }
 
     public boolean saveImages(Long productId, List<MultipartFile> files) throws ApiException {
+        // El limite general de subida es 5 MB (por el CSV); las imagenes siguen en 1 MB
+        for (MultipartFile file : files) {
+            if (file.getSize() > MAX_IMAGE_BYTES) {
+                throw new ApiException(ErrorMessages.IMAGE_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE);
+            }
+        }
         List<String> imagesPaths = fileManager.SaveAllImages(files);
         this.addProductImages(productId, imagesPaths);
         return true;

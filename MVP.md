@@ -43,7 +43,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☐ Sí ☐ No ☐ Después |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Hibernate Envers o `@CreatedBy` | ☐ Sí ☐ No ☐ Después |
-| 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☐ Sí ☐ No ☐ Después |
+| 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
 
 > **Sobre ventas:** el `TODO` marca "MS ventas y logística" como **no entra**. Se recomienda incluir al menos
@@ -103,6 +103,11 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | El gateway **borra los headers internos** (`X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name`) que mande el cliente | Los servicios confían en esos headers |
 | 2026-11-01 | **Rate limit** arreglado (ventanas de 1 minuto): login 5, alta de tenants 3, global 300 (sin contar imágenes) por IP y origen. La IP sale de `X-Forwarded-For` | Frenar abuso del alta pública sin cortar la navegación del catálogo |
 | 2026-11-01 | **Caché de tenants del gateway por URL con TTL de 1 minuto** (antes nunca acertaba) | Menos llamadas a users; deshabilitar o borrar tarda hasta 1 minuto en aplicarse |
+| 2026-11-01 | **Importar/exportar productos solo en CSV**, solo administrador (el archivo incluye el costo) | Sin dependencias pesadas; Excel lo abre igual |
+| 2026-11-01 | Columnas: básicas, precio, costo y metadatos (**sin stock**: se maneja con movimientos). Encabezados en español | Que el dueño entienda el archivo y que el stock siga teniendo trazabilidad |
+| 2026-11-01 | Formato: `;`, UTF-8 con BOM y **números en formato argentino** (`15.000,50`); un formato ambiguo como `15.5` es error. Apache Commons CSV | Excel en español lo abre bien con doble clic; nadie carga 15 queriendo 15.000 |
+| 2026-11-01 | Importar: el **nombre identifica al producto**; si existe se actualiza y **una celda vacía no cambia el dato**; si no existe se crea con stock 0. **Todo o nada**, con errores por fila. Columnas desconocidas = error | Sirve para cargar el catálogo y para actualizar precios en masa sin pisar datos |
+| 2026-11-01 | Límites: 5.000 filas y 5 MB. El límite general de subida pasa a 5 MB y **las imágenes siguen en 1 MB** (validación propia); archivo más grande que el límite → 413 | Evitar que un archivo enorme bloquee el servicio |
 
 ### Detalle de la librería común
 
@@ -180,3 +185,21 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
   gateway `platform.url` (frontend de la plataforma, permitido por CORS) y `limit.signup`.
 - Las rutas `/api/v1/platform/**` no pasan por el filtro de tenant del gateway; users igual verifica que no
   haya tenant en la request.
+
+### Detalle de importar / exportar productos (products, solo administrador)
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/v1/products/export` | Descarga `productos.csv` con todo el catálogo (sin borrados), ordenado por nombre |
+| `GET /api/v1/products/import/template` | Descarga `plantilla-productos.csv` (solo encabezados) |
+| `POST /api/v1/products/import` | Sube el CSV (`file`, multipart). 200 `{created, updated, errors: []}`; 400 con `errors: [{row, message}]` y no se importa nada |
+
+- **Columnas:** `nombre;categoria;descripcion;precio;costo;material;color;estilo;alto;ancho;largo;peso`. Solo `nombre`
+  es obligatoria; se puede subir un archivo con menos columnas (ej. `nombre;precio`). Los encabezados aceptan acentos
+  y mayúsculas.
+- **Validaciones por fila:** nombre obligatorio y no repetido en el archivo; números en formato argentino y no
+  negativos; precio y costo con hasta 10 enteros y 2 decimales; textos de hasta 255 caracteres; un nombre de un
+  producto borrado no se puede reusar (la columna es única aunque esté borrado).
+- **Productos nuevos:** stock 0 y stock mínimo 0. Al crear metadatos, `ProductMetaData` pone `unknown` en material,
+  color y estilo si no vienen (comportamiento que ya tenía el modelo).
+- Los mensajes de error están en inglés, como el resto de la API.

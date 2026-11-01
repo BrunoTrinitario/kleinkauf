@@ -25,6 +25,9 @@ public class SecurityConfig {
                             .hasAnyRole("ADMINISTRADOR", "EMPLEADO")
                         // Costo y margen: solo administrador
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/*/pricing").hasRole("ADMINISTRADOR")
+                        // Exportar y plantilla del CSV (incluyen el costo): solo administrador
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/export", "/api/v1/products/import/template")
+                            .hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMINISTRADOR")

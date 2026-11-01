@@ -5,10 +5,13 @@ import com.decor.common.dto.RoleDto;
 import com.decor.common.security.InternalTokenService;
 import com.decor.common.servlet.tenant.TenantFilter;
 import com.decor.product.controllers.BundleController;
+import com.decor.product.controllers.ProductCsvController;
 import com.decor.product.controllers.ProductController;
 import com.decor.product.controllers.StockController;
+import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.security.SecurityConfig;
 import com.decor.product.services.BundleService;
+import com.decor.product.services.ProductCsvService;
 import com.decor.product.services.ProductService;
 import com.decor.product.services.StockService;
 import com.decor.product.services.UserService;
@@ -20,21 +23,25 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class})
+@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -67,6 +74,9 @@ class SecurityRulesTest {
 
 	@MockitoBean
 	private BundleService bundleService;
+
+	@MockitoBean
+	private ProductCsvService productCsvService;
 
 	private MockHttpServletRequestBuilder as(Long userId, MockHttpServletRequestBuilder request) {
 		when(userService.getUserRolesById(ADMIN)).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
@@ -133,6 +143,31 @@ class SecurityRulesTest {
 		mockMvc.perform(as(null, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isOk());
+	}
+
+	@Test
+	void importarYExportar_soloAdministrador() throws Exception {
+		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/export"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, get("/api/v1/products/export"))).andExpect(status().isOk());
+
+		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/import/template"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, get("/api/v1/products/import/template"))).andExpect(status().isOk());
+
+		when(productCsvService.importCsv(any())).thenReturn(new ImportResultDto(1, 0, List.of()));
+		MockMultipartFile file = new MockMultipartFile("file", "p.csv", "text/csv", "nombre\r\nMesa\r\n".getBytes());
+		mockMvc.perform(as(EMPLEADO, multipart("/api/v1/products/import").file(file))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, multipart("/api/v1/products/import").file(file))).andExpect(status().isOk());
+	}
+
+	@Test
+	void importarConErrores_responde400ConLosErrores() throws Exception {
+		when(productCsvService.importCsv(any())).thenReturn(
+				new ImportResultDto(0, 0, List.of(new ImportResultDto.RowError(2, "The name is required"))));
+		MockMultipartFile file = new MockMultipartFile("file", "p.csv", "text/csv", "nombre\r\n;\r\n".getBytes());
+
+		mockMvc.perform(as(ADMIN, multipart("/api/v1/products/import").file(file)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.errors[0].row").value(2));
 	}
 
 	@Test

@@ -40,5 +40,9 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/stock/low"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/5/stock/movements"));
         assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/products"));
+        // El CSV incluye el costo
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/export"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/import/template"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/products/import"));
     }
 }
