@@ -1,7 +1,8 @@
 # Ventas (plan)
 
 Plan del módulo de ventas: carrito → pedido → pago por transferencia con comprobante → validación del
-administrador → preparación y entrega. Más adelante se van a sumar integraciones de pago (Mercado Pago) y más
+administrador → preparación y entrega. El administrador también **carga las ventas del local** (ya pagadas), así
+todas las ventas quedan registradas aunque no pasen por la tienda online. Más adelante se van a sumar integraciones de pago (Mercado Pago) y más
 automatización; este plan deja el lugar para eso.
 
 > Estado: **plan**. Cuando se implemente cada etapa, este archivo pasa a ser la documentación del módulo.
@@ -27,6 +28,13 @@ automatización; este plan deja el lugar para eso.
 | Reportes | Totales por período, por producto/combo (ranking), ganancia (precio − costo guardados al vender) y **contador `vendidos`** en el producto |
 | Contador `vendidos` | **Solo en el panel**. El catálogo puede ordenar por "más vendidos" sin mostrar el número |
 | Avisos por email | **Después** (junto con los eventos). Por ahora el comprador consulta su pedido y la tienda lo ve en el panel |
+| Venta en el local | El administrador crea **pedidos ya pagos** (canal `LOCAL`). Elige si quedan `PAGADO` (para preparar o enviar después) o `ENTREGADO` |
+| Medio de pago | Se guarda en todos los pedidos: `EFECTIVO`, `TRANSFERENCIA`, `DEBITO`, `CREDITO` u `OTRO`. Los online son `TRANSFERENCIA` |
+| Comprador en el local | Datos **opcionales**; sin datos queda como "consumidor final" |
+| Precio en el local | Toma el precio actual, pero el administrador puede **cambiar el precio de un ítem o descontar del total** (queda el precio de lista y el cobrado). Permite vender productos "a consultar" |
+| Sin stock en el local | **Se vende igual y avisa**: un `AJUSTE` automático cubre lo que falta, el stock queda en 0 y el pedido queda marcado para revisar |
+| Anular una venta del local | Se **cancela con motivo**: vuelve el stock y deja de contar en reportes y vendidos |
+| Canal en reportes | Cada pedido guarda su canal (`ONLINE` / `LOCAL`); los reportes se filtran o desglosan por canal y por medio de pago |
 | Abuso | Rate limit en el gateway (crear pedidos, consultar y subir comprobante) y topes por pedido |
 | Ramas | **4 etapas**, una rama por etapa, cada una a `develop` antes de seguir |
 
@@ -57,6 +65,8 @@ PENDIENTE_PAGO ──sube comprobante──► PAGO_EN_REVISION ──valida─�
 - El administrador puede cancelar en cualquier estado no final. Si el pedido ya estaba pagado, la devolución del
   dinero se arregla por fuera.
 - `RECHAZADO` también vence: el plazo corre desde el rechazo.
+- Una **venta del local** no pasa por el pago: nace en `PAGADO` o `ENTREGADO` (lo elige el administrador) y
+  desde ahí sigue el mismo flujo.
 - Cada cambio de estado se guarda en un historial (estado, fecha, usuario, motivo).
 
 ## Componentes
@@ -67,10 +77,11 @@ PENDIENTE_PAGO ──sube comprobante──► PAGO_EN_REVISION ──valida─�
   multi-tenant como products (el tenant es obligatorio).
 - Base `sales` (se agrega a `deploy/init.sql`) y servicio en `docker-compose.dev.yml`.
 - Tablas por schema:
-  - `orders`: número, estado, datos del comprador, `user_id` (si estaba logueado), tipo de entrega y dirección,
-    notas, total, `expires_at`, fechas.
-  - `order_items`: tipo (`PRODUCT` / `BUNDLE`), id, nombre, cantidad, **precio unitario y costo unitario al momento
-    de la compra**, subtotal.
+  - `orders`: número, estado, **canal** (`ONLINE` / `LOCAL`), **medio de pago**, datos del comprador, `user_id`
+    (si estaba logueado), tipo de entrega y dirección, notas, descuento, total, marca de **stock para revisar**,
+    `expires_at`, fechas.
+  - `order_items`: tipo (`PRODUCT` / `BUNDLE`), id, nombre, cantidad, **precio de lista, precio cobrado y costo
+    unitario al momento de la venta**, subtotal.
   - `order_status_history`: estado, fecha, usuario, motivo.
   - `payment_receipts`: archivo, tipo, tamaño, fecha (puede haber varios si hubo rechazos).
   - `sales_settings`: una fila por tienda (alias, CBU, titular, banco, horas de vencimiento).
@@ -81,7 +92,9 @@ PENDIENTE_PAGO ──sube comprobante──► PAGO_EN_REVISION ──valida─�
 
 - Endpoints internos (`/api/internal/products/...`, token interno):
   - **Reservar**: recibe la referencia del pedido y los ítems; valida que existan, que tengan precio y que haya
-    stock; registra las `SALIDA` y devuelve nombre, precio y costo de cada ítem. Todo o nada.
+    stock; registra las `SALIDA` y devuelve nombre, precio y costo de cada ítem. Todo o nada. Para las ventas del
+    local acepta precio cero ("a consultar") y, si falta stock, registra un `AJUSTE` automático por lo que falta
+    (el stock queda en 0) e informa qué ítems quedaron para revisar.
   - **Devolver**: registra las `ENTRADA` de la reserva de ese pedido.
   - **Marcar vendido / desmarcar**: suma o resta el contador `vendidos`.
   - Las tres son **idempotentes por referencia de pedido**: si sales reintenta, no se descuenta dos veces.
@@ -115,21 +128,22 @@ PENDIENTE_PAGO ──sube comprobante──► PAGO_EN_REVISION ──valida─�
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| GET | `/api/v1/sales/admin/orders` | Lista con filtros (estado, fechas, búsqueda por número/email), paginada |
+| POST | `/api/v1/sales/admin/orders` | **Venta del local**: ítems (con precio cambiado opcional), descuento, medio de pago, estado inicial (`PAGADO` / `ENTREGADO`) y comprador opcional |
+| GET | `/api/v1/sales/admin/orders` | Lista con filtros (estado, canal, medio de pago, stock para revisar, fechas, búsqueda por número/email), paginada |
 | GET | `/api/v1/sales/admin/orders/{number}` | Detalle con ítems, historial y comprobantes |
 | GET | `/api/v1/sales/admin/orders/{number}/receipts/{id}` | Descarga un comprobante |
 | PUT | `/api/v1/sales/admin/orders/{number}/status` | `{status, reason}`: validar, rechazar, avanzar o cancelar (según las transiciones) |
 | GET / PUT | `/api/v1/sales/admin/settings` | Configuración de ventas de la tienda |
-| GET | `/api/v1/sales/admin/reports/summary` | Pedidos, unidades, facturado y ganancia por día/semana/mes en un rango |
-| GET | `/api/v1/sales/admin/reports/products` | Unidades, facturado y ganancia por producto/combo (ranking) |
+| GET | `/api/v1/sales/admin/reports/summary` | Pedidos, unidades, facturado y ganancia por día/semana/mes en un rango, filtrable y desglosado por canal y medio de pago |
+| GET | `/api/v1/sales/admin/reports/products` | Unidades, facturado y ganancia por producto/combo (ranking), filtrable por canal |
 
 ## Etapas
 
 | # | Rama | Qué incluye |
 |---|---|---|
 | 1 | `feature/ventas-pedidos` | MS `decor-sales` (proyecto, Eureka, gateway, base, docker), configuración de ventas, endpoints internos de reserva/devolución en products, combos en el catálogo, crear pedido, consulta del invitado, "mis pedidos", lista y detalle del administrador, rate limit y topes |
-| 2 | `feature/ventas-pagos` | Comprobantes, cambios de estado con historial, cancelación del comprador, vencimiento programado, contador `vendidos` al validar/cancelar |
-| 3 | `feature/ventas-reportes` | Reportes por período y por producto, ganancia, orden "más vendidos" en el catálogo |
+| 2 | `feature/ventas-pagos` | Comprobantes, cambios de estado con historial, cancelación del comprador, vencimiento programado, contador `vendidos` al validar/cancelar, **ventas del local** (precio cambiado, descuento, medio de pago, `AJUSTE` por falta de stock, anulación) |
+| 3 | `feature/ventas-reportes` | Reportes por período y por producto, ganancia, desglose por canal y medio de pago, orden "más vendidos" en el catálogo |
 | 4 | `docs/ventas` | Este archivo como documentación final, `endpoints.md`, `tenants.md`, `permisos.md` y `MVP.md` |
 
 ## Para decidir al arrancar cada etapa
@@ -147,6 +161,9 @@ PENDIENTE_PAGO ──sube comprobante──► PAGO_EN_REVISION ──valida─�
 - Qué pasa con el pedido si se borra o deshabilita el producto.
 - Cuántos comprobantes se pueden subir y si se borran los de pedidos viejos.
 - Cada cuánto corre el vencimiento.
+- Venta del local: si se puede emitir un comprobante para imprimir (no fiscal), si el descuento es en monto o en
+  porcentaje y si hay un tope.
+- Al anular una venta del local que tuvo `AJUSTE` automático, si vuelve todo el stock vendido o solo lo que había.
 
 **Etapa 3**
 - Zona horaria de los reportes y si se cachean.
