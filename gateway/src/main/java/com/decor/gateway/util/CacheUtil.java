@@ -8,8 +8,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
@@ -21,6 +23,9 @@ public class CacheUtil {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private ReactiveStringRedisTemplate reactiveRedisTemplate;
 
     @Value("${limit.minutes}")
     private int minutesLimit;
@@ -38,10 +43,11 @@ public class CacheUtil {
         }
     }
 
-    public boolean existsTenantByUrl(String url) {
+    // Reactivo: se usa desde el filtro de CORS, que corre en el event loop de Netty
+    public Mono<Boolean> existsTenantByUrl(String url) {
         String key = CacheKeys.GATEWAY_CORS + url;
-        Boolean exists = redisTemplate.hasKey(key);
-        return Boolean.TRUE.equals(exists);
+        return reactiveRedisTemplate.hasKey(key)
+                .map(Boolean.TRUE::equals);
     }
 
     public long requestCounter(String key){

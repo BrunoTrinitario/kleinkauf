@@ -34,24 +34,24 @@ public class TenantService {
         return tenantClient.getTenantByUrl(schema);
     }
 
-    public boolean getTenantForCorsSync(String url) {
-        boolean cached = false;
-
-        cached = localCacheService.existsUrl(url);
-        if (cached) return true;
-
-        cached = cacheUtil.existsTenantByUrl(url);
-        if (cached) return true;
-
-        Boolean allowed = tenantClient.isCorsAllowed(url)
-                .onErrorReturn(false)
-                .block();
-
-        // Solo se cachean los origenes permitidos
-        if (Boolean.TRUE.equals(allowed)) {
-            localCacheService.saveCorsTenant(url);
+    /*
+    Indica si el origen pertenece a un tenant: cache local, despues Redis y por ultimo users.
+    Todo reactivo para no bloquear el event loop. Solo se cachean los origenes permitidos.
+     */
+    public Mono<Boolean> isCorsAllowed(String url) {
+        if (localCacheService.existsUrl(url)) {
+            return Mono.just(true);
         }
 
-        return Boolean.TRUE.equals(allowed);
+        // Si Redis falla se consulta a users directamente
+        return cacheUtil.existsTenantByUrl(url)
+                .onErrorReturn(false)
+                .flatMap(cached -> cached ? Mono.just(true) : tenantClient.isCorsAllowed(url))
+                .map(Boolean.TRUE::equals)
+                .onErrorReturn(false)
+                .defaultIfEmpty(false)
+                .doOnNext(allowed -> {
+                    if (allowed) localCacheService.saveCorsTenant(url);
+                });
     }
 }
