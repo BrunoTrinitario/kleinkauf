@@ -54,8 +54,4 @@ public class Role {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    private int permission;
-
-
 }

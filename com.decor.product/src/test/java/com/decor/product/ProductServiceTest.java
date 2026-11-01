@@ -1,5 +1,8 @@
 package com.decor.product;
 
+import com.decor.common.dto.RoleDto;
+import com.decor.common.security.PermissionArea;
+import com.decor.common.servlet.security.CustomUserDetails;
 import com.decor.product.dto.FullProductDto;
 import com.decor.product.dto.ImageDto;
 import com.decor.product.dto.MetaDataDto;
@@ -20,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,6 +31,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -203,8 +209,41 @@ class ProductServiceTest {
 
 
 
+	@AfterEach
+	void clearSecurity() {
+		SecurityContextHolder.clearContext();
+	}
+
+	// Usuario logueado con la mascara de permisos que le da users
+	private static void loggedInWith(int permissions) {
+		CustomUserDetails user = new CustomUserDetails(1L, List.of(new RoleDto("EMPLEADO", permissions)));
+		SecurityContextHolder.getContext().setAuthentication(
+				new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+	}
+
+	@Test
+	void createProduct_sinPermisoPrecios_ignoraPrecioYCosto() throws ApiException {
+		loggedInWith(PermissionArea.PRODUCTOS.bit());
+		when(productRepository.existsByName("Silla")).thenReturn(false);
+		when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+			Product p = invocation.getArgument(0);
+			p.setId(99L);
+			return p;
+		});
+		when(productRepository.findById(99L)).thenAnswer(invocation -> Optional.of(product(99L, "Silla", null, null, 0)));
+
+		productService.createProduct(new NewProductDto("Silla", null, null, 0, 0, new BigDecimal("15000"), new BigDecimal("-1")));
+
+		ArgumentCaptor<Product> saved = ArgumentCaptor.forClass(Product.class);
+		verify(productRepository).save(saved.capture());
+		assertNull(saved.getValue().getPrice());
+		// Ni siquiera se valida: un costo negativo no da error porque se ignora
+		assertNull(saved.getValue().getCost());
+	}
+
 	@Test
 	void createProduct_createsNewProductAndReturnsFullProductDto() throws ApiException {
+		loggedInWith(PermissionArea.ALL);
 		NewProductDto newProductDto = new NewProductDto("Silla", "living", "Silla moderna", 9, 2, new BigDecimal("15000.00"), new BigDecimal("9000.00"));
 		Product savedProduct = product(99L, "Silla", "living", "Silla moderna", 9);
 		FullProductDto fullProductDto = fullProductDto(99L);

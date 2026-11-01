@@ -6,10 +6,13 @@ import com.decor.users.dtos.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -65,6 +68,18 @@ public class CacheUtil {
             redisTemplate.expire(key, Duration.ofHours(1));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    // Al cambiar los permisos de un rol: borra los roles cacheados de todos los usuarios de la tienda
+    // (user:<id>:<tenant>, los lee products). SCAN en vez de KEYS para no bloquear Redis
+    public void deleteTenantUserRoles(String tenant) {
+        List<String> keys = new ArrayList<>();
+        try (Cursor<String> cursor = redisTemplate.scan(ScanOptions.scanOptions().match("user:*:" + tenant).count(500).build())) {
+            cursor.forEachRemaining(keys::add);
+        }
+        if (!keys.isEmpty()) {
+            redisTemplate.delete(keys);
         }
     }
 

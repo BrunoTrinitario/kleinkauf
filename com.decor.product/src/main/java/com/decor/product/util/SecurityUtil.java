@@ -1,5 +1,6 @@
 package com.decor.product.util;
 
+import com.decor.common.security.PermissionArea;
 import com.decor.common.servlet.security.CustomUserDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,5 +14,10 @@ public class SecurityUtil {
             return user.getId();
         }
         return null;
+    }
+
+    public static boolean hasPermission(PermissionArea area) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getPrincipal() instanceof CustomUserDetails user && user.hasPermission(area);
     }
 }

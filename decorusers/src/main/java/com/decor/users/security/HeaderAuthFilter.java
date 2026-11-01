@@ -7,6 +7,7 @@ import com.decor.users.constants.PermittedUrls;
 import com.decor.common.dto.RoleDto;
 import com.decor.users.entities.Role;
 import com.decor.users.repositories.RoleRepository;
+import com.decor.users.services.RolePermissionService;
 import com.decor.common.security.InternalTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -31,6 +32,9 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
     @Autowired
     InternalTokenService internalTokenService;
+
+    @Autowired
+    RolePermissionService rolePermissionService;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -77,7 +81,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
                 roles.add(
                         new RoleDto(
                                 r.getType(),
-                                r.getPermission()
+                                rolePermissionService.maskFor(r.getType())
                         )
                 );
             }

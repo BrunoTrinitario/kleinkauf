@@ -88,6 +88,10 @@ public class TenantDataSource implements Serializable, TenantSchemaManager {
             emfb.afterPropertiesSet();
             emfb.destroy();
 
+            // roles.permission (int por usuario, siempre 0) se reemplazo por role_permissions.
+            // ddl-auto=update no borra columnas y quedaba NOT NULL: sin esto fallaria cada alta de rol
+            conn.createStatement().execute("ALTER TABLE " + schema + ".roles DROP COLUMN IF EXISTS permission");
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

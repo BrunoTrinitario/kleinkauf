@@ -56,6 +56,8 @@ public class UserService {
     @Autowired
     private JwtUtil  jwtUtil;
     @Autowired
+    private RolePermissionService rolePermissionService;
+    @Autowired
     private MailService mailService;
     @Autowired
     private EurekaClient eurekaClient;
@@ -218,7 +220,7 @@ public class UserService {
         for (Role role : roleList){
             list.add(new RoleDto(
                     role.getType(),
-                    role.getPermission()
+                    rolePermissionService.maskFor(role.getType())
             ));
         }
         CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(), list);

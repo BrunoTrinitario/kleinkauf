@@ -1,5 +1,6 @@
 package com.decor.product.services;
 
+import com.decor.common.security.PermissionArea;
 import com.decor.product.constants.ErrorMessages;
 import com.decor.product.dto.*;
 import com.decor.product.entities.Product;
@@ -11,6 +12,7 @@ import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
 import com.decor.product.util.FileManager;
+import com.decor.product.util.SecurityUtil;
 import com.decor.product.util.Slugs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -171,7 +173,11 @@ public class ProductService {
         if (this.productRepository.existsByName(updatedData.name())) {
             throw new ApiException(ErrorMessages.PRODUCT_NAME_IN_USE, HttpStatus.CONFLICT);
         }
-        validatePrices(updatedData.price(), updatedData.cost());
+        // Sin el permiso PRECIOS el precio y el costo se ignoran (el producto se crea sin ellos)
+        boolean canSetPrices = SecurityUtil.hasPermission(PermissionArea.PRECIOS);
+        BigDecimal price = canSetPrices ? updatedData.price() : null;
+        BigDecimal cost = canSetPrices ? updatedData.cost() : null;
+        validatePrices(price, cost);
         if (updatedData.stock() < 0) {
             throw new ApiException(ErrorMessages.INVALID_STOCK_QUANTITY, HttpStatus.BAD_REQUEST);
         }
@@ -182,8 +188,8 @@ public class ProductService {
         product.setDescription(updatedData.description());
         product.setStock(updatedData.stock());
         product.setMinStock(updatedData.minStock());
-        product.setPrice(updatedData.price());
-        product.setCost(updatedData.cost());
+        product.setPrice(price);
+        product.setCost(cost);
         // Slug fijo para el link del catalogo (no cambia si despues cambia el nombre)
         product.setSlug(Slugs.unique(product.getName(), productRepository::existsBySlugIncludingDeleted));
         product = productRepository.save(product);

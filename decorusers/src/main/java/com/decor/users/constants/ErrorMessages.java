@@ -22,4 +22,6 @@ public class ErrorMessages {
     public static String TENANT_IDENTIFIER_IN_USE = "The identifier is already in use.";
     public static String OWNER_DATA_REQUIRED = "The owner name, email and password are required.";
     public static String PLATFORM_ONLY = "This endpoint is only available on the platform.";
+    public static String ROLE_PERMISSIONS_NOT_EDITABLE = "Only the EMPLEADO and CLIENTE permissions can be configured.";
+    public static String INVALID_PERMISSIONS = "Invalid permissions: use PRODUCTOS=1, PRECIOS=2, STOCK=4 and COMBOS=8 (USUARIOS cannot be delegated).";
 }

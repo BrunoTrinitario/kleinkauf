@@ -8,6 +8,7 @@ import com.decor.users.entities.Role;
 import com.decor.users.repositories.RoleRepository;
 import com.decor.users.security.SecurityConfig;
 import com.decor.users.services.PlatformService;
+import com.decor.users.services.RolePermissionService;
 import com.decor.users.services.TenantService;
 import com.decor.users.services.UserService;
 import java.util.List;
@@ -57,6 +58,9 @@ class PlatformSecurityTest {
 
 	@MockitoBean
 	private InternalTokenService internalTokenService;
+
+	@MockitoBean
+	private RolePermissionService rolePermissionService;
 
 	@MockitoBean
 	private PlatformService platformService;

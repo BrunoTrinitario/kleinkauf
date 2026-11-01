@@ -26,7 +26,7 @@ Objetivos del proyecto:
 1. ~~**Los productos no tienen precio.**~~ **Resuelto:** precio y costo en productos y combos (punto 1).
 2. ~~**El stock es un número que se sobreescribe** con `PUT`.~~ **Resuelto:** el stock solo cambia con movimientos (punto 2).
 3. ~~**No hay alta de tenants.**~~ **Resuelto:** alta por autoservicio y panel del superadmin (punto 5).
-4. **El campo `permission` de `Role` no se usa** en el servicio de productos. Hoy los permisos dependen solo del rol.
+4. ~~**El campo `permission` de `Role` no se usa.**~~ **Resuelto:** permisos por área configurables por rol en cada tienda.
 
 ---
 
@@ -61,7 +61,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☐ Sí ☐ No ☐ Después |
 | **Testcontainers** | Tests de integración con Postgres y Redis reales | ☐ Sí ☐ No ☐ Después |
 | **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`decor-common`) |
-| **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☐ Sí ☐ No ☐ Después |
+| **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☑ Sí — **hecho** (permisos por área y por rol) |
 
 ---
 
@@ -113,6 +113,12 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | **Slug fijo** por producto (se genera al crear, no cambia con el nombre; si se repite, `-2`). Los productos existentes lo reciben al migrar el schema del tenant | Los links compartidos no se rompen |
 | 2026-11-01 | Búsqueda sin distinguir mayúsculas pero **sí acentos** (sin `unaccent`). 24 por página, máximo 100. Sin combos en el catálogo por ahora | Simple, sin extensiones de Postgres |
 | 2026-11-01 | **Caché del catálogo en Redis** con versión por tenant (cada cambio de producto, precio, stock, imágenes o importación la sube después del commit) y TTL de 1 hora; si Redis falla se lee de la base | Probar caché distribuida sin mostrar datos viejos |
+| 2026-11-01 | **Permisos por área, por rol y configurables por tienda**: PRODUCTOS=1, PRECIOS=2, STOCK=4, COMBOS=8, USUARIOS=16 (máscara de bits, también en la API) | Más fino que el rol sin la complejidad de permisos por usuario o roles propios |
+| 2026-11-01 | La máscara vive en una **tabla nueva por tienda** (`role_permissions`, una fila por rol); se elimina `roles.permission` (int por usuario, siempre 0) | Una sola fuente por rol; la columna vieja era `NOT NULL` y rompía las altas al sacarla de la entidad |
+| 2026-11-01 | **ADMINISTRADOR siempre tiene todo** y es el único que configura; EMPLEADO y CLIENTE son configurables; **USUARIOS no se delega** | Que nadie se quede afuera ni pueda darse el rol ADMINISTRADOR |
+| 2026-11-01 | Por defecto igual que antes: EMPLEADO = STOCK, CLIENTE = nada | No cambiar nada hasta que el administrador lo configure |
+| 2026-11-01 | Importar/exportar CSV pide PRODUCTOS **y** PRECIOS. Crear un producto sin PRECIOS **ignora** precio y costo | El archivo trae costo; el alta no debe saltear el permiso de precios |
+| 2026-11-01 | Propagación: al cambiar permisos se borran de Redis los roles cacheados de la tienda y products cachea roles 1 minuto | El cambio se aplica en menos de 1 minuto |
 
 ### Detalle de la librería común
 
@@ -225,3 +231,22 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
   detalle del panel (`/api/v1/products`) también devuelven `slug`, para armar el botón de compartir.
 - **Vistas previas en WhatsApp/Instagram:** las etiquetas Open Graph las genera el frontend (Next.js `generateMetadata`)
   con el detalle por slug.
+
+### Detalle de permisos (decorusers, solo ADMINISTRADOR)
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/v1/users/roles/permissions` | Máscara de cada rol: `[{"role": "ADMINISTRADOR", "permissions": 31}, {"role": "EMPLEADO", ...}, {"role": "CLIENTE", ...}]` |
+| `PUT /api/v1/users/roles/{EMPLEADO\|CLIENTE}/permissions` | `{"permissions": 5}` (PRODUCTOS + STOCK). USUARIOS (16) o bits desconocidos → 400 |
+
+| Área | Bit | Habilita (products) |
+|---|---|---|
+| PRODUCTOS | 1 | Crear, editar y borrar productos, imágenes, metadatos y destacados |
+| PRECIOS | 2 | Ver costo y margen, editar precio y costo (`/products/{id}/pricing`) |
+| STOCK | 4 | Ver y registrar movimientos, stock bajo |
+| COMBOS | 8 | Crear, editar y borrar combos y cambiar su precio |
+| USUARIOS | 16 | Gestionar usuarios (solo ADMINISTRADOR, no se delega) |
+
+- Los permisos viajan en `RoleDto.permissions` (users los calcula) y products los convierte en authorities
+  `PERM_<AREA>` (`CustomUserDetails`). Un usuario con varios roles tiene la unión de sus máscaras.
+- El login devuelve los roles con su máscara, así el frontend puede mostrar u ocultar opciones.
