@@ -3,6 +3,7 @@ package com.decor.product.controllers;
 import com.decor.product.dto.bundles.BundleDto;
 import com.decor.product.dto.bundles.NewBundleDto;
 import com.decor.product.dto.bundles.NewBundleProductDto;
+import com.decor.product.dto.bundles.UpdateBundlePriceDto;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.services.BundleService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,11 @@ public class BundleController {
     @PutMapping("/{id}")
     public ResponseEntity<Boolean> changeBundleStatus(@PathVariable Long id) throws ApiException {
         return ResponseEntity.ok(bundleService.changeBundleStatus(id));
+    }
+
+    @PutMapping("/{id}/price")
+    public ResponseEntity<BundleDto> updateBundlePrice(@PathVariable Long id, @RequestBody UpdateBundlePriceDto dto) throws ApiException {
+        return ResponseEntity.ok(bundleService.updatePrice(id, dto.price()));
     }
 
     @PutMapping("/{id}/product")

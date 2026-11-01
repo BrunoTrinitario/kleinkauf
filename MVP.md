@@ -31,8 +31,8 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 | # | Funcionalidad | Qué agrega | Tecnología a probar | Decisión |
 |---|---|---|---|---|
-| 1 | **Precio y costo** en productos y combos | Calcula el margen. Sin esto no sirve para vender | — | ☐ Sí ☐ No ☐ Después |
-| 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) | ☐ Sí ☐ No ☐ Después |
+| 1 | **Precio y costo** en productos y combos | Calcula el margen. Sin esto no sirve para vender | — | ☑ Sí — **hecho** |
+| 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) — pendiente para cuando exista ventas | ☑ Sí — **hecho** (sin eventos todavía) |
 | 3 | **Ventas simples** (caja básica): elegir productos o combos, cobrar y descontar stock | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☐ Sí ☐ No ☐ Después |
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☐ Sí ☐ No ☐ Después |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☐ Sí ☐ No ☐ Después |
@@ -80,6 +80,10 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | `decor-common` es **un solo proyecto**: lo común en `com.decor.common` y lo servlet en `com.decor.common.servlet` | Más simple de manejar en Eclipse. Las dependencias de Spring son `compileOnly` y la parte servlet no se activa en el gateway (reactivo) |
 | 2026-11-01 | La librería se configura sola con **autoconfiguración de Spring Boot** | Los servicios solo agregan la dependencia; cada bean se puede reemplazar |
 | 2026-11-01 | Resilience4j en products → users y gateway → users (circuit breaker + retry + timeouts). Los 4xx no cuentan como falla | Si users se cae, el resto responde rápido con caché o con un error claro, sin quedarse colgado |
+| 2026-11-01 | Precio y costo en `BigDecimal`. El **precio es público**; el **costo y el margen solo los ve el administrador** (`/products/{id}/pricing`) | Evitar errores de redondeo con plata y no exponer el costo en el catálogo |
+| 2026-11-01 | El stock **solo cambia con movimientos** (`ENTRADA`, `SALIDA`, `AJUSTE`); `PUT /products/{id}` ya no lo modifica | Trazabilidad: quién cambió el stock, cuándo y por qué |
+| 2026-11-01 | Los movimientos los registran administrador y empleado; bloqueo de fila (`PESSIMISTIC_WRITE`) por producto | El empleado es quien recibe mercadería; el bloqueo evita que dos movimientos simultáneos se pisen |
+| 2026-11-01 | El combo tiene su propio precio; muestra además el precio de lista (suma de productos) y cuántos se pueden armar con el stock | El combo no tiene stock propio: depende del de sus productos |
 
 ### Detalle de la librería común
 
@@ -101,3 +105,21 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
   si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
 - **Tests que ya fallaban:** los `contextLoads` y el `UserServiceTest` de users necesitan Postgres levantado;
   dos tests de `ProductServiceTest` no coinciden con `ProductService` (stub de más y "Product not found").
+
+### Detalle de precios y stock
+
+| Endpoint | Quién | Qué hace |
+|---|---|---|
+| `GET /api/v1/products/{id}/pricing` | Administrador | Precio, costo, margen y margen % |
+| `PUT /api/v1/products/{id}/pricing` | Administrador | Cambia precio y costo |
+| `POST /api/v1/products/{id}/stock/movements` | Administrador, empleado | Registra `ENTRADA` / `SALIDA` (cantidad) o `AJUSTE` (stock contado, con motivo obligatorio) |
+| `GET /api/v1/products/{id}/stock/movements` | Administrador, empleado | Historial de movimientos, del más nuevo al más viejo |
+| `GET /api/v1/products/stock/low` | Administrador, empleado | Productos con stock menor o igual a su mínimo |
+| `PUT /api/v1/bundles/{id}/price` | Administrador | Cambia el precio del combo |
+
+- **Cambios de API:** `POST /products` recibe además `minStock`, `price` y `cost` (el stock inicial queda como movimiento de
+  `ENTRADA`). `PUT /products/{id}` recibe `minStock` en lugar de `stock`. Los productos y combos devuelven `price`; los
+  combos además `listPrice` y `available`.
+- **Seguridad:** `POST /products` y la subida de imágenes ahora exigen administrador (antes cualquier usuario logueado podía).
+- **Datos existentes:** los productos actuales quedan sin precio ni costo y con `minStock = 0`; su stock actual no tiene
+  movimientos previos en el historial.

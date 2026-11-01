@@ -20,12 +20,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Stock: administrador y empleado
+                        .requestMatchers("/api/v1/products/*/stock/movements", "/api/v1/products/stock/low")
+                            .hasAnyRole("ADMINISTRADOR", "EMPLEADO")
+                        // Costo y margen: solo administrador
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/*/pricing").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/bundles/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/bundles/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/bundles/**").hasRole("ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/bundles/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/v1/products/**").permitAll()
                         .requestMatchers("/api/v1/bundles/**").permitAll()
                         .requestMatchers("/products/images/**").permitAll()

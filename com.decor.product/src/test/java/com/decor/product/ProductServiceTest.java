@@ -13,7 +13,9 @@ import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
 import com.decor.product.services.ProductService;
+import com.decor.product.services.StockService;
 import com.decor.product.util.FileManager;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +57,9 @@ class ProductServiceTest {
 
 	@Mock
 	private FileManager fileManager;
+
+	@Mock
+	private StockService stockService;
 
 	@InjectMocks
 	private ProductService productService;
@@ -196,7 +201,7 @@ class ProductServiceTest {
 
 	@Test
 	void createProduct_createsNewProductAndReturnsFullProductDto() throws ApiException {
-		NewProductDto newProductDto = new NewProductDto("Silla", "living", "Silla moderna", 9);
+		NewProductDto newProductDto = new NewProductDto("Silla", "living", "Silla moderna", 9, 2, new BigDecimal("15000.00"), new BigDecimal("9000.00"));
 		Product savedProduct = product(99L, "Silla", "living", "Silla moderna", 9);
 		FullProductDto fullProductDto = fullProductDto(99L);
 
@@ -207,6 +212,9 @@ class ProductServiceTest {
 			savedProduct.setCategory(productToSave.getCategory());
 			savedProduct.setDescription(productToSave.getDescription());
 			savedProduct.setStock(productToSave.getStock());
+			savedProduct.setMinStock(productToSave.getMinStock());
+			savedProduct.setPrice(productToSave.getPrice());
+			savedProduct.setCost(productToSave.getCost());
 			return savedProduct;
 		});
 		when(productRepository.findById(99L)).thenReturn(Optional.of(savedProduct));
@@ -219,7 +227,11 @@ class ProductServiceTest {
 		assertEquals("living", savedProduct.getCategory());
 		assertEquals("Silla moderna", savedProduct.getDescription());
 		assertEquals(9, savedProduct.getStock());
+		assertEquals(2, savedProduct.getMinStock());
+		assertEquals(new BigDecimal("15000.00"), savedProduct.getPrice());
+		assertEquals(new BigDecimal("9000.00"), savedProduct.getCost());
 		verify(productRepository).existsByName("Silla");
+		verify(stockService).registerInitialStock(savedProduct);
 	}
 
 	@Test
@@ -228,7 +240,7 @@ class ProductServiceTest {
 
 		ApiException exception = assertThrows(
 				ApiException.class,
-				() -> productService.createProduct(new NewProductDto("Silla", "living", "Silla moderna", 9))
+				() -> productService.createProduct(new NewProductDto("Silla", "living", "Silla moderna", 9, 2, new BigDecimal("15000.00"), new BigDecimal("9000.00")))
 		);
 
 		assertEquals(HttpStatus.CONFLICT, exception.getStatus());

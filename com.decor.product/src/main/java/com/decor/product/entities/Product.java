@@ -6,9 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,21 @@ public class Product {
 
     private String description;
 
+    // Solo se modifica con movimientos de stock (StockService)
     private int stock;
+
+    // Debajo de este valor el producto aparece en la alerta de stock bajo (0 = sin alerta)
+    @ColumnDefault("0")
+    @Column(name = "min_stock", nullable = false)
+    private int minStock;
+
+    // Precio de venta (publico)
+    @Column(precision = 12, scale = 2)
+    private BigDecimal price;
+
+    // Costo (solo lo ve el administrador)
+    @Column(precision = 12, scale = 2)
+    private BigDecimal cost;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;

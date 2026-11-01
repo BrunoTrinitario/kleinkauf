@@ -42,6 +42,7 @@ public class ProductFactory {
                 p.getCategory(),
                 p.getDescription(),
                 p.getStock(),
+                p.getPrice(),
                 null,
                 images
         );
@@ -67,6 +68,7 @@ public class ProductFactory {
                 p.getCategory(),
                 p.getDescription(),
                 p.getStock(),
+                p.getPrice(),
                 imagesPath
         );
     }

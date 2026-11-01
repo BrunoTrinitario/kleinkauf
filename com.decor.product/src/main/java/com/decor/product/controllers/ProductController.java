@@ -76,4 +76,15 @@ public class ProductController {
     ) throws ApiException {
         return ResponseEntity.ok(productService.updateMetadata(id, dto));
     }
+
+    // Precio, costo y margen: solo administrador (ver SecurityConfig)
+    @GetMapping("/{id}/pricing")
+    public ResponseEntity<PricingDto> getPricing(@PathVariable Long id) throws ApiException {
+        return ResponseEntity.ok(productService.getPricing(id));
+    }
+
+    @PutMapping("/{id}/pricing")
+    public ResponseEntity<PricingDto> updatePricing(@PathVariable Long id, @RequestBody UpdatePricingDto dto) throws ApiException {
+        return ResponseEntity.ok(productService.updatePricing(id, dto));
+    }
 }

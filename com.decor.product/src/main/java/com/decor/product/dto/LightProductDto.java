@@ -1,5 +1,6 @@
 package com.decor.product.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record LightProductDto(
@@ -8,6 +9,7 @@ public record LightProductDto(
         String category,
         String description,
         int stock,
+        BigDecimal price,
         List<String> images
 ) {
 }

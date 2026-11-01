@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,10 @@ public class Bundle {
     private String name;
 
     private boolean enabled;
+
+    // Precio del combo; el de lista (suma de los productos) se calcula en BundleFactory
+    @Column(precision = 12, scale = 2)
+    private BigDecimal price;
 
     @OneToMany(
             mappedBy = "bundle",

@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,6 +40,9 @@ public class ProductService {
 
     @Autowired
     private FileManager fileManager;
+
+    @Autowired
+    private StockService stockService;
 
     public ArrayList<LightProductDto> getAllProducts() throws ApiException {
         ArrayList<LightProductDto> products = new ArrayList<>();
@@ -118,6 +123,7 @@ public class ProductService {
     }
 
     public FullProductDto updateProduct(Long id, BasicUpdateDto updatedData) throws ApiException{
+        validateMinStock(updatedData.minStock());
         Product product = productRepository.findById(id).orElse(null);
         if (product == null){
             throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -125,7 +131,7 @@ public class ProductService {
             product.setName(updatedData.name());
             product.setCategory(updatedData.category());
             product.setDescription(updatedData.description());
-            product.setStock(updatedData.stock());
+            product.setMinStock(updatedData.minStock());
             productRepository.save(product);
         }
         return productFactory.getFullProductInfo(product);
@@ -135,13 +141,65 @@ public class ProductService {
         if (this.productRepository.existsByName(updatedData.name())) {
             throw new ApiException(ErrorMessages.PRODUCT_NAME_IN_USE, HttpStatus.CONFLICT);
         }
+        validatePrices(updatedData.price(), updatedData.cost());
+        if (updatedData.stock() < 0) {
+            throw new ApiException(ErrorMessages.INVALID_STOCK_QUANTITY, HttpStatus.BAD_REQUEST);
+        }
+        validateMinStock(updatedData.minStock());
         Product product = new Product();
         product.setName(updatedData.name());
         product.setCategory(updatedData.category());
         product.setDescription(updatedData.description());
         product.setStock(updatedData.stock());
+        product.setMinStock(updatedData.minStock());
+        product.setPrice(updatedData.price());
+        product.setCost(updatedData.cost());
         product = productRepository.save(product);
+        stockService.registerInitialStock(product);
         return this.getProductById(product.getId());
+    }
+
+    public PricingDto getPricing(Long id) throws ApiException {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return toPricing(product);
+    }
+
+    public PricingDto updatePricing(Long id, UpdatePricingDto dto) throws ApiException {
+        validatePrices(dto.price(), dto.cost());
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        product.setPrice(dto.price());
+        product.setCost(dto.cost());
+        productRepository.save(product);
+        return toPricing(product);
+    }
+
+    static PricingDto toPricing(Product product) {
+        BigDecimal price = product.getPrice();
+        BigDecimal cost = product.getCost();
+        BigDecimal margin = null;
+        BigDecimal marginPercent = null;
+        if (price != null && cost != null) {
+            margin = price.subtract(cost);
+            if (price.signum() > 0) {
+                marginPercent = margin.multiply(BigDecimal.valueOf(100))
+                        .divide(price, 2, RoundingMode.HALF_UP);
+            }
+        }
+        return new PricingDto(product.getId(), price, cost, margin, marginPercent);
+    }
+
+    private void validatePrices(BigDecimal price, BigDecimal cost) throws ApiException {
+        if ((price != null && price.signum() < 0) || (cost != null && cost.signum() < 0)) {
+            throw new ApiException(ErrorMessages.INVALID_PRICE, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private void validateMinStock(int minStock) throws ApiException {
+        if (minStock < 0) {
+            throw new ApiException(ErrorMessages.INVALID_MIN_STOCK, HttpStatus.BAD_REQUEST);
+        }
     }
 
     public FullProductDto updateMetadata(Long productId, MetaDataDto updatedData) throws ApiException{
