@@ -1,1 +1,2 @@
+com.decor.common.autoconfigure.DecorCoreAutoConfiguration
 com.decor.common.servlet.autoconfigure.DecorServletAutoConfiguration

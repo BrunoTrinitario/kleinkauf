@@ -77,15 +77,15 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 |---|---|---|
 | 2026-11-01 | Antes de sumar funcionalidades: **librería común** y **Resilience4j** | Ordenar la base antes de agregar servicios nuevos (ventas, etc.) |
 | 2026-11-01 | Librería como **build compuesto de Gradle** (`decor-common`, con `includeBuild`) en vez de un build multi-proyecto en la raíz | Cada servicio sigue siendo un proyecto Gradle independiente; no hay que publicar nada |
-| 2026-11-01 | Dos módulos: `decor-common-core` (todos) y `decor-common-servlet` (users, products) | El gateway es reactivo (WebFlux) y no puede depender de Servlet/JPA |
+| 2026-11-01 | `decor-common` es **un solo proyecto**: lo común en `com.decor.common` y lo servlet en `com.decor.common.servlet` | Más simple de manejar en Eclipse. Las dependencias de Spring son `compileOnly` y la parte servlet no se activa en el gateway (reactivo) |
 | 2026-11-01 | La librería se configura sola con **autoconfiguración de Spring Boot** | Los servicios solo agregan la dependencia; cada bean se puede reemplazar |
 | 2026-11-01 | Resilience4j en products → users y gateway → users (circuit breaker + retry + timeouts). Los 4xx no cuentan como falla | Si users se cae, el resto responde rápido con caché o con un error claro, sin quedarse colgado |
 
 ### Detalle de la librería común
 
-- **`decor-common-core`**: `TenantDto`, `RoleDto`, `Headers`, `RedisTemplate`, caché Caffeine e
+- **`com.decor.common`** (todos los servicios): `TenantDto`, `RoleDto`, `Headers`, `RedisTemplate`, caché Caffeine e
   `InternalTokenService` (tokens entre servicios).
-- **`decor-common-servlet`**: Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
+- **`com.decor.common.servlet`** (users, products): Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
   `CustomUserDetails`, `ApiException` y `GlobalExceptionHandler`.
 - Cada servicio implementa `TenantSchemaManager` en su `TenantDataSource`.
 - En users el tenant es opcional: `decor.tenant.required=false`.

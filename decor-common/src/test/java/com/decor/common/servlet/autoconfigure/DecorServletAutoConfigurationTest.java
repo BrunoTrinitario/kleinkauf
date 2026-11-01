@@ -7,16 +7,17 @@ import com.decor.common.servlet.tenant.TenantContext;
 import com.decor.common.servlet.tenant.TenantFilter;
 import com.decor.common.servlet.tenant.TenantIdentifierResolver;
 import com.decor.common.servlet.tenant.TenantSchemaManager;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import jakarta.persistence.EntityManagerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -52,6 +53,18 @@ class DecorServletAutoConfigurationTest {
             assertThat(context).hasSingleBean(GlobalExceptionHandler.class);
             assertThat(context).hasSingleBean(EntityManagerFactory.class);
         });
+    }
+
+    // El gateway es reactivo: tiene la libreria en el classpath pero no debe activar nada servlet
+    @Test
+    void enUnaAppReactivaNoSeActiva() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(DecorServletAutoConfiguration.class))
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(TenantFilter.class);
+                    assertThat(context).doesNotHaveBean(GlobalExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean("entityManagerFactory");
+                });
     }
 
     @Test

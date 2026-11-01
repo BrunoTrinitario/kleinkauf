@@ -22,7 +22,7 @@ ext {
 }
 
 dependencies {
-    implementation 'com.decor:decor-common-core:0.0.1-SNAPSHOT'
+    implementation 'com.decor:decor-common:0.0.1-SNAPSHOT'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
