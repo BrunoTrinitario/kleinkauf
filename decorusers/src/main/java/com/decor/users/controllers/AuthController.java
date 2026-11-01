@@ -48,7 +48,7 @@ public class AuthController {
 
     @DeleteMapping("/delete")
     public ResponseEntity<String> Delete(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
-        boolean deleted = userService.deleteUserById(userDetails.getId());
+        userService.deleteUserById(userDetails.getId());
         return new ResponseEntity<>(SuccessMessages.USER_DELETED, org.springframework.http.HttpStatus.OK);
     }
 

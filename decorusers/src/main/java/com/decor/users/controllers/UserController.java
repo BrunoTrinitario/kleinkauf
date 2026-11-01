@@ -62,7 +62,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUserById(@PathVariable Long id) throws ApiException {
-        boolean deleted = userService.deleteUserById(id);
+        userService.deleteUserById(id);
         return new ResponseEntity<>(SuccessMessages.USER_DELETED, org.springframework.http.HttpStatus.OK);
     }
 

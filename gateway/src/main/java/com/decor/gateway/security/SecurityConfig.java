@@ -1,7 +1,5 @@
 package com.decor.gateway.security;
 
-import com.decor.gateway.security.filters.JwtFilter;
-import com.decor.gateway.security.filters.TenantGatewayFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -12,14 +10,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter;
-    private final TenantGatewayFilter tenantGatewayFilter;
-
-    public SecurityConfig(JwtFilter jwtFilter,  TenantGatewayFilter tenantGatewayFilter) {
-        this.jwtFilter = jwtFilter;
-        this.tenantGatewayFilter = tenantGatewayFilter;
-    }
-
+    // JwtFilter, TenantGatewayFilter, etc. son WebFilter @Component: WebFlux los registra solos
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
         return http

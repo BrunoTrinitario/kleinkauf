@@ -1,16 +1,19 @@
 package com.decor.product;
 
+import com.decor.common.dto.RoleDto;
+import com.decor.common.dto.TenantDto;
 import com.decor.common.security.InternalTokenService;
 import com.decor.product.services.UsersClient;
 import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerAutoConfiguration;
 import io.github.resilience4j.springboot3.retry.autoconfigure.RetryAutoConfiguration;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -53,19 +56,19 @@ class UsersClientResilienceTest {
 
 	@Test
 	void usersCaido_reintenta3VecesYUsaElFallback() {
-		when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), any(ParameterizedTypeReference.class)))
+		when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), ArgumentMatchers.<ParameterizedTypeReference<List<RoleDto>>>any()))
 				.thenThrow(new ResourceAccessException("connection refused"));
 
 		assertNull(usersClient.getUserRoles(1L, "tienda1"));
-		verify(restTemplate, times(3)).exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), any(ParameterizedTypeReference.class));
+		verify(restTemplate, times(3)).exchange(anyString(), eq(HttpMethod.GET), any(), ArgumentMatchers.<ParameterizedTypeReference<List<RoleDto>>>any());
 	}
 
 	@Test
 	void error4xx_noSeReintentaYUsaElFallback() {
-		when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(com.decor.common.dto.TenantDto.class)))
+		when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(TenantDto.class)))
 				.thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
 
 		assertNull(usersClient.getTenant("tienda1"));
-		verify(restTemplate, times(1)).exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(com.decor.common.dto.TenantDto.class));
+		verify(restTemplate, times(1)).exchange(anyString(), eq(HttpMethod.GET), any(), eq(TenantDto.class));
 	}
 }

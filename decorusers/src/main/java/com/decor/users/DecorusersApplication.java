@@ -7,8 +7,6 @@ import org.springframework.context.annotation.Bean;
 
 import com.decor.users.services.UserService;
 
-import java.util.HashSet;
-import java.util.Set;
 
 @SpringBootApplication
 public class DecorusersApplication {

@@ -24,11 +24,6 @@ public class TenantGatewayFilter implements WebFilter {
     @Autowired
     private TenantService tenantService;
 
-    private Mono<Void> unauthorized(ServerWebExchange exchange) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
-    }
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         return tenantService.getTenant(Parser.getTenantIdentifierFromRequest(exchange))

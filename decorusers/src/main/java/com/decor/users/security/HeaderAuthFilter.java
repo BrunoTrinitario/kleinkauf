@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
-
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {
 
