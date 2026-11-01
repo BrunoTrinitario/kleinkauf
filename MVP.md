@@ -38,7 +38,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 |---|---|---|---|---|
 | 1 | **Precio y costo** en productos y combos | Calcula el margen. Sin esto no sirve para vender | — | ☑ Sí — **hecho** |
 | 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) — pendiente para cuando exista ventas | ☑ Sí — **hecho** (sin eventos todavía) |
-| 3 | **Ventas simples** (caja básica): elegir productos o combos, cobrar y descontar stock | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☐ Sí ☐ No ☐ Después |
+| 3 | **Ventas**: carrito, pedido, pago por transferencia con comprobante y validación del administrador | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☑ Sí — **en curso** (plan en [docs/ventas.md](docs/ventas.md)) |
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☐ Sí ☐ No ☐ Después |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
@@ -69,8 +69,8 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 1. ~~**Precios** (punto 1)~~ — **hecho**.
 2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
-3. **Ventas mínimas** (punto 3) con mensajería entre servicios — **próximo paso**. Una venta registra una `SALIDA`
-   de stock por cada producto (o por cada producto del combo).
+3. **Ventas** (punto 3) — **en curso**, en 4 etapas: ver [docs/ventas.md](docs/ventas.md). El pedido reserva stock
+   (`SALIDA` por cada producto o por cada producto del combo) y lo devuelve si se cancela o vence.
 4. **Panel de administración** (punto 4) con los datos de ventas y stock.
 5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
 
@@ -119,6 +119,11 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 2026-11-01 | Por defecto igual que antes: EMPLEADO = STOCK, CLIENTE = nada | No cambiar nada hasta que el administrador lo configure |
 | 2026-11-01 | Importar/exportar CSV pide PRODUCTOS **y** PRECIOS. Crear un producto sin PRECIOS **ignora** precio y costo | El archivo trae costo; el alta no debe saltear el permiso de precios |
 | 2026-11-01 | Propagación: al cambiar permisos se borran de Redis los roles cacheados de la tienda y products cachea roles 1 minuto | El cambio se aplica en menos de 1 minuto |
+| 2026-11-01 | **Ventas en un MS nuevo `decor-sales`**, comprador invitado o registrado, carrito en el frontend, productos y combos | Desacoplar ventas de productos y practicar comunicación entre servicios |
+| 2026-11-01 | Pago por **transferencia con comprobante** que valida **solo el administrador**; Mercado Pago después | Lo más simple que sirve hoy a un emprendimiento chico |
+| 2026-11-01 | El pedido **reserva stock al crearse** (llamada síncrona e idempotente a products) y lo devuelve si se cancela o **vence a las 48 h** sin comprobante. Eventos después | No vender dos veces lo mismo mientras se espera la transferencia |
+| 2026-11-01 | Cuenta como venta **al validar el pago**. Reportes por período, por producto, ganancia (costo guardado al vender) y contador `vendidos` solo en el panel | Medir lo vendido y lo generado sin contar pedidos que no se pagan |
+| 2026-11-01 | El invitado sigue su pedido con **email + número aleatorio** (`K7QM-4X2P`) | Un número correlativo se podría recorrer y exponer datos de otros compradores |
 
 ### Detalle de la librería común
 
