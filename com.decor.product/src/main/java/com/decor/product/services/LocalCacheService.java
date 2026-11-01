@@ -1,7 +1,7 @@
 package com.decor.product.services;
 
-import com.decor.product.dto.RoleDto;
-import com.decor.product.dto.TenantDto;
+import com.decor.common.dto.RoleDto;
+import com.decor.common.dto.TenantDto;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

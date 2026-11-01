@@ -5,6 +5,7 @@ services:
     working_dir: /app
     volumes:
       - ../com.decor.product:/app
+      - ../decor-common:/decor-common
       - gradle-cache:/home/gradle/.gradle
     ports:
       - "3002:3002"
@@ -17,6 +18,7 @@ services:
     working_dir: /app
     volumes:
       - ../decorusers:/app
+      - ../decor-common:/decor-common
       - gradle-cache:/home/gradle/.gradle
     ports:
       - "3001:3001"
@@ -29,6 +31,7 @@ services:
     working_dir: /app
     volumes:
       - ../gateway:/app
+      - ../decor-common:/decor-common
       - gradle-cache:/home/gradle/.gradle
     ports:
       - "3000:3000"

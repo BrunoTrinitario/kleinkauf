@@ -2,7 +2,7 @@ package com.decor.users.services;
 
 import com.decor.users.constants.CacheKeys;
 import com.decor.users.dtos.CachedTenant;
-import com.decor.users.dtos.TenantDto;
+import com.decor.common.dto.TenantDto;
 import com.decor.users.entities.Tenant;
 import com.decor.users.repositories.TenantRepository;
 import com.decor.users.util.CacheUtil;

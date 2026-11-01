@@ -5,6 +5,8 @@
 
 package com.decor.users.dtos;
 
+import com.decor.common.dto.RoleDto;
+
 import java.util.List;
 
 /**

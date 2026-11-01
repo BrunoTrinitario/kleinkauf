@@ -1,8 +1,8 @@
 package com.decor.users.controllers;
 
 import com.decor.users.dtos.FullUserDto;
-import com.decor.users.dtos.RoleDto;
-import com.decor.users.exceptions.ApiException;
+import com.decor.common.dto.RoleDto;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.services.UserService;
 import com.decor.users.util.CacheUtil;
 import org.springframework.beans.factory.annotation.Autowired;

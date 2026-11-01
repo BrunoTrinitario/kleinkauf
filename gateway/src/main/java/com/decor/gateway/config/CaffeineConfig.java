@@ -7,17 +7,11 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
+/*
+El cache general (caffeineCache) viene de decor-common; aca solo el del rate limit
+ */
 @Configuration
 public class CaffeineConfig {
-
-    @Bean
-    public Cache<String, Object> caffeineCache() {
-        return Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(10, TimeUnit.MINUTES)
-                .recordStats()
-                .build();
-    }
 
     @Bean
     public Cache<String, Integer> rateLimitedCache() {

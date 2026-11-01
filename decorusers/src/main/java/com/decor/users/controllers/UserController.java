@@ -12,7 +12,7 @@ import java.util.List;
 
 import com.decor.users.constants.SuccessMessages;
 import com.decor.users.dtos.RegisterUserDto;
-import com.decor.users.dtos.RoleDto;
+import com.decor.common.dto.RoleDto;
 import com.decor.users.dtos.stats.UserStatsDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.PatchUserDto;
-import com.decor.users.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.services.UserService;
 
 

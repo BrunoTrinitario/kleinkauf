@@ -1,8 +1,8 @@
 package com.decor.gateway.services;
 
-import com.decor.gateway.dtos.TenantDto;
+import com.decor.common.dto.TenantDto;
 import com.decor.gateway.util.CacheUtil;
-import com.decor.gateway.util.JwtUtil;
+import com.decor.common.security.InternalTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ public class TenantService {
     private String tenantUrl;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private InternalTokenService internalTokenService;
 
     @Autowired
     public LocalCacheService localCacheService;
@@ -46,7 +46,7 @@ public class TenantService {
         return webClient.get()
                 .uri(tenantUrl + "/id?url=" + schema)
                 .header("X-Internal-Request", "true")
-                .header("X-Internal-Token", jwtUtil.generateMicroServiceToken("gateway"))
+                .header("X-Internal-Token", internalTokenService.generateMicroServiceToken("gateway"))
                 .retrieve()
                 .bodyToMono(TenantDto.class);
     }
@@ -64,7 +64,7 @@ public class TenantService {
                 .uri(tenantUrl + "/cors?url=" + url)
                 .header("X-Internal-Request", "true")
                 .header("X-Internal-Token",
-                        jwtUtil.generateMicroServiceToken("gateway"))
+                        internalTokenService.generateMicroServiceToken("gateway"))
                 .retrieve()
                 .bodyToMono(Boolean.class)
                 .onErrorReturn(false)

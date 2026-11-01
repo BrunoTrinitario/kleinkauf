@@ -1,11 +1,13 @@
 package com.decor.users.security;
 
-import com.decor.users.constants.Headers;
+import com.decor.common.servlet.security.CustomUserDetails;
+
+import com.decor.common.constants.Headers;
 import com.decor.users.constants.PermittedUrls;
-import com.decor.users.dtos.RoleDto;
+import com.decor.common.dto.RoleDto;
 import com.decor.users.entities.Role;
 import com.decor.users.repositories.RoleRepository;
-import com.decor.users.util.JwtUtil;
+import com.decor.common.security.InternalTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +32,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
     RoleRepository roleRepository;
 
     @Autowired
-    JwtUtil jwtUtil;
+    InternalTokenService internalTokenService;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -51,7 +53,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
         if (isInternal) {
             String token = request.getHeader(Headers.INTERNAL_TOKEN);
-            if (jwtUtil.validateInternalToken(token)) {
+            if (internalTokenService.validateInternalToken(token)) {
                 filterChain.doFilter(request, response);
             }else{
                 rejectRequest(response, "Token invalido");

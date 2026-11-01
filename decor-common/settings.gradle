@@ -1,0 +1,4 @@
+rootProject.name = 'decor-common'
+
+include 'decor-common-core'
+include 'decor-common-servlet'

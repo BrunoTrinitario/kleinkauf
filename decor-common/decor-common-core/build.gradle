@@ -1,0 +1,15 @@
+dependencies {
+	api 'org.springframework.boot:spring-boot-autoconfigure'
+	api 'io.jsonwebtoken:jjwt-api:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+	// Opcionales: cada bean se crea solo si el servicio tiene la dependencia
+	compileOnly 'org.springframework.boot:spring-boot-starter-data-redis'
+	compileOnly 'com.github.ben-manes.caffeine:caffeine'
+}
+
+dependencies {
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	testImplementation 'com.github.ben-manes.caffeine:caffeine'
+}

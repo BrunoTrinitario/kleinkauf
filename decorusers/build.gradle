@@ -27,6 +27,7 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation 'com.decor:decor-common-servlet:0.0.1-SNAPSHOT'
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'

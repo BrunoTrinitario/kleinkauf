@@ -5,13 +5,15 @@
 
 package com.decor.users.services;
 
+import com.decor.common.dto.RoleDto;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.decor.users.config.TenantContext;
+import com.decor.common.servlet.tenant.TenantContext;
 import com.decor.users.constants.MailConstants;
 import com.decor.users.dtos.*;
 import com.decor.users.dtos.stats.UserStatsDto;
@@ -27,7 +29,7 @@ import org.springframework.stereotype.Service;
 import com.decor.users.constants.ErrorMessages;
 import com.decor.users.entities.Role;
 import com.decor.users.entities.User;
-import com.decor.users.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.repositories.RoleRepository;
 import com.decor.users.repositories.UserRepository;
 import com.decor.users.util.Parser;

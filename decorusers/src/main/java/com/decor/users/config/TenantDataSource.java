@@ -1,5 +1,7 @@
 package com.decor.users.config;
 
+import com.decor.common.servlet.tenant.TenantSchemaManager;
+
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -18,7 +20,7 @@ import java.util.HashMap;
 Encargada de definir el buffer de conexiones de todas lsa bds
  */
 @Component
-public class TenantDataSource implements Serializable {
+public class TenantDataSource implements Serializable, TenantSchemaManager {
 
     @Autowired
     private DataSource dataSource;
@@ -47,6 +49,11 @@ public class TenantDataSource implements Serializable {
     public void createSchema(String name) {
         createSchemaIfNotExists(name);
         runMigration(name);
+    }
+
+    @Override
+    public void prepareSchema(String tenantIdentifier) {
+        createSchema(tenantIdentifier);
     }
 
     private void createSchemaIfNotExists(String schema) {

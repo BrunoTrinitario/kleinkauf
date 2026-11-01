@@ -8,12 +8,12 @@ package com.decor.users.controllers;
 import com.decor.users.constants.SuccessMessages;
 import com.decor.users.dtos.*;
 import com.decor.users.dtos.stats.PasswordDto;
-import com.decor.users.security.CustomUserDetails;
+import com.decor.common.servlet.security.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import com.decor.users.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.services.UserService;
 import java.util.Set;
 

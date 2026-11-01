@@ -6,8 +6,8 @@
 package com.decor.users.util;
 
 import com.decor.users.dtos.FullUserDto;
-import com.decor.users.dtos.RoleDto;
-import com.decor.users.dtos.TenantDto;
+import com.decor.common.dto.RoleDto;
+import com.decor.common.dto.TenantDto;
 import com.decor.users.entities.Tenant;
 import com.decor.users.entities.User;
 

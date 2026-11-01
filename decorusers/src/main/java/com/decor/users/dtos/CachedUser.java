@@ -1,5 +1,7 @@
 package com.decor.users.dtos;
 
+import com.decor.common.dto.RoleDto;
+
 import com.decor.users.constants.CacheKeys;
 import lombok.Getter;
 

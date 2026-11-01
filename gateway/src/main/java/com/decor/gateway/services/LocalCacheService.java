@@ -1,6 +1,6 @@
 package com.decor.gateway.services;
 
-import com.decor.gateway.dtos.TenantDto;
+import com.decor.common.dto.TenantDto;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

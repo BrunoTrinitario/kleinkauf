@@ -7,7 +7,7 @@ import com.decor.product.dto.NewProductDto;
 import com.decor.product.entities.Product;
 import com.decor.product.entities.ProductImage;
 import com.decor.product.entities.ProductMetaData;
-import com.decor.product.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.factories.ProductFactory;
 import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductMetaDataRepository;

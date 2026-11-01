@@ -1,7 +1,7 @@
 package com.decor.users.controllers;
 
-import com.decor.users.dtos.TenantDto;
-import com.decor.users.exceptions.ApiException;
+import com.decor.common.dto.TenantDto;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.services.TenantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

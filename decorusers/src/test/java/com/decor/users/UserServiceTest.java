@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.decor.users.constants.ErrorMessages;
 import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.LoggedUser;
-import com.decor.users.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.services.UserService;
  
 /**

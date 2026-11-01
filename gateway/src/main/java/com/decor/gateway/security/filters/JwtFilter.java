@@ -1,6 +1,6 @@
 package com.decor.gateway.security.filters;
 
-import com.decor.gateway.constants.CustomHeaders;
+import com.decor.common.constants.Headers;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;
 import com.decor.gateway.util.ResponseUtil;
@@ -34,7 +34,7 @@ public class JwtFilter implements WebFilter {
         if (PermittedUrls.isPermitted(method, path) || method.equals("OPTIONS")) {
             ServerHttpRequest mutatedRequest = exchange.getRequest()
                     .mutate()
-                    .header(CustomHeaders.OPEN_PATH, "true")
+                    .header(Headers.OPEN_PATH, "true")
                     .build();
             return chain.filter(exchange.mutate()
                     .request(mutatedRequest)
@@ -65,7 +65,7 @@ public class JwtFilter implements WebFilter {
 
             ServerHttpRequest mutatedRequest = exchange.getRequest()
                     .mutate()
-                    .header(CustomHeaders.USER_ID_HEADER, String.valueOf(userId))
+                    .header(Headers.USER_ID, String.valueOf(userId))
                     .build();
 
             ServerWebExchange mutatedExchange = exchange.mutate()

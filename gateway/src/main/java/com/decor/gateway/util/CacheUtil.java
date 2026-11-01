@@ -2,7 +2,7 @@ package com.decor.gateway.util;
 
 
 import com.decor.gateway.constants.CacheKeys;
-import com.decor.gateway.dtos.TenantDto;
+import com.decor.common.dto.TenantDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

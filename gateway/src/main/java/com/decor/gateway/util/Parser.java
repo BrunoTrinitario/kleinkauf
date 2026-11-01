@@ -1,6 +1,6 @@
 package com.decor.gateway.util;
 
-import com.decor.gateway.constants.CustomHeaders;
+import com.decor.common.constants.Headers;
 import com.decor.gateway.factories.RequestTenantFactory;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -17,7 +17,7 @@ public class Parser {
     public static String getInternalTokenFromRequest(ServerWebExchange exchange) {
         return exchange.getRequest()
                 .getHeaders()
-                .getFirst(CustomHeaders.INTERNAL_TOKEN_HEADER);
+                .getFirst(Headers.INTERNAL_TOKEN);
 
     }
 

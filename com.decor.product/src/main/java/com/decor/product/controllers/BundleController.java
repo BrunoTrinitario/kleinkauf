@@ -4,7 +4,7 @@ import com.decor.product.dto.*;
 import com.decor.product.dto.bundles.BundleDto;
 import com.decor.product.dto.bundles.NewBundleDto;
 import com.decor.product.dto.bundles.NewBundleProductDto;
-import com.decor.product.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.services.BundleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

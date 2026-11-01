@@ -1,6 +1,6 @@
 package com.decor.gateway.security.filters;
 
-import com.decor.gateway.constants.CustomHeaders;
+import com.decor.common.constants.Headers;
 import com.decor.gateway.constants.ErrorMessages;
 import com.decor.gateway.services.TenantService;
 import com.decor.gateway.util.Parser;
@@ -39,7 +39,7 @@ public class TenantGatewayFilter implements WebFilter {
 
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
-                            .header(CustomHeaders.INTERNAL_HOST, tenant.schema())
+                            .header(Headers.FORWARDED_HOST, tenant.schema())
                             .build();
 
                     return chain.filter(exchange.mutate()

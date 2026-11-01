@@ -26,16 +26,12 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${api.internal.key}")
-    private String apiSecret;
-
-    private SecretKey key, apiKey;
+    private SecretKey key;
 
     @PostConstruct
     public void init() {
 
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
-        this.apiKey = Keys.hmacShaKeyFor(apiSecret.getBytes());
     }
 
     public String generateAccessToken(Long id, String email, String name) {
@@ -74,15 +70,6 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             parseClaims(token, this.key);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    public boolean validateInternalToken(String token) {
-        try {
-            parseClaims(token, this.apiKey);
             return true;
         } catch (Exception e) {
             return false;

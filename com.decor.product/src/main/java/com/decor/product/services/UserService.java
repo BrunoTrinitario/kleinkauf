@@ -1,11 +1,11 @@
 package com.decor.product.services;
 
-import com.decor.product.constants.Headers;
-import com.decor.product.dto.RoleDto;
-import com.decor.product.dto.TenantDto;
-import com.decor.product.interceptor.TenantContext;
+import com.decor.common.constants.Headers;
+import com.decor.common.dto.RoleDto;
+import com.decor.common.dto.TenantDto;
+import com.decor.common.servlet.tenant.TenantContext;
 import com.decor.product.util.CacheUtil;
-import com.decor.product.util.JwtUtil;
+import com.decor.common.security.InternalTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -28,7 +28,7 @@ public class UserService {
     private String usersUrl;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private InternalTokenService internalTokenService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -46,7 +46,7 @@ public class UserService {
         if (roles == null || roles.isEmpty()){
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-internal-request", Boolean.toString(true));
-            headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
+            headers.set("X-Internal-Token", internalTokenService.generateMicroServiceToken("products"));
             headers.set(Headers.FORWARDED_HOST, TenantContext.getCurrentTenant());
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
@@ -67,7 +67,7 @@ public class UserService {
         List<TenantDto> tenants = cache.getAllTenants();
         if  (tenants != null) return tenants;
         HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
+        headers.set("X-Internal-Token", internalTokenService.generateMicroServiceToken("products"));
         headers.set("X-internal-request", Boolean.toString(true));
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try{
@@ -94,7 +94,7 @@ public class UserService {
 
         if (tenant == null){
             HttpHeaders headers = new HttpHeaders();
-            headers.set("X-Internal-Token", jwtUtil.generateMicroServiceToken("products"));
+            headers.set("X-Internal-Token", internalTokenService.generateMicroServiceToken("products"));
             headers.set("X-internal-request", Boolean.toString(true));
             HttpEntity<Void> entity = new HttpEntity<>(headers);
             ResponseEntity<TenantDto> response =

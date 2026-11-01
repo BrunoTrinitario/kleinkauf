@@ -1,7 +1,7 @@
 package com.decor.product.util;
 
-import com.decor.product.dto.RoleDto;
-import com.decor.product.dto.TenantDto;
+import com.decor.common.dto.RoleDto;
+import com.decor.common.dto.TenantDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

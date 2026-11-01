@@ -1,7 +1,7 @@
 package com.decor.product.controllers;
 
 import com.decor.product.dto.*;
-import com.decor.product.exceptions.ApiException;
+import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
