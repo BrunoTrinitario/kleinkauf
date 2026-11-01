@@ -2,3 +2,7 @@
 frontend
 uploads
 .idea
+bin/
+.classpath
+.project
+.settings/
