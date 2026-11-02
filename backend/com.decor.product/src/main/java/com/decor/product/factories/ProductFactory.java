@@ -73,7 +73,8 @@ public class ProductFactory {
                 p.getStock(),
                 p.getPrice(),
                 p.isFeatured(),
-                imagesPath
+                imagesPath,
+                p.getMinStock()
         );
     }
 }

@@ -94,7 +94,7 @@ class FeaturedTest {
 		when(productRepository.findFeatured()).thenReturn(List.of(primero, segundo));
 		when(productFactory.getLightProductInfo(any(Product.class), anyList())).thenAnswer(invocation -> {
 			Product p = invocation.getArgument(0);
-			return new LightProductDto(p.getId(), "P" + p.getId(), null, null, null, 0, null, true, List.of());
+			return new LightProductDto(p.getId(), "P" + p.getId(), null, null, null, 0, null, true, List.of(), 0);
 		});
 
 		List<Long> ids = productService.getFeaturedProducts().stream().map(LightProductDto::id).toList();

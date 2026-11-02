@@ -6,22 +6,25 @@ import type { Page, Product } from "@/lib/types"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { PaginationControls } from "@/components/pagination-controls"
 import { strings } from "@/lib/strings"
-import { getErrorMessage, notifyError } from "@/lib/api-error"
+import { notifyError } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import { AdminProductCard } from "@/components/admin-product-card"
-import { AdminProductEditModal } from "@/components/admin-product-edit-modal"
+import { AdminProductFormModal } from "@/components/admin-product-form-modal"
+import { hasPermission } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import axios from "axios"
 import { 
   ArrowLeft, 
@@ -42,14 +45,9 @@ export default function ProductsManagementPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [createName, setCreateName] = useState("")
-  const [createCategory, setCreateCategory] = useState("")
-  const [createDescription, setCreateDescription] = useState("")
-  const [createStock, setCreateStock] = useState(0)
-  const [isCreating, setIsCreating] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  // Producto a borrar: se pide confirmacion antes (borrar no se puede deshacer desde el panel)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const apiBasePublic =
     import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
@@ -120,31 +118,22 @@ export default function ProductsManagementPage() {
 
   const products = productsPage?.items ?? []
 
+  // Mismo formulario para crear (selectedProduct null) y para editar
+  const openCreateForm = () => {
+    setSelectedProduct(null)
+    setIsFormOpen(true)
+  }
+
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product)
-    setIsEditOpen(true)
+    setIsFormOpen(true)
   }
 
-  const handleEditOpenChange = (open: boolean) => {
-    setIsEditOpen(open)
-    if (!open) {
-      setSelectedProduct(null)
-    }
-  }
-
-  const resetCreateForm = () => {
-    setCreateName("")
-    setCreateCategory("")
-    setCreateDescription("")
-    setCreateStock(0)
-    setCreateError(null)
-  }
-
-  const handleCreateOpenChange = (open: boolean) => {
-    setIsCreateOpen(open)
-    if (!open) {
-      resetCreateForm()
-    }
+  // Al guardar se recarga la pagina actual: un producto nuevo o renombrado puede cambiar de lugar
+  const handleSaved = () => {
+    setIsFormOpen(false)
+    setSelectedProduct(null)
+    setReloadKey((prev) => prev + 1)
   }
 
   const handleDeleteProduct = async (product: Product) => {
@@ -166,51 +155,6 @@ export default function ProductsManagementPage() {
       }
     } catch (err) {
       notifyError(err, strings.errors.deleteProduct)
-    }
-  }
-
-  const handleSaveProduct = (updatedProduct: Product) => {
-    setProductsPage((prev) =>
-      prev
-        ? { ...prev, items: prev.items.map((item) => (item.id === updatedProduct.id ? updatedProduct : item)) }
-        : prev
-    )
-    setIsEditOpen(false)
-    setSelectedProduct(null)
-  }
-
-  const handleCreateProduct = async () => {
-    if (!user?.token) {
-      return
-    }
-
-    setIsCreating(true)
-    setCreateError(null)
-
-    try {
-      await axios.post(
-        `${apiBasePublic}/api/v1/products`,
-        {
-          name: createName,
-          category: createCategory,
-          description: createDescription,
-          stock: createStock,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      )
-
-      // El producto nuevo puede caer en otra pagina segun el orden: se recarga la actual
-      setReloadKey((prev) => prev + 1)
-      setIsCreateOpen(false)
-      resetCreateForm()
-    } catch (err) {
-      setCreateError(getErrorMessage(err, strings.adminProducts.createError))
-    } finally {
-      setIsCreating(false)
     }
   }
 
@@ -247,7 +191,7 @@ export default function ProductsManagementPage() {
                   onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
-              <Button onClick={() => setIsCreateOpen(true)}>
+              <Button onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 {strings.adminProducts.createButton}
               </Button>
@@ -281,7 +225,7 @@ export default function ProductsManagementPage() {
                     product={product}
                     apiBasePublic={apiBasePublic}
                     onEdit={handleEditProduct}
-                    onDelete={handleDeleteProduct}
+                    onDelete={setProductToDelete}
                   />
                 ))}
               </div>
@@ -296,63 +240,44 @@ export default function ProductsManagementPage() {
         </Card>
       </main>
 
-      <AdminProductEditModal
+      <AdminProductFormModal
         product={selectedProduct}
-        open={isEditOpen}
-        onOpenChange={handleEditOpenChange}
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open)
+          if (!open) setSelectedProduct(null)
+        }}
         token={user?.token ?? null}
-        onSave={(product) => handleSaveProduct(product)}
+        canEditPrices={hasPermission(user?.roles, "PRECIOS")}
+        onSaved={handleSaved}
       />
 
-      <Dialog open={isCreateOpen} onOpenChange={handleCreateOpenChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{strings.adminProducts.createDialogTitle}</DialogTitle>
-            <DialogDescription>
-              {strings.adminProducts.createDialogDescription}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4">
-            {createError ? (
-              <p className="text-sm text-destructive">{createError}</p>
-            ) : null}
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">{strings.adminProducts.nameLabel}</label>
-              <Input value={createName} onChange={(e) => setCreateName(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">{strings.adminProducts.categoryLabel}</label>
-              <Input value={createCategory} onChange={(e) => setCreateCategory(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">{strings.adminProducts.descriptionLabel}</label>
-              <textarea
-                className="w-full min-h-[96px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={createDescription}
-                onChange={(e) => setCreateDescription(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">{strings.adminProducts.stockLabel}</label>
-              <Input
-                type="number"
-                value={createStock}
-                onChange={(e) => setCreateStock(Number(e.target.value) || 0)}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => handleCreateOpenChange(false)}>
-              {strings.adminProducts.cancel}
-            </Button>
-            <Button onClick={handleCreateProduct} disabled={isCreating || !user?.token}>
-              {isCreating ? strings.adminProducts.creating : strings.adminProducts.create}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={productToDelete !== null} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{strings.adminProducts.deleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {productToDelete
+                ? `${strings.adminProducts.deleteQuestion} ${productToDelete.name}? ${strings.adminProducts.deleteDescription}`
+                : strings.adminProducts.deleteDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{strings.adminProducts.deleteCancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (productToDelete) {
+                  handleDeleteProduct(productToDelete)
+                }
+                setProductToDelete(null)
+              }}
+            >
+              {strings.adminProducts.deleteConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

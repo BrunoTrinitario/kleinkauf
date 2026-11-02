@@ -12,6 +12,8 @@ public record LightProductDto(
         int stock,
         BigDecimal price,
         boolean featured,
-        List<String> images
+        List<String> images,
+        // Stock minimo: el panel lo necesita para editarlo (y para avisar de stock bajo)
+        int minStock
 ) {
 }

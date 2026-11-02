@@ -33,12 +33,17 @@ export interface ProfileFormState {
   password: string
 }
 
+// Producto del panel (GET /api/v1/products): con stock exacto
 export interface Product {
   id: string
   name: string
+  slug?: string
   description: string
   category: string
   stock: number
+  minStock: number
+  price: number | null
+  featured?: boolean
   images: string[]
 }
 
