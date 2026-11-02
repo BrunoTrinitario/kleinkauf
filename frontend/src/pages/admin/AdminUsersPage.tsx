@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
+import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import type { User } from "@/lib/types"
@@ -68,9 +69,10 @@ export default function AdminUsersPage() {
         if (isMounted) {
           setUsers(response.data as User[])
         }
-      } catch {
+      } catch (err) {
         if (isMounted) {
           setUsers([])
+          notifyError(err, strings.errors.loadUsers)
         }
       } finally {
         if (isMounted) {
@@ -174,8 +176,8 @@ export default function AdminUsersPage() {
       updateUserLocally(updatedUser)
       setIsEditOpen(false)
       setSelectedUser(null)
-    } catch {
-      // TODO: surface error to user
+    } catch (err) {
+      notifyError(err, strings.errors.saveUser)
     }
   }
 
@@ -191,8 +193,8 @@ export default function AdminUsersPage() {
         },
       })
       setUsers((prev) => prev.filter((item) => item.id !== target.id))
-    } catch {
-      // TODO: surface error to user
+    } catch (err) {
+      notifyError(err, strings.errors.deleteUser)
     }
   }
 
@@ -223,8 +225,8 @@ export default function AdminUsersPage() {
       const createdUser = response.data as User
       setUsers((prev) => [createdUser, ...prev])
       setIsCreateOpen(false)
-    } catch {
-      setCreateError(strings.adminUsers.createError)
+    } catch (err) {
+      setCreateError(getErrorMessage(err, strings.adminUsers.createError))
     } finally {
       setIsCreating(false)
     }

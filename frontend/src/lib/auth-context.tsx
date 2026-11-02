@@ -9,13 +9,15 @@ interface AuthContextType {
   activeRole: UserRole | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (credentials: LoginUserDto) => Promise<LoggedUser | null>
-  register: (email: string, password: string, name: string) => Promise<boolean>
+  login: (credentials: LoginUserDto) => Promise<LoggedUser>
+  register: (email: string, password: string, name: string) => Promise<void>
   logout: () => void
   switchRole: (role: UserRole) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
 const AUTH_TOKEN_COOKIE = "auth_token"
 
@@ -45,9 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_PUBLIC
+    const apiBaseUrl = API_BASE_URL
     const token = getAuthCookie()
-    if (!apiBaseUrl || !token) {
+    if (!token) {
       setIsLoading(false)
       return
     }
@@ -78,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
       } catch (error) {
         const status = axios.isAxiosError(error) ? error.response?.status : undefined
-        if (status === 403) {
+        if (status === 401 || status === 403) {
           clearAuthCookie()
           if (isMounted) {
             setUser(null)
@@ -99,52 +101,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (credentials: LoginUserDto): Promise<LoggedUser | null> => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_PUBLIC
-    if (!apiBaseUrl) {
-      return null
+  const login = useCallback(async (credentials: LoginUserDto): Promise<LoggedUser> => {
+    const response = await axios.post<LoggedUser>(
+      `${API_BASE_URL}/api/v1/auth/login`,
+      credentials
+    )
+    if (response.data.token) {
+      setAuthCookie(response.data.token)
     }
-
-    try {
-      const response = await axios.post<LoggedUser>(
-        `${apiBaseUrl}/api/v1/auth/login`,
-        credentials
-      )
-      if (response.data.token) {
-        setAuthCookie(response.data.token)
-      }
-      setUser(response.data)
-      setActiveRole((response.data.roles[0]?.type as UserRole) ?? null)
-      return response.data
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return null
-      }
-      return null
-    }
+    setUser(response.data)
+    setActiveRole((response.data.roles?.[0]?.type as UserRole) ?? null)
+    return response.data
   }, [])
 
-  const register = useCallback(async (email: string, password: string, name: string): Promise<boolean> => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_PUBLIC
-    if (!apiBaseUrl) {
-      return false
+  const register = useCallback(async (email: string, password: string, name: string): Promise<void> => {
+    const response = await axios.post<LoggedUser>(`${API_BASE_URL}/api/v1/auth/register`, {
+      name,
+      email,
+      password,
+    })
+    if (response.data.token) {
+      setAuthCookie(response.data.token)
     }
-
-    try {
-      const response = await axios.post<LoggedUser>(`${apiBaseUrl}/api/v1/auth/register`, {
-        name,
-        email,
-        password,
-      })
-      if (response.data.token) {
-        setAuthCookie(response.data.token)
-      }
-      setUser(response.data)
-      setActiveRole((response.data.roles?.[0]?.type as UserRole) ?? null)
-      return true
-    } catch {
-      return false
-    }
+    setUser(response.data)
+    setActiveRole((response.data.roles?.[0]?.type as UserRole) ?? null)
   }, [])
 
   const logout = useCallback(() => {

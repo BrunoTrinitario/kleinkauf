@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { Product, ProductMetadata } from "@/lib/types"
 import { defaultProductMetadata } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { notifyError } from "@/lib/api-error"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -113,8 +114,9 @@ export function AdminProductEditModal({
           setImageDtos(data ?? [])
           setImages((data ?? []).map((img) => img.path))
         }
-      } catch {
+      } catch (err) {
         if (isActive) {
+          notifyError(err, strings.errors.loadImages)
           setImageDtos([])
         }
       }
@@ -155,78 +157,90 @@ export function AdminProductEditModal({
     const formData = new FormData()
     pendingFiles.forEach((file) => formData.append("files", file))
 
-    await axios.post(
-      `${apiBasePublic}/api/v1/products/${product.id}/images`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    )
+    try {
+      await axios.post(
+        `${apiBasePublic}/api/v1/products/${product.id}/images`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      )
 
-    setPendingFiles([])
-    await refreshImages()
+      setPendingFiles([])
+      await refreshImages()
+    } catch (err) {
+      notifyError(err, strings.errors.uploadImages)
+    }
   }
 
   const handleRemoveImage = async (image: ImageDto) => {
     if (!token) return
-    await axios.delete(`${apiBasePublic}/api/v1/products/images/${image.id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    await refreshImages()
+    try {
+      await axios.delete(`${apiBasePublic}/api/v1/products/images/${image.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      await refreshImages()
+    } catch (err) {
+      notifyError(err, strings.errors.deleteImage)
+    }
   }
 
   const handleSave = async () => {
     if (!product || !token) return
 
-    await axios.put(
-      `${apiBasePublic}/api/v1/products/${product.id}`,
-      {
-        name,
-        category,
-        description,
-        stock,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    try {
+      await axios.put(
+        `${apiBasePublic}/api/v1/products/${product.id}`,
+        {
+          name,
+          category,
+          description,
+          stock,
         },
-      }
-    )
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
-    await axios.put(
-      `${apiBasePublic}/api/v1/products/${product.id}/metadata`,
-      {
-        material: metadata.material,
-        color: metadata.color,
-        style: metadata.style,
-        height: metadata.height,
-        width: metadata.width,
-        length: metadata.length,
-        weight: metadata.weight,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      await axios.put(
+        `${apiBasePublic}/api/v1/products/${product.id}/metadata`,
+        {
+          material: metadata.material,
+          color: metadata.color,
+          style: metadata.style,
+          height: metadata.height,
+          width: metadata.width,
+          length: metadata.length,
+          weight: metadata.weight,
         },
-      }
-    )
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
-    onSave?.(
-      {
-        ...product,
-        name,
-        description,
-        category,
-        stock,
-        images,
-      },
-      metadata
-    )
+      onSave?.(
+        {
+          ...product,
+          name,
+          description,
+          category,
+          stock,
+          images,
+        },
+        metadata
+      )
+    } catch (err) {
+      notifyError(err, strings.errors.saveProduct)
+    }
   }
 
   return (

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import type { LoginUserDto } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { getErrorMessage } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,14 +27,15 @@ export default function LoginPage() {
 
     try {
       const payload: LoginUserDto = { email, password }
-      const loggedUser = await login(payload)
-      if (loggedUser) {
-        navigate("/")
-      } else {
-        setError(strings.login.invalidCredentials)
-      }
-    } catch {
-      setError(strings.login.genericError)
+      await login(payload)
+      navigate("/")
+    } catch (err) {
+      setError(
+        getErrorMessage(err, strings.login.genericError, {
+          unauthorized: strings.login.invalidCredentials,
+          badRequest: strings.login.invalidCredentials,
+        })
+      )
     } finally {
       setIsLoading(false)
     }

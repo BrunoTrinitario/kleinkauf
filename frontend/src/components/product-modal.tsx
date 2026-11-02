@@ -3,6 +3,7 @@ import axios from "axios"
 import { useEffect, useMemo, useState } from "react"
 import { defaultProductMetadata, type Product, type ProductMetadata } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { getErrorMessage } from "@/lib/api-error"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Package, Check, ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -96,9 +97,9 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
           metadataCache.set(cacheKey, resolved)
           setMetadata(resolved)
         }
-      } catch {
+      } catch (err) {
         if (isActive) {
-          setMetadataError(strings.productModal.metadataError)
+          setMetadataError(getErrorMessage(err, strings.productModal.metadataError))
         }
       }
     }

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import type { Product } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import { AdminProductCard } from "@/components/admin-product-card"
@@ -68,9 +69,10 @@ export default function ProductsManagementPage() {
         if (isMounted) {
           setProducts(data)
         }
-      } catch {
+      } catch (err) {
         if (isMounted) {
           setProducts([])
+          notifyError(err, strings.errors.loadProducts)
         }
       } finally {
         if (isMounted) {
@@ -137,8 +139,8 @@ export default function ProductsManagementPage() {
         },
       })
       setProducts((prev) => prev.filter((item) => item.id !== product.id))
-    } catch {
-      // TODO: surface error to user
+    } catch (err) {
+      notifyError(err, strings.errors.deleteProduct)
     }
   }
 
@@ -184,8 +186,8 @@ export default function ProductsManagementPage() {
       ])
       setIsCreateOpen(false)
       resetCreateForm()
-    } catch {
-      setCreateError(strings.adminProducts.createError)
+    } catch (err) {
+      setCreateError(getErrorMessage(err, strings.adminProducts.createError))
     } finally {
       setIsCreating(false)
     }

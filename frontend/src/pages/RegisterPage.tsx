@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
+import { getErrorMessage } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,14 +45,10 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const success = await register(email, password, name)
-      if (success) {
-        navigate("/")
-      } else {
-        setError(strings.register.failed)
-      }
-    } catch {
-      setError(strings.register.genericError)
+      await register(email, password, name)
+      navigate("/")
+    } catch (err) {
+      setError(getErrorMessage(err, strings.register.failed))
     } finally {
       setIsLoading(false)
     }

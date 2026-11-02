@@ -4,6 +4,7 @@ import axios from "axios"
 import { useAuth } from "@/lib/auth-context"
 import type { Product, User } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { notifyError } from "@/lib/api-error"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Package } from "lucide-react"
 
@@ -41,8 +42,9 @@ export function AdminDashboard() {
           setProducts(productsResponse.data as Product[])
           setUsers(usersResponse.data as User[])
         }
-      } catch {
+      } catch (err) {
         if (isMounted) {
+          notifyError(err, strings.errors.loadDashboard)
           setProducts([])
           setUsers([])
         }

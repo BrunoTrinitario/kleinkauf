@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
+import { getErrorMessage } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import type { ProfileFormState } from "@/lib/types"
@@ -60,9 +61,9 @@ export default function UserSettingsPage() {
 					email: data.email ?? "",
 					password: "",
 				})
-			} catch {
+			} catch (err) {
 				if (isMounted) {
-					setError(strings.userSettings.loadError)
+					setError(getErrorMessage(err, strings.userSettings.loadError))
 				}
 			} finally {
 				if (isMounted) {
@@ -88,7 +89,7 @@ export default function UserSettingsPage() {
 		setSuccess(null)
 
 		try {
-			await axios.post(
+			await axios.put(
 				`${apiBasePublic}/api/v1/auth/update`,
 				{
 					name: profile.name,
@@ -102,8 +103,8 @@ export default function UserSettingsPage() {
 				}
 			)
 				setSuccess(strings.userSettings.saveSuccess)
-		} catch {
-				setError(strings.userSettings.saveError)
+		} catch (err) {
+				setError(getErrorMessage(err, strings.userSettings.saveError))
 		} finally {
 			setIsSaving(false)
 		}
