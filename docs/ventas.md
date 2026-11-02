@@ -406,4 +406,3 @@ En products:
 - Zona horaria por tienda (hoy es una para todo el servicio).
 - Costo de envío y logística.
 - Delegar la gestión de pedidos a `EMPLEADO` (área `VENTAS` en los permisos).
-- Sumar sales a `tenants.md` (la base `sales` también tiene un schema por tenant).
