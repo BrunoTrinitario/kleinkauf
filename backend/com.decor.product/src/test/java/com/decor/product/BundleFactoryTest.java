@@ -1,0 +1,81 @@
+package com.decor.product;
+
+import com.decor.product.dto.bundles.BundleDto;
+import com.decor.product.entities.Bundle;
+import com.decor.product.entities.BundleProduct;
+import com.decor.product.entities.Product;
+import com.decor.product.factories.BundleFactory;
+import java.math.BigDecimal;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+class BundleFactoryTest {
+
+	@Test
+	void precioDeListaYCombosDisponibles() {
+		// Combo: 1 mesa + 4 sillas
+		Bundle bundle = bundle("90000.00");
+		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
+		add(bundle, product(2L, "Silla", "12000.00", 10), 4);
+
+		BundleDto dto = BundleFactory.getBundle(bundle);
+
+		assertEquals(new BigDecimal("90000.00"), dto.getPrice());
+		assertEquals(new BigDecimal("98000.00"), dto.getListPrice());
+		// Mesas alcanzan para 3, sillas para 2 (10 / 4)
+		assertEquals(2, dto.getAvailable());
+	}
+
+	@Test
+	void productoSinPrecio_noHayPrecioDeLista() {
+		Bundle bundle = bundle(null);
+		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
+		add(bundle, product(2L, "Silla", null, 10), 4);
+
+		assertNull(BundleFactory.getBundle(bundle).getListPrice());
+	}
+
+	@Test
+	void sinStockDeUnProducto_noHayCombosDisponibles() {
+		Bundle bundle = bundle(null);
+		add(bundle, product(1L, "Mesa", "50000.00", 0), 1);
+		add(bundle, product(2L, "Silla", "12000.00", 10), 4);
+
+		assertEquals(0, BundleFactory.getBundle(bundle).getAvailable());
+	}
+
+	@Test
+	void comboVacio_noHayCombosDisponibles() {
+		BundleDto dto = BundleFactory.getBundle(bundle(null));
+
+		assertEquals(0, dto.getAvailable());
+		assertEquals(BigDecimal.ZERO, dto.getListPrice());
+	}
+
+	private static Bundle bundle(String price) {
+		Bundle bundle = new Bundle();
+		bundle.setId(1L);
+		bundle.setName("Comedor");
+		bundle.setPrice(price != null ? new BigDecimal(price) : null);
+		return bundle;
+	}
+
+	private static Product product(Long id, String name, String price, int stock) {
+		Product product = new Product();
+		product.setId(id);
+		product.setName(name);
+		product.setPrice(price != null ? new BigDecimal(price) : null);
+		product.setStock(stock);
+		return product;
+	}
+
+	private static void add(Bundle bundle, Product product, int quantity) {
+		BundleProduct bp = new BundleProduct();
+		bp.setBundle(bundle);
+		bp.setProduct(product);
+		bp.setQuantity(quantity);
+		bundle.getProducts().add(bp);
+	}
+}

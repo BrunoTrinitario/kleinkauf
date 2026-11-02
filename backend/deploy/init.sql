@@ -1,0 +1,4 @@
+CREATE DATABASE users;
+CREATE DATABASE products;
+ALTER DATABASE users OWNER TO postgres;
+ALTER DATABASE products OWNER TO postgres;

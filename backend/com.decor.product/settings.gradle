@@ -1,0 +1,3 @@
+rootProject.name = 'com.decor.product'
+
+includeBuild('../decor-common')

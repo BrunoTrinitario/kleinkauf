@@ -1,0 +1,69 @@
+package com.decor.common.autoconfigure;
+
+import com.decor.common.security.InternalTokenService;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import java.util.concurrent.TimeUnit;
+
+/*
+Beans comunes a todos los microservicios. Cada uno se crea solo si el servicio
+tiene la dependencia necesaria y no definio su propio bean.
+ */
+@AutoConfiguration(before = RedisAutoConfiguration.class)
+public class DecorCoreAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty("api.internal.key")
+    public InternalTokenService internalTokenService(@Value("${api.internal.key}") String apiSecret) {
+        return new InternalTokenService(apiSecret);
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(RedisTemplate.class)
+    static class RedisConfig {
+
+        @Bean
+        @ConditionalOnMissingBean(name = "redisTemplate")
+        public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
+            RedisTemplate<String, Object> template = new RedisTemplate<>();
+            template.setConnectionFactory(factory);
+
+            // Serializers para que las keys/values sean legibles
+            template.setKeySerializer(new StringRedisSerializer());
+            template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+            template.setHashKeySerializer(new StringRedisSerializer());
+            template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+
+            return template;
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(Caffeine.class)
+    static class CaffeineConfig {
+
+        @Bean
+        @ConditionalOnMissingBean(name = "caffeineCache")
+        public Cache<String, Object> caffeineCache() {
+            return Caffeine.newBuilder()
+                    .maximumSize(10_000)
+                    .expireAfterWrite(10, TimeUnit.MINUTES)
+                    .recordStats()
+                    .build();
+        }
+    }
+}
