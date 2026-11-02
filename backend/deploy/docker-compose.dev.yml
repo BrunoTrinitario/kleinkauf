@@ -75,17 +75,25 @@ services:
       test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3002/"]
 
   sales-service:
-    image: gradle:8.14.3-jdk21
+    <<: *service
     container_name: sales-service
-    working_dir: /app
     volumes:
       - ../decor-sales:/app
       - ../decor-common:/decor-common
-      - gradle-cache:/home/gradle/.gradle
+      - sales-gradle-cache:/home/gradle/.gradle
+      - /app/build
+      - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sales
     ports:
       - "3003:3003"
-    command: gradle bootRun
-    restart: unless-stopped
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3003/"]
 
   user-service:
     <<: *service
@@ -156,3 +164,4 @@ volumes:
   product-gradle-cache:
   user-gradle-cache:
   gateway-gradle-cache:
+  sales-gradle-cache:
