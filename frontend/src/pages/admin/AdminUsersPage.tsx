@@ -4,14 +4,14 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
-import { Headline } from "@/components/highlight"
+import { PageHeader } from "@/components/page-header"
+import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "@/components/list-toolbar"
 import { Header } from "@/components/header"
 import type { Page, User, UserRole } from "@/lib/types"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { AdminUserCard } from "@/components/admin-user-card"
 import { PaginationControls } from "@/components/pagination-controls"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { Plus } from "lucide-react"
 import { AdminUserEditModal } from "@/components/admin-user-edit-modal"
 import { AdminUserCreateModal } from "@/components/admin-user-create-modal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -276,44 +276,40 @@ export default function AdminUsersPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-heading-sm text-foreground">
-            <Headline text={strings.adminUsers.title} highlight="Usuarios" />
-          </h1>
-            <p className="text-muted-foreground mt-2">
-              {strings.adminUsers.subtitle}
-            </p>
-          </div>
-          <Button onClick={() => setIsCreateOpen(true)}>{strings.adminUsers.createButton}</Button>
-        </div>
+        <PageHeader
+          title={strings.adminUsers.title}
+          highlight="Usuarios"
+          subtitle={strings.adminUsers.subtitle}
+          backTo="/admin"
+          action={
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              {strings.adminUsers.createButton}
+            </Button>
+          }
+        />
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="py-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={strings.adminUsers.searchPlaceholder}
-                  className="pl-10"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                />
-              </div>
-              <select
+        <div className="mb-6">
+          <ListToolbar>
+            <SearchField
+              value={searchInput}
+              onChange={setSearchInput}
+              placeholder={strings.adminUsers.searchPlaceholder}
+            />
+            <FilterGroup>
+              <FilterSelect
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as UserRole | "")}
-                className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                onChange={(value) => setRoleFilter(value as UserRole | "")}
+                label={strings.adminUsers.allRoles}
               >
                 <option value="">{strings.adminUsers.allRoles}</option>
                 <option value="ADMINISTRADOR">{strings.roles.administrador}</option>
                 <option value="EMPLEADO">{strings.roles.empleado}</option>
                 <option value="CLIENTE">{strings.roles.cliente}</option>
-              </select>
-            </div>
-          </CardContent>
-        </Card>
+              </FilterSelect>
+            </FilterGroup>
+          </ListToolbar>
+        </div>
 
         {/* Users List */}
         <Card>

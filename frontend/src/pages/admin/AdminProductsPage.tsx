@@ -2,18 +2,18 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
-import type { Page, Product } from "@/lib/types"
+import type { CatalogCategory, Page, Product } from "@/lib/types"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { PaginationControls } from "@/components/pagination-controls"
 import { strings } from "@/lib/strings"
 import { notifyError } from "@/lib/api-error"
-import { Headline } from "@/components/highlight"
+import { PageHeader } from "@/components/page-header"
+import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "@/components/list-toolbar"
 import { Header } from "@/components/header"
 import { AdminProductCard } from "@/components/admin-product-card"
 import { AdminProductFormModal } from "@/components/admin-product-form-modal"
 import { hasPermission } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   AlertDialog,
@@ -26,13 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import axios from "axios"
-import { 
-  ArrowLeft, 
-  Plus,
-  Search,
-  Package
-} from "lucide-react"
-import { Link } from "react-router-dom"
+import { Plus, Package } from "lucide-react"
 
 export default function ProductsManagementPage() {
   const navigate = useNavigate()
@@ -40,6 +34,8 @@ export default function ProductsManagementPage() {
   const [productsPage, setProductsPage] = useState<Page<Product> | null>(null)
   const [searchInput, setSearchInput] = useState("")
   const searchQuery = useDebouncedValue(searchInput.trim())
+  const [categoryFilter, setCategoryFilter] = useState("")
+  const [categories, setCategories] = useState<CatalogCategory[]>([])
   const [page, setPage] = useState(0)
   // Se incrementa para volver a pedir la pagina actual (despues de crear o borrar)
   const [reloadKey, setReloadKey] = useState(0)
@@ -66,10 +62,18 @@ export default function ProductsManagementPage() {
     }
   }, [isAuthenticated, isAuthLoading, canManageProducts, navigate])
 
-  // Una busqueda nueva arranca desde la primera pagina
+  // Una busqueda o filtro nuevo arranca desde la primera pagina
   useEffect(() => {
     setPage(0)
-  }, [searchQuery])
+  }, [searchQuery, categoryFilter])
+
+  // Categorias para el filtro (las mismas que el catalogo, con su cantidad de productos)
+  useEffect(() => {
+    axios
+      .get<CatalogCategory[]>(`${apiBasePublic}/api/v1/catalog/categories`)
+      .then((response) => setCategories(response.data))
+      .catch(() => {})
+  }, [apiBasePublic, reloadKey])
 
   useEffect(() => {
     if (!canManageProducts || !user?.token) {
@@ -87,6 +91,7 @@ export default function ProductsManagementPage() {
           },
           params: {
             q: searchQuery || undefined,
+            category: categoryFilter || undefined,
             page,
           },
         })
@@ -110,7 +115,7 @@ export default function ProductsManagementPage() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, canManageProducts, user?.token, searchQuery, page, reloadKey])
+  }, [apiBasePublic, canManageProducts, user?.token, searchQuery, categoryFilter, page, reloadKey])
 
   if (isAuthLoading || !isAuthenticated || !canManageProducts) {
     return null
@@ -164,40 +169,38 @@ export default function ProductsManagementPage() {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/admin">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-heading-sm text-foreground">
-            <Headline text={strings.adminProducts.title} highlight="productos" />
-          </h1>
-            <p className="text-muted-foreground">{strings.adminProducts.subtitle}</p>
-          </div>
-        </div>
+        <PageHeader
+          title={strings.adminProducts.title}
+          highlight="productos"
+          subtitle={strings.adminProducts.subtitle}
+          backTo="/admin"
+          action={
+            <Button onClick={openCreateForm}>
+              <Plus className="h-4 w-4 mr-2" />
+              {strings.adminProducts.createButton}
+            </Button>
+          }
+        />
 
-        {/* Actions bar */}
-        <Card className="mb-6">
-          <CardContent className="py-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder={strings.adminProducts.searchPlaceholder}
-                  className="pl-10"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                />
-              </div>
-              <Button onClick={openCreateForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                {strings.adminProducts.createButton}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-6">
+          <ListToolbar>
+            <SearchField
+              value={searchInput}
+              onChange={setSearchInput}
+              placeholder={strings.adminProducts.searchPlaceholder}
+            />
+            <FilterGroup>
+              <FilterSelect value={categoryFilter} onChange={setCategoryFilter} label={strings.productCatalog.all}>
+                <option value="">{strings.productCatalog.all}</option>
+                {categories.map((category) => (
+                  <option key={category.name} value={category.name}>
+                    {category.name} ({category.products})
+                  </option>
+                ))}
+              </FilterSelect>
+            </FilterGroup>
+          </ListToolbar>
+        </div>
 
         {/* Products grid */}
         <Card>

@@ -8,8 +8,7 @@ import { ProductCard } from "./product-card"
 import { ProductModal } from "./product-modal"
 import { PaginationControls } from "./pagination-controls"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "./list-toolbar"
 
 export function ProductCatalog() {
   const apiBasePublic =
@@ -102,27 +101,20 @@ export function ProductCatalog() {
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={strings.productCatalog.searchPlaceholder}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <select
+      <ListToolbar>
+        <SearchField
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder={strings.productCatalog.searchPlaceholder}
+        />
+        <FilterGroup>
+          <FilterSelect
             value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value)
+            label={strings.productCatalog.all}
+            onChange={(value) => {
+              setSelectedCategory(value)
               setPage(0)
             }}
-            className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">{strings.productCatalog.all}</option>
             {categories.map(category => (
@@ -130,22 +122,21 @@ export function ProductCatalog() {
                 {category.name} ({category.products})
               </option>
             ))}
-          </select>
-
-          <select
+          </FilterSelect>
+          <FilterSelect
             value={sortBy}
-            onChange={(e) => {
-              setSortBy(e.target.value as CatalogSort)
+            label={strings.productCatalog.sortByName}
+            onChange={(value) => {
+              setSortBy(value as CatalogSort)
               setPage(0)
             }}
-            className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="name">{strings.productCatalog.sortByName}</option>
             <option value="price_asc">{strings.productCatalog.sortByPriceAsc}</option>
             <option value="price_desc">{strings.productCatalog.sortByPriceDesc}</option>
-          </select>
-        </div>
-      </div>
+          </FilterSelect>
+        </FilterGroup>
+      </ListToolbar>
 
       {/* Results Count */}
       <p className="text-sm text-muted-foreground">
