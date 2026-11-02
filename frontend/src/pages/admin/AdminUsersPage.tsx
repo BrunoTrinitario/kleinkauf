@@ -316,7 +316,7 @@ export default function AdminUsersPage() {
           <CardHeader>
             <CardTitle>{strings.adminUsers.usersTitle} ({usersPage?.totalItems ?? 0})</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 px-3 sm:px-6">
             {isLoading && !usersPage ? (
               <p className="text-sm text-muted-foreground">{strings.adminUsers.loading}</p>
             ) : users.length === 0 ? (

@@ -210,7 +210,7 @@ export default function ProductsManagementPage() {
               {strings.adminProducts.productsDescription}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 px-3 sm:px-6">
             {isLoading && !productsPage ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">{strings.adminProducts.loading}</p>
