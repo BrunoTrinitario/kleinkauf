@@ -31,5 +31,7 @@ public class ErrorMessages {
     public static String RESERVATION_IN_PROGRESS = "The reservation is being processed by another request";
     public static String ITEM_NOT_AVAILABLE = "Item not available";
     public static String ITEM_WITHOUT_PRICE = "Item without price";
+    public static String PLATFORM_ONLY = "This endpoint is only available on the platform.";
+    public static String INVALID_USAGE_SORT = "Invalid sort: use products or bundles.";
 
 }

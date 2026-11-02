@@ -45,7 +45,10 @@ public class UsersClient {
     @Retry(name = "users", fallbackMethod = "getUserRolesFallback")
     public List<RoleDto> getUserRoles(Long userId, String tenant) {
         HttpHeaders headers = internalHeaders();
-        headers.set(Headers.FORWARDED_HOST, tenant);
+        // Sin tenant (superadmin en /api/v1/platform/**) no se manda el header: users busca los roles en public
+        if (tenant != null) {
+            headers.set(Headers.FORWARDED_HOST, tenant);
+        }
         return restTemplate.exchange(
                 usersUrl + "api/internal/users/roles/" + userId,
                 HttpMethod.GET,

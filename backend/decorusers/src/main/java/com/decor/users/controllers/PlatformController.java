@@ -1,16 +1,25 @@
 package com.decor.users.controllers;
 
 import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.common.servlet.security.CustomUserDetails;
 import com.decor.users.dtos.LoggedUser;
 import com.decor.users.dtos.LoginUserDto;
+import com.decor.users.dtos.platform.NewSuperadminDto;
 import com.decor.users.dtos.platform.NewTenantDto;
+import com.decor.users.dtos.platform.PlatformDashboardDto;
 import com.decor.users.dtos.platform.PlatformTenantDto;
+import com.decor.users.dtos.platform.SuperadminDto;
+import com.decor.users.dtos.platform.SuperadminStatusDto;
 import com.decor.users.dtos.platform.TenantStatusDto;
+import com.decor.users.dtos.platform.TenantUsageDto;
+import com.decor.users.services.PlatformDashboardService;
 import com.decor.users.services.PlatformService;
+import com.decor.users.services.SuperadminService;
 import com.decor.users.services.TenantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +38,12 @@ public class PlatformController {
 
     @Autowired
     private TenantService tenantService;
+
+    @Autowired
+    private PlatformDashboardService dashboardService;
+
+    @Autowired
+    private SuperadminService superadminService;
 
     @PostMapping("/tenants")
     public ResponseEntity<PlatformTenantDto> signUp(@RequestBody NewTenantDto dto) throws ApiException {
@@ -70,5 +85,43 @@ public class PlatformController {
         platformService.requirePlatformContext();
         tenantService.deleteTenant(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Resumen de tenants y altas por periodo. groupBy: DAY (por defecto), WEEK o MONTH
+    @GetMapping("/admin/dashboard")
+    public ResponseEntity<PlatformDashboardDto> dashboard(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String groupBy
+    ) throws ApiException {
+        platformService.requirePlatformContext();
+        return ResponseEntity.ok(dashboardService.dashboard(from, to, groupBy));
+    }
+
+    // Usuarios, activos y ultima actividad por tenant. sort: users (por defecto), activeUsers, lastActivity, createdAt
+    @GetMapping("/admin/usage")
+    public ResponseEntity<List<TenantUsageDto>> usage(@RequestParam(required = false) String sort) throws ApiException {
+        platformService.requirePlatformContext();
+        return ResponseEntity.ok(dashboardService.usage(sort));
+    }
+
+    @GetMapping("/admin/superadmins")
+    public ResponseEntity<List<SuperadminDto>> listSuperadmins() throws ApiException {
+        platformService.requirePlatformContext();
+        return ResponseEntity.ok(superadminService.list());
+    }
+
+    @PostMapping("/admin/superadmins")
+    public ResponseEntity<SuperadminDto> createSuperadmin(@RequestBody NewSuperadminDto dto) throws ApiException {
+        platformService.requirePlatformContext();
+        return new ResponseEntity<>(superadminService.create(dto), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/admin/superadmins/{id}/active")
+    public ResponseEntity<SuperadminDto> setSuperadminActive(@PathVariable Long id,
+                                                             @RequestBody SuperadminStatusDto dto,
+                                                             @AuthenticationPrincipal CustomUserDetails currentUser) throws ApiException {
+        platformService.requirePlatformContext();
+        return ResponseEntity.ok(superadminService.setActive(id, dto.active(), currentUser.getId()));
     }
 }

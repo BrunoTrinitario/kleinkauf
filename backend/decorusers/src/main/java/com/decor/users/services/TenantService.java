@@ -10,6 +10,7 @@ import com.decor.users.dtos.platform.PlatformTenantDto;
 import com.decor.users.entities.Tenant;
 import com.decor.users.repositories.TenantRepository;
 import com.decor.users.util.CacheUtil;
+import com.decor.users.util.Dates;
 import com.decor.users.util.Parser;
 import com.decor.users.util.UserValidator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -195,7 +196,7 @@ public class TenantService {
                 t.getUrl(),
                 t.getConfigId(),
                 Boolean.TRUE.equals(t.getEnable()),
-                t.getCreatedAt()
+                Dates.withServerOffset(t.getCreatedAt())
         );
     }
 }

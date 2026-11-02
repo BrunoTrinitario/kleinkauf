@@ -3,7 +3,8 @@
 Plan de los endpoints de resumen para el **administrador de la tienda** y para el **administrador de la plataforma**
 (superadmin). El frontend se va a reescribir: acá se define solo lo que exponen los servicios.
 
-> Estado: **plan**. Cuando se implemente, este archivo pasa a ser la documentación.
+> Estado: el **panel de la plataforma (SUPERADMIN) está implementado** (backend; el frontend todavía no lo muestra).
+> El **panel de la tienda** sigue siendo **plan**. Cuando se implemente, este archivo pasa a ser la documentación.
 
 ## Decisiones
 
@@ -93,9 +94,30 @@ Plan de los endpoints de resumen para el **administrador de la tienda** y para e
 - Se borran `GET /api/v1/users/stats`, `UserStatsDto`, `UserService.getServiceStats` y
   `UserRepository.findByCreatedAtBetween` (si nada más lo usa).
 
-## Panel de la plataforma (SUPERADMIN)
+## Panel de la plataforma (SUPERADMIN) — implementado
 
-Todo bajo `/api/v1/platform/admin/**`, sin tenant (como el panel de tenants actual).
+Todo bajo `/api/v1/platform/**`, sin tenant (como el panel de tenants). En users es `/api/v1/platform/admin/**`; en
+products, `/api/v1/platform/products/**`. Si una request llega con tenant, los dos responden 404.
+
+**Diferencias con el plan** (lo de abajo ya está corregido):
+
+- Las columnas reales son `lastlogin` (no `last_login`) y `roles.userid` (no `user_id`): lo confirmó la base.
+- Los combos (`bundles`) **no tienen `deleted_at`**: se borran de verdad, así que se cuentan todos.
+- products **no pide la lista de tenants a users**: cuenta los schemas de su propia base que tienen la tabla
+  `product` (menos `public`). Un tenant que nunca abrió su tienda no tiene schema en products y no aparece; el
+  frontend lo cuenta como 0. Así no depende de que users responda ni de la lista de tenants en Redis.
+- La utilidad de períodos quedó en users (`util/Periods.java`), no en decor-common: sales ya tiene la suya
+  (`ReportService`, con los días en la zona de la tienda) y no se tocó. Errores: `groupBy` o fechas inválidas, o
+  `from > to`, o más de 1.000 períodos → 400.
+- products no necesitó `decor.tenant.optional-paths`: el `TenantFilter` ya tenía `decor.tenant.public-paths`, y se
+  agregó `/api/v1/platform/` ahí.
+- Parámetros inválidos de `sort` → 400.
+- Las fechas de las respuestas de plataforma (`createdAt`, `lastActivity`, `lastLogin`, también en
+  `/admin/tenants`) van **con offset** (`OffsetDateTime`, `util/Dates.java`): se guardan en la hora del servidor (UTC
+  en Docker) y sin offset el navegador las mostraba corridas 3 horas.
+- **Pendiente:** los períodos de altas se arman con el día del servidor (UTC). Una tienda creada después de las 21
+  (hora argentina) cae en el día siguiente. sales lo resuelve con una zona configurable (`SalesTime`); la plataforma
+  podría hacer lo mismo.
 
 ### users — `GET /api/v1/platform/admin/dashboard?from&to&groupBy`
 
@@ -120,11 +142,15 @@ Se arma en el frontend juntando dos listas por `schema`:
 
 - Se devuelven **todos los tenants no borrados** (sin paginar: con cientos de tiendas alcanza). El "por defecto por
   productos" del ranking lo aplica el frontend tomando el orden de products.
-- Cada servicio recorre los schemas de los tenants con SQL directo (`JdbcTemplate`, sin Hibernate):
-  - users: `SELECT COUNT(*), SUM(CASE WHEN <last_login> >= ? THEN 1 ELSE 0 END), MAX(<last_login>) FROM <schema>.usuarios WHERE deleted_at IS NULL`
-  - products: `SELECT COUNT(*) FROM <schema>.product WHERE deleted_at IS NULL` y lo mismo para `bundles`.
-  - El schema sale de la tabla de tenants y se valida con `^[a-z][a-z0-9_]*$` antes de armar el SQL.
-  - Si el schema todavía no tiene la tabla (products crea el schema en la primera request de la tienda), cuenta 0.
+- Cada servicio recorre los schemas con SQL directo (`JdbcTemplate`, sin Hibernate):
+  - users (`PlatformDashboardService`): `SELECT COUNT(*), COUNT(*) FILTER (WHERE lastlogin >= ?), MAX(lastlogin) FROM <schema>.usuarios WHERE deleted_at IS NULL`
+  - products (`PlatformUsageService`): `SELECT COUNT(*) FROM <schema>.product WHERE deleted_at IS NULL` y
+    `SELECT COUNT(*) FROM <schema>.bundles`.
+  - users toma el schema de la tabla de tenants; products, de `information_schema`. Los dos lo validan con
+    `^[a-z][a-z0-9_]*$` antes de armar el SQL.
+  - Si el schema todavía no tiene la tabla, cuenta 0 (users) o no aparece (products).
+- `lastActivity` es el último login: `null` si nadie de la tienda entró. En los dos servicios los empates se
+  ordenan por identificador / schema.
 - **Caché**: cada servicio guarda su lista en Redis 5 minutos (`platform:usage:users`, `platform:usage:products`).
   Si Redis falla, se calcula igual.
 
@@ -132,9 +158,9 @@ Se arma en el frontend juntando dos listas por `schema`:
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| GET | `/api/v1/platform/admin/superadmins` | Lista con `id`, `name`, `email`, `active`, `createdAt`, `lastLogin` (incluye los desactivados) |
-| POST | `/api/v1/platform/admin/superadmins` | `{name, email, password}` → 201. Crea el usuario en `public` con rol `SUPERADMIN` |
-| PUT | `/api/v1/platform/admin/superadmins/{id}/active` | `{"active": false}` desactiva, `true` reactiva |
+| GET | `/api/v1/platform/admin/superadmins` | Lista con `id`, `name`, `email`, `active`, `createdAt`, `lastLogin` (incluye los desactivados), por fecha de alta |
+| POST | `/api/v1/platform/admin/superadmins` | `{name, email, password}` → 201. Crea el usuario en `public` con rol `SUPERADMIN`. Mismas reglas de nombre, email y contraseña que cualquier usuario |
+| PUT | `/api/v1/platform/admin/superadmins/{id}/active` | `{"active": false}` desactiva, `true` reactiva. Devuelve el superadmin. Si ya estaba así, no cambia nada |
 
 | Caso | Respuesta |
 |---|---|
@@ -151,7 +177,8 @@ Se arma en el frontend juntando dos listas por `schema`:
   borrado: si solo se borrara el usuario, su token seguiría sirviendo. Además se borran sus roles de Redis
   (`user:<id>:null`).
 - **Reactivar** = limpiar `deleted_at` del usuario y de su rol `SUPERADMIN`. Como `@SQLRestriction` oculta los
-  borrados, la lista, la reactivación y el chequeo de email repetido van con **consultas nativas**.
+  borrados, la lista, la reactivación y el chequeo de email repetido van con **SQL directo** sobre `public`
+  (`SuperadminService`).
 - Un superadmin desactivado no puede loguearse (el login no lo encuentra). En products su token puede servir hasta
   1 minuto más (caché local de roles).
 

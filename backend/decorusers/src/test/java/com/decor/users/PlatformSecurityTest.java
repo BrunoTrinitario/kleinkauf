@@ -7,8 +7,10 @@ import com.decor.users.controllers.PlatformController;
 import com.decor.users.entities.Role;
 import com.decor.users.repositories.RoleRepository;
 import com.decor.users.security.SecurityConfig;
+import com.decor.users.services.PlatformDashboardService;
 import com.decor.users.services.PlatformService;
 import com.decor.users.services.RolePermissionService;
+import com.decor.users.services.SuperadminService;
 import com.decor.users.services.TenantService;
 import com.decor.users.services.UserService;
 import java.util.List;
@@ -24,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,6 +71,12 @@ class PlatformSecurityTest {
 	@MockitoBean
 	private TenantService tenantService;
 
+	@MockitoBean
+	private PlatformDashboardService platformDashboardService;
+
+	@MockitoBean
+	private SuperadminService superadminService;
+
 	// Lo pide el CommandLineRunner de DecorusersApplication
 	@MockitoBean
 	private UserService userService;
@@ -107,6 +116,32 @@ class PlatformSecurityTest {
 		String body = "{\"identifier\":\"otra\",\"ownerName\":\"B\",\"ownerEmail\":\"b@b.com\",\"ownerPassword\":\"x\"}";
 		mockMvc.perform(as(ADMINISTRADOR, json(post("/api/v1/platform/admin/tenants"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, json(post("/api/v1/platform/admin/tenants"), body))).andExpect(status().isCreated());
+	}
+
+	@Test
+	void panelYUso_soloSuperadmin() throws Exception {
+		for (String path : new String[]{"/api/v1/platform/admin/dashboard", "/api/v1/platform/admin/usage"}) {
+			mockMvc.perform(get(path)).andExpect(status().isForbidden());
+			mockMvc.perform(as(ADMINISTRADOR, get(path))).andExpect(status().isForbidden());
+			mockMvc.perform(as(SUPERADMIN, get(path))).andExpect(status().isOk());
+		}
+	}
+
+	@Test
+	void gestionDeSuperadmins_soloSuperadmin() throws Exception {
+		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/platform/admin/superadmins"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(SUPERADMIN, get("/api/v1/platform/admin/superadmins"))).andExpect(status().isOk());
+
+		String body = "{\"name\":\"Root\",\"email\":\"root2@decor.com\",\"password\":\"clave123\"}";
+		mockMvc.perform(as(ADMINISTRADOR, json(post("/api/v1/platform/admin/superadmins"), body))).andExpect(status().isForbidden());
+		mockMvc.perform(as(SUPERADMIN, json(post("/api/v1/platform/admin/superadmins"), body))).andExpect(status().isCreated());
+
+		mockMvc.perform(as(ADMINISTRADOR, json(put("/api/v1/platform/admin/superadmins/3/active"), "{\"active\":false}")))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(as(SUPERADMIN, json(put("/api/v1/platform/admin/superadmins/3/active"), "{\"active\":false}")))
+				.andExpect(status().isOk());
+		// El id del que hace el cambio sale del X-User-Id, para no dejarlo desactivarse a si mismo
+		verify(superadminService).setActive(3L, false, SUPERADMIN);
 	}
 
 	private static MockHttpServletRequestBuilder as(Long userId, MockHttpServletRequestBuilder request) {

@@ -2,6 +2,9 @@ package com.decor.product.util;
 
 import com.decor.common.dto.RoleDto;
 import com.decor.common.dto.TenantDto;
+import com.decor.product.dto.platform.ProductUsageDto;
+import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,8 +17,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Component
 public class CacheUtil {
+
+    // Uso por tenant del panel de la plataforma (users guarda el suyo en platform:usage:users)
+    private static final String PLATFORM_USAGE = "platform:usage:products";
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -58,6 +65,26 @@ public class CacheUtil {
             }
         }
         return tenants;
+    }
+
+    // Uso por tenant del panel de la plataforma (5 minutos). Si Redis falla devuelve null y se calcula igual
+    public List<ProductUsageDto> getPlatformUsage() {
+        try {
+            Object json = redisTemplate.opsForValue().get(PLATFORM_USAGE);
+            if (json == null) return null;
+            return objectMapper.readValue(json.toString(), new TypeReference<List<ProductUsageDto>>() {});
+        } catch (Exception e) {
+            log.warn("No se pudo leer el uso por tenant de Redis: {}", e.toString());
+            return null;
+        }
+    }
+
+    public void savePlatformUsage(List<ProductUsageDto> usage) {
+        try {
+            redisTemplate.opsForValue().set(PLATFORM_USAGE, objectMapper.writeValueAsString(usage), Duration.ofMinutes(5));
+        } catch (Exception e) {
+            log.warn("No se pudo guardar el uso por tenant en Redis: {}", e.toString());
+        }
     }
 
     public TenantDto getTenantBySchema(String schema) {

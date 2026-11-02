@@ -3,7 +3,10 @@ package com.decor.users.util;
 import com.decor.common.dto.TenantDto;
 import com.decor.users.constants.CacheKeys;
 import com.decor.users.dtos.*;
+import com.decor.users.dtos.platform.TenantUsageDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.Cursor;
@@ -15,6 +18,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Component
 public class CacheUtil {
 
@@ -81,6 +85,32 @@ public class CacheUtil {
         if (!keys.isEmpty()) {
             redisTemplate.delete(keys);
         }
+    }
+
+    // Uso por tenant del panel de la plataforma (5 minutos). Si Redis falla devuelve null y se calcula igual
+    public List<TenantUsageDto> getPlatformUsage() {
+        try {
+            Object json = redisTemplate.opsForValue().get(CacheKeys.PLATFORM_USAGE_USERS);
+            if (json == null) return null;
+            return objectMapper.readValue(json.toString(), new TypeReference<List<TenantUsageDto>>() {});
+        } catch (Exception e) {
+            log.warn("No se pudo leer el uso por tenant de Redis: {}", e.toString());
+            return null;
+        }
+    }
+
+    public void savePlatformUsage(List<TenantUsageDto> usage) {
+        try {
+            redisTemplate.opsForValue().set(CacheKeys.PLATFORM_USAGE_USERS, objectMapper.writeValueAsString(usage),
+                    Duration.ofMinutes(5));
+        } catch (Exception e) {
+            log.warn("No se pudo guardar el uso por tenant en Redis: {}", e.toString());
+        }
+    }
+
+    // Al desactivar un superadmin: sus roles cacheados dejan de valer (user:<id>:null, sin tenant)
+    public void deleteUserRoles(Long userId, String tenantSchema) {
+        redisTemplate.delete(CacheKeys.CACHE_USER(userId, tenantSchema));
     }
 
     // Al deshabilitar o borrar un tenant: que el gateway no siga usando datos viejos

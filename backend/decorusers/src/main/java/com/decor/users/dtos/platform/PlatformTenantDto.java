@@ -1,6 +1,6 @@
 package com.decor.users.dtos.platform;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 // Vista de un tenant para el alta y el panel del superadmin
 public record PlatformTenantDto(
@@ -10,6 +10,6 @@ public record PlatformTenantDto(
         String url,
         String configId,
         boolean enabled,
-        LocalDateTime createdAt
+        OffsetDateTime createdAt
 ) {
 }

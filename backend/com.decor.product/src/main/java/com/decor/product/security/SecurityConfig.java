@@ -25,6 +25,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Llamadas de otros microservicios (reservas de stock de sales)
                         .requestMatchers("/api/internal/**").hasRole("INTERNAL")
+                        // Panel de la plataforma (sin tenant): uso por tenant
+                        .requestMatchers("/api/v1/platform/**").hasRole("SUPERADMIN")
                         // Catalogo publico
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                         // Permisos por area (PermissionArea). El ADMINISTRADOR tiene todas;

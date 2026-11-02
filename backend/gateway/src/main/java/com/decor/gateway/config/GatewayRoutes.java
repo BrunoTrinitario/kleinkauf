@@ -49,6 +49,11 @@ public class GatewayRoutes {
                 .route("internal tenants", r -> r
                         .path("/api/internal/tenants/**")
                         .uri(userUrl))
+                // Uso por tenant de products: antes que la ruta general de plataforma (order menor gana)
+                .route("platform products", r -> r
+                        .order(-1)
+                        .path("/api/v1/platform/products/**")
+                        .uri(productUrl))
                 .route("platform", r -> r
                         .path("/api/v1/platform/**")
                         .uri(userUrl))

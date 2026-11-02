@@ -44,8 +44,9 @@ propios de la app.
 
 Spring Cloud Gateway (WebFlux, reactivo). No tiene endpoints propios: enruta y protege.
 
-- **Enrutamiento:** `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**` y `/products/images/**` →
-  products; `/api/v1/users/**`, `/api/v1/auth/**`, `/api/v1/platform/**` y `/api/internal/tenants/**` → users;
+- **Enrutamiento:** `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**`, `/products/images/**` y
+  `/api/v1/platform/products/**` → products; `/api/v1/users/**`, `/api/v1/auth/**`, el resto de `/api/v1/platform/**`
+  y `/api/internal/tenants/**` → users;
   `/api/v1/sales/**` → sales.
 - **Tenant:** lo reconoce por el `Origin`, responde 404 si no existe o está borrado y 403 si está deshabilitado, y le
   pasa el schema a los servicios en `X-Forwarded-Host`.
@@ -164,6 +165,11 @@ archivo más grande que el límite de subida responde 413.
 | POST | `/api/v1/platform/admin/tenants` | SUPERADMIN | Alta de un tenant |
 | PUT | `/api/v1/platform/admin/tenants/{id}/enabled` | SUPERADMIN | Habilita o deshabilita. Body `{"enabled": false}` |
 | DELETE | `/api/v1/platform/admin/tenants/{id}` | SUPERADMIN | Soft delete del tenant |
+| GET | `/api/v1/platform/admin/dashboard?from&to&groupBy` | SUPERADMIN | Tenants por estado y altas por período (`DAY`/`WEEK`/`MONTH`). Ver [panel-admin.md](panel-admin.md) |
+| GET | `/api/v1/platform/admin/usage?sort=` | SUPERADMIN | Usuarios, activos (30 días) y último login por tenant. `sort`: `users`, `activeUsers`, `lastActivity`, `createdAt` |
+| GET | `/api/v1/platform/admin/superadmins` | SUPERADMIN | Superadmins, incluidos los desactivados |
+| POST | `/api/v1/platform/admin/superadmins` | SUPERADMIN | Alta con contraseña temporal. Body `{name, email, password}` |
+| PUT | `/api/v1/platform/admin/superadmins/{id}/active` | SUPERADMIN | Desactiva o reactiva. Body `{"active": false}`. No a sí mismo ni al último activo |
 
 ### Internos — `/api/internal`
 
@@ -251,6 +257,12 @@ productos, combos, stock o vendidos.
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
 | GET | `/products/images/{archivo}` | Público | Archivo de imagen de un producto |
+
+### Plataforma — `/api/v1/platform/products` (sin tenant)
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/v1/platform/products/usage?sort=` | SUPERADMIN | Productos y combos por schema (`sort`: `products` o `bundles`). Se junta con `/platform/admin/usage` de users. Ver [panel-admin.md](panel-admin.md) |
 
 ### Internos — `/api/internal/products`
 

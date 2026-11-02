@@ -1,0 +1,94 @@
+package com.decor.product;
+
+import com.decor.common.constants.Headers;
+import com.decor.common.dto.RoleDto;
+import com.decor.common.security.InternalTokenService;
+import com.decor.common.security.PermissionArea;
+import com.decor.common.servlet.exceptions.GlobalExceptionHandler;
+import com.decor.common.servlet.tenant.TenantFilter;
+import com.decor.product.controllers.PlatformController;
+import com.decor.product.controllers.ProductController;
+import com.decor.product.security.SecurityConfig;
+import com.decor.product.services.PlatformUsageService;
+import com.decor.product.services.ProductService;
+import com.decor.product.services.UserService;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/*
+/api/v1/platform/** en products: sin tenant (como en application.properties, decor.tenant.public-paths)
+y solo SUPERADMIN. El resto de las rutas sigue pidiendo tenant.
+ */
+@WebMvcTest(controllers = {PlatformController.class, ProductController.class})
+// El GlobalExceptionHandler convierte el ApiException del controller en su status (404)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class, PlatformSecurityTest.TenantConfig.class})
+class PlatformSecurityTest {
+
+	private static final long SUPERADMIN = 1L;
+	private static final long ADMIN = 2L;
+	private static final String USAGE = "/api/v1/platform/products/usage";
+
+	@TestConfiguration
+	static class TenantConfig {
+		@Bean
+		TenantFilter tenantFilter() {
+			return new TenantFilter(true, List.of("/products/images/", "/api/v1/platform/"));
+		}
+	}
+
+	@Autowired
+	private MockMvc mockMvc;
+
+	@MockitoBean
+	private UserService userService;
+
+	@MockitoBean
+	private InternalTokenService internalTokenService;
+
+	@MockitoBean
+	private PlatformUsageService platformUsageService;
+
+	@MockitoBean
+	private ProductService productService;
+
+	@BeforeEach
+	void roles() {
+		when(userService.getUserRolesById(SUPERADMIN)).thenReturn(List.of(new RoleDto("SUPERADMIN", 0)));
+		when(userService.getUserRolesById(ADMIN)).thenReturn(List.of(new RoleDto("ADMINISTRADOR", PermissionArea.ALL)));
+	}
+
+	@Test
+	void usoPorTenant_soloSuperadminYSinTenant() throws Exception {
+		mockMvc.perform(get(USAGE)).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, get(USAGE))).andExpect(status().isForbidden());
+		mockMvc.perform(as(SUPERADMIN, get(USAGE))).andExpect(status().isOk());
+	}
+
+	@Test
+	void usoPorTenant_conTenant_noExiste() throws Exception {
+		mockMvc.perform(as(SUPERADMIN, get(USAGE)).header(Headers.FORWARDED_HOST, "tienda1"))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void elRestoSigueSinTenant404() throws Exception {
+		mockMvc.perform(as(ADMIN, get("/api/v1/products"))).andExpect(status().isNotFound());
+	}
+
+	private static MockHttpServletRequestBuilder as(Long userId, MockHttpServletRequestBuilder request) {
+		return request.header(Headers.USER_ID, userId);
+	}
+}
