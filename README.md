@@ -86,8 +86,28 @@ El script `backend/deploy/init.sql` crea las bases `users` y `products`; las tab
 
 ### 2. Backend
 
-Cada servicio es un proyecto Gradle independiente (con su propio `gradlew`) que consume `decor-common` como build
-compuesto. Levantalos **en este orden**, cada uno en su terminal:
+**Con Docker (recomendado):** un solo comando levanta PostgreSQL, Redis, Eureka, los tres servicios y carga el seed
+de desarrollo:
+
+```bash
+docker compose -f backend/deploy/docker-compose.dev.yml up -d
+```
+
+La primera vez tarda unos minutos (cada servicio baja sus dependencias y compila con `gradle bootRun`). Los servicios
+quedan `healthy` cuando Spring ya arrancó; el panel de Eureka está en `http://localhost:8761`.
+
+**Seed de desarrollo:** el servicio `seed` da de alta la tienda `demo` por la API (mismo flujo que el autoservicio) y
+termina. Se puede correr las veces que haga falta: si la tienda ya existe no hace nada. Además `decorusers` crea un
+superadmin al arrancar. Usuarios de prueba (solo para desarrollo, definidos en `docker-compose.dev.yml`):
+
+| Usuario | Email | Contraseña | Dónde |
+|---|---|---|---|
+| Dueño de la tienda demo | `admin@demo.local` | `demo123` | `http://demo.localhost:2999` |
+| Superadmin de la plataforma | `superadmin@decor.local` | `superadmin123` | `http://localhost:2999` |
+
+**Sin Docker:** cada servicio es un proyecto Gradle independiente (con su propio `gradlew`) que consume `decor-common`
+como build compuesto. Levantá primero la base y Redis (`docker compose -f backend/deploy/docker-compose.bd.yml up -d`)
+y después los servicios **en este orden**, cada uno en su terminal:
 
 ```bash
 cd backend/eureka          && ./gradlew bootRun   # 1. descubrimiento  (8761)
@@ -109,13 +129,13 @@ Para crear el primer superadmin de la plataforma, definí las variables de entor
 ```bash
 cd frontend
 npm install
-npm run dev        # http://localhost:2999
+npm run dev        # abre http://demo.localhost:2999 (la tienda demo del seed)
 ```
 
 El frontend le habla al gateway según `VITE_API_BASE_PUBLIC` en `frontend/.env` (por defecto `http://localhost:3000`).
 
 El gateway reconoce la tienda por el `Origin` del navegador, así que la URL del tenant tiene que coincidir con la del frontend
-(`http://<tienda>.localhost:2999`): ajustá `platform.domain` en `decorusers` y `platform.url` en el gateway al puerto 2999.
+(`http://<tienda>.localhost:2999`). Por eso `platform.domain` en `decorusers` y `platform.url` en el gateway usan el puerto 2999.
 
 ### Tenants en desarrollo
 

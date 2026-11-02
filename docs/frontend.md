@@ -42,10 +42,9 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 
 - **El tenant se reconoce por el header `Origin`**. Con un SPA el navegador lo manda solo; no hay que reenviarlo
   desde ningún servidor. (Con SSR habría que falsificarlo, otro motivo para evitarlo.)
-- **Puertos en desarrollo:** la documentación pone el frontend de las tiendas en `http://<tienda>.localhost:3000`,
-  pero ese puerto es el del gateway, y el frontend actual corre en 2999. Hay que elegir el puerto del frontend (por
-  ejemplo 5173 de Vite) y ajustar `platform.domain` (users) y `platform.url` (gateway). Los tenants ya creados
-  guardan su `url` con el puerto viejo.
+- **Puertos en desarrollo:** el frontend corre en 2999 (Vite) y el gateway en 3000. `platform.domain` (users) es
+  `localhost:2999` y `platform.url` (gateway) es `http://localhost:2999`, así que las tiendas se abren en
+  `http://<tienda>.localhost:2999`. Los tenants creados antes de este cambio guardan su `url` con el puerto viejo.
 - **Un solo build para la plataforma y las tiendas:** según el host, la app muestra la parte de plataforma
   (`localhost`) o la de tienda (`<tienda>.localhost`).
 - **Token:** viene en el login y tiene el claim `tenant`; si se usa en otro tenant el gateway responde 401. Guardarlo

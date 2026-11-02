@@ -1,41 +1,145 @@
+#Levanta todo el backend en modo desarrollo (codigo montado, gradle bootRun)
+#Uso: docker compose -f backend/deploy/docker-compose.dev.yml up -d
+
+#Postgres y Redis salen del compose de base de datos, que se puede seguir usando solo
+include:
+  - docker-compose.bd.yml
+
+#Configuracion comun: imagen de gradle y apuntar a los contenedores en vez de localhost
+x-service: &service
+  image: gradle:8.14.4-jdk21
+  working_dir: /app
+  command: gradle bootRun
+  restart: unless-stopped
+  environment: &service-env
+    SPRING_DATA_REDIS_HOST: redis
+    SPRING_DATA_REDIS_PORT: "6379"
+    EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+
+#Healthcheck por HTTP: cualquier respuesta en el puerto significa que Spring ya arranco
+#start_period largo porque bootRun compila antes de levantar
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 5m
+
+#Servicios que dependen de la base, redis y eureka
+x-depends: &depends
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  eureka:
+    condition: service_healthy
+
+#Cada servicio tiene su propia cache de gradle: bootRun no termina nunca y deja tomado el lock
+#de la cache, y gradle no puede pedirle que lo suelte a un proceso de otro contenedor
 services:
+  eureka:
+    <<: *service
+    container_name: eureka-service
+    volumes:
+      - ../eureka:/app
+      - gradle-cache:/home/gradle/.gradle
+      #build y .gradle propios del contenedor para no pisar los del host
+      - /app/build
+      - /app/.gradle
+    environment: {}
+    ports:
+      - "8761:8761"
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:8761/eureka/apps"]
+
+  #Cada servicio compila decor-common en su propio build/ para no chocar con los otros
   product-service:
-    image: gradle:8.14.3-jdk21
+    <<: *service
     container_name: product-service
-    working_dir: /app
     volumes:
       - ../com.decor.product:/app
       - ../decor-common:/decor-common
-      - gradle-cache:/home/gradle/.gradle
+      - product-gradle-cache:/home/gradle/.gradle
+      - /app/build
+      - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/products
     ports:
       - "3002:3002"
-    command: gradle bootRun
-    restart: unless-stopped
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3002/"]
 
   user-service:
-    image: gradle:8.14.3-jdk21
+    <<: *service
     container_name: user-service
-    working_dir: /app
     volumes:
       - ../decorusers:/app
       - ../decor-common:/decor-common
-      - gradle-cache:/home/gradle/.gradle
+      - user-gradle-cache:/home/gradle/.gradle
+      - /app/build
+      - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users
+      #Superadmin de desarrollo, se crea al arrancar si no existe
+      SUPERADMIN_EMAIL: superadmin@decor.local
+      SUPERADMIN_PASSWORD: superadmin123
     ports:
       - "3001:3001"
-    command: gradle bootRun
-    restart: unless-stopped
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3001/"]
 
   gateway-service:
-    image: gradle:8.14.3-jdk21
+    <<: *service
     container_name: gateway-service
-    working_dir: /app
     volumes:
       - ../gateway:/app
       - ../decor-common:/decor-common
-      - gradle-cache:/home/gradle/.gradle
+      - gateway-gradle-cache:/home/gradle/.gradle
+      - /app/build
+      - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
     ports:
       - "3000:3000"
-    command: gradle bootRun
-    restart: unless-stopped
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3000/"]
+
+  #Seed de desarrollo: crea la tienda demo (http://demo.localhost:2999) y termina
+  seed:
+    image: curlimages/curl:8.11.1
+    container_name: seed
+    volumes:
+      - ./seed/seed.sh:/seed.sh:ro
+    entrypoint: ["sh", "/seed.sh"]
+    environment:
+      GATEWAY_URL: http://gateway-service:3000
+      PLATFORM_URL: http://localhost:2999
+      DEMO_IDENTIFIER: demo
+      DEMO_OWNER_NAME: Dueño Demo
+      DEMO_OWNER_EMAIL: admin@demo.local
+      DEMO_OWNER_PASSWORD: demo123
+    restart: "no"
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+
 volumes:
+  #La cache original queda para eureka, que ya la tiene cargada
   gradle-cache:
+  product-gradle-cache:
+  user-gradle-cache:
+  gateway-gradle-cache:

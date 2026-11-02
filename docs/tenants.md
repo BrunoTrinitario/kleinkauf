@@ -12,7 +12,7 @@ administra.
 - **Schema `public`:** es la plataforma. En la base `users` guarda la tabla de **tenants** y los usuarios
   **superadmin**. No pertenece a ninguna tienda.
 - **URL del tenant:** cada tenant tiene la URL de su frontend, `<scheme>://<identificador>.<platform.domain>`
-  (en desarrollo `http://mitienda.localhost:3000`). **El gateway reconoce al tenant por esa URL**, que llega en el
+  (en desarrollo `http://mitienda.localhost:2999`). **El gateway reconoce al tenant por esa URL**, que llega en el
   header `Origin` de cada request.
 
 ### Datos de un tenant (tabla `tenant` en `users`, schema `public`)
@@ -21,7 +21,7 @@ administra.
 |---|---|
 | `id` | Id numérico |
 | `schema` | Nombre del schema (`mi_tienda`). Único |
-| `url` | URL del frontend (`http://mi-tienda.localhost:3000`). Se usa para reconocerlo |
+| `url` | URL del frontend (`http://mi-tienda.localhost:2999`). Se usa para reconocerlo |
 | `config_id` | UUID de referencia a la configuración propia del tenant (se va a usar más adelante) |
 | `enable` | Si está habilitado. Deshabilitado → el gateway responde 403 |
 | `created_at` | Fecha de alta |
@@ -30,7 +30,7 @@ administra.
 ## Cómo se reconoce el tenant en cada request
 
 ```
-Navegador (Origin: http://mi-tienda.localhost:3000)
+Navegador (Origin: http://mi-tienda.localhost:2999)
    │
    ▼
 gateway
@@ -92,7 +92,7 @@ Content-Type: application/json
   "id": 7,
   "identifier": "mi-tienda",
   "schema": "mi_tienda",
-  "url": "http://mi-tienda.localhost:3000",
+  "url": "http://mi-tienda.localhost:2999",
   "configId": "4f6c1c1e-...",
   "enabled": true,
   "createdAt": "2026-11-01T10:00:00"

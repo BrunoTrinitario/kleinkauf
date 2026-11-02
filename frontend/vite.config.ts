@@ -10,5 +10,8 @@ export default defineConfig({
   },
   server: {
     port: 2999,
+    // El gateway reconoce la tienda por el Origin: en localhost:2999 (la plataforma) no hay tienda,
+    // asi que se abre la tienda demo que crea el seed del backend
+    open: "http://demo.localhost:2999",
   },
 })
