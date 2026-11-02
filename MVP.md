@@ -42,7 +42,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 1 | **Precio y costo** en productos y combos | Calcula el margen. Sin esto no sirve para vender | — | ☑ Sí — **hecho** |
 | 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) — pendiente para cuando exista ventas | ☑ Sí — **hecho** (sin eventos todavía) |
 | 3 | **Ventas**: carrito, pedido, pago por transferencia con comprobante y validación del administrador | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☑ Sí — **hecho** ([docs/ventas.md](docs/ventas.md)): pedidos, pagos, ventas del local y reportes. Comunicación síncrona e idempotente con products; eventos con outbox después |
-| 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **planificado** ([docs/panel-admin.md](docs/panel-admin.md)): tienda y plataforma con los datos de hoy; observabilidad se suma después. Ventas ya tiene sus reportes para enchufar |
+| 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **plataforma hecha**, **tienda planificada** ([docs/panel-admin.md](docs/panel-admin.md)): el superadmin ya tiene resumen de tiendas, uso por tienda y gestión de superadmins; el panel de la tienda sigue en plan. Observabilidad se suma después. Ventas ya tiene sus reportes para enchufar |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **planificado** ([docs/auditoria.md](docs/auditoria.md)) |
@@ -123,7 +123,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
 3. ~~**Ventas** (punto 3)~~ — **hecho** en 3 etapas: ver [docs/ventas.md](docs/ventas.md). El pedido reserva stock
    (`SALIDA` por cada producto o por cada producto del combo) y lo devuelve si se cancela o vence.
-4. **Panel de administración** (punto 4) — **planificado** en [docs/panel-admin.md](docs/panel-admin.md), con los datos de hoy y los reportes de ventas; observabilidad se suma cuando exista.
+4. **Panel de administración** (punto 4) — en [docs/panel-admin.md](docs/panel-admin.md): **la parte de plataforma está hecha** (backend y frontend); falta el panel de la tienda, con los datos de hoy y los reportes de ventas. Observabilidad se suma cuando exista.
 5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
 6. **Gestión presencial** (sección 3): P1, P2, P5 y P6 como próxima etapa de ventas; el resto después, en el orden de
    esa sección.

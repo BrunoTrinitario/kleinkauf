@@ -47,6 +47,16 @@ logs y un panel en **tiempo real por WebSocket**, a nivel **plataforma** (supera
 | Recursos | JVM (memoria, CPU, hilos, GC), pool de conexiones a la base, Redis, cachés (aciertos y fallos) |
 | Negocio global | Tenants activos y altas, pedidos y facturación de toda la plataforma, ranking de tiendas por uso |
 
+**Lo que ya existe sin observability.** El panel de la plataforma (`/dashboard` en el frontend) ya muestra tenants
+por estado, altas por período y uso por tienda (usuarios, activos, última actividad, productos, combos) con REST:
+`GET /api/v1/platform/admin/dashboard`, `/admin/usage` y `/platform/products/usage` (ver [panel-admin.md](panel-admin.md)).
+observability **no los vuelve a calcular**: suma lo que falta (pedidos y facturación de la plataforma, tráfico,
+salud) y el tiempo real (`platform.business` avisa de un alta nueva para refrescar ese panel).
+
+**Última actividad.** Hoy `/admin/usage` toma el **último login** de cada tienda. Cuando el gateway marque la actividad
+por request (`activity:<tenant>:<userId>`, ver abajo), ese endpoint debería pasar a usarla, y "usuarios activos"
+podría usar la misma fuente.
+
 ### Tienda (administrador)
 
 | Sección | Contenido |
@@ -57,8 +67,9 @@ logs y un panel en **tiempo real por WebSocket**, a nivel **plataforma** (supera
 | Auditoría en vivo | Quién hizo qué en su tienda (ver [auditoria.md](auditoria.md)) |
 | Ventas | **Dinero recaudado** e **historial de pedidos** |
 
-Pedidos, comprobantes, recaudación e historial dependen del módulo de [ventas](ventas.md): se suman al panel cuando
-exista.
+Pedidos, comprobantes, recaudación e historial salen del módulo de [ventas](ventas.md) (`decor-sales`), que ya
+existe: el panel de ventas y sus reportes (`/api/v1/sales/admin/reports/**`) son REST; observability suma los
+eventos en vivo (pedido nuevo, comprobante subido) y no rehace los reportes.
 
 ## Componentes
 
@@ -99,6 +110,11 @@ Prometheus, Grafana (con dashboards ya cargados), Tempo, Loki y un colector de O
    El ticket se guarda en Redis con el usuario, el tenant y el rol, dura **30 s** y sirve **una sola vez**.
 2. Abre `wss://<tienda>/ws?ticket=…`. El gateway reconoce el tenant por el `Origin`; observability valida el
    ticket y que su tenant sea el de la conexión.
+   - **Superadmin**: el frontend de la plataforma (`localhost:2999` en desarrollo, `platform.url` del gateway) no
+     tiene tienda. El ticket se pide en una ruta de plataforma (`POST /api/v1/platform/observability/ws-ticket` o
+     similar, sin tenant, como el resto de `/api/v1/platform/**`) y lleva `tenant = "public"`. El gateway tiene que
+     aceptar `/ws` desde ese `Origin` sin buscar tenant, igual que hace con `/api/v1/platform/**`, y observability
+     solo deja suscribirse a `platform.*` con ese ticket.
 3. Se suscribe a canales con mensajes JSON:
 
 ```json
@@ -122,6 +138,9 @@ Prometheus, Grafana (con dashboards ya cargados), Tempo, Loki y un colector de O
 
 - Los canales `store.*` siempre son **de la tienda del ticket**: no se puede pedir el canal de otra.
 - Ping cada 30 s; si se corta, el frontend pide un ticket nuevo y vuelve a conectarse.
+- **Acceso revocado**: un superadmin desactivado (o un usuario de tienda borrado, o al que le quitaron el rol) no
+  puede pedir tickets nuevos, porque el ticket se emite con sus roles actuales. Su sesión REST se corta en hasta
+  1 minuto (caché de roles de products). Falta decidir si además se cierra el WS que ya tenía abierto (ver abajo).
 
 ## Etapas
 
@@ -134,7 +153,11 @@ Prometheus, Grafana (con dashboards ya cargados), Tempo, Loki y un colector de O
 
 ## Para decidir al arrancar
 
-- **Orden**: si va antes o después de [ventas](ventas.md) (quedó para mañana).
+- Si al desactivar un superadmin (o quitarle el rol a un usuario) se cierran sus WS abiertos, por ejemplo con un
+  evento en Redis que observability escuche, o si alcanza con que el WS se corte solo al expirar y no pueda pedir
+  otro ticket.
+- Cómo se guarda la hora de los eventos: con zona (`Instant`, UTC). Hoy los servicios guardan `LocalDateTime` en la
+  hora del servidor y la plataforma las manda con offset (ver [panel-admin.md](panel-admin.md)).
 - Puertos de gestión exactos.
 - Healthchecks de Docker y si `/ready` tiene en cuenta a los otros microservicios (por ejemplo, products sin users).
 - Muestreo de trazas (100 % en desarrollo; en producción menos).

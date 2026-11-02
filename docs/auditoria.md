@@ -29,7 +29,13 @@ Se apoya en el servicio de [observabilidad](observabilidad.md).
 
 ### Acciones de plataforma
 
-Alta, deshabilitar, habilitar y borrar tenants (superadmin o autoservicio).
+| Servicio | Acciones |
+|---|---|
+| users | Alta, deshabilitar, habilitar y borrar tenants (superadmin o autoservicio) |
+| users | Alta de superadmins, desactivarlos y reactivarlos (`/platform/admin/superadmins`, ver [panel-admin.md](panel-admin.md)). Son las acciones más sensibles de la plataforma: dan o quitan acceso total |
+
+Leer el panel de la plataforma (resumen, uso por tienda, lista de superadmins) **no** se audita: no muestra datos
+sensibles de las tiendas, solo conteos.
 
 ### Lecturas sensibles
 
@@ -59,6 +65,13 @@ Ver costo y margen (`/products/{id}/pricing`), exportar el CSV y descargar compr
 - `action`: `CREATE`, `UPDATE`, `DELETE`, `READ` (lecturas sensibles) o una acción propia (`STATUS_CHANGE`,
   `IMPORT`, `PERMISSIONS_CHANGE`…).
 - El `traceId` une la auditoría con la traza y los logs de esa request en Grafana.
+- **Acciones de plataforma**: `tenant` es `"public"`. Si la hace un superadmin, `actor.role` es `SUPERADMIN`. El alta
+  por **autoservicio** no tiene usuario logueado: `actor` va en `null` y se identifica por la IP (el dueño que se
+  crea con la tienda queda en `entityId` / `changes`). En una acción sobre otra tienda, la entidad dice cuál
+  (`"entity": "Tenant", "entityId": "7"`).
+- `at` siempre **con zona** (UTC, `Z`), guardado como `Instant` / `timestamptz`. Los servicios hoy guardan
+  `LocalDateTime` en la hora del servidor (UTC en Docker) y, sin offset, el navegador lo mostraba corrido 3 horas
+  (ver `util/Dates.java` en users).
 - Los campos sensibles se excluyen con una anotación (`@AuditIgnore`) o una lista en la configuración.
 
 ## Cómo funciona
@@ -95,6 +108,8 @@ publicador (cada pocos segundos) ──► Redis Streams ──► consumidor �
   columna `tenant`.
 - Cómo se calcula el "antes" (listener de Hibernate o copia al cargar la entidad).
 - Si la auditoría de una tienda borrada se conserva y cómo se consulta.
+- users escribe los cambios de superadmins con SQL directo (`SuperadminService`, por el `@SQLRestriction` que
+  oculta a los borrados): esos no pasan por el listener de Hibernate y se registran a mano con `AuditLog`.
 - Si se puede exportar el historial (CSV).
 - Si la vista del administrador incluye a los usuarios borrados con su nombre.
 - Índices y particionado de `audit_events`, ya que se guarda para siempre.
