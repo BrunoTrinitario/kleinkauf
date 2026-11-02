@@ -1,0 +1,187 @@
+import { useEffect, useState } from "react"
+import axios from "axios"
+import { toast } from "sonner"
+import { strings } from "@/lib/strings"
+import { getErrorMessage } from "@/lib/api-error"
+import type { Superadmin } from "@/lib/types"
+import { PLATFORM_API, usePlatformSession } from "@/hooks/use-platform-session"
+import { PageHeader } from "@/components/page-header"
+import { PlatformHeader } from "@/components/platform-header"
+import { PlatformSuperadminCreateModal } from "@/components/platform-superadmin-create-modal"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Mail, Plus, User as UserIcon } from "lucide-react"
+
+const dateFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" })
+const dateTimeFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" })
+
+export default function PlatformSuperadminsPage() {
+  const { user, ready, headers, handleError } = usePlatformSession()
+  const [superadmins, setSuperadmins] = useState<Superadmin[] | null>(null)
+  const [savingId, setSavingId] = useState<number | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!ready) return
+    let isMounted = true
+    axios
+      .get<Superadmin[]>(`${PLATFORM_API}/admin/superadmins`, { headers })
+      .then((response) => isMounted && setSuperadmins(response.data))
+      .catch((err) => {
+        if (isMounted) {
+          setSuperadmins([])
+          handleError(err, strings.errors.loadSuperadmins)
+        }
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [ready, headers, handleError])
+
+  if (!ready) {
+    return null
+  }
+
+  const handleToggle = async (target: Superadmin, active: boolean) => {
+    setSavingId(target.id)
+    try {
+      const response = await axios.put<Superadmin>(
+        `${PLATFORM_API}/admin/superadmins/${target.id}/active`,
+        { active },
+        { headers }
+      )
+      setSuperadmins((prev) => prev?.map((item) => (item.id === target.id ? response.data : item)) ?? prev)
+      toast.success(
+        active
+          ? strings.platformSuperadmins.activatedToast(target.name)
+          : strings.platformSuperadmins.deactivatedToast(target.name)
+      )
+    } catch (err) {
+      // 409: es el ultimo activo. 400 (desactivarse a si mismo) no llega: el switch esta deshabilitado
+      handleError(err, strings.errors.saveSuperadmin, {
+        conflict: strings.platformSuperadmins.lastActive,
+        badRequest: strings.platformSuperadmins.selfHint,
+      })
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const handleCreate = async (payload: { name: string; email: string; password: string }) => {
+    setIsCreating(true)
+    setCreateError(null)
+    try {
+      const response = await axios.post<Superadmin>(`${PLATFORM_API}/admin/superadmins`, payload, { headers })
+      setSuperadmins((prev) => [...(prev ?? []), response.data])
+      setIsCreateOpen(false)
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        handleError(err, strings.platformSuperadminCreate.createError)
+        return
+      }
+      setCreateError(getErrorMessage(err, strings.platformSuperadminCreate.createError))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <PlatformHeader />
+      <main className="container mx-auto px-4 py-8">
+        <PageHeader
+          title={strings.platformSuperadmins.title}
+          highlight={strings.platformSuperadmins.highlight}
+          subtitle={strings.platformSuperadmins.subtitle}
+          action={
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              {strings.platformSuperadmins.createButton}
+            </Button>
+          }
+        />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {strings.platformSuperadmins.listTitle} ({superadmins?.length ?? 0})
+            </CardTitle>
+            <CardDescription>{strings.platformSuperadmins.notice}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 px-3 sm:px-6">
+            {superadmins === null ? (
+              <p className="text-sm text-muted-foreground">{strings.platformSuperadmins.loading}</p>
+            ) : (
+              superadmins.map((superadmin) => {
+                const isSelf = superadmin.id === user?.id
+                const badge = superadmin.active ? (
+                  <Badge className="bg-sky-wash text-cyan-edge">{strings.platformSuperadmins.active}</Badge>
+                ) : (
+                  <Badge className="bg-muted text-muted-foreground">{strings.platformSuperadmins.inactive}</Badge>
+                )
+                return (
+                  <div
+                    key={superadmin.id}
+                    className={`flex items-center justify-between gap-3 p-4 rounded-lg border border-border ${superadmin.active ? "" : "opacity-70"}`}
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                      <div className="h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center">
+                        <UserIcon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">
+                          {superadmin.name}
+                          {isSelf ? (
+                            <span className="text-muted-foreground font-normal"> ({strings.platformSuperadmins.you})</span>
+                          ) : null}
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                          <Mail className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{superadmin.email}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {strings.platformSuperadmins.createdAt} {dateFormat.format(new Date(superadmin.createdAt))}
+                          {" · "}
+                          {strings.platformSuperadmins.lastLogin}{" "}
+                          {superadmin.lastLogin
+                            ? dateTimeFormat.format(new Date(superadmin.lastLogin))
+                            : strings.platformSuperadmins.never}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-2 sm:hidden">{badge}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="hidden sm:flex">{badge}</div>
+                      <Switch
+                        checked={superadmin.active}
+                        disabled={isSelf || savingId === superadmin.id}
+                        title={isSelf ? strings.platformSuperadmins.selfHint : undefined}
+                        onCheckedChange={(checked) => handleToggle(superadmin, checked)}
+                        aria-label={strings.platformSuperadmins.toggleAria(superadmin.name)}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </CardContent>
+        </Card>
+      </main>
+
+      <PlatformSuperadminCreateModal
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) setCreateError(null)
+        }}
+        onCreate={handleCreate}
+        isCreating={isCreating}
+        error={createError}
+      />
+    </div>
+  )
+}

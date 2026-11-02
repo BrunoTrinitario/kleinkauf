@@ -78,9 +78,15 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 - [ ] Panel de tenants (`/tenants`): lista con búsqueda y filtro por estado ☑, alta ☑, habilitar/deshabilitar ☑, borrar
   (soft delete) con confirmación ☑; aviso de que el cambio tarda hasta 1 min ☑. El detalle no tiene pantalla propia:
   la tarjeta ya muestra todo lo que devuelve `GET /admin/tenants/{id}`
-- [ ] **[plan]** Dashboard de la plataforma: tenants (total / habilitados / deshabilitados / borrados) y altas por período
-- [ ] **[plan]** Uso por tenant (usuarios, activos, última actividad, productos, combos) con orden elegible
-- [ ] **[plan]** Gestión de superadmins: lista, alta con contraseña temporal, desactivar/reactivar
+- [ ] Resumen (`/dashboard`, a donde lleva el login): tenants (total / habilitados / deshabilitados / borrados) ☑ y
+  altas por período en barras, con tooltip y vista de tabla ☑ (30 días por día, 12 semanas o 12 meses)
+- [ ] Uso por tenant en el resumen: tabla con usuarios, activos, última actividad, productos y combos ☑, orden
+  elegible (por defecto productos) ☑. Junta users y products por `schema`; si products falla, la tabla sale igual
+  sin esas columnas ☑
+- [ ] Gestión de superadmins (`/superadmins`): lista ☑, alta con contraseña temporal ☑, desactivar/reactivar ☑ (el
+  propio no se puede desactivar; el último activo da 409)
+- Las páginas de plataforma comparten `hooks/use-platform-session.ts` (redirige al login y cierra la sesión con el
+  primer 401). Las fechas de la plataforma llegan con offset (`2026-11-02T21:00:16Z`): el backend corre en UTC.
 
 ### 2. Cuenta y sesión en la tienda **[listo]**
 - [ ] Login ☑ y registro como `CLIENTE` ☑

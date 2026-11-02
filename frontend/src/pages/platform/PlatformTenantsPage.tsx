@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
 import axios from "axios"
 import { toast } from "sonner"
-import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
-import { getErrorMessage, notifyError } from "@/lib/api-error"
-import { SUPERADMIN_ROLE } from "@/lib/platform"
+import { getErrorMessage } from "@/lib/api-error"
 import type { NewTenantDto, PlatformTenant } from "@/lib/types"
+import { PLATFORM_API, usePlatformSession } from "@/hooks/use-platform-session"
 import { PageHeader } from "@/components/page-header"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "@/components/list-toolbar"
 import { PlatformHeader } from "@/components/platform-header"
@@ -28,13 +26,10 @@ import { Plus } from "lucide-react"
 
 type StatusFilter = "" | "enabled" | "disabled"
 
-const apiBasePublic = import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
-const TENANTS_URL = `${apiBasePublic}/api/v1/platform/admin/tenants`
+const TENANTS_URL = `${PLATFORM_API}/admin/tenants`
 
 export default function PlatformTenantsPage() {
-  const navigate = useNavigate()
-  const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth()
-  const isSuperadmin = !!user?.roles.some((role) => role.type === SUPERADMIN_ROLE)
+  const { ready, headers, handleError } = usePlatformSession()
   const [tenants, setTenants] = useState<PlatformTenant[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [searchInput, setSearchInput] = useState("")
@@ -48,29 +43,7 @@ export default function PlatformTenantsPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
 
   useEffect(() => {
-    if (isAuthLoading) {
-      return
-    }
-    if (!isAuthenticated || !isSuperadmin) {
-      navigate("/login")
-    }
-  }, [isAuthenticated, isAuthLoading, isSuperadmin, navigate])
-
-  // La sesion de la plataforma se guarda sin validar: un 401 significa que el token vencio
-  const handleError = useCallback(
-    (err: unknown, fallback: string) => {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        toast.error(strings.errors.sessionExpired)
-        logout()
-        return
-      }
-      notifyError(err, fallback)
-    },
-    [logout]
-  )
-
-  useEffect(() => {
-    if (!user?.token || !isSuperadmin) {
+    if (!ready) {
       return
     }
 
@@ -79,9 +52,7 @@ export default function PlatformTenantsPage() {
     const loadTenants = async () => {
       setIsLoading(true)
       try {
-        const response = await axios.get<PlatformTenant[]>(TENANTS_URL, {
-          headers: { Authorization: `Bearer ${user.token}` },
-        })
+        const response = await axios.get<PlatformTenant[]>(TENANTS_URL, { headers })
         if (isMounted) {
           setTenants(response.data)
         }
@@ -102,7 +73,7 @@ export default function PlatformTenantsPage() {
     return () => {
       isMounted = false
     }
-  }, [user?.token, isSuperadmin, handleError])
+  }, [ready, headers, handleError])
 
   // El backend devuelve todas las tiendas no borradas sin paginar: se filtra aca
   const visibleTenants = useMemo(() => {
@@ -117,11 +88,10 @@ export default function PlatformTenantsPage() {
     })
   }, [tenants, searchInput, statusFilter])
 
-  if (isAuthLoading || !isAuthenticated || !isSuperadmin) {
+  if (!ready) {
     return null
   }
 
-  const headers = { Authorization: `Bearer ${user?.token}` }
   const hasFilters = searchInput.trim() !== "" || statusFilter !== ""
 
   const replaceTenant = (updated: PlatformTenant) => {

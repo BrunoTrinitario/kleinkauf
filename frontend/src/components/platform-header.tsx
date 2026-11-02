@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, NavLink } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Building2, LogOut, User } from "lucide-react"
+import { Building2, LayoutDashboard, LogOut, ShieldCheck, Store, User } from "lucide-react"
+
+const NAV = [
+  { to: "/dashboard", label: strings.platform.dashboard, icon: LayoutDashboard },
+  { to: "/tenants", label: strings.platform.tenants, icon: Store },
+  { to: "/superadmins", label: strings.platform.superadmins, icon: ShieldCheck },
+]
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `text-sm transition-colors ${isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`
 
 // Header del panel de la plataforma: sin catalogo, roles de tienda ni configuracion de cuenta
 export function PlatformHeader() {
@@ -25,9 +34,11 @@ export function PlatformHeader() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/tenants" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            {strings.platform.tenants}
-          </Link>
+          {NAV.map((item) => (
+            <NavLink key={item.to} to={item.to} className={navLinkClass}>
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
 
         <DropdownMenu>
@@ -52,6 +63,16 @@ export function PlatformHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {/* En mobile la navegacion va en este menu */}
+            {NAV.map((item) => (
+              <DropdownMenuItem key={item.to} asChild className="md:hidden">
+                <Link to={item.to}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator className="md:hidden" />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               {strings.auth.signOut}

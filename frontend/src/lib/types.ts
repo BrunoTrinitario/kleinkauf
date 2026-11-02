@@ -51,6 +51,46 @@ export interface NewTenantDto {
   ownerPassword: string
 }
 
+// Panel de la plataforma (GET /api/v1/platform/admin/dashboard). period = primer dia del periodo
+export type PeriodGroupBy = "DAY" | "WEEK" | "MONTH"
+
+export interface PlatformDashboard {
+  tenants: { total: number; enabled: number; disabled: number; deleted: number }
+  registrations: {
+    from: string
+    to: string
+    groupBy: PeriodGroupBy
+    periods: { period: string; count: number }[]
+  }
+}
+
+// Uso por tienda: users (/platform/admin/usage) y products (/platform/products/usage), juntos por schema
+export interface TenantUsersUsage {
+  id: number
+  identifier: string
+  schema: string
+  enabled: boolean
+  createdAt: string
+  users: number
+  activeUsers: number
+  lastActivity: string | null
+}
+
+export interface TenantProductsUsage {
+  schema: string
+  products: number
+  bundles: number
+}
+
+export interface Superadmin {
+  id: number
+  name: string
+  email: string
+  active: boolean
+  createdAt: string
+  lastLogin: string | null
+}
+
 // Producto del panel (GET /api/v1/products): con stock exacto
 export interface Product {
   id: string
