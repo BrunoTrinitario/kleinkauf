@@ -34,33 +34,37 @@ interface AdminUserCardProps {
 export function AdminUserCard({ user, onEdit, onDelete, disableDelete }: AdminUserCardProps) {
   const roles = resolveRoles(user.roles)
 
+  const badges =
+    roles.length > 0 ? (
+      roles.map((role) => (
+        <Badge key={role} className={roleColors[role]}>
+          {roleLabels[role]}
+        </Badge>
+      ))
+    ) : (
+      <Badge className="bg-muted text-muted-foreground">{strings.roles.noRole}</Badge>
+    )
+
+  // Siempre en una fila: los botones quedan a la derecha tambien en mobile.
+  // En mobile los roles van debajo del email; desde sm, al lado de los botones
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-border">
-      <div className="flex items-center gap-4">
-        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+    <div className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        <div className="h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center">
           <UserIcon className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div>
-          <p className="font-medium text-foreground">{user.name}</p>
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
-            <Mail className="h-3 w-3" />
-            {user.email}
+        <div className="min-w-0">
+          <p className="font-medium text-foreground truncate">{user.name}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+            <Mail className="h-3 w-3 shrink-0" />
+            <span className="truncate">{user.email}</span>
           </p>
+          <div className="flex flex-wrap gap-1.5 mt-2 sm:hidden">{badges}</div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {roles.length > 0 ? (
-            roles.map((role) => (
-              <Badge key={role} className={roleColors[role]}>
-                {roleLabels[role]}
-              </Badge>
-            ))
-          ) : (
-            <Badge className="bg-muted text-muted-foreground">{strings.roles.noRole}</Badge>
-          )}
-        </div>
+      <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+        <div className="hidden sm:flex flex-wrap gap-1.5">{badges}</div>
         <Button
           variant="ghost"
           size="icon"
