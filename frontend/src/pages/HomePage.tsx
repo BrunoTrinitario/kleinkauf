@@ -41,9 +41,9 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto flex-1 px-4 py-8">
         {isLoadingProducts ? (
           <p className="text-sm text-muted-foreground">{strings.home.loadingProducts}</p>
         ) : (
