@@ -13,8 +13,8 @@ Thumbs.db
 # Uploads de los microservicios
 uploads/
 
-# Frontend (Next.js)
+# Frontend (Vite)
 node_modules/
-.next/
-.vercel/
 .env*.local
+dist/
+

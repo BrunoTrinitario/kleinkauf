@@ -18,7 +18,7 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 
 ```
                          ┌────────────┐
-   Navegador ──────────▶ │  Frontend  │  Next.js (puerto 2999)
+   Navegador ──────────▶ │  Frontend  │  Vite + React (puerto 2999)
                          └─────┬──────┘
                                │ HTTP
                          ┌─────▼──────┐        ┌──────────┐
@@ -43,7 +43,7 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 
 | Pieza | Qué hace | Puerto |
 |---|---|---|
-| **Frontend** (`frontend/`) | Interfaz web en Next.js + React + Tailwind + shadcn/ui: login, registro, panel de administración y catálogo | 2999 |
+| **Frontend** (`frontend/`) | Interfaz web en Vite + React + TypeScript + Tailwind + shadcn/ui: login, registro, panel de administración y catálogo | 2999 |
 | **Gateway** (`backend/gateway`) | Único punto de entrada. Valida el JWT, resuelve el tenant, aplica CORS y rate limit. Spring Cloud Gateway (reactivo) | 3000 |
 | **decorusers** (`backend/decorusers`) | Autenticación (login, registro, refresh, recupero de contraseña), usuarios, roles, permisos y alta de tenants | 3001 |
 | **product** (`backend/com.decor.product`) | Productos con imágenes, combos, precios y costos, movimientos de stock, destacados, catálogo público e importación/exportación CSV | 3002 |
@@ -63,7 +63,7 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 
 - **Backend**: Java 21, Spring Boot 3.5, Spring Cloud (Gateway, Eureka), Spring Security + JWT, JPA/Hibernate, Resilience4j, Gradle.
 - **Datos**: PostgreSQL 17, Redis 8.
-- **Frontend**: Next.js 16, React, TypeScript, Tailwind CSS, Radix UI / shadcn/ui, axios.
+- **Frontend**: Vite, React 19, React Router, TypeScript, Tailwind CSS, Radix UI / shadcn/ui, axios.
 
 ---
 
@@ -72,7 +72,7 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 ### Requisitos
 
 - JDK 21
-- Node.js 20 o superior (y npm o pnpm)
+- Node.js 20 o superior y npm
 - Docker (para PostgreSQL y Redis)
 
 ### 1. Base de datos y Redis
@@ -108,16 +108,19 @@ Para crear el primer superadmin de la plataforma, definí las variables de entor
 
 ```bash
 cd frontend
-npm install        # o pnpm install
+npm install
 npm run dev        # http://localhost:2999
 ```
 
-El frontend le habla al gateway según `NEXT_PUBLIC_API_BASE_PUBLIC` en `frontend/.env` (por defecto `http://localhost:3000`).
+El frontend le habla al gateway según `VITE_API_BASE_PUBLIC` en `frontend/.env` (por defecto `http://localhost:3000`).
+
+El gateway reconoce la tienda por el `Origin` del navegador, así que la URL del tenant tiene que coincidir con la del frontend
+(`http://<tienda>.localhost:2999`): ajustá `platform.domain` en `decorusers` y `platform.url` en el gateway al puerto 2999.
 
 ### Tenants en desarrollo
 
 La URL de cada tienda es `<identificador>.<dominio>`. En desarrollo los navegadores resuelven `*.localhost` solos,
-así que una tienda llamada `mitienda` se ve en `http://mitienda.localhost:3000`.
+así que una tienda llamada `mitienda` se ve en `http://mitienda.localhost:2999`.
 
 ---
 
@@ -132,11 +135,11 @@ decor/
 │   ├── decor-common/         Librería común
 │   ├── eureka/               Servidor de descubrimiento
 │   └── deploy/               Docker Compose (PostgreSQL, Redis) e init.sql
-├── frontend/                 Aplicación web (Next.js)
-│   ├── app/                  Rutas: admin, login, register, user, api
-│   ├── components/           Componentes de UI
-│   ├── hooks/ lib/           Hooks, servicios, tipos y contexto de auth
-│   └── public/ styles/       Recursos estáticos y estilos
+├── frontend/                 Aplicación web (Vite + React)
+│   ├── src/pages/            Páginas: catálogo, login, registro, ajustes y panel de administración
+│   ├── src/components/       Componentes de la aplicación y de UI (shadcn/ui)
+│   ├── src/lib/ src/hooks/   Contexto de auth, tipos, textos y hooks
+│   └── public/               Recursos estáticos
 ├── docs/                     Documentación y planes por módulo
 │   ├── endpoints.md          Endpoints de la API
 │   ├── tenants.md            Cómo funcionan los tenants
