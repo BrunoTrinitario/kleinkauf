@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import type { Product } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import { AdminProductCard } from "@/components/admin-product-card"
 import { AdminProductEditModal } from "@/components/admin-product-edit-modal"
@@ -203,7 +204,9 @@ export default function ProductsManagementPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{strings.adminProducts.title}</h1>
+            <h1 className="text-heading-sm text-foreground">
+            <Headline text={strings.adminProducts.title} highlight="productos" />
+          </h1>
             <p className="text-muted-foreground">{strings.adminProducts.subtitle}</p>
           </div>
         </div>

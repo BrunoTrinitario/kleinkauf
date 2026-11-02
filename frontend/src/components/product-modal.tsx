@@ -166,7 +166,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
                 {product.category}
               </p>
-              <DialogTitle className="text-2xl font-semibold">
+              <DialogTitle className="text-subheading">
                 {product.name}
               </DialogTitle>
             </DialogHeader>

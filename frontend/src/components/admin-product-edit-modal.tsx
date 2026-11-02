@@ -241,7 +241,7 @@ export function AdminProductEditModal({
 
         <div className="space-y-6">
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminProductEdit.images}</h3>
+            <h3 className="text-sm font-medium">{strings.adminProductEdit.images}</h3>
             <div className="flex flex-wrap gap-2">
               {imageDtos.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{strings.adminProductEdit.noImages}</p>
@@ -284,7 +284,7 @@ export function AdminProductEditModal({
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminProductEdit.basicInfo}</h3>
+            <h3 className="text-sm font-medium">{strings.adminProductEdit.basicInfo}</h3>
             <div className="grid gap-3">
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminProducts.nameLabel}</label>
@@ -314,7 +314,7 @@ export function AdminProductEditModal({
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminProductEdit.metadata}</h3>
+            <h3 className="text-sm font-medium">{strings.adminProductEdit.metadata}</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminProductEdit.material}</label>

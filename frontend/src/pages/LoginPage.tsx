@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import type { LoginUserDto } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { Headline } from "@/components/highlight"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,8 +43,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {strings.login.title}
+          <h1 className="text-heading-sm text-foreground">
+            <Headline text={strings.login.title} highlight="nuevo" />
           </h1>
           <p className="text-muted-foreground mt-2">
             {strings.login.subtitle}

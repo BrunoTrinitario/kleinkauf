@@ -32,7 +32,7 @@ export function AdminProductCard({
         <h3 className="font-medium truncate">{product.name}</h3>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>{product.category}</span>
-          <span className={product.stock <= 10 ? "text-yellow-600" : ""}>
+          <span className={product.stock <= 10 ? "font-medium text-foreground" : ""}>
             {product.stock} {strings.productCard.inStock}
           </span>
         </div>

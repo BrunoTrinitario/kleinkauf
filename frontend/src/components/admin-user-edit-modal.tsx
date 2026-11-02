@@ -82,7 +82,7 @@ export function AdminUserEditModal({
 
         <div className="space-y-6">
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminUserEdit.basicInfo}</h3>
+            <h3 className="text-sm font-medium">{strings.adminUserEdit.basicInfo}</h3>
             <div className="grid gap-3">
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserEdit.name}</label>
@@ -100,7 +100,7 @@ export function AdminUserEditModal({
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminUserEdit.roles}</h3>
+            <h3 className="text-sm font-medium">{strings.adminUserEdit.roles}</h3>
             <div className="grid gap-2">
               {ROLE_OPTIONS.map((role) => (
                 <label key={role.value} className="flex items-center gap-2 text-sm">

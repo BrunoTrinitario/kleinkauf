@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
+import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import type { ProfileFormState } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -117,9 +118,9 @@ export default function UserSettingsPage() {
 			<Header />
 			<main className="container mx-auto px-4 py-8">
 				<div className="mb-8">
-					<h1 className="text-3xl font-bold tracking-tight text-foreground">
-							{strings.userSettings.title}
-					</h1>
+					<h1 className="text-heading-sm text-foreground">
+            <Headline text={strings.userSettings.title} highlight="cuenta" />
+          </h1>
 					<p className="text-muted-foreground mt-2">
 							{strings.userSettings.subtitle}
 					</p>
@@ -138,7 +139,7 @@ export default function UserSettingsPage() {
 									<p className="text-sm text-destructive">{error}</p>
 								) : null}
 								{success ? (
-									<p className="text-sm text-emerald-600">{success}</p>
+									<p className="text-sm text-cyan-edge">{success}</p>
 								) : null}
 								<div className="grid gap-2">
 									<label className="text-sm font-medium">{strings.userSettings.nameLabel}</label>

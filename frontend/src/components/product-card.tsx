@@ -18,7 +18,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-card rounded-xl border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-border hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      className="group text-left bg-card rounded-lg border border-border overflow-hidden transition-shadow duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
     >
       {imageUrl ? (
         <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted">

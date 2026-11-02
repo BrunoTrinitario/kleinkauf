@@ -6,7 +6,7 @@ import { Pencil, Trash2, User as UserIcon, Mail } from "lucide-react"
 
 const roleColors: Record<UserRole, string> = {
   CLIENTE: "bg-muted text-muted-foreground",
-  EMPLEADO: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  EMPLEADO: "bg-sky-wash text-cyan-edge",
   ADMINISTRADOR: "bg-foreground text-background",
 }
 

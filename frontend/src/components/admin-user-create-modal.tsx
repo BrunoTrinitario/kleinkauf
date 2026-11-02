@@ -95,7 +95,7 @@ export function AdminUserCreateModal({
             <p className="text-sm text-destructive">{error}</p>
           ) : null}
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminUserCreate.basicInfo}</h3>
+            <h3 className="text-sm font-medium">{strings.adminUserCreate.basicInfo}</h3>
             <div className="grid gap-3">
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserCreate.name}</label>
@@ -121,7 +121,7 @@ export function AdminUserCreateModal({
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{strings.adminUserCreate.roles}</h3>
+            <h3 className="text-sm font-medium">{strings.adminUserCreate.roles}</h3>
             <div className="grid gap-2">
               {ROLE_OPTIONS.map((role) => (
                 <label key={role.value} className="flex items-center gap-2 text-sm">

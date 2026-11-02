@@ -3,7 +3,7 @@ export const strings = {
     title: "Tienda online",
     description: "plataforma de comercio electronico con control de acceso basado en roles",
     generator: "",
-    name: "",
+    name: "Decor",
   },
   nav: {
     catalog: "Catalogo",

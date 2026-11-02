@@ -71,7 +71,7 @@ export function AdminDashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-medium">
               {isLoading ? "-" : products.length}
             </div>
           </CardContent>
@@ -85,7 +85,7 @@ export function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-medium">
               {isLoading ? "-" : users.length}
             </div>
           </CardContent>

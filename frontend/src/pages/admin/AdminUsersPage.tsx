@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
+import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import type { User } from "@/lib/types"
 import { AdminUserCard } from "@/components/admin-user-card"
@@ -247,9 +248,9 @@ export default function AdminUsersPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              {strings.adminUsers.title}
-            </h1>
+            <h1 className="text-heading-sm text-foreground">
+            <Headline text={strings.adminUsers.title} highlight="Usuarios" />
+          </h1>
             <p className="text-muted-foreground mt-2">
               {strings.adminUsers.subtitle}
             </p>

@@ -42,12 +42,12 @@ export function Header() {
   const canManageProducts = activeRole === "ADMINISTRADOR" || activeRole === "EMPLEADO"
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-card">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <Store className="h-6 w-6" />
-          <span className="font-semibold text-lg">{strings.site.name}</span>
+          <Store className="h-5 w-5" strokeWidth={1.5} />
+          <span className="text-sm font-medium">{strings.site.name}</span>
         </Link>
 
         {/* Navigation */}
@@ -173,7 +173,7 @@ export function Header() {
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" asChild>
+              <Button variant="outline" asChild>
                 <Link to="/login">{strings.auth.signIn}</Link>
               </Button>
               <Button asChild>
