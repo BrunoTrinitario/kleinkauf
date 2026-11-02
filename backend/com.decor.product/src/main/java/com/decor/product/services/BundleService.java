@@ -28,6 +28,9 @@ public class BundleService {
     private ProductRepository productRepository;
     @Autowired
     private BundleProductRepository bundleProductRepository;
+    // Los combos estan en el catalogo publico: cada cambio invalida su cache
+    @Autowired
+    private CatalogCacheService catalogCache;
 
     public ArrayList<BundleDto> getAllBundles() {
         ArrayList<BundleDto> bundleDtos = new ArrayList<>();
@@ -54,6 +57,7 @@ public class BundleService {
         b.setEnabled(newBundleDto.enabled());
         b.setPrice(newBundleDto.price());
         b = this.bundleRepository.save(b);
+        catalogCache.invalidate();
         return BundleFactory.getBundle(b);
     }
 
@@ -63,6 +67,7 @@ public class BundleService {
                 .orElseThrow(() -> new ApiException(ErrorMessages.BUNDLE_NOT_FOUND, HttpStatus.NOT_FOUND));
         b.setPrice(price);
         this.bundleRepository.save(b);
+        catalogCache.invalidate();
         return BundleFactory.getBundle(b);
     }
 
@@ -76,6 +81,7 @@ public class BundleService {
         Bundle b = this.bundleRepository.findById(id).orElse(null);
         if (b != null)
             this.bundleRepository.delete(b);
+        catalogCache.invalidate();
         return true;
     }
 
@@ -84,6 +90,7 @@ public class BundleService {
         if (b != null){
             b.setEnabled(!b.isEnabled());
             this.bundleRepository.save(b);
+            catalogCache.invalidate();
         }
         return true;
     }
@@ -108,6 +115,7 @@ public class BundleService {
         bp.setQuantity(bundleProduct.quantity());
         b.getProducts().add(bp);
         bp = this.bundleProductRepository.save(bp);
+        catalogCache.invalidate();
         return BundleFactory.getBundle(b);
     }
 
@@ -117,6 +125,7 @@ public class BundleService {
         BundleProduct bp = this.bundleProductRepository.findByBundleAndProduct(b,p).orElse(null);
         if (bp!= null){
             this.bundleProductRepository.delete(bp);
+            catalogCache.invalidate();
         }
         return true;
     }

@@ -32,7 +32,13 @@ public class JwtFilter implements WebFilter {
         String method = exchange.getRequest().getMethod().name();
         String path = exchange.getRequest().getURI().getPath();
 
+        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+
         if (PermittedUrls.isPermitted(method, path) || method.equals("OPTIONS")) {
+            // Login opcional (ej. crear un pedido): con token se valida igual que en las rutas privadas
+            if (PermittedUrls.isOptionalAuth(method, path) && authHeader != null && authHeader.startsWith("Bearer ")) {
+                return authenticate(exchange, chain, path, authHeader.substring(7));
+            }
             ServerHttpRequest mutatedRequest = exchange.getRequest()
                     .mutate()
                     .header(Headers.OPEN_PATH, "true")
@@ -43,14 +49,15 @@ public class JwtFilter implements WebFilter {
             );
         }
 
-        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseUtil.unauthorized(exchange);
         }
 
-        String token = authHeader.substring(7);
+        return authenticate(exchange, chain, path, authHeader.substring(7));
+    }
 
+    // Valida el token y pasa el usuario al microservicio en X-User-Id
+    private Mono<Void> authenticate(ServerWebExchange exchange, WebFilterChain chain, String path, String token) {
         try {
             if (!jwtUtil.validateToken(token)) {
                 return ResponseUtil.unauthorized(exchange);

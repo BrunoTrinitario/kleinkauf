@@ -65,6 +65,11 @@ public class Product {
     @Column(name = "featured_order")
     private Integer featuredOrder;
 
+    // Unidades vendidas (pedidos pagos de sales). Solo lo ve el administrador
+    @ColumnDefault("0")
+    @Column(name = "sold_count", nullable = false)
+    private int soldCount;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
+
+    // Igual que findByIdForUpdate para varios productos; ordenados por id para que dos reservas no se traben
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids ORDER BY p.id")
+    List<Product> findAllByIdForUpdate(@Param("ids") Collection<Long> ids);
 
     @Query("SELECT p FROM Product p WHERE p.minStock > 0 AND p.stock <= p.minStock ORDER BY p.stock ASC")
     List<Product> findLowStock();

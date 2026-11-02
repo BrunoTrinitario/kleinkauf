@@ -90,6 +90,15 @@ class CatalogRepositoryTest {
 	}
 
 	@Test
+	void masVendidos_primeroYEmpatesPorNombre() {
+		sold("Silla", 7);
+		sold("Alfombra", 2);
+		sold("Lampara", 2);
+
+		assertEquals(List.of("Silla", "Alfombra", "Lampara", "Mesa de roble"), names(ALL, CatalogSort.BEST_SELLERS));
+	}
+
+	@Test
 	void categoriasConCantidad_sinLosBorrados() {
 		assertEquals(List.of(
 				new CategoryDto("comedor", 2),
@@ -106,6 +115,13 @@ class CatalogRepositoryTest {
 
 	private List<String> names(Filter filter, CatalogSort sort) {
 		return catalogRepository.search(filter, sort, 0, 24).stream().map(Product::getName).toList();
+	}
+
+	private void sold(String name, int units) {
+		Product p = productRepository.findByName(name).orElseThrow();
+		p.setSoldCount(units);
+		em.flush();
+		em.clear();
 	}
 
 	private Product persist(String name, String category, String description, String price) {

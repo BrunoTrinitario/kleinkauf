@@ -1,0 +1,15 @@
+package com.decor.sales;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+// Scheduling: vencimiento de los pedidos sin comprobante (ExpirationJob)
+@SpringBootApplication
+@EnableScheduling
+public class Application {
+
+	public static void main(String[] args) {
+		SpringApplication.run(Application.class, args);
+	}
+}

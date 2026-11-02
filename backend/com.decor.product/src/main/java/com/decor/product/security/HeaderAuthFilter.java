@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,6 +23,10 @@ import java.util.List;
 
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {
+
+    // Authority de las llamadas entre microservicios (ver SecurityConfig)
+    public static final String INTERNAL_ROLE = "ROLE_INTERNAL";
+    private static final String INTERNAL_PRINCIPAL = "internal";
 
     @Autowired
     UserService userService;
@@ -44,9 +49,12 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (isInternal) {
+        // /api/internal/** siempre pide el token interno, aunque no venga el header X-internal-request
+        if (isInternal || path.startsWith(PermittedUrls.INTERNAL_PATH)) {
             String token = request.getHeader(Headers.INTERNAL_TOKEN);
             if (internalTokenService.validateInternalToken(token)) {
+                SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                        INTERNAL_PRINCIPAL, null, List.of(new SimpleGrantedAuthority(INTERNAL_ROLE))));
                 filterChain.doFilter(request, response);
             }else{
                 rejectRequest(response, "Token invalido");

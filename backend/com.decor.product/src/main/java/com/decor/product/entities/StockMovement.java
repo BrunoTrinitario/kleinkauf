@@ -38,6 +38,10 @@ public class StockMovement {
 
     private String reason;
 
+    // Numero del pedido que reservo o devolvio el stock (null en los movimientos manuales)
+    @Column(length = 40)
+    private String reference;
+
     // Usuario que registro el movimiento (id del microservicio de usuarios)
     @Column(name = "user_id")
     private Long userId;

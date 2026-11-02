@@ -1,6 +1,7 @@
 package com.decor.product.controllers;
 
 import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.product.dto.catalog.CatalogBundleDto;
 import com.decor.product.dto.catalog.CatalogPageDto;
 import com.decor.product.dto.catalog.CatalogProductDetailDto;
 import com.decor.product.dto.catalog.CategoryDto;
@@ -19,7 +20,7 @@ public class CatalogController {
     @Autowired
     private CatalogService catalogService;
 
-    // sort: name (por defecto) | price_asc | price_desc. size: 24 por defecto, maximo 100
+    // sort: name (por defecto) | price_asc | price_desc | best_sellers. size: 24 por defecto, maximo 100
     @GetMapping("/products")
     public ResponseEntity<CatalogPageDto> search(
             @RequestParam(required = false) String q,
@@ -34,6 +35,11 @@ public class CatalogController {
     @GetMapping("/products/{slug}")
     public ResponseEntity<CatalogProductDetailDto> getBySlug(@PathVariable String slug) throws ApiException {
         return ResponseEntity.ok(catalogService.getBySlug(slug));
+    }
+
+    @GetMapping("/bundles")
+    public ResponseEntity<List<CatalogBundleDto>> bundles() {
+        return ResponseEntity.ok(catalogService.bundles());
     }
 
     @GetMapping("/categories")

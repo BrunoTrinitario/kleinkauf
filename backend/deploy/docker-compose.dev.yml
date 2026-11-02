@@ -74,6 +74,27 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3002/"]
 
+  sales-service:
+    <<: *service
+    container_name: sales-service
+    volumes:
+      - ../decor-sales:/app
+      - ../decor-common:/decor-common
+      - sales-gradle-cache:/home/gradle/.gradle
+      - /app/build
+      - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sales
+    ports:
+      - "3003:3003"
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3003/"]
+
   user-service:
     <<: *service
     container_name: user-service
@@ -143,3 +164,4 @@ volumes:
   product-gradle-cache:
   user-gradle-cache:
   gateway-gradle-cache:
+  sales-gradle-cache:

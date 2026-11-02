@@ -75,6 +75,40 @@ class JwtTenantFilterTest {
         assertEquals("1", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
     }
 
+    @Test
+    void crearPedido_loginOpcional() {
+        // Invitado: pasa sin usuario
+        MockServerWebExchange invitado = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/sales/orders")
+                .header(Headers.FORWARDED_HOST, "tienda_a"));
+        run(invitado);
+        assertNull(forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
+
+        // Logueado: pasa con el usuario para asociarle el pedido
+        run(orderRequest("tienda_a", token(7L, "tienda_a")));
+        assertEquals("7", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
+
+        // Token invalido o de otra tienda: 401 (no se crea como invitado sin avisar)
+        MockServerWebExchange deOtraTienda = orderRequest("tienda_b", token(7L, "tienda_a"));
+        run(deOtraTienda);
+        assertNull(forwarded.get());
+        assertEquals(HttpStatus.UNAUTHORIZED, deOtraTienda.getResponse().getStatusCode());
+    }
+
+    @Test
+    void consultaDePedido_ignoraElToken() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/sales/orders/lookup")
+                .header(Headers.FORWARDED_HOST, "tienda_a")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token(7L, "tienda_a")));
+        run(exchange);
+        assertNull(forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
+    }
+
+    private static MockServerWebExchange orderRequest(String schema, String token) {
+        return MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/sales/orders")
+                .header(Headers.FORWARDED_HOST, schema)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
+    }
+
     private void run(MockServerWebExchange exchange) {
         forwarded.set(null);
         filter.filter(exchange, e -> {

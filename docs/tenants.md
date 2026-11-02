@@ -7,8 +7,10 @@ administra.
 
 - **Tenant:** un emprendimiento que usa la plataforma (una tienda). Sus datos están aislados de los demás.
 - **Un schema por tenant:** cada tenant tiene su propio schema de Postgres en **cada** base: en `users` (sus
-  usuarios y roles) y en `products` (sus productos, stock, combos...). Los nombres de tabla son los mismos en todos los
-  schemas.
+  usuarios y roles), en `products` (sus productos, stock, combos...) y en `sales` (sus pedidos, comprobantes y
+  configuración de ventas). Los nombres de tabla son los mismos en todos los schemas.
+- **Archivos por tenant:** los comprobantes de pago que guarda sales van a una carpeta por tenant
+  (`uploads/sales/receipts/<schema>/<número de pedido>/`).
 - **Schema `public`:** es la plataforma. En la base `users` guarda la tabla de **tenants** y los usuarios
   **superadmin**. No pertenece a ninguna tienda.
 - **URL del tenant:** cada tenant tiene la URL de su frontend, `<scheme>://<identificador>.<platform.domain>`
@@ -45,18 +47,21 @@ gateway
                             (las rutas /api/v1/platform/** no tienen tenant y se saltean)
    5. JwtFilter             rutas no públicas: valida el JWT y que su claim "tenant" sea
                             el schema de la request (o "public" en /api/v1/platform/**);
-                            agrega X-User-Id
+                            agrega X-User-Id. En POST /api/v1/sales/orders el token es
+                            opcional, pero si viene se valida igual
    6. CorsConfig            CORS: solo orígenes de tenants y el frontend de la plataforma
    │
    ▼
-users / products
+users / products / sales
    TenantFilter (decor-common)   lee X-Forwarded-Host y lo deja en TenantContext
    Hibernate multi-tenant        TenantIdentifierResolver → schema del TenantContext
                                  DatabaseMultiTenantConnectionProvider → conexión con ese schema
 ```
 
-- En **products** el tenant es obligatorio (sin `X-Forwarded-Host` responde 404). En **users** es opcional
-  (`decor.tenant.required=false`): sin tenant trabaja sobre `public` (plataforma y endpoints internos).
+- En **products** y **sales** el tenant es obligatorio (sin `X-Forwarded-Host` responde 404). En **users** es
+  opcional (`decor.tenant.required=false`): sin tenant trabaja sobre `public` (plataforma y endpoints internos).
+- Cuando sales llama a products (reservar stock, vendidos) le pasa el mismo `X-Forwarded-Host`: la reserva se hace en
+  el schema de la tienda del pedido.
 - Los microservicios **confían** en `X-Forwarded-Host` y `X-User-Id` porque solo los pone el gateway: por eso el
   gateway borra los que mande el cliente.
 
@@ -126,7 +131,14 @@ El frontend redirige a la URL del tenant y el dueño inicia sesión ahí (su tok
 - **users:** el schema se crea al dar de alta (al guardar al dueño).
 - **products:** el schema se crea solo la primera vez que llega una request del tenant. Al arrancar, products también
   migra los schemas de todos los tenants existentes (y completa los slugs de los productos que no tengan).
+- **sales:** igual que products (se crea con la primera request y se migran todos al arrancar).
 - Las tablas se crean y actualizan con Hibernate (`hbm2ddl.auto=update`), por schema.
+
+### Tareas sin request
+
+El vencimiento de pedidos de sales (`ExpirationJob`, cada 1 hora) no tiene una request que traiga el tenant: pide la
+lista de tenants a users (Redis → users) y recorre uno por uno, poniendo cada schema en el `TenantContext` mientras lo
+procesa. Saltea los borrados; los deshabilitados se siguen procesando, así su stock reservado no queda trabado.
 
 ## Superadmin y panel de la plataforma
 
@@ -158,6 +170,9 @@ defensa extra, users verifica además del rol que la request **no** traiga tenan
 Al deshabilitar o borrar, users borra de Redis las claves de ese tenant. El gateway tiene además un caché local de
 1 minuto, así que **el cambio tarda hasta 1 minuto** en aplicarse.
 
+Con el tenant deshabilitado o borrado nadie puede entrar a sus pedidos (el gateway corta antes). Los pedidos que
+estaban esperando el pago igual vencen y devuelven su stock.
+
 ## Cachés de tenants
 
 | Dónde | Clave | Qué guarda | Duración |
@@ -167,6 +182,7 @@ Al deshabilitar o borrar, users borra de Redis las claves de ese tenant. El gate
 | Redis (escribe users) | `gateway:cors:<url>` | Que la URL es de un tenant (CORS) | 5 horas |
 | Gateway, local | `tenant:url:<url>`, `cors:<url>` | Lo mismo, en memoria | 1 minuto |
 | products, local | `tenant:<schema>` | Datos del tenant | 10 minutos |
+| sales, local | `tenant:<schema>` | Datos del tenant | 10 minutos |
 
 ## Configuración
 
@@ -188,3 +204,5 @@ Al deshabilitar o borrar, users borra de Redis las claves de ese tenant. El gate
 - **Tenants creados a mano** antes del alta siguen funcionando con la `url` que tengan cargada; en el panel su
   identificador se deriva del schema.
 - **Tokens anteriores** al alta de tenants no tienen el claim `tenant`: hay que volver a iniciar sesión.
+- **Zona horaria única:** los reportes de ventas cortan los días en una sola zona para todas las tiendas
+  (`sales.reports.zone`, Argentina). Una zona por tienda está anotada para después en [ventas.md](ventas.md).

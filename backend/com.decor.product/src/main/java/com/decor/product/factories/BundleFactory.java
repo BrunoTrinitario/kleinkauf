@@ -34,7 +34,7 @@ public class BundleFactory {
     }
 
     // Suma de precio * cantidad; null si algun producto no tiene precio
-    static BigDecimal listPrice(List<BundleProduct> products) {
+    public static BigDecimal listPrice(List<BundleProduct> products) {
         BigDecimal total = BigDecimal.ZERO;
         for (BundleProduct bp : products) {
             BigDecimal price = bp.getProduct().getPrice();
@@ -45,7 +45,7 @@ public class BundleFactory {
     }
 
     // El producto con menos stock (en relacion a lo que pide el combo) limita cuantos combos se arman
-    static int available(List<BundleProduct> products) {
+    public static int available(List<BundleProduct> products) {
         if (products.isEmpty()) return 0;
         int available = Integer.MAX_VALUE;
         for (BundleProduct bp : products) {

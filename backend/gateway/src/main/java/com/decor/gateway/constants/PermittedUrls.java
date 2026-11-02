@@ -28,16 +28,40 @@ public class PermittedUrls {
                 "GET:/api/v1/catalog/products",
                 "GET:/api/v1/catalog/products/{any}",
                 "GET:/api/v1/catalog/categories",
+                "GET:/api/v1/catalog/bundles",
+                "GET:/api/v1/sales/checkout",
+                "POST:/api/v1/sales/orders",
+                "POST:/api/v1/sales/orders/lookup",
+                "POST:/api/v1/sales/orders/{code}/receipt",
+                "POST:/api/v1/sales/orders/{code}/cancel",
                 "GET:/api/v1/bundles/all",
                 "GET:/api/v1/bundles/{id}",
                 "/products/images/{any}"
         );
     }
 
+    /*
+    Rutas publicas en las que el login es opcional: si viene un token valido el gateway pasa el usuario
+    (crear un pedido logueado lo asocia al usuario). Tienen que estar tambien en getExcludedPaths.
+     */
+    public static List<String> getOptionalAuthPaths() {
+        return List.of(
+                "POST:/api/v1/sales/orders"
+        );
+    }
+
+    public static boolean isOptionalAuth(String method, String path) {
+        return matches(getOptionalAuthPaths(), method, path);
+    }
+
     public static boolean isPermitted(String method, String path) {
+        return matches(getExcludedPaths(), method, path);
+    }
+
+    private static boolean matches(List<String> rules, String method, String path) {
         String cleanPath = path.split("\\?")[0]; // remover query params
 
-        for (String allowed : getExcludedPaths()) {
+        for (String allowed : rules) {
             String allowedMethod = null;
             String allowedPath = allowed;
 
@@ -53,9 +77,10 @@ public class PermittedUrls {
                 continue;
             }
 
-            // Convertir placeholders a regex
+            // Convertir placeholders a regex. {code}: un segmento (ej. numero de pedido K7QM-4X2P)
             String regex = allowedPath
                     .replace("{id}", "\\d+")
+                    .replace("{code}", "[^/]+")
                     .replace("{any}", ".*$")
                     .replace("/", "\\/");
 
