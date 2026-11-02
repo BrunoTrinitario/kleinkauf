@@ -37,6 +37,12 @@ export function getErrorMessage(
   }
 
   const text = responseText(error)
+  if (text.includes("identifier is already in use")) {
+    return strings.errors.identifierInUse
+  }
+  if (text.includes("identifier is reserved")) {
+    return strings.errors.identifierReserved
+  }
   if (text.includes("already in use")) {
     return strings.errors.emailInUse
   }

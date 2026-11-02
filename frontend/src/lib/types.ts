@@ -33,6 +33,24 @@ export interface ProfileFormState {
   password: string
 }
 
+// Tienda vista desde el panel de la plataforma (/api/v1/platform/admin/tenants)
+export interface PlatformTenant {
+  id: number
+  identifier: string
+  schema: string
+  url: string
+  configId: string | null
+  enabled: boolean
+  createdAt: string
+}
+
+export interface NewTenantDto {
+  identifier: string
+  ownerName: string
+  ownerEmail: string
+  ownerPassword: string
+}
+
 // Producto del panel (GET /api/v1/products): con stock exacto
 export interface Product {
   id: string

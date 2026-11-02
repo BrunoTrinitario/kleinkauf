@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import axios from "axios"
 import type { LoggedUser, LoginUserDto, User, UserRole } from "./types"
 import { strings } from "./strings"
+import { IS_PLATFORM } from "./platform"
 
 interface AuthContextType {
   user: LoggedUser | null
@@ -41,12 +42,51 @@ const clearAuthCookie = () => {
   document.cookie = `${AUTH_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`
 }
 
+// La plataforma no tiene /auth/me (esa ruta es de las tiendas): el superadmin se guarda entero al loguearse.
+// Si el token vence, la primera llamada al panel devuelve 401 y la pagina cierra la sesion
+const PLATFORM_USER_KEY = "platform_user"
+
+const savePlatformUser = (user: LoggedUser) => {
+  try {
+    localStorage.setItem(PLATFORM_USER_KEY, JSON.stringify(user))
+  } catch {
+    // Sin storage la sesion dura hasta recargar
+  }
+}
+
+const loadPlatformUser = (): LoggedUser | null => {
+  try {
+    const raw = localStorage.getItem(PLATFORM_USER_KEY)
+    return raw ? (JSON.parse(raw) as LoggedUser) : null
+  } catch {
+    return null
+  }
+}
+
+const clearPlatformUser = () => {
+  try {
+    localStorage.removeItem(PLATFORM_USER_KEY)
+  } catch {
+    // nada que borrar
+  }
+}
+
+const LOGIN_PATH = IS_PLATFORM ? "/api/v1/platform/auth/login" : "/api/v1/auth/login"
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<LoggedUser | null>(null)
   const [activeRole, setActiveRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (IS_PLATFORM) {
+      const stored = loadPlatformUser()
+      setUser(stored)
+      setActiveRole((stored?.roles?.[0]?.type as UserRole) ?? null)
+      setIsLoading(false)
+      return
+    }
+
     const apiBaseUrl = API_BASE_URL
     const token = getAuthCookie()
     if (!token) {
@@ -102,11 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (credentials: LoginUserDto): Promise<LoggedUser> => {
-    const response = await axios.post<LoggedUser>(
-      `${API_BASE_URL}/api/v1/auth/login`,
-      credentials
-    )
-    if (response.data.token) {
+    const response = await axios.post<LoggedUser>(`${API_BASE_URL}${LOGIN_PATH}`, credentials)
+    if (IS_PLATFORM) {
+      savePlatformUser(response.data)
+    } else if (response.data.token) {
       setAuthCookie(response.data.token)
     }
     setUser(response.data)
@@ -129,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearAuthCookie()
+    clearPlatformUser()
     setUser(null)
     setActiveRole(null)
   }, [])

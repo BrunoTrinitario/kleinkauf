@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context"
 import type { LoginUserDto } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
+import { IS_PLATFORM } from "@/lib/platform"
 import { Headline } from "@/components/highlight"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,10 +47,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-heading-sm text-foreground">
-            <Headline text={strings.login.title} highlight="nuevo" />
+            {IS_PLATFORM ? (
+              <Headline text={strings.platformLogin.title} highlight={strings.platformLogin.highlight} />
+            ) : (
+              <Headline text={strings.login.title} highlight="nuevo" />
+            )}
           </h1>
           <p className="text-muted-foreground mt-2">
-            {strings.login.subtitle}
+            {IS_PLATFORM ? strings.platformLogin.subtitle : strings.login.subtitle}
           </p>
         </div>
 
@@ -58,7 +63,7 @@ export default function LoginPage() {
             <CardHeader className="pb-4">
               <CardTitle>{strings.login.cardTitle}</CardTitle>
               <CardDescription>
-                {strings.login.cardDescription}
+                {IS_PLATFORM ? strings.platformLogin.cardDescription : strings.login.cardDescription}
               </CardDescription>
             </CardHeader>
 
@@ -124,12 +129,15 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              <p className="text-sm text-muted-foreground text-center">
-                {strings.login.noAccount}{" "}
-                <Link to="/register" className="text-foreground font-medium hover:underline">
-                  {strings.login.createOne}
-                </Link>
-              </p>
+              {/* En la plataforma no hay registro: los superadmins se crean desde el backend */}
+              {!IS_PLATFORM && (
+                <p className="text-sm text-muted-foreground text-center">
+                  {strings.login.noAccount}{" "}
+                  <Link to="/register" className="text-foreground font-medium hover:underline">
+                    {strings.login.createOne}
+                  </Link>
+                </p>
+              )}
             </CardFooter>
           </form>
         </Card>

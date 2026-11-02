@@ -189,10 +189,10 @@ estaban esperando el pago igual vencen y devuelven su stock.
 | Servicio | Propiedad | Para qué | Valor en dev |
 |---|---|---|---|
 | users | `platform.scheme` | Esquema de la URL de los tenants | `http` |
-| users | `platform.domain` | Dominio base de los subdominios | `localhost:3000` |
+| users | `platform.domain` | Dominio base de los subdominios | `localhost:2999` |
 | users | `platform.superadmin.email` / `.password` | Primer superadmin (`SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD`) | vacío (no se crea) |
 | users | `decor.tenant.required` | Tenant opcional en users | `false` |
-| gateway | `platform.url` | Frontend de la plataforma (alta de tenants, panel), permitido por CORS | `http://localhost:3000` |
+| gateway | `platform.url` | Frontend de la plataforma (alta de tenants, panel), permitido por CORS | `http://localhost:2999` |
 | gateway | `limit.signup` | Altas de tenants por minuto por IP | `3` |
 
 ## Limitaciones conocidas

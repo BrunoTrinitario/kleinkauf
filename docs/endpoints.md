@@ -6,8 +6,8 @@ Qué hace cada microservicio y la lista completa de endpoints. Para el detalle d
 ## Arquitectura
 
 ```
-                    Frontend de cada tienda (http://<tienda>.localhost:3000)
-                    Frontend de la plataforma (http://localhost:3000)
+                    Frontend de cada tienda (http://<tienda>.localhost:2999)
+                    Frontend de la plataforma (http://localhost:2999)
                                        │
                                        ▼
                             ┌──────────────────────┐

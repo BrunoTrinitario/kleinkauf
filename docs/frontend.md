@@ -46,7 +46,10 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
   `localhost:2999` y `platform.url` (gateway) es `http://localhost:2999`, así que las tiendas se abren en
   `http://<tienda>.localhost:2999`. Los tenants creados antes de este cambio guardan su `url` con el puerto viejo.
 - **Un solo build para la plataforma y las tiendas:** según el host, la app muestra la parte de plataforma
-  (`localhost`) o la de tienda (`<tienda>.localhost`).
+  (`localhost`) o la de tienda (`<tienda>.localhost`). Lo decide `lib/platform.ts` comparando el hostname con
+  `VITE_PLATFORM_HOSTNAME` (por defecto `localhost`); `App.tsx` arma rutas distintas para cada uno.
+- **Sesión del superadmin:** la plataforma no tiene `/auth/me` (es de las tiendas), así que al loguearse se guarda el
+  usuario entero en `localStorage` (`platform_user`). Si el token vence, el primer 401 del panel cierra la sesión.
 - **Token:** viene en el login y tiene el claim `tenant`; si se usa en otro tenant el gateway responde 401. Guardarlo
   por origen alcanza (el `localStorage` ya es por origen).
 
@@ -57,7 +60,7 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 ### 0. Base técnica
 - [ ] Proyecto Vite + TypeScript + Tailwind + shadcn/ui, en `frontend/`
 - [ ] Cliente HTTP único (baseURL del gateway, `Authorization`, manejo central de 401 / 403 / 404 / 429)
-- [ ] Detección de contexto: plataforma (sin subdominio) vs. tienda (con subdominio)
+- [ ] Detección de contexto: plataforma (sin subdominio) vs. tienda (con subdominio) ☑
 - [ ] Contexto de sesión: usuario, roles y **máscara de permisos** (bits 1/2/4/8/16), con helper `can('STOCK')`
 - [ ] Rutas protegidas por rol y por área de permiso (la UI oculta lo que no se puede usar; el backend igual valida)
 - [ ] Layouts: público, panel de la tienda, panel de la plataforma
@@ -71,8 +74,10 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 - [ ] Landing con explicación del producto
 - [ ] **Alta de tienda** (`POST /platform/tenants`): identificador con la validación del backend (3–30 caracteres,
   `a-z 0-9 -`, reservados), datos del dueño, errores 400 / 409 / 429, y redirección a la URL de la tienda al terminar
-- [ ] Login del superadmin (`/platform/auth/login`)
-- [ ] Panel de tenants: lista, detalle, alta, habilitar/deshabilitar, borrar (soft delete); aviso de que el cambio tarda hasta 1 min
+- [ ] Login del superadmin (`/platform/auth/login`) ☑ en `http://localhost:2999/login`
+- [ ] Panel de tenants (`/tenants`): lista con búsqueda y filtro por estado ☑, alta ☑, habilitar/deshabilitar ☑, borrar
+  (soft delete) con confirmación ☑; aviso de que el cambio tarda hasta 1 min ☑. El detalle no tiene pantalla propia:
+  la tarjeta ya muestra todo lo que devuelve `GET /admin/tenants/{id}`
 - [ ] **[plan]** Dashboard de la plataforma: tenants (total / habilitados / deshabilitados / borrados) y altas por período
 - [ ] **[plan]** Uso por tenant (usuarios, activos, última actividad, productos, combos) con orden elegible
 - [ ] **[plan]** Gestión de superadmins: lista, alta con contraseña temporal, desactivar/reactivar
