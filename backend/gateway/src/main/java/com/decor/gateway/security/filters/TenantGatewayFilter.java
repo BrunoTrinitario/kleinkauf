@@ -29,13 +29,14 @@ public class TenantGatewayFilter implements WebFilter {
 
     /*
     Resuelve el tenant por el Origin y le pasa su schema a los microservicios.
-    - Rutas de plataforma (/api/v1/platform/**): no tienen tenant, siguen sin el header.
+    - Rutas de plataforma (/api/v1/platform/**) e imagenes de productos (/products/images/**): no tienen
+      tenant, siguen sin el header (el navegador no manda Origin al cargar un <img>).
     - Tenant inexistente o borrado: 404. Deshabilitado: 403.
     Solo los errores de la busqueda del tenant se responden aca; los de los servicios siguen su curso.
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        if (PermittedUrls.isPlatformPath(exchange.getRequest().getURI().getPath())) {
+        if (PermittedUrls.isTenantlessPath(exchange.getRequest().getURI().getPath())) {
             return chain.filter(exchange);
         }
 

@@ -91,6 +91,19 @@ class TenantGatewayFilterTest {
         verifyNoInteractions(tenantService);
     }
 
+    // El navegador no manda Origin al cargar un <img>: las imagenes no pueden depender del tenant
+    @Test
+    void imagenesDeProductos_sinOrigin_noBuscanTenant() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/products/images/abc_123.png"));
+
+        run(exchange);
+
+        assertNotNull(forwarded.get());
+        assertNull(forwarded.get().getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST));
+        verifyNoInteractions(tenantService);
+    }
+
     @Test
     void losErroresDeLosServiciosNoSeConviertenEn503() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(true)));

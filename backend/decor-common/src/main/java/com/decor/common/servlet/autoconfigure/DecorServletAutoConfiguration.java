@@ -53,8 +53,9 @@ public class DecorServletAutoConfiguration {
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     @ConditionalOnMissingBean
-    public TenantFilter tenantFilter(@Value("${decor.tenant.required:true}") boolean tenantRequired) {
-        return new TenantFilter(tenantRequired);
+    public TenantFilter tenantFilter(@Value("${decor.tenant.required:true}") boolean tenantRequired,
+                                     @Value("${decor.tenant.public-paths:}") List<String> publicPaths) {
+        return new TenantFilter(tenantRequired, publicPaths);
     }
 
     @Bean

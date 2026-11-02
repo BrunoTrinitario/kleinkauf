@@ -80,12 +80,80 @@ class DecorServletAutoConfigurationTest {
         verify(connection).setSchema("tienda1");
     }
 
+    // Preparar el schema (en users, correr la migracion) es caro: una vez por tenant, no por conexion.
+    // Y se prepara antes de tomar la conexion, para no tener una tomada mientras se esperan otras
+    @Test
+    void elSchemaSePreparaUnaSolaVezYAntesDeTomarLaConexion() throws Exception {
+        DataSource dataSource = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+        TenantSchemaManager schemaManager = mock(TenantSchemaManager.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        DatabaseMultiTenantConnectionProvider provider = new DatabaseMultiTenantConnectionProvider(dataSource, schemaManager);
+
+        provider.getConnection("tienda1");
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(schemaManager, dataSource);
+        order.verify(schemaManager).prepareSchema("tienda1");
+        order.verify(dataSource).getConnection();
+
+        provider.getConnection("tienda1");
+        provider.getConnection("tienda2");
+
+        verify(schemaManager, org.mockito.Mockito.times(1)).prepareSchema("tienda1");
+        verify(schemaManager, org.mockito.Mockito.times(1)).prepareSchema("tienda2");
+    }
+
+    // Si preparar falla no queda marcado: el proximo pedido lo vuelve a intentar
+    @Test
+    void siPrepararFallaSeReintenta() throws Exception {
+        DataSource dataSource = mock(DataSource.class);
+        when(dataSource.getConnection()).thenReturn(mock(Connection.class));
+        TenantSchemaManager schemaManager = mock(TenantSchemaManager.class);
+        org.mockito.Mockito.doThrow(new RuntimeException("db caida")).doNothing()
+                .when(schemaManager).prepareSchema("tienda1");
+        DatabaseMultiTenantConnectionProvider provider = new DatabaseMultiTenantConnectionProvider(dataSource, schemaManager);
+
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> provider.getConnection("tienda1"));
+        provider.getConnection("tienda1");
+
+        verify(schemaManager, org.mockito.Mockito.times(2)).prepareSchema("tienda1");
+    }
+
     @Test
     void tenantObligatorioSinHeaderResponde404() throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
         new TenantFilter(true).doFilter(new MockHttpServletRequest(), response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(404);
+        assertThat(chain.getRequest()).isNull();
+    }
+
+    // Ej. imagenes de productos: el navegador no manda Origin al cargar un <img>, asi que no llega el tenant
+    @Test
+    void rutaPublicaSinHeaderSigueAunqueElTenantSeaObligatorio() throws Exception {
+        TenantFilter filter = new TenantFilter(true, java.util.List.of("/products/images/"));
+
+        MockFilterChain imageChain = new MockFilterChain();
+        filter.doFilter(new MockHttpServletRequest("GET", "/products/images/abc.png"), new MockHttpServletResponse(), imageChain);
+        assertThat(imageChain.getRequest()).isNotNull();
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain otherChain = new MockFilterChain();
+        filter.doFilter(new MockHttpServletRequest("GET", "/api/v1/products"), response, otherChain);
+        assertThat(response.getStatus()).isEqualTo(404);
+        assertThat(otherChain.getRequest()).isNull();
+    }
+
+    // Un prefijo vacio (ej. propiedad sin valor) no puede volver publicas todas las rutas
+    @Test
+    void prefijoVacioNoVuelvePublicasLasRutas() throws Exception {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        new TenantFilter(true, java.util.List.of("", " ")).doFilter(
+                new MockHttpServletRequest("GET", "/api/v1/products"), response, chain);
 
         assertThat(response.getStatus()).isEqualTo(404);
         assertThat(chain.getRequest()).isNull();

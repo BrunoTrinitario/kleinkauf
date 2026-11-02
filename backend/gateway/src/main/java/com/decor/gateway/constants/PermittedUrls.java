@@ -13,6 +13,15 @@ public class PermittedUrls {
         return path.startsWith(PLATFORM_PATH);
     }
 
+    // Imagenes de productos: archivos publicos con nombre aleatorio, guardados fuera de cualquier tenant.
+    // El navegador no manda Origin al cargar un <img>, asi que no se puede resolver el tenant
+    public static String PRODUCT_IMAGES_PATH = "/products/images/";
+
+    // Rutas que no pertenecen a ningun tenant: el gateway no lo busca ni agrega el header
+    public static boolean isTenantlessPath(String path) {
+        return isPlatformPath(path) || path.startsWith(PRODUCT_IMAGES_PATH);
+    }
+
     public static List<String> getExcludedPaths() {
         return List.of(
                 "/api/v1/auth/login",

@@ -5,6 +5,8 @@ import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /*
 Encargada de realmente dar el objeto de db connection
@@ -35,10 +37,29 @@ public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnect
      */
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
+        // Se prepara antes de tomar la conexion: preparar usa sus propias conexiones, y si se tomara
+        // primero, con varios pedidos a la vez cada uno quedaria con una esperando otra y el pool se traba
+        ensurePrepared(tenantIdentifier);
         Connection connection = getAnyConnection();
-        this.schemaManager.prepareSchema(tenantIdentifier);
         connection.setSchema(tenantIdentifier);
         return connection;
+    }
+
+    // Schemas ya preparados en este proceso: se preparan una sola vez (antes era en cada conexion,
+    // y en users eso volvia a correr la migracion completa por cada consulta)
+    private final Set<String> preparedSchemas = ConcurrentHashMap.newKeySet();
+
+    private void ensurePrepared(String tenantIdentifier) {
+        if (preparedSchemas.contains(tenantIdentifier)) {
+            return;
+        }
+        synchronized (preparedSchemas) {
+            if (!preparedSchemas.contains(tenantIdentifier)) {
+                // Si falla no se marca: el proximo pedido lo vuelve a intentar
+                this.schemaManager.prepareSchema(tenantIdentifier);
+                preparedSchemas.add(tenantIdentifier);
+            }
+        }
     }
     @Override public void releaseConnection(String tenantIdentifier, Connection connection) throws SQLException {
         connection.setSchema("public");
