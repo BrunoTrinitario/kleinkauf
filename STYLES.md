@@ -20,7 +20,8 @@ Seline sits on a warm-stone canvas (#fafaf9) with a single vivid cyan as its onl
 | Ink Black | `#0c0a09` | `--color-ink-black` | Primary headings, emphasized body, strong icons — near-black with a warm cast |
 | Soot | `#1c1917` | `--color-soot` | Dark surface backgrounds for inverted sections, dark dashboard tabs |
 | Sky Wash | `#c1e1f7` | `--color-sky-wash` | Soft highlight wash behind highlighted text spans, decorative blue tint |
-| Cyan Signal | `#3ba6f1` | `--color-cyan-signal` | Primary CTA fill, active links, brand icon strokes — the only chromatic voice on the page, used sparingly to make actions feel switched on |
+| Cyan Signal | `#3ba6f1` | `--color-cyan-signal` | Active links, focus rings, brand icon strokes — the brand cyan. Too light to carry white text (2.65:1), so it is not the CTA fill |
+| CTA Blue | `#1677bd` | `--primary` | Primary CTA fill with white text (4.76:1, WCAG AA). Hover and border `#12659f` (6.20:1) |
 | Cyan Edge | `#3398e1` | `--color-cyan-edge` | Blue accent for outlined action borders, linked labels, and lightweight interactive emphasis. Do not promote it to the primary CTA color |
 
 ## Tokens — Typography
@@ -103,10 +104,10 @@ Seline sits on a warm-stone canvas (#fafaf9) with a single vivid cyan as its onl
 
 ## Components
 
-### Primary CTA Button (filled cyan)
+### Primary CTA Button (filled blue)
 **Role:** Highest-priority conversion action — 'Start free trial', primary sign-ups
 
-Pill shape (9999px radius), fill #3ba6f1, 1px border #3398e1, white text (#ffffff) weight 500, padding 8px 16px. The only chromatic filled element on the page — use once per viewport maximum.
+Pill shape (9999px radius), fill #1677bd, 1px border #12659f, white text (#ffffff) weight 500, padding 8px 16px. Hover fill #12659f. Not the lighter #3ba6f1: white text on it only reaches 2.65:1. The only chromatic filled element on the page — use once per viewport maximum.
 
 ### Secondary Ghost Button
 **Role:** Lower-priority action beside primary — 'View live demo', secondary navigation
@@ -184,7 +185,7 @@ Horizontal row of 4 pill-shaped tabs at bottom of dashboard preview. Active tab:
 - Do not use heavy drop shadows on content cards — the 16px-blur floating preview shadow is reserved for exactly one element per page
 - Do not set headlines in Inter — Roobert at the 32px/52px sizes is the brand voice; mixing fonts breaks hierarchy
 - Do not use #ffffff as the page background — always #fafaf9; pure white belongs only on elevated card surfaces
-- Do not fill buttons with dark/neutral colors for primary actions — the cyan #3ba6f1 is the only correct filled-button color
+- Do not fill buttons with dark/neutral colors for primary actions — the CTA blue #1677bd is the only correct filled-button color
 - Do not add gradients, glassmorphism, or decorative color washes — the design is deliberately flat and paper-textured
 - Do not stack multiple cyan highlight spans in one headline — one per headline maximum, the restraint is the point
 
@@ -221,14 +222,14 @@ Quick Color Reference:
 - secondary text: #78716c
 - border / hairline: #e8e6e5
 - accent (text highlight + icons): #3ba6f1
-- primary action: #3ba6f1 (filled action)
+- primary action: #1677bd with white text (filled action)
 - highlight wash: #c1e1f7
 
 Example Component Prompts:
 
 1. Hero headline: 52px roobert weight 400, #0c0a09, line-height 1.12, letter-spacing -1.092px. Inline the phrase 'simple & actionable' as a span with #3398e1 text on a #c1e1f7 pill background highlight. Subheadline at 16px Inter weight 400, #78716c, line-height 1.69.
 
-2. Create a Primary Action Button: #3ba6f1 background, #0c0a09 text, 9999px radius, compact pill padding. Use this filled treatment for the main CTA.
+2. Create a Primary Action Button: #1677bd background, #ffffff text, #12659f border and hover, 9999px radius, compact pill padding. Use this filled treatment for the main CTA.
 
 3. Feature card: white (#ffffff) fill, 10px radius, 1px border #e8e6e5, 24px padding, shadow rgba(0,0,0,0.05) 0px 4px 16px 0px. Heading 32px roobert weight 400 #0c0a09, body 14px Inter #78716c.
 
