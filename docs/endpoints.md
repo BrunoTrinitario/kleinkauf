@@ -14,14 +14,16 @@ Qué hace cada microservicio y la lista completa de endpoints. Para el detalle d
                             │  gateway  :3000      │  única entrada pública
                             └──────────┬───────────┘
                          Eureka (lb://) │
-                    ┌───────────────────┴───────────────────┐
-                    ▼                                       ▼
-          ┌──────────────────┐   tokens internos   ┌──────────────────┐
-          │ decorusers :3001 │ ◄────────────────── │ products  :3002  │
-          └────────┬─────────┘   (Resilience4j)    └────────┬─────────┘
-                   │                                        │
-           Postgres "users"          Redis           Postgres "products"
-           (un schema por tenant + public)           (un schema por tenant)
+          ┌─────────────────────────────┼─────────────────────────────┐
+          ▼                             ▼                             ▼
+┌──────────────────┐  tokens  ┌──────────────────┐  tokens  ┌───────────────────┐
+│ decorusers :3001 │ ◄─────── │ products  :3002  │ ◄─────── │ decor-sales :3003 │
+└────────┬─────────┘ internos └────────┬─────────┘ internos └─────────┬─────────┘
+         │  ▲        (Resilience4j)    │      (stock y vendidos)      │
+         │  └─────────────────── roles y tenants ─────────────────────┤
+         │                             │                              │
+ Postgres "users"     Redis    Postgres "products"            Postgres "sales"
+ (schema por tenant + public)  (schema por tenant)            (schema por tenant)
 
           eureka :8761  ─  registro de servicios
           decor-common  ─  librería compartida (no es un servicio)
@@ -34,21 +36,25 @@ tienda por el header `Origin`, así que las llamadas tienen que salir desde la U
 
 ### eureka (`:8761`)
 
-Registro de servicios (Spring Cloud Netflix Eureka). gateway, users y products se registran y se encuentran por
-nombre (`lb://users-microservice`, `lb://products-microservice`). No tiene endpoints propios de la app.
+Registro de servicios (Spring Cloud Netflix Eureka). gateway, users, products y sales se registran y se encuentran
+por nombre (`lb://users-microservice`, `lb://products-microservice`, `lb://sales-microservice`). No tiene endpoints
+propios de la app.
 
 ### gateway (`:3000`, `gateway-microservice`)
 
 Spring Cloud Gateway (WebFlux, reactivo). No tiene endpoints propios: enruta y protege.
 
 - **Enrutamiento:** `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**` y `/products/images/**` →
-  products; `/api/v1/users/**`, `/api/v1/auth/**`, `/api/v1/platform/**` y `/api/internal/tenants/**` → users.
+  products; `/api/v1/users/**`, `/api/v1/auth/**`, `/api/v1/platform/**` y `/api/internal/tenants/**` → users;
+  `/api/v1/sales/**` → sales.
 - **Tenant:** lo reconoce por el `Origin`, responde 404 si no existe o está borrado y 403 si está deshabilitado, y le
   pasa el schema a los servicios en `X-Forwarded-Host`.
 - **Autenticación:** valida el JWT en las rutas no públicas (y que sea del tenant de la request) y pasa el usuario en
-  `X-User-Id`.
+  `X-User-Id`. En `POST /api/v1/sales/orders` el login es opcional: si viene un token válido pasa el usuario; si es
+  inválido, 401.
 - **Seguridad:** borra los headers internos que mande el cliente; CORS solo para orígenes de tenants y de la
-  plataforma; rate limit por IP y origen (login 5/min, alta de tenants 3/min, resto 300/min, sin contar imágenes).
+  plataforma; rate limit por IP y origen (login 5/min, alta de tenants 3/min, crear pedidos 5/min, consultar o
+  cancelar un pedido 10/min, subir comprobantes 5/min, resto 300/min, sin contar imágenes).
 - **Resiliencia:** las consultas a users (tenants y CORS) tienen circuit breaker, reintentos y timeout.
 
 ### decorusers (`:3001`, `users-microservice`)
@@ -70,14 +76,28 @@ Catálogo y operación de la tienda. Base `products`.
 - Movimientos de stock con alerta de stock bajo.
 - Combos (bundles) con precio propio, precio de lista y disponibilidad.
 - Importar y exportar productos en CSV.
-- Catálogo público paginado, con caché en Redis.
+- Catálogo público paginado (productos y combos, orden por más vendidos), con caché en Redis.
+- Reservas de stock y contador de vendidos para los pedidos de sales (endpoints internos, idempotentes por número de
+  pedido).
 - Consulta tenants y roles a users (con circuit breaker, reintentos y caché).
+
+### decor-sales (`:3003`, `sales-microservice`)
+
+Ventas de la tienda online y del local. Base `sales`. Detalle completo en [ventas.md](ventas.md).
+
+- Checkout: pedidos de invitados o usuarios logueados, con reserva de stock en products y aviso si cambió un precio.
+- Pago por transferencia: el comprador sube el comprobante y el administrador lo valida o lo rechaza.
+- Estados del pedido con historial, cancelación del comprador y vencimiento automático cada hora.
+- Ventas del local cargadas por el administrador (precio cambiado, descuento, medio de pago, ajuste si falta stock).
+- Reportes por período y ranking de productos, por canal y medio de pago.
+- Llama a products (stock y vendidos) y a users (roles y tenants) con circuit breaker y reintentos.
 
 ### decor-common (librería)
 
-No es un servicio: es un build compuesto de Gradle que usan los tres. Trae DTOs (`TenantDto`, `RoleDto`), headers,
-Redis, caché Caffeine, tokens internos (`InternalTokenService`), áreas de permisos (`PermissionArea`) y, para users y
-products, el multi-tenant de Hibernate, el `TenantFilter`, `CustomUserDetails` y el manejo de errores.
+No es un servicio: es un build compuesto de Gradle que usan todos. Trae DTOs (`TenantDto`, `RoleDto`, los de reservas
+de stock entre sales y products), headers, Redis, caché Caffeine, tokens internos (`InternalTokenService`), áreas de
+permisos (`PermissionArea`) y, para users, products y sales, el multi-tenant de Hibernate, el `TenantFilter`,
+`CustomUserDetails` y el manejo de errores.
 
 ## Convenciones
 
@@ -86,6 +106,7 @@ products, el multi-tenant de Hibernate, el `TenantFilter`, `CustomUserDetails` y
 | Valor | Significa |
 |---|---|
 | Público | Sin token |
+| Público (email) | Sin token; pide el email del pedido (sales). Si no coincide responde 404 |
 | Login | Cualquier usuario logueado en la tienda (`Authorization: Bearer <token>`) |
 | `PRODUCTOS`, `PRECIOS`, `STOCK`, `COMBOS` | Permiso del área (el `ADMINISTRADOR` los tiene todos). Ver [permisos.md](permisos.md) |
 | ADMINISTRADOR | Rol administrador de la tienda |
@@ -93,7 +114,8 @@ products, el multi-tenant de Hibernate, el `TenantFilter`, `CustomUserDetails` y
 | Interno | Solo entre servicios, con token interno (`X-internal-request: true` y `X-Internal-Token`) |
 
 **Errores:** en general la respuesta es el código HTTP con el mensaje en texto (en inglés). La importación de CSV
-devuelve JSON con los errores por fila. Un archivo más grande que el límite de subida responde 413.
+devuelve JSON con los errores por fila y crear un pedido con precios viejos devuelve JSON con los precios nuevos. Un
+archivo más grande que el límite de subida responde 413.
 
 ## decorusers
 
@@ -146,12 +168,12 @@ devuelve JSON con los errores por fila. Un archivo más grande que el límite de
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
-| GET | `/api/internal/tenants/all` | Interno | Todos los tenants (sin borrados). Lo usa products al arrancar |
-| GET | `/api/internal/tenants/id?url=...` o `?schema=...` | Interno | Un tenant por URL (gateway) o por schema (products) |
+| GET | `/api/internal/tenants/all` | Interno | Todos los tenants (sin borrados). Lo usan products y sales al arrancar (sales también en el vencimiento) |
+| GET | `/api/internal/tenants/id?url=...` o `?schema=...` | Interno | Un tenant por URL (gateway) o por schema (products y sales) |
 | GET | `/api/internal/tenants/cors?url=...` | Interno | Si la URL es de un tenant (CORS del gateway) |
 | GET | `/api/internal/users/all` | Interno | Todos los usuarios |
 | GET | `/api/internal/users/{id}` | Interno | Un usuario |
-| GET | `/api/internal/users/roles/{id}` | Interno | Roles de un usuario con sus permisos (lo usa products) |
+| GET | `/api/internal/users/roles/{id}` | Interno | Roles de un usuario con sus permisos (lo usan products y sales) |
 
 ## products
 
@@ -172,7 +194,7 @@ devuelve JSON con los errores por fila. Un archivo más grande que el límite de
 | DELETE | `/api/v1/products/images/{imageId}` | `PRODUCTOS` | Borra una imagen |
 | PUT | `/api/v1/products/{id}/metadata` | `PRODUCTOS` | Edita los metadatos |
 | PUT | `/api/v1/products/{id}/featured` | `PRODUCTOS` | Marca o desmarca como destacado. Body `{"featured": true, "order": 1}` |
-| GET | `/api/v1/products/{id}/pricing` | `PRECIOS` | Precio, costo, margen y margen % |
+| GET | `/api/v1/products/{id}/pricing` | `PRECIOS` | Precio, costo, margen, margen % y unidades vendidas (`soldCount`) |
 | PUT | `/api/v1/products/{id}/pricing` | `PRECIOS` | Cambia precio y costo. Body `{price, cost}` |
 
 ### Stock — `/api/v1/products`
@@ -212,16 +234,59 @@ obligatoria; una celda vacía no cambia el dato).
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
-| GET | `/api/v1/catalog/products?q&category&sort&page&size` | Público | Productos paginados (24 por página, máximo 100). `q` busca en nombre, descripción y categoría; `sort` = `name`, `price_asc` o `price_desc` (sin precio, al final). Devuelve `{items, page, size, totalItems, totalPages}` |
+| GET | `/api/v1/catalog/products?q&category&sort&page&size` | Público | Productos paginados (24 por página, máximo 100). `q` busca en nombre, descripción y categoría; `sort` = `name`, `price_asc`, `price_desc` (sin precio, al final) o `best_sellers` (más vendidos, sin mostrar el número). Devuelve `{items, page, size, totalItems, totalPages}` |
 | GET | `/api/v1/catalog/products/{slug}` | Público | Detalle por slug (para los links compartidos) |
 | GET | `/api/v1/catalog/categories` | Público | Categorías con su cantidad de productos |
+| GET | `/api/v1/catalog/bundles` | Público | Combos habilitados, con precio y todos sus productos vigentes: precio, precio de lista, disponibilidad, imagen y productos |
 
 El catálogo no muestra el stock exacto (`availability`: `DISPONIBLE`, `POCAS_UNIDADES` o `AGOTADO`) ni el costo. Un
-producto sin precio viene con `price: null` ("consultar"). Las respuestas se cachean en Redis por tenant y se
-invalidan con cada cambio de productos.
+producto sin precio viene con `price: null` ("consultar"). Cada producto y combo trae su `id`, que es lo que usa el
+carrito para armar el pedido. Las respuestas se cachean en Redis por tenant y se invalidan con cada cambio de
+productos, combos, stock o vendidos.
 
 ### Imágenes
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
 | GET | `/products/images/{archivo}` | Público | Archivo de imagen de un producto |
+
+### Internos — `/api/internal/products`
+
+Los usa sales. Todos son idempotentes por número de pedido (`reference`): reintentar no mueve el stock ni el contador
+dos veces.
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/api/internal/products/reservations` | Interno | Reserva el stock de un pedido. Body `{reference, items: [{type, id, quantity}], local}`. Todo o nada: sin stock, sin precio o no disponible → 409. Con `local: true` acepta ítems sin precio y, si falta stock, hace un `AJUSTE` y lo informa en `shortages`. Devuelve nombre, precio y costo de cada ítem |
+| POST | `/api/internal/products/reservations/{reference}/release` | Interno | Devuelve todo el stock que salió con ese pedido. Si la reserva todavía no llegó, la deja anulada |
+| POST | `/api/internal/products/reservations/{reference}/sold` | Interno | Suma los ítems al contador de vendidos. Body `{items}` |
+| POST | `/api/internal/products/reservations/{reference}/unsold` | Interno | Los resta |
+
+## decor-sales
+
+Reglas, estados y ejemplos en [ventas.md](ventas.md).
+
+### Checkout — `/api/v1/sales`
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/v1/sales/checkout` | Público | Datos para transferir, plazo para pagar, tipos de entrega y topes del pedido |
+| POST | `/api/v1/sales/orders` | Público (login opcional) | Crea el pedido y reserva el stock. Body `{items: [{type, id, quantity, price}], buyer, deliveryType, address, notes}`. 201 con número, total, vencimiento y datos para transferir. Precio cambiado → 409 con los precios nuevos |
+| POST | `/api/v1/sales/orders/lookup` | Público (email) | El pedido. Body `{email, number}` |
+| POST | `/api/v1/sales/orders/{number}/receipt` | Público (email) | Sube el comprobante (multipart `file` JPG/PNG/PDF hasta 5 MB y `email`; hasta 5 por pedido) → `PAGO_EN_REVISION` |
+| POST | `/api/v1/sales/orders/{number}/cancel` | Público (email) | Cancela si todavía no se validó el pago. Body `{email}` |
+| GET | `/api/v1/sales/orders/mine?page&size` | Login | Pedidos del usuario logueado, paginados |
+
+### Panel de ventas — `/api/v1/sales/admin`
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/api/v1/sales/admin/orders` | ADMINISTRADOR | Venta del local ya cobrada. Body `{items: [{type, id, quantity, price}], discount, paymentMethod, status, buyer, deliveryType, address, notes}` |
+| GET | `/api/v1/sales/admin/orders?status&channel&paymentMethod&stockReview&from&to&q&page&size` | ADMINISTRADOR | Lista paginada de pedidos con filtros |
+| GET | `/api/v1/sales/admin/orders/{number}` | ADMINISTRADOR | Detalle con costos, historial y comprobantes |
+| PUT | `/api/v1/sales/admin/orders/{number}/status` | ADMINISTRADOR | Valida, rechaza, avanza o cancela. Body `{status, reason}` (motivo obligatorio para rechazar o cancelar) |
+| GET | `/api/v1/sales/admin/orders/{number}/receipts/{id}` | ADMINISTRADOR | Descarga un comprobante |
+| GET | `/api/v1/sales/admin/reports/summary?from&to&groupBy&channel&paymentMethod` | ADMINISTRADOR | Totales por día, semana o mes con desglose por canal y medio de pago |
+| GET | `/api/v1/sales/admin/reports/products?from&to&channel&sort&limit` | ADMINISTRADOR | Ranking de productos y combos por unidades, facturado o ganancia |
+| GET | `/api/v1/sales/admin/settings` | ADMINISTRADOR | Configuración de ventas (datos para transferir y plazo de vencimiento) |
+| PUT | `/api/v1/sales/admin/settings` | ADMINISTRADOR | Cambia la configuración. Body `{alias, cbu, holder, bank, expirationHours}` |

@@ -11,6 +11,8 @@ Cómo se decide qué puede hacer cada usuario dentro de una tienda (tenant).
   personal.
 - Aparte existe `SUPERADMIN`, que administra la plataforma (no una tienda) y vive en el schema `public`.
   Ver [tenants.md](tenants.md).
+- **Ventas** todavía no tiene un área: el panel de ventas es solo del `ADMINISTRADOR`. Delegarlo a `EMPLEADO` (área
+  `VENTAS`) está anotado para después en [ventas.md](ventas.md).
 
 ## Áreas
 
@@ -102,11 +104,21 @@ Content-Type: application/json
 | `POST /api/v1/products/{id}/images`, `DELETE /api/v1/products/images/{imageId}` | PRODUCTOS |
 | `PUT /api/v1/products/{id}/metadata` | PRODUCTOS |
 | `PUT /api/v1/products/{id}/featured` | PRODUCTOS |
-| `GET` / `PUT /api/v1/products/{id}/pricing` | PRECIOS |
+| `GET` / `PUT /api/v1/products/{id}/pricing` | PRECIOS (incluye las unidades vendidas) |
 | `GET /api/v1/products/export`, `GET /api/v1/products/import/template`, `POST /api/v1/products/import` | PRODUCTOS **y** PRECIOS (el archivo trae precio y costo) |
 | `POST` / `GET /api/v1/products/{id}/stock/movements`, `GET /api/v1/products/stock/low` | STOCK |
 | `POST`, `PUT`, `DELETE /api/v1/bundles/**` (incluye `PUT /{id}/price`) | COMBOS |
 | `GET /api/v1/catalog/**` | Ninguno: es público |
+| `/api/internal/products/**` (reservas de stock y vendidos) | Token interno de los microservicios (rol `INTERNAL`); ningún usuario |
+
+### sales
+
+| Endpoint | Permiso |
+|---|---|
+| `GET /api/v1/sales/checkout`, `POST /api/v1/sales/orders` | Ninguno: es público. Si viene logueado, el pedido queda asociado al usuario |
+| `POST /api/v1/sales/orders/lookup`, `POST /api/v1/sales/orders/{number}/receipt`, `POST /api/v1/sales/orders/{number}/cancel` | Ninguno, pero piden el **email del pedido** (si no coincide, 404) |
+| `GET /api/v1/sales/orders/mine` | Cualquier usuario logueado (ve solo sus pedidos) |
+| `/api/v1/sales/admin/**` (pedidos, ventas del local, estados, comprobantes, reportes y configuración) | Rol `ADMINISTRADOR`. Un `EMPLEADO` no entra aunque tenga todas las áreas |
 
 ### users
 
@@ -118,8 +130,8 @@ Content-Type: application/json
 ## Cómo funciona por dentro
 
 ```
-users                                   products
-─────                                   ────────
+users                                   products y sales
+─────                                   ────────────────
 role_permissions (por schema)
   │ RolePermissionService.maskFor(rol)
   ▼
@@ -138,7 +150,7 @@ HeaderAuthFilter                                              HeaderAuthFilter
    (`type`, `permissions`). Si un rol no tiene fila, usa su valor por defecto.
 2. **Quién la calcula:** users (`RolePermissionService.maskFor`). `ADMINISTRADOR` devuelve siempre 31.
 3. **Cómo viaja:** en `RoleDto.permissions`, junto con el tipo de rol. Lo devuelven el login, `GET /api/v1/auth/me`,
-   los endpoints de roles y el endpoint interno que usa products (`/api/internal/users/roles/{id}`).
+   los endpoints de roles y el endpoint interno que usan products y sales (`/api/internal/users/roles/{id}`).
 4. **Cómo se aplica:** `CustomUserDetails` (en `decor-common`) convierte los roles en authorities `ROLE_<rol>` y la
    unión de las máscaras en `PERM_<área>`. Los `SecurityConfig` de cada servicio piden esas authorities.
 5. **Casos que no se pueden resolver solo con la URL:** el alta de producto revisa en el servicio si el usuario tiene
@@ -147,8 +159,9 @@ HeaderAuthFilter                                              HeaderAuthFilter
 ## Cuánto tarda en aplicarse un cambio
 
 - **users:** al instante (lee los permisos de la base en cada request).
-- **products:** **menos de 1 minuto**. Al cambiar los permisos, users borra de Redis los roles cacheados de todos los
-  usuarios de esa tienda (`user:*:<tenant>`, con `SCAN`), y products guarda los roles en su caché local solo 1 minuto.
+- **products y sales:** **menos de 1 minuto**. Al cambiar los permisos, users borra de Redis los roles cacheados de
+  todos los usuarios de esa tienda (`user:*:<tenant>`, con `SCAN`), y products y sales guardan los roles en su caché
+  local solo 1 minuto.
 
 ## Historia
 

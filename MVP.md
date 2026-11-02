@@ -1,6 +1,6 @@
 # Decor — Análisis y propuesta de MVP
 
-_Última actualización: 2026-11-01_
+_Última actualización: 2026-11-02_
 
 Objetivos del proyecto:
 - Probar tecnologías y arquitecturas modernas: microservicios, caché distribuida, multi-tenant.
@@ -15,7 +15,10 @@ Objetivos del proyecto:
 - **decorusers**: auth (login, registro, refresh, recupero de contraseña), usuarios, roles
   (`ADMINISTRADOR` / `EMPLEADO` / `CLIENTE`) y estadísticas de usuarios.
 - **product**: productos con imágenes y metadatos (material, color, medidas), combos (bundles), búsqueda,
-  **precio y costo**, **movimientos de stock** con alerta de stock bajo y **productos destacados**.
+  **precio y costo**, **movimientos de stock** con alerta de stock bajo, **productos destacados** y catálogo público
+  (con combos y orden por más vendidos).
+- **decor-sales**: ventas online y del local. Pedidos con reserva de stock, pago por transferencia con comprobante,
+  estados con historial, vencimiento automático y reportes. Ver [docs/ventas.md](docs/ventas.md).
 - **decor-common**: librería común (DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros).
 - **Multi-tenant por schema** en Postgres.
 - **Caché en dos niveles**: Caffeine (local) + Redis (distribuido).
@@ -38,18 +41,17 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 |---|---|---|---|---|
 | 1 | **Precio y costo** en productos y combos | Calcula el margen. Sin esto no sirve para vender | — | ☑ Sí — **hecho** |
 | 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) — pendiente para cuando exista ventas | ☑ Sí — **hecho** (sin eventos todavía) |
-| 3 | **Ventas**: carrito, pedido, pago por transferencia con comprobante y validación del administrador | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☑ Sí — **en curso** (plan en [docs/ventas.md](docs/ventas.md)) |
-| 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **planificado** ([docs/panel-admin.md](docs/panel-admin.md)): tienda y plataforma con los datos de hoy; ventas y observabilidad se suman después |
+| 3 | **Ventas**: carrito, pedido, pago por transferencia con comprobante y validación del administrador | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☑ Sí — **hecho** ([docs/ventas.md](docs/ventas.md)): pedidos, pagos, ventas del local y reportes. Comunicación síncrona e idempotente con products; eventos con outbox después |
+| 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **planificado** ([docs/panel-admin.md](docs/panel-admin.md)): tienda y plataforma con los datos de hoy; observabilidad se suma después. Ventas ya tiene sus reportes para enchufar |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **planificado** ([docs/auditoria.md](docs/auditoria.md)) |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
 
-> **Sobre ventas:** el `TODO` marca "MS ventas y logística" como **no entra**. Se recomienda incluir al menos
-> una versión mínima de ventas (punto 3). Sin ventas el sistema queda como un catálogo, y además es lo que
-> mejor muestra el valor de los microservicios: eventos, consistencia eventual y desacoplamiento.
-> La logística sí puede quedar afuera.
+> **Sobre ventas:** el `TODO` marcaba "MS ventas y logística" como **no entra**, pero se decidió incluir ventas
+> (punto 3): sin ventas el sistema queda como un catálogo, y es lo que mejor muestra el valor de los microservicios.
+> Está hecho en `decor-sales`. La logística quedó afuera.
 
 ---
 
@@ -66,8 +68,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 | # | Funcionalidad | Qué agrega | Decisión |
 |---|---|---|---|
-| P1 | **Que vendan los empleados**: área `VENTAS` delegable a `EMPLEADO` | En el local suele atender un empleado. Hoy el plan de ventas deja la gestión solo al administrador | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
-| P2 | **Código de producto / código de barras** y búsqueda rápida | Buscar o escanear en el mostrador. Hoy `Product` no tiene código | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
+| P1 | **Que vendan los empleados**: área `VENTAS` delegable a `EMPLEADO` | En el local suele atender un empleado. Hoy la gestión de ventas es solo del administrador | ☐ Sí ☐ No ☐ Después — se recomienda como próxima etapa de ventas |
+| P2 | **Código de producto / código de barras** y búsqueda rápida | Buscar o escanear en el mostrador. Hoy `Product` no tiene código | ☐ Sí ☐ No ☐ Después — se recomienda como próxima etapa de ventas |
 | P3 | **Caja**: apertura y cierre por turno, arqueo de efectivo (esperado vs. real), ingresos y egresos que no son ventas (gastos, retiros) | El control diario del local. No está en ningún plan | ☐ Sí ☐ No ☐ Después |
 | P4 | **Precio según medio de pago**: descuento por efectivo o transferencia, recargo por crédito o cuotas | Muy común en Argentina. Hoy solo existe el descuento a mano | ☐ Sí ☐ No ☐ Después |
 
@@ -75,8 +77,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 | # | Funcionalidad | Qué agrega | Decisión |
 |---|---|---|---|
-| P5 | **Stock reservado visible**: "3 en stock, 1 reservado por pedido online" | Un pedido online pendiente ya descontó stock; en el mostrador hay que verlo y decidir si se puede vender lo reservado | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
-| P6 | **Pagar al retirar**: pedido online que se paga en el local | Hoy el online solo se paga por transferencia. Se cierra con una venta del local a partir del pedido | ☐ Sí ☐ No ☐ Después — se recomienda sumarlo a ventas antes de la etapa 2 |
+| P5 | **Stock reservado visible**: "3 en stock, 1 reservado por pedido online" | Un pedido online pendiente ya descontó stock; en el mostrador hay que verlo y decidir si se puede vender lo reservado | ☐ Sí ☐ No ☐ Después — se recomienda como próxima etapa de ventas |
+| P6 | **Pagar al retirar**: pedido online que se paga en el local | Hoy el online se paga por transferencia (el administrador ya puede validar un pedido sin comprobante, pero no registra el medio de pago real) | ☐ Sí ☐ No ☐ Después — se recomienda como próxima etapa de ventas |
 | P7 | **Ficha de cliente única** (por email o teléfono) con el historial online y del local | Conocer al cliente y volver a contactarlo; base de la cuenta corriente | ☐ Sí ☐ No ☐ Después |
 | P8 | **Señas y saldo** (pagos parciales) | Clave para muebles a medida: se paga una parte al encargar y el resto al entregar | ☐ Sí ☐ No ☐ Después |
 | P9 | **Presupuestos y pedidos a medida**: se pide desde el catálogo, el administrador cotiza y se convierte en pedido (con seña) | Les da salida a los productos "a consultar" | ☐ Sí ☐ No ☐ Después |
@@ -94,8 +96,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 ### Orden sugerido
 
-1. **P1, P2, P5 y P6** dentro del plan de [ventas](docs/ventas.md), antes de la etapa 2: son cambios chicos sobre
-   algo ya diseñado.
+1. **P1, P2, P5 y P6** como próxima etapa de [ventas](docs/ventas.md): son cambios chicos sobre algo que ya
+   existe.
 2. **Caja (P3)** y **precio según medio de pago (P4)**, como etapa nueva de ventas.
 3. **Ficha de cliente, señas y presupuestos (P7, P8, P9)** como módulo propio: la parte "a medida" del negocio.
 4. **Proveedores y compras (P10)** y después **gastos y resultado (P11)**.
@@ -119,11 +121,12 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 1. ~~**Precios** (punto 1)~~ — **hecho**.
 2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
-3. **Ventas** (punto 3) — **en curso**, en 4 etapas: ver [docs/ventas.md](docs/ventas.md). El pedido reserva stock
+3. ~~**Ventas** (punto 3)~~ — **hecho** en 3 etapas: ver [docs/ventas.md](docs/ventas.md). El pedido reserva stock
    (`SALIDA` por cada producto o por cada producto del combo) y lo devuelve si se cancela o vence.
-4. **Panel de administración** (punto 4) — **planificado** en [docs/panel-admin.md](docs/panel-admin.md), con los datos de hoy; ventas y observabilidad se suman cuando existan.
+4. **Panel de administración** (punto 4) — **planificado** en [docs/panel-admin.md](docs/panel-admin.md), con los datos de hoy y los reportes de ventas; observabilidad se suma cuando exista.
 5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
-6. **Gestión presencial** (sección 3): P1, P2, P5 y P6 junto con ventas; el resto después, en el orden de esa sección.
+6. **Gestión presencial** (sección 3): P1, P2, P5 y P6 como próxima etapa de ventas; el resto después, en el orden de
+   esa sección.
 
 ---
 
@@ -180,12 +183,26 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-01 | **Auditoría** de cambios de datos, acciones de plataforma y lecturas sensibles, con antes/después de los campos cambiados, por **outbox** hacia observability; se guarda **para siempre** y cada uno ve lo suyo (admin su tienda, superadmin la plataforma) | Control sobre lo que hace cada usuario sin perder eventos ni mezclar datos de tiendas |
 | 2026-11-01 | **Panel de administración** con los datos de hoy y **cada servicio arma su resumen** (products: productos y stock; users: usuarios, tenants, uso por tenant y superadmins). Panel de la tienda solo para `ADMINISTRADOR`; `/users/stats` se reemplaza | Si un servicio se cae el resto del panel funciona; ventas y observabilidad se enchufan después con el mismo formato |
 | 2026-11-01 | Períodos con `from`, `to` y `groupBy` (día/semana/mes) con ceros; activo = login en 30 días; uso por tenant cacheado 5 min; superadmins con contraseña temporal y desactivación por `deletedAt` | Series listas para graficar; recorrer todos los schemas es caro; reutilizar el borrado lógico existente |
+| 2026-11-02 | `backend/settings.gradle` agrupa los proyectos del backend con `includeBuild` (cada uno sigue siendo independiente) | Importar todo el backend en Eclipse de una vez |
+| 2026-11-02 | Ventas: **se reserva el stock primero** y después se guarda el pedido; si algo falla, sales pide devolver. products recuerda cada reserva por número (`stock_reservations`): reservar, devolver y vendidos son **idempotentes** y una devolución que llega antes que la reserva la anula | Que un timeout o un reintento no deje stock descontado sin pedido ni lo descuente dos veces |
+| 2026-11-02 | Número de pedido `XXXX-XXXX` sin caracteres confusos, **único por tienda** | Se puede dictar y no se puede recorrer |
+| 2026-11-02 | Pedido online: hasta **30 líneas y 20 unidades** por línea; comprador con nombre, email y teléfono; envío con dirección completa. Rate limit: 5 pedidos, 10 consultas o cancelaciones y 5 comprobantes por minuto | Frenar abuso del checkout público |
+| 2026-11-02 | Si el precio cambió entre el carrito y el pedido, **409 con los precios nuevos** y el pedido no se crea | Que el comprador no pague otro precio sin enterarse |
+| 2026-11-02 | **Login opcional** al crear un pedido: el gateway pasa el usuario si el token es válido y responde 401 si es inválido | Asociar el pedido a "mis pedidos" sin obligar a registrarse |
+| 2026-11-02 | **Combos en el catálogo público** (habilitados, con precio y productos vigentes) e `id` en los productos del catálogo | El carrito necesita el id para armar el pedido; antes los combos no se podían comprar |
+| 2026-11-02 | Comprobantes: JPG, PNG o PDF hasta 5 MB (tipo por contenido), **hasta 5 por pedido, no se borran**. El administrador puede validar sin comprobante; rechazar y cancelar piden motivo | Respaldo de cada venta; cubrir pagos por otro medio |
+| 2026-11-02 | Vencimiento **cada 1 hora** recorriendo las tiendas; un pedido en revisión no vence | Liberar el stock reservado sin cargar el servicio |
+| 2026-11-02 | Pedido con **control optimista** (`@Version`): admin, comprador y vencimiento no se pisan (409) | Evitar estados inconsistentes sin bloquear filas |
+| 2026-11-02 | Venta del local: descuento en **monto fijo** con tope el subtotal; topes de 100 líneas y 999 unidades; al **anular vuelve todo lo vendido**, también lo ajustado | La mercadería devuelta existe aunque el sistema dijera que no |
+| 2026-11-02 | Reportes: venta = pedido pagado, con su **fecha de pago** (`paid_at`); días en la **zona de la tienda** (`sales.reports.zone`, Argentina); **sin caché ni CSV** por ahora | Que una venta de la noche no caiga en el día siguiente; números siempre al día |
+| 2026-11-02 | Contador de vendidos en el precio del producto (solo `PRECIOS`) y orden `best_sellers` en el catálogo sin mostrar el número | No exponer cuánto vende la tienda |
 
 ### Detalle de la librería común
 
 - **`com.decor.common`** (todos los servicios): `TenantDto`, `RoleDto`, `Headers`, `RedisTemplate`, caché Caffeine e
   `InternalTokenService` (tokens entre servicios).
-- **`com.decor.common.servlet`** (users, products): Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
+- **`com.decor.common.dto.stock`** (products, sales): DTOs de las reservas de stock y del contador de vendidos.
+- **`com.decor.common.servlet`** (users, products, sales): Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
   `CustomUserDetails`, `ApiException` y `GlobalExceptionHandler`.
 - Cada servicio implementa `TenantSchemaManager` en su `TenantDataSource`.
 - En users el tenant es opcional: `decor.tenant.required=false`.
@@ -199,9 +216,14 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 - **users migra el schema en cada conexión:** su `TenantDataSource.prepareSchema` corre `runMigration`
   (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
   si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
-- **Tests que ya fallaban:** los `contextLoads` y el `UserServiceTest` de users necesitan Postgres levantado;
-  dos tests de `ProductServiceTest` (`deleteProductById_*`) no coinciden con `ProductService` (stub de más y
-  "Product not found").
+- **Tests que ya fallaban:** los `contextLoads` de users y products y el `UserServiceTest` de users necesitan
+  Postgres levantado; dos tests de `ProductServiceTest` (`deleteProductById_*`) no coinciden con `ProductService`
+  (el test mockea `existsById` y el servicio usa `findById`).
+- **Ventas sin eventos:** si una vuelta atrás en products también falla (devolver stock o restar vendidos), queda
+  logueado con el número del pedido para corregirlo a mano. Y si al cancelar se devuelve el stock pero otro cambió el
+  pedido al mismo tiempo, el stock vuelve y el pedido sigue activo (validarlo después da error). Lo resuelve el outbox.
+- **Bases de desarrollo de la etapa 1 de ventas:** `order_items.list_price` quedó `NOT NULL`; para vender productos
+  "a consultar" en el local hay que sacarlo a mano (ver [docs/ventas.md](docs/ventas.md)).
 - **Rate limit por `X-Forwarded-For`:** ese header lo puede mandar el cliente, así que se puede esquivar el límite
   (también el del alta de tenants) cambiándolo en cada request. Si el gateway queda expuesto directo a internet,
   conviene tomar la IP de la conexión o confiar en el header solo detrás de un proxy propio.
@@ -284,11 +306,12 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 | Endpoint | Qué hace |
 |---|---|
-| `GET /api/v1/catalog/products?q&category&sort&page&size` | Página de productos. `q` busca en nombre, descripción y categoría; `sort` = `name` (defecto), `price_asc`, `price_desc`; `size` 24 por defecto, máximo 100. Devuelve `{items, page, size, totalItems, totalPages}` |
+| `GET /api/v1/catalog/products?q&category&sort&page&size` | Página de productos. `q` busca en nombre, descripción y categoría; `sort` = `name` (defecto), `price_asc`, `price_desc`, `best_sellers`; `size` 24 por defecto, máximo 100. Devuelve `{items, page, size, totalItems, totalPages}` |
 | `GET /api/v1/catalog/products/{slug}` | Detalle para el link compartido (imágenes en orden y metadatos) |
 | `GET /api/v1/catalog/categories` | Categorías con la cantidad de productos |
+| `GET /api/v1/catalog/bundles` | Combos que se pueden comprar, con precio, precio de lista, disponibilidad e imagen |
 
-- Cada producto devuelve `slug, name, category, description, price, availability, featured, images`. El listado y el
+- Cada producto devuelve `id, slug, name, category, description, price, availability, featured, images`. El listado y el
   detalle del panel (`/api/v1/products`) también devuelven `slug`, para armar el botón de compartir.
 - **Vistas previas en WhatsApp/Instagram:** las etiquetas Open Graph las genera el frontend (Next.js `generateMetadata`)
   con el detalle por slug.
