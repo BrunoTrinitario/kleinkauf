@@ -22,6 +22,7 @@ import com.decor.sales.entities.SalesChannel;
 import com.decor.sales.repositories.OrderRepository;
 import com.decor.sales.repositories.PaymentReceiptRepository;
 import com.decor.sales.util.ReceiptStorage;
+import com.decor.sales.util.SalesTime;
 import com.decor.sales.util.SecurityUtil;
 import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +85,9 @@ public class AdminOrderService {
     @Autowired
     private ReceiptStorage receiptStorage;
 
+    @Autowired
+    private SalesTime salesTime;
+
     // Comprobante a descargar: el registro y el archivo
     public record ReceiptFile(PaymentReceipt receipt, Resource file) {
     }
@@ -97,7 +101,7 @@ public class AdminOrderService {
     public PageDto<OrderSummaryDto> list(Filter filter, Integer page, Integer size) throws ApiException {
         PageRequest pageRequest = OrderService.pageRequest(page, size)
                 .withSort(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
-        return OrderService.toPage(orderRepository.findAll(specification(filter), pageRequest));
+        return OrderService.toPage(orderRepository.findAll(specification(filter, salesTime), pageRequest));
     }
 
     @Transactional(readOnly = true)
@@ -257,7 +261,8 @@ public class AdminOrderService {
         return value.length() <= 500 ? value : value.substring(0, 500);
     }
 
-    static Specification<Order> specification(Filter filter) throws ApiException {
+    // from y to son dias de la tienda (SalesTime), no del servidor
+    static Specification<Order> specification(Filter filter, SalesTime time) throws ApiException {
         OrderStatus status = parse(OrderStatus.class, filter.status(), "status");
         SalesChannel channel = parse(SalesChannel.class, filter.channel(), "channel");
         PaymentMethod paymentMethod = parse(PaymentMethod.class, filter.paymentMethod(), "paymentMethod");
@@ -271,8 +276,8 @@ public class AdminOrderService {
             if (channel != null) predicates.add(cb.equal(root.get("channel"), channel));
             if (paymentMethod != null) predicates.add(cb.equal(root.get("paymentMethod"), paymentMethod));
             if (filter.stockReview() != null) predicates.add(cb.equal(root.get("stockReview"), filter.stockReview()));
-            if (from != null) predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
-            if (to != null) predicates.add(cb.lessThan(root.get("createdAt"), to.plusDays(1).atStartOfDay()));
+            if (from != null) predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), time.startOfDay(from)));
+            if (to != null) predicates.add(cb.lessThan(root.get("createdAt"), time.startOfDay(to.plusDays(1))));
             if (q != null) {
                 // Por numero (exacto, sin importar mayusculas) o por parte del email
                 predicates.add(cb.or(

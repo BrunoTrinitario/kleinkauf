@@ -12,6 +12,7 @@ public class ErrorMessages {
     public static final String ORDER_NOT_CREATED = "The order could not be created right now. Please try again in a few minutes";
     public static final String INVALID_SETTINGS = "Alias must have 6 to 20 letters, numbers, dots or hyphens, CBU 22 digits, holder and bank up to 100 characters and the expiration between 1 and 720 hours";
     public static final String INVALID_FILTER = "Invalid filter: %s";
+    public static final String INVALID_REPORT_RANGE = "The date range must have from before to and be %d days or shorter";
     public static final String INVALID_PAGE = "The page must be 0 or greater and the size between 1 and 100";
     public static final String INVALID_RECEIPT = "The receipt must be a JPG, PNG or PDF file of 5 MB or less";
     public static final String RECEIPT_NOT_ALLOWED = "Receipts can only be uploaded while the order is waiting for payment and before it expires";

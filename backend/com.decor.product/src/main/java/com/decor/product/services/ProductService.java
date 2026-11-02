@@ -227,7 +227,7 @@ public class ProductService {
                         .divide(price, 2, RoundingMode.HALF_UP);
             }
         }
-        return new PricingDto(product.getId(), price, cost, margin, marginPercent);
+        return new PricingDto(product.getId(), price, cost, margin, marginPercent, product.getSoldCount());
     }
 
     private void validatePrices(BigDecimal price, BigDecimal cost) throws ApiException {

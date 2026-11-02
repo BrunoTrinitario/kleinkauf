@@ -213,8 +213,10 @@ public class StockReservationService {
                 .orElseThrow(() -> new ApiException(ErrorMessages.RESERVATION_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
-    // Los productos y combos borrados se saltean: el pedido conserva sus datos
+    // Los productos y combos borrados se saltean: el pedido conserva sus datos.
+    // Invalida el catalogo: el orden "mas vendidos" depende del contador
     private void addSold(SoldItemsDto dto, int sign) {
+        catalogCache.invalidate();
         for (ReservationItemDto item : dto.items()) {
             int delta = sign * item.quantity();
             if (item.type() == ReservationItemType.PRODUCT) {

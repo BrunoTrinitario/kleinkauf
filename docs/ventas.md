@@ -2,10 +2,10 @@
 
 Microservicio de ventas: el comprador arma el carrito en la tienda, crea el pedido (que reserva el stock en products),
 paga por transferencia y sube el comprobante. El administrador valida el pago, sigue la preparación y la entrega,
-carga las ventas del local y configura los datos para cobrar.
+carga las ventas del local, mira los reportes y configura los datos para cobrar.
 
-> Estado: **etapas 1 y 2 de 3 implementadas** (pedidos, pagos y ventas del local). Los reportes están en
-> [Pendiente](#pendiente).
+> Estado: **implementado** (las 3 etapas del plan: pedidos; pagos y ventas del local; reportes). Lo que queda para
+> más adelante está en [Para después](#para-después).
 
 ## Resumen
 
@@ -15,6 +15,7 @@ carga las ventas del local y configura los datos para cobrar.
 | Servicio | `sales-microservice`, puerto **3003**, registrado en Eureka |
 | Base | Postgres `sales`, **un schema por tenant** (se crea y migra solo, igual que products) |
 | Archivos | Comprobantes en disco: `receipts.path` (`uploads/sales/receipts`), una carpeta por tienda y pedido |
+| Zona horaria | `sales.reports.zone` (`America/Argentina/Buenos_Aires`): qué es "un día" en los reportes y en los filtros de fecha |
 | Tenant | Obligatorio: sin `X-Forwarded-Host` responde 404 |
 | Gateway | `/api/v1/sales/**` → `lb://sales-microservice` |
 | Depende de | **products** (stock y contador de vendidos) y **users** (roles del usuario, tenants) |
@@ -42,10 +43,12 @@ carga las ventas del local y configura los datos para cobrar.
 | Método | Ruta | Qué hace |
 |---|---|---|
 | POST | `/api/v1/sales/admin/orders` | **Venta del local** ya cobrada (201). Ver [Venta del local](#venta-del-local) |
-| GET | `/api/v1/sales/admin/orders` | Lista paginada. Filtros: `status`, `channel`, `paymentMethod`, `stockReview`, `from` y `to` (`yyyy-MM-dd`, inclusive), `q` (número exacto o parte del email), `page`, `size` |
+| GET | `/api/v1/sales/admin/orders` | Lista paginada, más nuevos primero. Filtros: `status`, `channel`, `paymentMethod`, `stockReview`, `from` y `to` (`yyyy-MM-dd`, días de la tienda, inclusive), `q` (número exacto o parte del email), `page`, `size` |
 | GET | `/api/v1/sales/admin/orders/{number}` | Detalle: comprador, entrega, ítems con precio de lista, precio cobrado y costo, historial con el usuario de cada cambio y comprobantes |
 | PUT | `/api/v1/sales/admin/orders/{number}/status` | `{status, reason}`: validar, rechazar, avanzar o cancelar. Ver [Cambios de estado](#cambios-de-estado) |
 | GET | `/api/v1/sales/admin/orders/{number}/receipts/{id}` | Descarga un comprobante (`attachment; filename="comprobante-<número>-<id>.<ext>"`) |
+| GET | `/api/v1/sales/admin/reports/summary` | Totales por día, semana o mes, desglosados por canal y medio de pago. Ver [Reportes](#reportes) |
+| GET | `/api/v1/sales/admin/reports/products` | Ranking de productos y combos por unidades, facturado o ganancia |
 | GET | `/api/v1/sales/admin/settings` | Configuración de ventas de la tienda |
 | PUT | `/api/v1/sales/admin/settings` | `{alias, cbu, holder, bank, expirationHours}`. Los campos vacíos se guardan como `null`; `expirationHours` vacío = 48 |
 
@@ -190,6 +193,44 @@ POST /api/v1/sales/admin/orders
 - **Anular:** se cancela con motivo como cualquier pedido. Vuelve **todo lo vendido** al stock (también lo que se
   había ajustado: la mercadería existe aunque el sistema dijera que no) y se resta de vendidos.
 
+### Reportes
+
+Una **venta** es un pedido en `PAGADO`, `EN_PREPARACION`, `LISTO` o `ENTREGADO`, y su fecha es la del pago
+(`paid_at`: cuando se validó, o cuando se cargó la venta del local). Un pedido cancelado después de pagar deja de
+contar. Los montos usan los precios y costos guardados al vender, no los actuales.
+
+| Parámetro | Regla |
+|---|---|
+| `from`, `to` | `yyyy-MM-dd`, días de la tienda, inclusive. Por defecto los últimos 30 días hasta hoy. Máximo **366 días** |
+| `groupBy` (resumen) | `day` (por defecto), `week` (desde el lunes) o `month` |
+| `channel` | `ONLINE` o `LOCAL`; vacío = los dos |
+| `paymentMethod` (resumen) | `EFECTIVO`, `TRANSFERENCIA`, `DEBITO`, `CREDITO` u `OTRO`; vacío = todos |
+| `sort` (ranking) | `units` (por defecto), `revenue` o `profit` |
+| `limit` (ranking) | 1 a 100, 20 por defecto |
+
+Cada total trae:
+
+| Campo | Qué es |
+|---|---|
+| `orders`, `units` | Pedidos y unidades vendidas |
+| `revenue` | Lo cobrado: totales de los pedidos con el descuento ya restado |
+| `discounts` | Descuentos de las ventas del local |
+| `cost` | Costo de las unidades vendidas (costo guardado al vender) |
+| `profit` | `revenue - cost` |
+| `unitsWithoutCost` | Unidades sin costo cargado. Si es mayor a 0, la ganancia es más alta de lo real: el panel lo tiene que avisar |
+
+- **Resumen:** totales del rango, un período por día/semana/mes (también los que no tuvieron ventas, en cero, para
+  graficar sin huecos) y el desglose por canal y por medio de pago (solo los que tuvieron ventas).
+- **Ranking:** un renglón por producto o combo (un combo y un producto con el mismo id son renglones distintos), con
+  el nombre de la venta más reciente. Ahí `revenue` suma los subtotales de las líneas: es **antes** del descuento del
+  pedido, que no se reparte entre los ítems. Empates por nombre.
+- **Zona horaria:** los pedidos se guardan en la hora del servidor (UTC), pero los días se cortan en la zona de la
+  tienda: una venta del lunes a las 22 hs en Argentina es del lunes. Los filtros `from`/`to` de la lista de pedidos
+  usan la misma regla.
+- Se calculan al pedirlos, **sin caché**: leen las ventas del rango de una sola tienda. Si crece el volumen, el
+  primer paso es agregar caché o tablas resumen.
+- Pedidos que se pagaron antes de que existiera `paid_at` usan su fecha de creación.
+
 ### Configuración de ventas
 
 | Campo | Regla |
@@ -323,7 +364,7 @@ Tablas por schema en la base `sales`:
 
 | Tabla | Qué guarda |
 |---|---|
-| `orders` | Número, estado, canal (`ONLINE` / `LOCAL`), medio de pago, comprador, `user_id`, entrega y dirección, notas, descuento, total, `stock_review`, `expires_at`, `version` (control optimista), fechas |
+| `orders` | Número, estado, canal (`ONLINE` / `LOCAL`), medio de pago, comprador, `user_id`, entrega y dirección, notas, descuento, total, `stock_review`, `expires_at`, `paid_at` (fecha de la venta en los reportes), `version` (control optimista), fechas |
 | `order_items` | Tipo (`PRODUCT` / `BUNDLE`), `item_id`, nombre, cantidad, precio de lista (null si era "a consultar"), precio cobrado, costo unitario y subtotal al momento de la venta |
 | `order_status_history` | Estado, fecha, usuario (null si fue un invitado o el sistema) y motivo |
 | `payment_receipts` | Ruta del archivo (relativa a `receipts.path`), tipo, tamaño y fecha |
@@ -333,7 +374,8 @@ En products:
 - `stock_reservations`: referencia, estado, si ya sumó a vendidos (`sold`) y los productos que faltaron
   (`shortages`).
 - La columna `reference` en `stock_movements`.
-- `sold_count` en productos y combos. Todavía no se muestra en ningún lado: es para los reportes.
+- `sold_count` en productos y combos: unidades vendidas de siempre. Se ve en `GET /api/v1/products/{id}/pricing`
+  (permiso `PRECIOS`) y ordena el catálogo con `sort=best_sellers`, sin mostrar el número.
 
 > Bases de desarrollo creadas con la etapa 1: Hibernate (`ddl-auto=update`) no saca el `NOT NULL` de
 > `order_items.list_price`. Para vender productos "a consultar" en el local, correr en cada schema:
@@ -345,7 +387,8 @@ En products:
   - Endpoints internos de reserva y vendidos (rol `INTERNAL` para `/api/internal/**`).
   - Combos en el catálogo público (`GET /api/v1/catalog/bundles`, con disponibilidad e imagen del primer
     producto) e `id` en los productos del catálogo.
-  - `sold_count` en productos y combos. Los cambios en combos invalidan la caché del catálogo.
+  - `sold_count` en productos y combos, en el precio del producto (`soldCount`) y orden `best_sellers` en el
+    catálogo. Sumar o restar vendidos y los cambios en combos invalidan la caché del catálogo.
 - **gateway:**
   - Ruta a sales y rutas públicas del checkout. El placeholder `{code}` en `PermittedUrls` es un solo segmento
     del path.
@@ -353,22 +396,14 @@ En products:
   - Límites `limit.order`, `limit.lookup` y `limit.receipt`.
 - **deploy:** base `sales` en `init.sql` y `sales-service` en `docker-compose.dev.yml`.
 
-## Pendiente
-
-### Etapa 3: reportes
-
-- Totales por día/semana/mes, por producto/combo (ranking) y ganancia (precio cobrado − costo guardado),
-  desglosados por canal y medio de pago.
-- Mostrar el contador de vendidos en el panel y orden "más vendidos" en el catálogo (sin mostrar el número).
-
-Para decidir: zona horaria de los reportes, si se cachean y si se exportan a CSV.
-
-### Para después
+## Para después
 
 - **Mercado Pago** (pago automático: el webhook pondría `PAGADO`).
 - **Eventos** (Redis Streams + outbox) para stock y vendidos, en vez de llamadas síncronas.
 - **Avisos por email** al comprador y a la tienda.
 - Comprobante imprimible (no fiscal) de la venta del local.
+- Exportar los reportes a CSV y caché de los reportes si el volumen lo pide.
+- Zona horaria por tienda (hoy es una para todo el servicio).
 - Costo de envío y logística.
 - Delegar la gestión de pedidos a `EMPLEADO` (área `VENTAS` en los permisos).
 - Actualizar `endpoints.md`, `tenants.md`, `permisos.md` y `MVP.md` con sales.

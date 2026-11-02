@@ -6,6 +6,7 @@ import com.decor.common.security.InternalTokenService;
 import com.decor.common.security.PermissionArea;
 import com.decor.common.servlet.tenant.TenantFilter;
 import com.decor.sales.config.SalesExceptionHandler;
+import com.decor.sales.controllers.AdminReportController;
 import com.decor.sales.controllers.AdminSalesController;
 import com.decor.sales.controllers.OrderController;
 import com.decor.sales.dto.PriceChangeDto;
@@ -14,6 +15,7 @@ import com.decor.sales.security.SecurityConfig;
 import com.decor.sales.services.AdminOrderService;
 import com.decor.sales.services.OrderService;
 import com.decor.sales.services.PricesChangedException;
+import com.decor.sales.services.ReportService;
 import com.decor.sales.services.SalesSettingsService;
 import com.decor.sales.services.UserService;
 import com.decor.common.dto.stock.ReservationItemType;
@@ -47,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {OrderController.class, AdminSalesController.class})
+@WebMvcTest(controllers = {OrderController.class, AdminSalesController.class, AdminReportController.class})
 @Import({SecurityConfig.class, SalesExceptionHandler.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -80,6 +82,9 @@ class SecurityRulesTest {
 
 	@MockitoBean
 	private SalesSettingsService settingsService;
+
+	@MockitoBean
+	private ReportService reportService;
 
 	private MockHttpServletRequestBuilder as(Long userId, MockHttpServletRequestBuilder request) {
 		when(userService.getUserRolesById(ADMIN)).thenReturn(List.of(new RoleDto("ADMINISTRADOR", PermissionArea.ALL)));
@@ -151,6 +156,16 @@ class SecurityRulesTest {
 				.andExpect(status().isOk())
 				.andExpect(content().contentType("application/pdf"))
 				.andExpect(header().string("Content-Disposition", "attachment; filename=\"comprobante-K7QM-4X2P-1.pdf\""));
+	}
+
+	@Test
+	void reportes_soloAdministrador() throws Exception {
+		for (Long user : new Long[]{null, CLIENTE, EMPLEADO}) {
+			mockMvc.perform(as(user, get("/api/v1/sales/admin/reports/summary"))).andExpect(status().isForbidden());
+			mockMvc.perform(as(user, get("/api/v1/sales/admin/reports/products"))).andExpect(status().isForbidden());
+		}
+		mockMvc.perform(as(ADMIN, get("/api/v1/sales/admin/reports/summary").param("groupBy", "month"))).andExpect(status().isOk());
+		mockMvc.perform(as(ADMIN, get("/api/v1/sales/admin/reports/products").param("sort", "profit"))).andExpect(status().isOk());
 	}
 
 	@Test

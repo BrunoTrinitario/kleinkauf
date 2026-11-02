@@ -20,7 +20,7 @@ public class CatalogController {
     @Autowired
     private CatalogService catalogService;
 
-    // sort: name (por defecto) | price_asc | price_desc. size: 24 por defecto, maximo 100
+    // sort: name (por defecto) | price_asc | price_desc | best_sellers. size: 24 por defecto, maximo 100
     @GetMapping("/products")
     public ResponseEntity<CatalogPageDto> search(
             @RequestParam(required = false) String q,

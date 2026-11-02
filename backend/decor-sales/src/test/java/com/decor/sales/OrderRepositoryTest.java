@@ -18,6 +18,7 @@ import com.decor.sales.services.OrderService;
 import com.decor.sales.services.OrderStatusService;
 import com.decor.sales.services.OrderStock;
 import com.decor.sales.util.ReceiptStorage;
+import com.decor.sales.util.SalesTime;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
@@ -41,7 +42,7 @@ que si estan mal solo fallan al arrancar el servicio o al usarlas.
 		"spring.datasource.url=jdbc:h2:mem:sales;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
 		"spring.jpa.hibernate.ddl-auto=create-drop"
 })
-@Import(AdminOrderService.class)
+@Import({AdminOrderService.class, SalesTime.class})
 class OrderRepositoryTest {
 
 	@Autowired

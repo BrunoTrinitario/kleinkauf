@@ -72,6 +72,7 @@ public class CatalogRepository {
             case NAME -> " ORDER BY p.name ASC";
             case PRICE_ASC -> " ORDER BY p.price ASC NULLS LAST, p.name ASC";
             case PRICE_DESC -> " ORDER BY p.price DESC NULLS LAST, p.name ASC";
+            case BEST_SELLERS -> " ORDER BY p.soldCount DESC, p.name ASC";
         };
     }
 

@@ -15,7 +15,8 @@ import java.util.List;
 @Table(name = "orders", indexes = {
         @Index(name = "idx_orders_user", columnList = "user_id"),
         @Index(name = "idx_orders_created", columnList = "created_at"),
-        @Index(name = "idx_orders_expiration", columnList = "status, expires_at")
+        @Index(name = "idx_orders_expiration", columnList = "status, expires_at"),
+        @Index(name = "idx_orders_paid", columnList = "paid_at")
 })
 @Getter
 @Setter
@@ -84,6 +85,10 @@ public class Order {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    // Cuando se valido el pago (o se cargo la venta del local): la fecha de la venta en los reportes
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -128,6 +133,7 @@ public class Order {
         LocalDateTime now = LocalDateTime.now();
         this.status = newStatus;
         this.updatedAt = now;
+        if (newStatus == OrderStatus.PAGADO) this.paidAt = now;
         OrderStatusHistory entry = new OrderStatusHistory();
         entry.setOrder(this);
         entry.setStatus(newStatus);
