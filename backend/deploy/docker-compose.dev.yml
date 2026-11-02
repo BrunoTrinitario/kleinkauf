@@ -74,6 +74,19 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3002/"]
 
+  sales-service:
+    image: gradle:8.14.3-jdk21
+    container_name: sales-service
+    working_dir: /app
+    volumes:
+      - ../decor-sales:/app
+      - ../decor-common:/decor-common
+      - gradle-cache:/home/gradle/.gradle
+    ports:
+      - "3003:3003"
+    command: gradle bootRun
+    restart: unless-stopped
+
   user-service:
     <<: *service
     container_name: user-service

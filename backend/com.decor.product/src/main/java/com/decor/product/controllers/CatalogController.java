@@ -1,6 +1,7 @@
 package com.decor.product.controllers;
 
 import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.product.dto.catalog.CatalogBundleDto;
 import com.decor.product.dto.catalog.CatalogPageDto;
 import com.decor.product.dto.catalog.CatalogProductDetailDto;
 import com.decor.product.dto.catalog.CategoryDto;
@@ -34,6 +35,11 @@ public class CatalogController {
     @GetMapping("/products/{slug}")
     public ResponseEntity<CatalogProductDetailDto> getBySlug(@PathVariable String slug) throws ApiException {
         return ResponseEntity.ok(catalogService.getBySlug(slug));
+    }
+
+    @GetMapping("/bundles")
+    public ResponseEntity<List<CatalogBundleDto>> bundles() {
+        return ResponseEntity.ok(catalogService.bundles());
     }
 
     @GetMapping("/categories")

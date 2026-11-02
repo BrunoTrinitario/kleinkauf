@@ -13,6 +13,8 @@ public class GatewayRoutes {
     private String userUrl;
     @Value("${products.url}")
     private String productUrl;
+    @Value("${sales.url}")
+    private String salesUrl;
 
 
     @Bean
@@ -33,6 +35,10 @@ public class GatewayRoutes {
                 .route("catalog", r -> r
                         .path("/api/v1/catalog/**")
                         .uri(productUrl))
+
+                .route("sales", r -> r
+                        .path("/api/v1/sales/**")
+                        .uri(salesUrl))
 
                 .route("users", r -> r
                         .path("/api/v1/users/**")

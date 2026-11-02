@@ -32,6 +32,25 @@ class RateLimitTest {
         ReflectionTestUtils.setField(filter, "loginLimit", 5);
         ReflectionTestUtils.setField(filter, "signupLimit", 3);
         ReflectionTestUtils.setField(filter, "globalLimit", 300);
+        ReflectionTestUtils.setField(filter, "orderLimit", 5);
+        ReflectionTestUtils.setField(filter, "lookupLimit", 10);
+    }
+
+    @Test
+    void crearPedido_permite5PorMinuto_yConsultar10() {
+        for (int i = 0; i < 5; i++) {
+            assertNull(statusOf("POST", "/api/v1/sales/orders"), "pedido " + (i + 1));
+        }
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/sales/orders"));
+
+        for (int i = 0; i < 10; i++) {
+            assertNull(statusOf("POST", "/api/v1/sales/orders/lookup"), "consulta " + (i + 1));
+        }
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/sales/orders/lookup"));
+
+        // Mis pedidos y el panel usan el limite general
+        assertNull(statusOf("GET", "/api/v1/sales/orders/mine"));
+        assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/sales/admin/orders"));
     }
 
     @Test

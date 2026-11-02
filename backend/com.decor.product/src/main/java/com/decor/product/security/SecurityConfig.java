@@ -23,6 +23,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Llamadas de otros microservicios (reservas de stock de sales)
+                        .requestMatchers("/api/internal/**").hasRole("INTERNAL")
                         // Catalogo publico
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                         // Permisos por area (PermissionArea). El ADMINISTRADOR tiene todas;

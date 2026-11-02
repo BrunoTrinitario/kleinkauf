@@ -148,14 +148,21 @@ PENDIENTE_PAGO ──sube comprobante──► PAGO_EN_REVISION ──valida─�
 
 ## Para decidir al arrancar cada etapa
 
-**Etapa 1**
-- Consistencia si falla la llamada a products (pedido guardado sin reserva, o reserva sin pedido): orden de los
-  pasos y compensación.
-- Formato del número de pedido y si es único por tienda o global.
-- Topes exactos (líneas por pedido, unidades por línea) y límites del rate limit.
-- Datos obligatorios del comprador y de la dirección.
-- Qué devuelve el catálogo de los combos (disponibilidad, imágenes).
-- Si un cambio de precio entre el carrito y el pedido se avisa o se acepta el precio nuevo.
+**Etapa 1** (decidido)
+- Consistencia: **se reserva primero** (con el número de pedido como referencia) y después se guarda el pedido.
+  Si falla el guardado, la reserva da timeout o cambió un precio, sales pide **devolver**. products ignora la
+  devolución de una reserva que no existe y rechaza la reserva que llegue después (tabla `stock_reservations`).
+- Número: `XXXX-XXXX` con letras y números sin caracteres confusos (sin 0/O, 1/I/L), **único por tienda**.
+- Topes: **30 líneas** por pedido y **20 unidades** por línea (`sales.order.*`). Rate limit por IP: **5 pedidos**
+  y **10 consultas** por minuto (`limit.order`, `limit.lookup` en el gateway).
+- Comprador: nombre, email y teléfono obligatorios. Envío: calle, número, ciudad, provincia y código postal
+  obligatorios; piso/depto opcional.
+- Combos en el catálogo (`GET /api/v1/catalog/bundles`): habilitados, con precio y con todos sus productos
+  vigentes; disponibilidad `DISPONIBLE` / `AGOTADO` e imagen del primer producto que tenga.
+- Cambio de precio: el carrito manda el precio que vio; si no coincide, **409 con los precios nuevos** y el pedido
+  no se crea.
+- Para crear pedidos la tienda tiene que tener el titular y el alias o el CBU cargados.
+- En `POST /orders` el login es opcional: con un token válido el gateway pasa el usuario; con uno inválido, 401.
 
 **Etapa 2**
 - Qué pasa con el pedido si se borra o deshabilita el producto.

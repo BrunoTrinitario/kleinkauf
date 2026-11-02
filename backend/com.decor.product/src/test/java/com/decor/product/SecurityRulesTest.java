@@ -7,6 +7,7 @@ import com.decor.common.security.InternalTokenService;
 import com.decor.common.servlet.tenant.TenantFilter;
 import com.decor.product.controllers.BundleController;
 import com.decor.product.controllers.CatalogController;
+import com.decor.product.controllers.InternalStockController;
 import com.decor.product.controllers.ProductCsvController;
 import com.decor.product.controllers.ProductController;
 import com.decor.product.controllers.StockController;
@@ -16,6 +17,7 @@ import com.decor.product.services.BundleService;
 import com.decor.product.services.CatalogService;
 import com.decor.product.services.ProductCsvService;
 import com.decor.product.services.ProductService;
+import com.decor.product.services.StockReservationService;
 import com.decor.product.services.StockService;
 import com.decor.product.services.UserService;
 import java.util.List;
@@ -44,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class})
+@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -84,6 +86,9 @@ class SecurityRulesTest {
 	@MockitoBean
 	private CatalogService catalogService;
 
+	@MockitoBean
+	private StockReservationService stockReservationService;
+
 	// Lo que users devuelve para EMPLEADO: por defecto solo STOCK; cada test puede configurarlo
 	private int empleadoPermissions = PermissionArea.STOCK.bit();
 
@@ -112,6 +117,25 @@ class SecurityRulesTest {
 				.andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/catalog/products/mesa-de-roble"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/catalog/categories"))).andExpect(status().isOk());
+		mockMvc.perform(as(null, get("/api/v1/catalog/bundles"))).andExpect(status().isOk());
+	}
+
+	@Test
+	void reservasDeStock_soloConTokenInterno() throws Exception {
+		String body = "{\"reference\":\"K7QM-4X2P\",\"items\":[{\"type\":\"PRODUCT\",\"id\":5,\"quantity\":1}]}";
+		when(internalTokenService.validateInternalToken("valido")).thenReturn(true);
+
+		// Sin token, ni siquiera el administrador
+		mockMvc.perform(as(null, json(post("/api/internal/products/reservations"), body))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, json(post("/api/internal/products/reservations"), body))).andExpect(status().isForbidden());
+		mockMvc.perform(as(null, json(post("/api/internal/products/reservations"), body)
+				.header(Headers.INTERNAL_TOKEN, "falso"))).andExpect(status().isForbidden());
+
+		mockMvc.perform(as(null, json(post("/api/internal/products/reservations"), body)
+				.header(Headers.INTERNAL_TOKEN, "valido"))).andExpect(status().isOk());
+		mockMvc.perform(as(null, post("/api/internal/products/reservations/K7QM-4X2P/release")
+				.header(Headers.INTERNAL_REQUEST, "true")
+				.header(Headers.INTERNAL_TOKEN, "valido"))).andExpect(status().isNoContent());
 	}
 
 	@Test

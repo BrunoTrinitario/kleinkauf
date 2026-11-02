@@ -25,5 +25,10 @@ public class ErrorMessages {
     public static String IMAGE_TOO_LARGE = "Each image must be 1 MB or smaller";
     public static String INVALID_CATALOG_SORT = "The sort must be name, price_asc or price_desc";
     public static String INVALID_CATALOG_PAGE = "The page must be 0 or greater and the size between 1 and 100";
+    public static String INVALID_RESERVATION = "The reservation needs a reference (up to 40 characters) and items with type, id and a quantity greater than zero";
+    public static String RESERVATION_RELEASED = "The reservation was already released";
+    public static String RESERVATION_IN_PROGRESS = "The reservation is being processed by another request";
+    public static String ITEM_NOT_AVAILABLE = "Item not available";
+    public static String ITEM_WITHOUT_PRICE = "Item without price";
 
 }
