@@ -15,6 +15,11 @@ x-service: &service
     SPRING_DATA_REDIS_HOST: redis
     SPRING_DATA_REDIS_PORT: "6379"
     EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    #Solo en desarrollo: pedirle la lista de servicios a eureka cada 5s (por defecto 30s) para que
+    #despues de un reinicio el gateway encuentre a los servicios en segundos y no en un minuto.
+    #El heartbeat y el vencimiento (30s/90s) quedan como estan: bajarlos da de baja servicios sanos
+    #durante las pausas de bootRun y activa la autopreservacion de eureka
+    EUREKA_CLIENT_REGISTRYFETCHINTERVALSECONDS: "5"
 
 #Healthcheck por HTTP: cualquier respuesta en el puerto significa que Spring ya arranco
 #start_period largo porque bootRun compila antes de levantar
@@ -45,7 +50,9 @@ services:
       #build y .gradle propios del contenedor para no pisar los del host
       - /app/build
       - /app/.gradle
-    environment: {}
+    environment:
+      #Solo en desarrollo: responder con el registro al dia en vez de una copia que se refresca cada 30s
+      EUREKA_SERVER_USEREADONLYRESPONSECACHE: "false"
     ports:
       - "8761:8761"
     healthcheck:
@@ -130,6 +137,10 @@ services:
       - /app/.gradle
       - /decor-common/build
       - /decor-common/.gradle
+    environment:
+      <<: *service-env
+      #Solo en desarrollo: la lista de instancias del load balancer dura 5s (por defecto 35s)
+      SPRING_CLOUD_LOADBALANCER_CACHE_TTL: 5s
     ports:
       - "3000:3000"
     depends_on: *depends
