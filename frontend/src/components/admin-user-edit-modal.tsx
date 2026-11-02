@@ -65,7 +65,6 @@ export function AdminUserEditModal({
     onSave({
       ...user,
       name,
-      email,
       roles,
     })
   }
@@ -90,11 +89,9 @@ export function AdminUserEditModal({
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserEdit.email}</label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
+                {/* El backend no permite cambiar el email */}
+                <Input type="email" value={email} disabled readOnly />
+                <p className="text-xs text-muted-foreground">{strings.adminUserEdit.emailLocked}</p>
               </div>
             </div>
           </section>

@@ -33,7 +33,7 @@ export function AdminProductCard({
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>{product.category}</span>
           <span className={product.stock <= 10 ? "font-medium text-foreground" : ""}>
-            {product.stock} {strings.productCard.inStock}
+            {product.stock} {strings.adminProductCard.inStock}
           </span>
         </div>
       </div>

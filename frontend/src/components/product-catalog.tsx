@@ -1,59 +1,109 @@
 
-import { useMemo, useState } from "react"
-import type { Product } from "@/lib/types"
+import axios from "axios"
+import { useEffect, useState } from "react"
+import type { CatalogCategory, CatalogPage, CatalogProduct, CatalogSort } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { notifyError } from "@/lib/api-error"
 import { ProductCard } from "./product-card"
 import { ProductModal } from "./product-modal"
 import { Input } from "@/components/ui/input"
-import { Search, SlidersHorizontal } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Search } from "lucide-react"
 
-interface ProductCatalogProps {
-  products: Product[]
-}
+// Espera antes de buscar mientras se escribe
+const SEARCH_DELAY_MS = 300
 
-export function ProductCatalog({ products }: ProductCatalogProps) {
-  const defaultCategory = strings.productCatalog.all
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+export function ProductCatalog() {
+  const apiBasePublic =
+    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
+  const [catalog, setCatalog] = useState<CatalogPage | null>(null)
+  const [categories, setCategories] = useState<CatalogCategory[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [searchInput, setSearchInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory)
-  const [sortBy, setSortBy] = useState<"name" | "price-asc" | "price-desc" | "rating">("name")
+  const [selectedCategory, setSelectedCategory] = useState("")
+  const [sortBy, setSortBy] = useState<CatalogSort>("name")
+  const [page, setPage] = useState(0)
 
-  const categories = useMemo(
-    () => [defaultCategory, ...Array.from(new Set(products.map(product => product.category)))],
-    [products]
-  )
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSearchQuery(searchInput.trim())
+      setPage(0)
+    }, SEARCH_DELAY_MS)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
 
-  const filteredProducts = useMemo(() => {
-    let visibleProducts = [...products]
+  useEffect(() => {
+    let isMounted = true
 
-    if (searchQuery) {
-      const query = (searchQuery ?? "").toLowerCase()
-      visibleProducts = visibleProducts.filter(p => {
-        const name = p.name?.toLowerCase() ?? ""
-        const description = p.description?.toLowerCase() ?? ""
-        return name.includes(query) || description.includes(query)
+    axios
+      .get<CatalogCategory[]>(`${apiBasePublic}/api/v1/catalog/categories`)
+      .then((response) => {
+        if (isMounted) {
+          setCategories(response.data)
+        }
       })
+      .catch(() => {
+        // Sin categorias el catalogo sigue funcionando, solo sin el filtro
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [apiBasePublic])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadCatalog = async () => {
+      setIsLoading(true)
+      try {
+        const response = await axios.get<CatalogPage>(`${apiBasePublic}/api/v1/catalog/products`, {
+          params: {
+            q: searchQuery || undefined,
+            category: selectedCategory || undefined,
+            sort: sortBy,
+            page,
+          },
+        })
+        if (isMounted) {
+          setCatalog(response.data)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setCatalog(null)
+          notifyError(err, strings.errors.loadProducts)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
     }
 
-    // Filter by category
-    if (selectedCategory !== defaultCategory) {
-      visibleProducts = visibleProducts.filter(p => p.category === selectedCategory)
+    loadCatalog()
+
+    return () => {
+      isMounted = false
     }
+  }, [apiBasePublic, searchQuery, selectedCategory, sortBy, page])
 
-    // Sort
-    switch (sortBy) {
-      case "name":
-        visibleProducts.sort((a, b) => a.name.localeCompare(b.name))
-        break
-    }
+  const products = catalog?.items ?? []
+  const totalItems = catalog?.totalItems ?? 0
+  const totalPages = catalog?.totalPages ?? 0
 
-    return visibleProducts
-  }, [products, searchQuery, selectedCategory, sortBy])
-
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: CatalogProduct) => {
     setSelectedProduct(product)
     setModalOpen(true)
+  }
+
+  const clearFilters = () => {
+    setSearchInput("")
+    setSearchQuery("")
+    setSelectedCategory("")
+    setPage(0)
   }
 
   return (
@@ -65,8 +115,8 @@ export function ProductCatalog({ products }: ProductCatalogProps) {
           <Input
             type="text"
             placeholder={strings.productCatalog.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -74,42 +124,49 @@ export function ProductCatalog({ products }: ProductCatalogProps) {
         <div className="flex gap-2">
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value)
+              setPage(0)
+            }}
             className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+            <option value="">{strings.productCatalog.all}</option>
+            {categories.map(category => (
+              <option key={category.name} value={category.name}>
+                {category.name} ({category.products})
+              </option>
             ))}
           </select>
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            onChange={(e) => {
+              setSortBy(e.target.value as CatalogSort)
+              setPage(0)
+            }}
             className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="name">{strings.productCatalog.sortByName}</option>
+            <option value="price_asc">{strings.productCatalog.sortByPriceAsc}</option>
+            <option value="price_desc">{strings.productCatalog.sortByPriceDesc}</option>
           </select>
         </div>
       </div>
 
       {/* Results Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {filteredProducts.length} {strings.productCatalog.productLabel}
-          {filteredProducts.length !== 1 ? strings.productCatalog.productPluralSuffix : ""} {strings.productCatalog.resultsFound}
-        </p>
-        <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors sm:hidden">
-          <SlidersHorizontal className="h-4 w-4" />
-          {strings.productCatalog.filters}
-        </button>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {totalItems}{" "}
+        {totalItems === 1 ? strings.productCatalog.resultsOne : strings.productCatalog.resultsMany}
+      </p>
 
       {/* Product Grid */}
-      {filteredProducts.length > 0 ? (
+      {isLoading && !catalog ? (
+        <p className="text-sm text-muted-foreground">{strings.home.loadingProducts}</p>
+      ) : products.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
+          {products.map((product) => (
             <ProductCard
-              key={product.id}
+              key={product.slug}
               product={product}
               onClick={() => handleProductClick(product)}
             />
@@ -119,16 +176,38 @@ export function ProductCatalog({ products }: ProductCatalogProps) {
         <div className="text-center py-12">
           <p className="text-muted-foreground">{strings.productCatalog.empty}</p>
           <button
-            onClick={() => {
-              setSearchQuery("")
-              setSelectedCategory(defaultCategory)
-            }}
+            onClick={clearFilters}
             className="text-foreground font-medium hover:underline mt-2"
           >
             {strings.productCatalog.clearFilters}
           </button>
         </div>
       )}
+
+      {/* Pagination */}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0 || isLoading}
+            onClick={() => setPage((prev) => prev - 1)}
+          >
+            {strings.productCatalog.prevPage}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {strings.productCatalog.pageOf(page + 1, totalPages)}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages - 1 || isLoading}
+            onClick={() => setPage((prev) => prev + 1)}
+          >
+            {strings.productCatalog.nextPage}
+          </Button>
+        </div>
+      ) : null}
 
       <ProductModal
         product={selectedProduct}

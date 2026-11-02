@@ -132,52 +132,49 @@ export default function AdminUsersPage() {
     const rolesToAdd = Array.from(nextRoles).filter((role) => !previousRoles.has(role))
     const rolesToRemove = Array.from(previousRoles).filter((role) => !nextRoles.has(role))
 
+    const headers = { Authorization: `Bearer ${user.token}` }
+
     try {
-      if (existingUser.name !== updatedUser.name || existingUser.email !== updatedUser.email) {
+      // El PATCH solo cambia nombre y contrasena: el email no se puede editar
+      if (existingUser.name !== updatedUser.name) {
         await axios.patch(
           `${apiBasePublic}/api/v1/users/${updatedUser.id}`,
-          {
-            name: updatedUser.name,
-            email: updatedUser.email,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${user.token}`,
-            },
-          }
+          { name: updatedUser.name },
+          { headers }
         )
       }
 
+      // roleName va como query param, no en el body
       await Promise.all(
         rolesToAdd.map((roleName) =>
-          axios.post(
-            `${apiBasePublic}/api/v1/users/${updatedUser.id}/roles`,
-            { roleName },
-            {
-              headers: {
-                Authorization: `Bearer ${user.token}`,
-              },
-            }
-          )
+          axios.post(`${apiBasePublic}/api/v1/users/${updatedUser.id}/roles`, null, {
+            headers,
+            params: { roleName },
+          })
         )
       )
 
       await Promise.all(
         rolesToRemove.map((roleName) =>
           axios.delete(`${apiBasePublic}/api/v1/users/${updatedUser.id}/roles`, {
-            headers: {
-              Authorization: `Bearer ${user.token}`,
-            },
-            data: { roleName },
+            headers,
+            params: { roleName },
           })
         )
       )
 
-      updateUserLocally(updatedUser)
+      // Se usa el usuario que devuelve el backend: trae los roles con sus permisos reales
+      const response = await axios.get(`${apiBasePublic}/api/v1/users/${updatedUser.id}`, { headers })
+      updateUserLocally(response.data as User)
       setIsEditOpen(false)
       setSelectedUser(null)
     } catch (err) {
       notifyError(err, strings.errors.saveUser)
+      // Si algo fallo a mitad de camino, se recarga el usuario para no mostrar datos que no se guardaron
+      axios
+        .get(`${apiBasePublic}/api/v1/users/${updatedUser.id}`, { headers })
+        .then((response) => updateUserLocally(response.data as User))
+        .catch(() => {})
     }
   }
 

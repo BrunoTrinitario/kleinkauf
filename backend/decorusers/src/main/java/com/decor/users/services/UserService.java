@@ -150,9 +150,14 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
         Role roleEntity = roleRepository.existDeletedRole(id, role).orElse(null);
 
+        // Si el usuario ya tuvo este rol, se reactiva: el unique (userId, type) no deja insertarlo de nuevo
         if (roleEntity != null) {
-            if (roleEntity.getDeletedAt() != null)
+            if (roleEntity.getDeletedAt() != null) {
                 roleEntity.setDeletedAt(null);
+                roleRepository.saveAndFlush(roleEntity);
+                CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(),  this.getUserRoles(id));
+                cacheUtil.saveOrUpdateUserCache(cu);
+            }
             return Parser.fromUserEntityToFullDto(user,this.getUserRoles(user.getId()));
         }
 

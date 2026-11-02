@@ -34,7 +34,7 @@ export default function AdminPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-heading-sm text-foreground">
-            <Headline text={strings.admin.title} highlight="administracion" />
+            <Headline text={strings.admin.title} highlight="administración" />
           </h1>
           <p className="text-muted-foreground mt-2">
             {strings.admin.subtitle}

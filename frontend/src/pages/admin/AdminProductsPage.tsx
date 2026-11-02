@@ -31,7 +31,7 @@ import { Link } from "react-router-dom"
 
 export default function ProductsManagementPage() {
   const navigate = useNavigate()
-  const { user, activeRole, isAuthenticated } = useAuth()
+  const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -50,16 +50,23 @@ export default function ProductsManagementPage() {
   const canManageProducts = activeRole === "ADMINISTRADOR" || activeRole === "EMPLEADO"
 
   useEffect(() => {
-    if (!isAuthenticated || !canManageProducts) {
+    if (isAuthLoading) {
+      return
+    }
+    if (!isAuthenticated) {
+      navigate("/login")
+      return
+    }
+    if (!canManageProducts) {
       navigate("/")
     }
-  }, [isAuthenticated, canManageProducts, navigate])
-
-  if (!isAuthenticated || !canManageProducts) {
-    return null
-  }
+  }, [isAuthenticated, isAuthLoading, canManageProducts, navigate])
 
   useEffect(() => {
+    if (!canManageProducts) {
+      return
+    }
+
     let isMounted = true
 
     const loadProducts = async () => {
@@ -86,7 +93,11 @@ export default function ProductsManagementPage() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic])
+  }, [apiBasePublic, canManageProducts])
+
+  if (isAuthLoading || !isAuthenticated || !canManageProducts) {
+    return null
+  }
 
   const filteredProducts = products.filter(product => {
     const query = searchQuery.toLowerCase()

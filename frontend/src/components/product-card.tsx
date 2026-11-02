@@ -1,9 +1,9 @@
-
-import type { Product } from "@/lib/types"
+import type { CatalogProduct } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { formatPrice } from "@/lib/utils"
 
 interface ProductCardProps {
-  product: Product
+  product: CatalogProduct
   onClick: () => void
 }
 
@@ -40,12 +40,18 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
               {product.name}
             </h3>
           </div>
-          <p className="text-xs text-muted-foreground whitespace-nowrap">
-            {product.stock > 0
-              ? `${product.stock} ${strings.productCard.inStock}`
-              : strings.productCard.outOfStock}
+          <p
+            className={`text-xs whitespace-nowrap ${
+              product.availability === "AGOTADO" ? "text-destructive" : "text-muted-foreground"
+            }`}
+          >
+            {strings.availability[product.availability]}
           </p>
         </div>
+
+        <p className="text-sm font-medium text-foreground">
+          {formatPrice(product.price, strings.price.ask)}
+        </p>
 
         <p className="text-sm text-muted-foreground line-clamp-3">
           {product.description}

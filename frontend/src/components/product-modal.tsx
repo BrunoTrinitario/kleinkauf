@@ -1,20 +1,21 @@
 
 import axios from "axios"
 import { useEffect, useMemo, useState } from "react"
-import { defaultProductMetadata, type Product, type ProductMetadata } from "@/lib/types"
+import type { CatalogProduct, CatalogProductDetail, ProductMetadata } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
+import { formatPrice } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Package, Check, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface ProductModalProps {
-  product: Product | null
+  product: CatalogProduct | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 const imageObjectUrlCache = new Map<string, string>()
-const metadataCache = new Map<string, ProductMetadata>()
+const metadataCache = new Map<string, ProductMetadata | null>()
 
 const preloadImageAsObjectUrl = async (url: string) => {
   const cached = imageObjectUrlCache.get(url)
@@ -28,7 +29,14 @@ const preloadImageAsObjectUrl = async (url: string) => {
 
 export function ProductModal({ product, open, onOpenChange }: ProductModalProps) {
   if (!product) return null
+  return <ProductModalContent product={product} open={open} onOpenChange={onOpenChange} />
+}
 
+function ProductModalContent({
+  product,
+  open,
+  onOpenChange,
+}: ProductModalProps & { product: CatalogProduct }) {
   const apiBasePublic =
     import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
@@ -84,16 +92,15 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     const fetchMetadata = async () => {
       try {
         setMetadataError(null)
-        const cacheKey = `${apiBasePublic}/api/v1/products/${product.id}/metadata`
-        const cached = metadataCache.get(cacheKey)
-        if (cached) {
-          if (isActive) setMetadata(cached)
+        // Los metadatos vienen en el detalle publico por slug; null = el producto no los tiene cargados
+        const cacheKey = `${apiBasePublic}/api/v1/catalog/products/${product.slug}`
+        if (metadataCache.has(cacheKey)) {
+          if (isActive) setMetadata(metadataCache.get(cacheKey) ?? null)
           return
         }
-        const response = await axios.get(cacheKey)
+        const response = await axios.get<CatalogProductDetail>(cacheKey)
         if (isActive) {
-          const data = response.data == "" ? defaultProductMetadata : response.data
-          const resolved = data ?? defaultProductMetadata
+          const resolved = response.data.metadata ?? null
           metadataCache.set(cacheKey, resolved)
           setMetadata(resolved)
         }
@@ -109,7 +116,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     return () => {
       isActive = false
     }
-  }, [apiBasePublic, open, product.id])
+  }, [apiBasePublic, open, product.slug])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,25 +184,24 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                 {product.description}
               </DialogDescription>
 
-              {/* Stock Status */}
+              <p className="text-lg font-medium text-foreground">
+                {formatPrice(product.price, strings.price.ask)}
+              </p>
+
+              {/* Disponibilidad: el catalogo no muestra el stock exacto */}
               <div className="flex items-center gap-2 text-sm">
-                {product.stock > 10 ? (
-                  <>
-                    <Check className="h-4 w-4 text-primary" />
-                    <span className="text-muted-foreground">
-                      {strings.productModal.inStock} ({product.stock} {strings.productModal.available})
-                    </span>
-                  </>
-                ) : product.stock > 0 ? (
-                  <>
-                    <Package className="h-4 w-4 text-foreground" />
-                    <span className="text-muted-foreground">
-                      {strings.productModal.lowStock} {product.stock} {strings.productModal.left}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-destructive">{strings.productModal.outOfStock}</span>
-                )}
+                {product.availability === "DISPONIBLE" ? (
+                  <Check className="h-4 w-4 text-primary" />
+                ) : product.availability === "POCAS_UNIDADES" ? (
+                  <Package className="h-4 w-4 text-foreground" />
+                ) : null}
+                <span
+                  className={
+                    product.availability === "AGOTADO" ? "text-destructive" : "text-muted-foreground"
+                  }
+                >
+                  {strings.availability[product.availability]}
+                </span>
               </div>
 
               {/* Metadata */}

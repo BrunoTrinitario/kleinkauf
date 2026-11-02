@@ -52,6 +52,39 @@ export interface ProductMetadata {
   weight: number
 }
 
+// Catalogo publico (/api/v1/catalog): disponibilidad en vez de stock, price null = consultar
+export type Availability = "DISPONIBLE" | "POCAS_UNIDADES" | "AGOTADO"
+
+export type CatalogSort = "name" | "price_asc" | "price_desc"
+
+export interface CatalogProduct {
+  slug: string
+  name: string
+  category: string
+  description: string
+  price: number | null
+  availability: Availability
+  featured: boolean
+  images: string[]
+}
+
+export interface CatalogProductDetail extends CatalogProduct {
+  metadata: ProductMetadata | null
+}
+
+export interface CatalogPage {
+  items: CatalogProduct[]
+  page: number
+  size: number
+  totalItems: number
+  totalPages: number
+}
+
+export interface CatalogCategory {
+  name: string
+  products: number
+}
+
 export const defaultProductMetadata: ProductMetadata = {
   material: "Unknown",
   color: "Unknown",
