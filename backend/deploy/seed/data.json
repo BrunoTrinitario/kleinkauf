@@ -1,0 +1,72 @@
+{
+  "products": [
+    { "name": "Lámpara de pie Arco", "category": "Iluminación", "image": "iluminacion", "price": 189000, "cost": 112000, "stock": 8, "minStock": 2, "featured": 1, "metadata": { "material": "Acero", "color": "Negro", "style": "Moderno", "height": 190, "width": 40, "length": 120, "weight": 9.5 } },
+    { "name": "Lámpara de mesa Nórdica", "category": "Iluminación", "image": "iluminacion", "price": 42500, "cost": 23000, "stock": 25, "minStock": 5, "metadata": { "material": "Madera y lino", "color": "Natural", "style": "Nórdico", "height": 48, "width": 28, "length": 28, "weight": 1.8 } },
+    { "name": "Velador Globo de vidrio", "category": "Iluminación", "image": "iluminacion", "price": 31900, "cost": 17500, "stock": 3, "minStock": 4, "metadata": { "material": "Vidrio soplado", "color": "Ámbar", "style": "Vintage", "height": 30, "width": 22, "length": 22, "weight": 1.2 } },
+    { "name": "Colgante Campana", "category": "Iluminación", "image": "iluminacion", "price": 58700, "cost": 31000, "stock": 12, "minStock": 3, "metadata": { "material": "Aluminio", "color": "Blanco", "style": "Industrial", "height": 35, "width": 38, "length": 38, "weight": 2.1 } },
+    { "name": "Aplique de pared Media Luna", "category": "Iluminación", "image": "iluminacion", "price": 27400, "cost": 14000, "stock": 0, "minStock": 2, "metadata": { "material": "Latón", "color": "Dorado", "style": "Art déco", "height": 18, "width": 30, "length": 10, "weight": 0.9 } },
+    { "name": "Guirnalda de luces cálidas", "category": "Iluminación", "image": "iluminacion", "price": 12900, "cost": 6100, "stock": 40, "minStock": 10, "metadata": { "material": "Cobre y LED", "color": "Cobre", "style": "Bohemio", "height": 0, "width": 0, "length": 1000, "weight": 0.3 } },
+
+    { "name": "Silla Eames", "category": "Sillas", "image": "sillas", "price": 64900, "cost": 35000, "stock": 30, "minStock": 8, "featured": 2, "metadata": { "material": "Polipropileno y haya", "color": "Blanco", "style": "Moderno", "height": 81, "width": 46, "length": 53, "weight": 4.2 } },
+    { "name": "Silla de comedor Roble", "category": "Sillas", "image": "sillas", "price": 87500, "cost": 49000, "stock": 16, "minStock": 6, "metadata": { "material": "Roble macizo", "color": "Natural", "style": "Nórdico", "height": 80, "width": 45, "length": 50, "weight": 5.8 } },
+    { "name": "Banqueta alta Industrial", "category": "Sillas", "image": "sillas", "price": 53200, "cost": 28000, "stock": 5, "minStock": 6, "metadata": { "material": "Hierro y madera", "color": "Negro", "style": "Industrial", "height": 75, "width": 38, "length": 38, "weight": 6.1 } },
+    { "name": "Sillón de lectura Pana", "category": "Sillas", "image": "sillas", "price": 219000, "cost": 128000, "stock": 4, "minStock": 2, "metadata": { "material": "Pana y paraíso", "color": "Verde oliva", "style": "Retro", "height": 92, "width": 74, "length": 80, "weight": 18 } },
+    { "name": "Silla plegable Bistró", "category": "Sillas", "image": "sillas", "price": 29900, "cost": 15000, "stock": 0, "minStock": 4, "metadata": { "material": "Acero pintado", "color": "Verde", "style": "Francés", "height": 82, "width": 42, "length": 47, "weight": 3.9 } },
+
+    { "name": "Mesa de comedor Roble 180", "category": "Mesas", "image": "mesas", "price": 485000, "cost": 290000, "stock": 3, "minStock": 1, "featured": 3, "metadata": { "material": "Roble macizo", "color": "Natural", "style": "Nórdico", "height": 76, "width": 90, "length": 180, "weight": 48 } },
+    { "name": "Mesa ratona Mármol", "category": "Mesas", "image": "mesas", "price": 156000, "cost": 92000, "stock": 6, "minStock": 2, "metadata": { "material": "Mármol de Carrara", "color": "Blanco", "style": "Moderno", "height": 40, "width": 60, "length": 110, "weight": 32 } },
+    { "name": "Mesa auxiliar Tríptico", "category": "Mesas", "image": "mesas", "price": 38500, "cost": 20000, "stock": 18, "minStock": 4, "metadata": { "material": "Paraíso", "color": "Miel", "style": "Escandinavo", "height": 55, "width": 40, "length": 40, "weight": 4 } },
+    { "name": "Escritorio Minimal", "category": "Mesas", "image": "mesas", "price": 132000, "cost": 74000, "stock": 9, "minStock": 3, "metadata": { "material": "MDF laqueado y acero", "color": "Blanco", "style": "Minimalista", "height": 75, "width": 55, "length": 120, "weight": 22 } },
+    { "name": "Mesa de luz Flotante", "category": "Mesas", "image": "mesas", "price": null, "cost": 19000, "stock": 10, "minStock": 2, "metadata": { "material": "Guatambú", "color": "Natural", "style": "Minimalista", "height": 18, "width": 30, "length": 45, "weight": 3.5 } },
+    { "name": "Mesa extensible Lenga", "category": "Mesas", "image": "mesas", "price": 398000, "cost": 241000, "stock": 1, "minStock": 1, "metadata": { "material": "Lenga", "color": "Natural", "style": "Rústico", "height": 76, "width": 95, "length": 200, "weight": 55 } },
+
+    { "name": "Sofá Chester 3 cuerpos", "category": "Sofás", "image": "sofas", "price": 899000, "cost": 540000, "stock": 2, "minStock": 1, "featured": 4, "metadata": { "material": "Cuero", "color": "Marrón", "style": "Clásico", "height": 78, "width": 92, "length": 220, "weight": 70 } },
+    { "name": "Sofá Lino 2 cuerpos", "category": "Sofás", "image": "sofas", "price": 545000, "cost": 320000, "stock": 5, "minStock": 1, "metadata": { "material": "Lino y pino", "color": "Arena", "style": "Nórdico", "height": 82, "width": 88, "length": 170, "weight": 42 } },
+    { "name": "Sofá cama Urbano", "category": "Sofás", "image": "sofas", "price": 412000, "cost": 238000, "stock": 0, "minStock": 1, "metadata": { "material": "Chenille", "color": "Gris", "style": "Moderno", "height": 85, "width": 95, "length": 195, "weight": 51 } },
+    { "name": "Esquinero modular Bruma", "category": "Sofás", "image": "sofas", "price": null, "cost": 690000, "stock": 1, "minStock": 1, "metadata": { "material": "Pana", "color": "Celeste", "style": "Contemporáneo", "height": 80, "width": 260, "length": 260, "weight": 96 } },
+    { "name": "Puff Redondo tejido", "category": "Sofás", "image": "sofas", "price": 46800, "cost": 24000, "stock": 14, "minStock": 3, "metadata": { "material": "Algodón tejido", "color": "Crudo", "style": "Bohemio", "height": 40, "width": 50, "length": 50, "weight": 3 } },
+
+    { "name": "Jarrón de cerámica Terra", "category": "Decoración", "image": "decoracion", "price": 24900, "cost": 11000, "stock": 22, "minStock": 5, "featured": 5, "metadata": { "material": "Cerámica esmaltada", "color": "Terracota", "style": "Mediterráneo", "height": 32, "width": 18, "length": 18, "weight": 1.4 } },
+    { "name": "Florero de vidrio Burbuja", "category": "Decoración", "image": "decoracion", "price": 15800, "cost": 7200, "stock": 35, "minStock": 8, "metadata": { "material": "Vidrio reciclado", "color": "Verde agua", "style": "Moderno", "height": 25, "width": 15, "length": 15, "weight": 0.8 } },
+    { "name": "Set de velas aromáticas", "category": "Decoración", "image": "decoracion", "price": 9900, "cost": 4100, "stock": 60, "minStock": 15, "metadata": { "material": "Cera de soja", "color": "Blanco", "style": "Minimalista", "height": 10, "width": 8, "length": 8, "weight": 0.9 } },
+    { "name": "Escultura Manos de piedra", "category": "Decoración", "image": "decoracion", "price": 36500, "cost": 18000, "stock": 2, "minStock": 3, "metadata": { "material": "Resina símil piedra", "color": "Gris piedra", "style": "Contemporáneo", "height": 22, "width": 14, "length": 10, "weight": 1.1 } },
+    { "name": "Bandeja de madera Olivo", "category": "Decoración", "image": "decoracion", "price": 21300, "cost": 10500, "stock": 19, "minStock": 4, "metadata": { "material": "Olivo", "color": "Natural", "style": "Rústico", "height": 4, "width": 25, "length": 45, "weight": 1.3 } },
+    { "name": "Reloj de pared Sol", "category": "Decoración", "image": "decoracion", "price": null, "cost": 14500, "stock": 7, "minStock": 2, "metadata": { "material": "Metal y ratán", "color": "Dorado", "style": "Bohemio", "height": 60, "width": 60, "length": 5, "weight": 1.6 } },
+
+    { "name": "Alfombra Kilim 160x230", "category": "Textiles", "image": "textiles", "price": 168000, "cost": 96000, "stock": 6, "minStock": 2, "featured": 6, "metadata": { "material": "Lana", "color": "Multicolor", "style": "Étnico", "height": 1, "width": 160, "length": 230, "weight": 7.5 } },
+    { "name": "Almohadón de lino Arena", "category": "Textiles", "image": "textiles", "price": 14500, "cost": 6400, "stock": 48, "minStock": 10, "metadata": { "material": "Lino", "color": "Arena", "style": "Nórdico", "height": 12, "width": 45, "length": 45, "weight": 0.5 } },
+    { "name": "Manta tejida Chunky", "category": "Textiles", "image": "textiles", "price": 52900, "cost": 27000, "stock": 9, "minStock": 3, "metadata": { "material": "Lana merino", "color": "Gris perla", "style": "Escandinavo", "height": 0, "width": 120, "length": 150, "weight": 2.4 } },
+    { "name": "Cortina de voile", "category": "Textiles", "image": "textiles", "price": 23700, "cost": 11200, "stock": 0, "minStock": 5, "metadata": { "material": "Voile", "color": "Blanco", "style": "Clásico", "height": 0, "width": 140, "length": 230, "weight": 0.7 } },
+    { "name": "Camino de mesa Yute", "category": "Textiles", "image": "textiles", "price": 11400, "cost": 5000, "stock": 27, "minStock": 6, "metadata": { "material": "Yute", "color": "Natural", "style": "Rústico", "height": 0, "width": 35, "length": 180, "weight": 0.4 } },
+    { "name": "Alfombra redonda Algodón", "category": "Textiles", "image": "textiles", "price": 61800, "cost": 34000, "stock": 4, "minStock": 4, "metadata": { "material": "Algodón", "color": "Crudo", "style": "Bohemio", "height": 1, "width": 150, "length": 150, "weight": 3.2 } },
+
+    { "name": "Espejo Ovalado Latón", "category": "Espejos", "image": "espejos", "price": 98500, "cost": 57000, "stock": 7, "minStock": 2, "metadata": { "material": "Vidrio y latón", "color": "Dorado", "style": "Art déco", "height": 90, "width": 60, "length": 3, "weight": 8 } },
+    { "name": "Espejo de pie Ventana", "category": "Espejos", "image": "espejos", "price": 174000, "cost": 101000, "stock": 3, "minStock": 1, "metadata": { "material": "Vidrio y hierro", "color": "Negro", "style": "Industrial", "height": 170, "width": 60, "length": 4, "weight": 19 } },
+    { "name": "Espejo Sol de ratán", "category": "Espejos", "image": "espejos", "price": 66200, "cost": 36000, "stock": 1, "minStock": 2, "metadata": { "material": "Ratán y vidrio", "color": "Natural", "style": "Bohemio", "height": 70, "width": 70, "length": 4, "weight": 2.6 } },
+    { "name": "Espejo redondo Minimal", "category": "Espejos", "image": "espejos", "price": 47900, "cost": 25000, "stock": 15, "minStock": 3, "metadata": { "material": "Vidrio", "color": "Plata", "style": "Minimalista", "height": 60, "width": 60, "length": 2, "weight": 4 } },
+
+    { "name": "Maceta de cemento Cubo", "category": "Plantas y macetas", "image": "plantas", "price": 18900, "cost": 8200, "stock": 31, "minStock": 6, "metadata": { "material": "Cemento", "color": "Gris", "style": "Industrial", "height": 25, "width": 25, "length": 25, "weight": 6.5 } },
+    { "name": "Monstera artificial", "category": "Plantas y macetas", "image": "plantas", "price": 54000, "cost": 29000, "stock": 8, "minStock": 2, "metadata": { "material": "Poliéster", "color": "Verde", "style": "Tropical", "height": 110, "width": 60, "length": 60, "weight": 2.2 } },
+    { "name": "Macetero colgante Macramé", "category": "Plantas y macetas", "image": "plantas", "price": 13600, "cost": 5900, "stock": 0, "minStock": 5, "metadata": { "material": "Algodón", "color": "Crudo", "style": "Bohemio", "height": 90, "width": 20, "length": 20, "weight": 0.3 } },
+    { "name": "Set de macetas Terracota", "category": "Plantas y macetas", "image": "plantas", "price": 22400, "cost": 10800, "stock": 20, "minStock": 5, "metadata": { "material": "Terracota", "color": "Terracota", "style": "Mediterráneo", "height": 15, "width": 15, "length": 15, "weight": 2.8 } },
+    { "name": "Terrario de vidrio Geo", "category": "Plantas y macetas", "image": "plantas", "price": 29700, "cost": 14600, "stock": 2, "minStock": 3, "metadata": { "material": "Vidrio y bronce", "color": "Dorado", "style": "Geométrico", "height": 28, "width": 20, "length": 20, "weight": 1.5 } },
+
+    { "name": "Estantería Escalera", "category": "Organización", "image": "organizacion", "price": 119000, "cost": 66000, "stock": 5, "minStock": 2, "metadata": { "material": "Pino", "color": "Natural", "style": "Nórdico", "height": 180, "width": 35, "length": 60, "weight": 14 } },
+    { "name": "Repisa flotante Roble", "category": "Organización", "image": "organizacion", "price": 26800, "cost": 13000, "stock": 24, "minStock": 6, "metadata": { "material": "Roble", "color": "Natural", "style": "Minimalista", "height": 4, "width": 20, "length": 80, "weight": 2.7 } },
+    { "name": "Perchero de pie Árbol", "category": "Organización", "image": "organizacion", "price": 44300, "cost": 22500, "stock": 11, "minStock": 3, "metadata": { "material": "Haya", "color": "Nogal", "style": "Escandinavo", "height": 175, "width": 45, "length": 45, "weight": 5 } },
+    { "name": "Canasto de seagrass", "category": "Organización", "image": "organizacion", "price": 19500, "cost": 8800, "stock": 3, "minStock": 5, "metadata": { "material": "Seagrass", "color": "Natural", "style": "Bohemio", "height": 40, "width": 38, "length": 38, "weight": 1.1 } },
+    { "name": "Biblioteca Modular Cubos", "category": "Organización", "image": "organizacion", "price": null, "cost": 88000, "stock": 4, "minStock": 1, "metadata": { "material": "Melamina", "color": "Blanco", "style": "Moderno", "height": 150, "width": 35, "length": 110, "weight": 31 } }
+  ],
+
+  "users": {
+    "password": "cliente123",
+    "employees": ["Valentina Ríos", "Matías Herrera", "Camila Sosa", "Joaquín Paz"],
+    "customers": [
+      "Sofía Martínez", "Benjamín López", "Martina García", "Thiago Fernández", "Emma González",
+      "Lautaro Pérez", "Isabella Rodríguez", "Santino Gómez", "Mía Díaz", "Bautista Álvarez",
+      "Catalina Romero", "Felipe Torres", "Olivia Ruiz", "Lorenzo Flores", "Julieta Acosta",
+      "Bruno Medina", "Renata Castro", "Tomás Ortiz", "Delfina Silva", "Facundo Núñez",
+      "Abril Molina", "Ignacio Vega", "Lucía Morales", "Nicolás Ramos"
+    ]
+  }
+}

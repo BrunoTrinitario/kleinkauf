@@ -148,16 +148,19 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3000/"]
 
-  #Seed de desarrollo: crea la tienda demo (http://demo.localhost:2999) y termina
+  #Seed de desarrollo: crea la tienda demo (http://demo.localhost:2999), la carga con productos
+  #(con imagenes genericas por categoria) y usuarios de prueba, y termina. Datos en seed/data.json
   seed:
-    image: curlimages/curl:8.11.1
+    image: node:22.11.0-alpine3.20
     container_name: seed
     volumes:
-      - ./seed/seed.sh:/seed.sh:ro
-    entrypoint: ["sh", "/seed.sh"]
+      - ./seed:/seed:ro
+    command: ["node", "/seed/seed.mjs"]
     environment:
       GATEWAY_URL: http://gateway-service:3000
       PLATFORM_URL: http://localhost:2999
+      STORE_SCHEME: http
+      STORE_DOMAIN: localhost:2999
       DEMO_IDENTIFIER: demo
       DEMO_OWNER_NAME: Dueño Demo
       DEMO_OWNER_EMAIL: admin@demo.local
@@ -167,6 +170,8 @@ services:
       gateway-service:
         condition: service_healthy
       user-service:
+        condition: service_healthy
+      product-service:
         condition: service_healthy
 
 volumes:

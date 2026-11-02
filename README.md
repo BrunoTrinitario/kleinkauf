@@ -96,13 +96,24 @@ docker compose -f backend/deploy/docker-compose.dev.yml up -d
 La primera vez tarda unos minutos (cada servicio baja sus dependencias y compila con `gradle bootRun`). Los servicios
 quedan `healthy` cuando Spring ya arrancó; el panel de Eureka está en `http://localhost:8761`.
 
-**Seed de desarrollo:** el servicio `seed` da de alta la tienda `demo` por la API (mismo flujo que el autoservicio) y
-termina. Se puede correr las veces que haga falta: si la tienda ya existe no hace nada. Además `decorusers` crea un
-superadmin al arrancar. Usuarios de prueba (solo para desarrollo, definidos en `docker-compose.dev.yml`):
+**Seed de desarrollo:** el servicio `seed` (`backend/deploy/seed/seed.mjs`) carga todo por la API, con los mismos
+flujos que usa la app, y termina:
+
+- da de alta la tienda `demo` (autoservicio de la plataforma);
+- carga 48 productos en 9 categorías con precio, costo, stock, metadatos, dos imágenes genéricas por producto y 6
+  destacados. Hay casos de todo tipo: sin precio ("Consultar precio"), agotados y con pocas unidades;
+- crea 28 usuarios de prueba: 4 empleados y 24 clientes.
+
+Se puede correr las veces que haga falta: lo que ya existe (la tienda, un producto con el mismo nombre, un usuario con
+el mismo email) se saltea. Para volver a correrlo: `docker compose -f backend/deploy/docker-compose.dev.yml up seed`.
+Los datos están en `seed/data.json`; las imágenes en `seed/images/` se generan con
+`node backend/deploy/seed/generate-images.mjs` (ya están commiteadas). Además `decorusers` crea un superadmin al
+arrancar. Usuarios de prueba (solo para desarrollo):
 
 | Usuario | Email | Contraseña | Dónde |
 |---|---|---|---|
 | Dueño de la tienda demo | `admin@demo.local` | `demo1234` | `http://demo.localhost:2999` |
+| Empleados y clientes de la tienda demo | `nombre.apellido@demo.local` (ej. `valentina.rios@demo.local`) | `cliente123` | `http://demo.localhost:2999` |
 | Superadmin de la plataforma | `superadmin@decor.local` | `superadmin123` | `http://localhost:2999` |
 
 **Sin Docker:** cada servicio es un proyecto Gradle independiente (con su propio `gradlew`) que consume `decor-common`
