@@ -1,0 +1,2 @@
+# Los scripts corren dentro de contenedores Linux: con CRLF sh falla
+*.sh text eol=lf
