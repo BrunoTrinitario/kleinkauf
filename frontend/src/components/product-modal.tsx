@@ -134,10 +134,14 @@ function ProductModalContent({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl p-0 gap-0 overflow-hidden">
-        <div className="grid md:grid-cols-2">
+      {/* max-h + scroll: en pantallas bajas el detalle no entra entero */}
+      <DialogContent className="grid-cols-1 sm:max-w-3xl p-0 gap-0 max-h-[90vh] overflow-x-hidden overflow-y-auto">
+        {/* grid-cols-1 (minmax(0, 1fr)) aca y en el DialogContent, y min-w-0 en las columnas: sin eso,
+            segun el navegador la columna crece al ancho minimo del contenido y se sale del dialogo
+            en mobile (la imagen, la flecha de "siguiente" y el texto quedaban cortados a la derecha) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 min-w-0">
           {/* Product Image */}
-          <div className="relative aspect-square md:aspect-auto md:h-full bg-muted">
+          <div className="relative min-w-0 aspect-square md:aspect-auto md:h-full bg-muted">
             {imageUrls.length > 0 ? (
               <div className="relative h-full w-full">
                 <img
@@ -183,7 +187,7 @@ function ProductModalContent({
           </div>
 
           {/* Product Details */}
-          <div className="p-6 flex flex-col">
+          <div className="min-w-0 p-6 flex flex-col">
             <DialogHeader className="text-left space-y-1">
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
                 {product.category}
