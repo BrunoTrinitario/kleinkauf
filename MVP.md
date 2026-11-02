@@ -39,7 +39,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 1 | **Precio y costo** en productos y combos | Calcula el margen. Sin esto no sirve para vender | — | ☑ Sí — **hecho** |
 | 2 | **Movimientos de stock** (entrada / salida / ajuste, con motivo y usuario) + **alerta de stock mínimo** | Trazabilidad del inventario | Eventos (Redis Streams / RabbitMQ) — pendiente para cuando exista ventas | ☑ Sí — **hecho** (sin eventos todavía) |
 | 3 | **Ventas**: carrito, pedido, pago por transferencia con comprobante y validación del administrador | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☑ Sí — **en curso** (plan en [docs/ventas.md](docs/ventas.md)) |
-| 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☐ Sí ☐ No ☐ Después |
+| 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **planificado** ([docs/panel-admin.md](docs/panel-admin.md)): tienda y plataforma con los datos de hoy; ventas y observabilidad se suman después |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **planificado** ([docs/auditoria.md](docs/auditoria.md)) |
@@ -121,7 +121,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
 3. **Ventas** (punto 3) — **en curso**, en 4 etapas: ver [docs/ventas.md](docs/ventas.md). El pedido reserva stock
    (`SALIDA` por cada producto o por cada producto del combo) y lo devuelve si se cancela o vence.
-4. **Panel de administración** (punto 4) con los datos de ventas y stock.
+4. **Panel de administración** (punto 4) — **planificado** en [docs/panel-admin.md](docs/panel-admin.md), con los datos de hoy; ventas y observabilidad se suman cuando existan.
 5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
 6. **Gestión presencial** (sección 3): P1, P2, P5 y P6 junto con ventas; el resto después, en el orden de esa sección.
 
@@ -178,6 +178,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-01 | **Ventas del local**: el administrador carga pedidos ya pagos (canal `LOCAL`, `PAGADO` o `ENTREGADO`), con medio de pago, comprador opcional, precio cambiado o descuento; sin stock se vende igual con `AJUSTE` automático y queda para revisar | Registrar todas las ventas, no solo las online. Los reportes se separan por canal y medio de pago |
 | 2026-11-01 | **Observabilidad**: Actuator con `/health`, `/ready` y `/metrics` en un puerto de gestión interno; OpenTelemetry + Prometheus + Grafana + Tempo + Loki; MS nuevo `decor-observability` con panel de plataforma y de tienda en tiempo real por **WebSocket puro** con ticket corto | Saber cómo está la plataforma y cada tienda en vivo, sin exponer métricas afuera |
 | 2026-11-01 | **Auditoría** de cambios de datos, acciones de plataforma y lecturas sensibles, con antes/después de los campos cambiados, por **outbox** hacia observability; se guarda **para siempre** y cada uno ve lo suyo (admin su tienda, superadmin la plataforma) | Control sobre lo que hace cada usuario sin perder eventos ni mezclar datos de tiendas |
+| 2026-11-01 | **Panel de administración** con los datos de hoy y **cada servicio arma su resumen** (products: productos y stock; users: usuarios, tenants, uso por tenant y superadmins). Panel de la tienda solo para `ADMINISTRADOR`; `/users/stats` se reemplaza | Si un servicio se cae el resto del panel funciona; ventas y observabilidad se enchufan después con el mismo formato |
+| 2026-11-01 | Períodos con `from`, `to` y `groupBy` (día/semana/mes) con ceros; activo = login en 30 días; uso por tenant cacheado 5 min; superadmins con contraseña temporal y desactivación por `deletedAt` | Series listas para graficar; recorrer todos los schemas es caro; reutilizar el borrado lógico existente |
 
 ### Detalle de la librería común
 
