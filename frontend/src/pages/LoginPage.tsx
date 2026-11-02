@@ -52,9 +52,9 @@ export default function LoginPage() {
         </div>
 
         <Card className="border-border/50">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg">{strings.login.cardTitle}</CardTitle>
+              <CardTitle>{strings.login.cardTitle}</CardTitle>
               <CardDescription>
                 {strings.login.cardDescription}
               </CardDescription>

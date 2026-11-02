@@ -70,7 +70,7 @@ export default function RegisterPage() {
         </div>
 
         <Card className="border-border/50">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg">{strings.register.cardTitle}</CardTitle>
               <CardDescription>
