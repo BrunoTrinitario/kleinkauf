@@ -5,6 +5,7 @@
 
 package com.decor.users.repositories;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,6 +21,8 @@ import com.decor.users.entities.Role;
 public interface RoleRepository extends JpaRepository<Role, Long>{
     Optional<Role> findByUser_IdAndType(Long userId, String type);
     Collection<Role> findByUser_Id(Long userId);
+    // Roles de varios usuarios en una sola consulta (listado paginado)
+    List<Role> findByUser_IdIn(Collection<Long> userIds);
 
     // Nativa a proposito: el @SQLRestriction de Role ("deleted_at IS NULL") tambien filtra las consultas JPQL,
     // y aca hay que encontrar el rol aunque este borrado (soft delete) para reactivarlo

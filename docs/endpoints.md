@@ -113,7 +113,8 @@ devuelve JSON con los errores por fila. Un archivo más grande que el límite de
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
-| GET | `/api/v1/users/all` | ADMINISTRADOR | Lista de usuarios con sus roles |
+| GET | `/api/v1/users?q&role&page&size` | ADMINISTRADOR | Usuarios paginados (20 por página, máximo 100), ordenados por nombre. `q` busca en nombre y email; `role` = `ADMINISTRADOR`, `EMPLEADO` o `CLIENTE`. Devuelve `{items, page, size, totalItems, totalPages}`; cada usuario con sus roles. Página o rol inválidos: 400 |
+| GET | `/api/v1/users/all` | ADMINISTRADOR | Lista completa de usuarios con sus roles (sin paginar; el panel usa el listado paginado) |
 | POST | `/api/v1/users` | ADMINISTRADOR | Crea un usuario. Body `{name, email, password, roles: ["EMPLEADO"]}` |
 | GET | `/api/v1/users/{id}` | ADMINISTRADOR | Detalle de un usuario |
 | PATCH | `/api/v1/users/{id}` | ADMINISTRADOR | Cambia nombre o contraseña. Body `{name, password}` |
@@ -159,7 +160,8 @@ devuelve JSON con los errores por fila. Un archivo más grande que el límite de
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
-| GET | `/api/v1/products/all` | Público | Todos los productos (con stock exacto; para el panel) |
+| GET | `/api/v1/products?q&category&page&size` | Cualquier área del panel (`PRODUCTOS`, `PRECIOS`, `STOCK` o `COMBOS`) | Productos del panel paginados (20 por página, máximo 100), ordenados por nombre, con stock exacto. `q` busca en nombre, descripción y categoría. Devuelve `{items, page, size, totalItems, totalPages}`. Página inválida: 400 |
+| GET | `/api/v1/products/all` | Cualquier área del panel | Todos los productos con stock exacto, sin paginar. Lo reemplaza el listado paginado; queda por compatibilidad. Ya no es público: el catálogo usa `/api/v1/catalog` |
 | GET | `/api/v1/products/featured` | Público | Destacados, por su orden |
 | GET | `/api/v1/products/{id}` | Público | Detalle con metadatos e imágenes |
 | GET | `/api/v1/products/search?name=...` | Público | Producto por nombre exacto |

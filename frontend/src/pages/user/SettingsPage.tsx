@@ -8,6 +8,8 @@ import { getErrorMessage } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import type { ProfileFormState } from "@/lib/types"
+import { isValidName, isValidPassword } from "@/lib/validation"
+import { PasswordRequirements } from "@/components/password-requirements"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -84,17 +86,28 @@ export default function UserSettingsPage() {
 			return
 		}
 
-		setIsSaving(true)
 		setError(null)
 		setSuccess(null)
 
+		if (!isValidName(profile.name)) {
+			setError(strings.validation.nameInvalid)
+			return
+		}
+		// Contrasena vacia = no se cambia
+		if (profile.password !== "" && !isValidPassword(profile.password)) {
+			setError(strings.validation.passwordReqsError)
+			return
+		}
+
+		setIsSaving(true)
+
 		try {
+			// El email no se puede cambiar; la contrasena solo se manda si se escribio una nueva
 			await axios.put(
 				`${apiBasePublic}/api/v1/auth/update`,
 				{
-					name: profile.name,
-					email: profile.email,
-					password: profile.password,
+					name: profile.name.trim(),
+					password: profile.password === "" ? undefined : profile.password,
 				},
 				{
 					headers: {
@@ -155,20 +168,15 @@ export default function UserSettingsPage() {
 								</div>
 								<div className="grid gap-2">
 									<label className="text-sm font-medium">{strings.userSettings.emailLabel}</label>
-									<Input
-										type="email"
-										value={profile.email}
-										onChange={(event) =>
-											setProfile((prev) =>
-												prev ? { ...prev, email: event.target.value } : prev
-											)
-										}
-									/>
+									<Input type="email" value={profile.email} disabled readOnly />
+									<p className="text-xs text-muted-foreground">{strings.adminUserEdit.emailLocked}</p>
 								</div>
 								<div className="grid gap-2">
 									<label className="text-sm font-medium">{strings.userSettings.passwordLabel}</label>
 									<Input
 										type="password"
+										autoComplete="new-password"
+										placeholder={strings.userSettings.passwordPlaceholder}
 										value={profile.password}
 										onChange={(event) =>
 											setProfile((prev) =>
@@ -176,6 +184,7 @@ export default function UserSettingsPage() {
 											)
 										}
 									/>
+									{profile.password !== "" ? <PasswordRequirements password={profile.password} /> : null}
 								</div>
 								<Button onClick={handleSave} disabled={isSaving}>
 									{isSaving ? strings.userSettings.saving : strings.userSettings.save}

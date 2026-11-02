@@ -2,6 +2,8 @@
 import { useMemo, useState } from "react"
 import type { UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { NAME_MAX_LENGTH, isValidEmail, isValidName, isValidPassword } from "@/lib/validation"
+import { PasswordRequirements } from "@/components/password-requirements"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -39,9 +41,19 @@ export function AdminUserCreateModal({
   const [password, setPassword] = useState("")
   const [roles, setRoles] = useState<Set<UserRole>>(new Set(["CLIENTE"]))
 
+  // El email muestra el error recien cuando hay algo escrito
+  const emailError = email.trim() !== "" && !isValidEmail(email)
+  const nameError = name.length > 0 && !isValidName(name)
+
   const canCreate = useMemo(
-    () => !!onCreate && name.trim() && email.trim() && password.trim() && !isCreating,
-    [onCreate, name, email, password, isCreating]
+    () =>
+      !!onCreate &&
+      isValidName(name) &&
+      isValidEmail(email) &&
+      isValidPassword(password) &&
+      roles.size > 0 &&
+      !isCreating,
+    [onCreate, name, email, password, roles, isCreating]
   )
 
   const toggleRole = (role: UserRole) => {
@@ -64,11 +76,12 @@ export function AdminUserCreateModal({
   }
 
   const handleCreate = () => {
-    if (!onCreate) return
+    if (!onCreate || !canCreate) return
+    // La contrasena va tal cual: los espacios cuentan, como en el registro
     onCreate({
       name: name.trim(),
       email: email.trim(),
-      password: password.trim(),
+      password,
       roles: Array.from(roles),
     })
   }
@@ -99,23 +112,37 @@ export function AdminUserCreateModal({
             <div className="grid gap-3">
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserCreate.name}</label>
-                <Input value={name} onChange={(event) => setName(event.target.value)} />
+                <Input
+                  value={name}
+                  maxLength={NAME_MAX_LENGTH}
+                  aria-invalid={nameError}
+                  onChange={(event) => setName(event.target.value)}
+                />
+                {nameError ? (
+                  <p className="text-xs text-destructive">{strings.validation.nameInvalid}</p>
+                ) : null}
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserCreate.email}</label>
                 <Input
                   type="email"
                   value={email}
+                  aria-invalid={emailError}
                   onChange={(event) => setEmail(event.target.value)}
                 />
+                {emailError ? (
+                  <p className="text-xs text-destructive">{strings.validation.emailInvalid}</p>
+                ) : null}
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserCreate.password}</label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
+                <PasswordRequirements password={password} />
               </div>
             </div>
           </section>

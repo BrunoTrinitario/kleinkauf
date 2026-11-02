@@ -21,7 +21,6 @@ public class PermittedUrls {
                 "POST:/api/v1/auth/forgot-password/{any}",
                 "POST:/api/v1/platform/tenants",
                 "POST:/api/v1/platform/auth/login",
-                "GET:/api/v1/products/all",
                 "GET:/api/v1/products/featured",
                 "GET:/api/v1/products/{id}",
                 "GET:/api/v1/products/{id}/metadata",

@@ -6,12 +6,10 @@ import { strings } from "@/lib/strings"
 import { notifyError } from "@/lib/api-error"
 import { ProductCard } from "./product-card"
 import { ProductModal } from "./product-modal"
+import { PaginationControls } from "./pagination-controls"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Search } from "lucide-react"
-
-// Espera antes de buscar mientras se escribe
-const SEARCH_DELAY_MS = 300
 
 export function ProductCatalog() {
   const apiBasePublic =
@@ -22,18 +20,15 @@ export function ProductCatalog() {
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [searchInput, setSearchInput] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
+  const searchQuery = useDebouncedValue(searchInput.trim())
   const [selectedCategory, setSelectedCategory] = useState("")
   const [sortBy, setSortBy] = useState<CatalogSort>("name")
   const [page, setPage] = useState(0)
 
+  // Una busqueda nueva arranca desde la primera pagina
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSearchQuery(searchInput.trim())
-      setPage(0)
-    }, SEARCH_DELAY_MS)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
+    setPage(0)
+  }, [searchQuery])
 
   useEffect(() => {
     let isMounted = true
@@ -101,7 +96,6 @@ export function ProductCatalog() {
 
   const clearFilters = () => {
     setSearchInput("")
-    setSearchQuery("")
     setSelectedCategory("")
     setPage(0)
   }
@@ -184,30 +178,12 @@ export function ProductCatalog() {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 0 || isLoading}
-            onClick={() => setPage((prev) => prev - 1)}
-          >
-            {strings.productCatalog.prevPage}
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {strings.productCatalog.pageOf(page + 1, totalPages)}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages - 1 || isLoading}
-            onClick={() => setPage((prev) => prev + 1)}
-          >
-            {strings.productCatalog.nextPage}
-          </Button>
-        </div>
-      ) : null}
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        disabled={isLoading}
+        onPageChange={setPage}
+      />
 
       <ProductModal
         product={selectedProduct}

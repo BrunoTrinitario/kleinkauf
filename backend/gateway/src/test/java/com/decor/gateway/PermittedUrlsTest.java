@@ -11,7 +11,6 @@ class PermittedUrlsTest {
 
     @Test
     void catalogoPublico() {
-        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/all"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/featured"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/5"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/bundles/all"));
@@ -30,6 +29,15 @@ class PermittedUrlsTest {
 
         assertTrue(PermittedUrls.isPlatformPath("/api/v1/platform/admin/tenants"));
         assertFalse(PermittedUrls.isPlatformPath("/api/v1/products/all"));
+    }
+
+    // Muestran el stock exacto: son del panel, no del catalogo
+    @Test
+    void listadosDelPanelPidenLogin() {
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/all"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/users"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/users/all"));
     }
 
     @Test

@@ -8,6 +8,8 @@ import com.decor.product.entities.ProductImage;
 import com.decor.product.entities.ProductMetaData;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.factories.ProductFactory;
+import com.decor.product.dto.catalog.CatalogSort;
+import com.decor.product.repositories.CatalogRepository;
 import com.decor.product.repositories.ProductImageRepository;
 import com.decor.product.repositories.ProductMetaDataRepository;
 import com.decor.product.repositories.ProductRepository;
@@ -24,7 +26,9 @@ import java.math.RoundingMode;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ProductService {
@@ -36,6 +40,9 @@ public class ProductService {
 
     @Autowired
     private ProductImageRepository productImageRepository;
+
+    @Autowired
+    private CatalogRepository catalogRepository;
 
     @Autowired
     private ProductMetaDataRepository productMetaDataRepository;
@@ -54,6 +61,42 @@ public class ProductService {
 
     public ArrayList<LightProductDto> getAllProducts() throws ApiException {
         return toLightProducts(productRepository.findAll());
+    }
+
+    public static final int DEFAULT_PAGE_SIZE = 20;
+    public static final int MAX_PAGE_SIZE = 100;
+
+    /*
+    Listado paginado del panel (con stock exacto), ordenado por nombre. Usa la misma busqueda que el
+    catalogo (nombre, descripcion y categoria) y trae las imagenes de toda la pagina en una sola consulta.
+     */
+    public ProductPageDto searchProducts(String query, String category, Integer page, Integer size) throws ApiException {
+        int pageNumber = page == null ? 0 : page;
+        int pageSize = size == null ? DEFAULT_PAGE_SIZE : size;
+        if (pageNumber < 0 || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
+            throw new ApiException(ErrorMessages.INVALID_CATALOG_PAGE, HttpStatus.BAD_REQUEST);
+        }
+        CatalogRepository.Filter filter = new CatalogRepository.Filter(blankToNull(query), blankToNull(category));
+        long total = catalogRepository.count(filter);
+        List<Product> products = catalogRepository.search(filter, CatalogSort.NAME, pageNumber, pageSize);
+
+        Map<Long, List<String>> imagesByProduct = new HashMap<>();
+        if (!products.isEmpty()) {
+            List<Long> ids = products.stream().map(Product::getId).toList();
+            for (Object[] row : productImageRepository.findPathsByProductIds(ids)) {
+                imagesByProduct.computeIfAbsent((Long) row[0], k -> new ArrayList<>()).add((String) row[1]);
+            }
+        }
+
+        List<LightProductDto> items = products.stream()
+                .map(p -> productFactory.getLightProductInfo(p, imagesByProduct.getOrDefault(p.getId(), List.of())))
+                .toList();
+        int totalPages = (int) ((total + pageSize - 1) / pageSize);
+        return new ProductPageDto(items, pageNumber, pageSize, total, totalPages);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     // Destacados ordenados por featuredOrder (sin orden al final) y despues por nombre

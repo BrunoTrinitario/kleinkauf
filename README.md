@@ -102,7 +102,7 @@ superadmin al arrancar. Usuarios de prueba (solo para desarrollo, definidos en `
 
 | Usuario | Email | Contraseña | Dónde |
 |---|---|---|---|
-| Dueño de la tienda demo | `admin@demo.local` | `demo123` | `http://demo.localhost:2999` |
+| Dueño de la tienda demo | `admin@demo.local` | `demo1234` | `http://demo.localhost:2999` |
 | Superadmin de la plataforma | `superadmin@decor.local` | `superadmin123` | `http://localhost:2999` |
 
 **Sin Docker:** cada servicio es un proyecto Gradle independiente (con su propio `gradlew`) que consume `decor-common`

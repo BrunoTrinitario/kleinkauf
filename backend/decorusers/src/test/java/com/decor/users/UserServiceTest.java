@@ -39,13 +39,13 @@ public class UserServiceTest {
     @BeforeEach
     void setUp() throws ApiException {
         Set<String> adminRoles = Set.of("ADMINISTRADOR");
-        userService.createUser("admin", "admin@test.com", "password", adminRoles);
+        userService.createUser("admin", "admin@test.com", "password1", adminRoles);
     }
 
     @Test
     void createUser_createsUserWithRole() throws ApiException {
         Set<String> roles = Set.of("CLIENTE");
-        FullUserDto user = userService.createUser("user", "user@test.com", "password", roles);
+        FullUserDto user = userService.createUser("user", "user@test.com", "password1", roles);
 
         assertNotNull(user.id());
         assertEquals("user", user.name());
@@ -57,7 +57,7 @@ public class UserServiceTest {
     void createUser_duplicateEmail_throwsApiException() {
         ApiException exception = assertThrows(
             ApiException.class,
-            () -> userService.createUser("admin2", "admin@test.com", "password", Set.of("CLIENTE"))
+            () -> userService.createUser("admin2", "admin@test.com", "password1", Set.of("CLIENTE"))
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
@@ -66,7 +66,7 @@ public class UserServiceTest {
 
     @Test
     void getUserById_existingUser_returnsExpectedData() throws ApiException {
-        FullUserDto created = userService.createUser("user", "get-id@test.com", "password", Set.of("CLIENTE"));
+        FullUserDto created = userService.createUser("user", "get-id@test.com", "password1", Set.of("CLIENTE"));
 
         FullUserDto fetched = userService.getUserById(created.id());
         assertEquals(created.id(), fetched.id());
@@ -85,7 +85,7 @@ public class UserServiceTest {
 
     @Test
     void userHasRole_returnsTrueOrFalseAccordingToAssignedRoles() throws ApiException {
-        FullUserDto created = userService.createUser("role-user", "role-user@test.com", "password", Set.of("CLIENTE"));
+        FullUserDto created = userService.createUser("role-user", "role-user@test.com", "password1", Set.of("CLIENTE"));
 
         assertTrue(userService.userHasRole(created.id(), "CLIENTE"));
         assertFalse(userService.userHasRole(created.id(), "ADMINISTRADOR"));
@@ -93,7 +93,7 @@ public class UserServiceTest {
 
     @Test
     void deleteRoleFromUser_existingRole_removesRole() throws ApiException {
-        FullUserDto created = userService.createUser("vip-user", "vip-user@test.com", "password", Set.of("CLIENTE", "EMPLEADO"));
+        FullUserDto created = userService.createUser("vip-user", "vip-user@test.com", "password1", Set.of("CLIENTE", "EMPLEADO"));
 
         boolean deleted = userService.deleteRoleFromUser(created.id(), "EMPLEADO");
 
@@ -104,7 +104,7 @@ public class UserServiceTest {
 
     @Test
     void roleLifecycle_reactivateDeletedRoleWithoutDuplicates() throws ApiException {
-        FullUserDto created = userService.createUser("role-cycle", "role-cycle@test.com", "password", Set.of("CLIENTE"));
+        FullUserDto created = userService.createUser("role-cycle", "role-cycle@test.com", "password1", Set.of("CLIENTE"));
 
         assertFalse(userService.userHasRole(created.id(), "EMPLEADO"));
 
@@ -126,25 +126,25 @@ public class UserServiceTest {
 
     @Test
     void updateUser_updatesNameAndPassword() throws ApiException {
-        FullUserDto created = userService.createUser("updatable", "updatable@test.com", "password", Set.of("CLIENTE"));
+        FullUserDto created = userService.createUser("updatable", "updatable@test.com", "password1", Set.of("CLIENTE"));
 
-        FullUserDto updated = userService.updateUser(created.id(), "updated-name", "new-password");
+        FullUserDto updated = userService.updateUser(created.id(), "updated-name", "new-password1");
 
         assertEquals("updated-name", updated.name());
 
         ApiException oldCredentialsException = assertThrows(
             ApiException.class,
-            () -> userService.login("updated-name", "password")
+            () -> userService.login("updated-name", "password1")
         );
         assertEquals(HttpStatus.UNAUTHORIZED, oldCredentialsException.getStatus());
 
-        LoggedUser loggedUser = userService.login("updated-name", "new-password");
+        LoggedUser loggedUser = userService.login("updated-name", "new-password1");
         assertNotNull(loggedUser.token());
     }
 
     @Test
     void login_validCredentials_returnsLoggedUser() throws ApiException {
-        LoggedUser loggedUser = userService.login("admin", "password");
+        LoggedUser loggedUser = userService.login("admin", "password1");
 
         assertEquals("admin", loggedUser.name());
         assertEquals("admin@test.com", loggedUser.email());
@@ -162,7 +162,7 @@ public class UserServiceTest {
 
     @Test
     void deleteUserById_existingUser_deletesUser() throws ApiException {
-        FullUserDto created = userService.createUser("to-delete", "to-delete@test.com", "password", Set.of("CLIENTE"));
+        FullUserDto created = userService.createUser("to-delete", "to-delete@test.com", "password1", Set.of("CLIENTE"));
 
         boolean deleted = userService.deleteUserById(created.id());
 

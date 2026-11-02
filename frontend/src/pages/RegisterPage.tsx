@@ -9,7 +9,9 @@ import { Headline } from "@/components/highlight"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, ArrowRight, Check } from "lucide-react"
+import { PasswordRequirements } from "@/components/password-requirements"
+import { isValidEmail, isValidName, isValidPassword } from "@/lib/validation"
+import { Eye, EyeOff, ArrowRight } from "lucide-react"
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -22,23 +24,27 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const passwordRequirements = [
-    { label: strings.register.passwordReqMin, met: password.length >= 8 },
-    { label: strings.register.passwordReqNumber, met: /\d/.test(password) },
-    { label: strings.register.passwordReqLetter, met: /[a-zA-Z]/.test(password) },
-  ]
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    if (!isValidName(name)) {
+      setError(strings.validation.nameInvalid)
+      return
+    }
+
+    if (!isValidEmail(email)) {
+      setError(strings.validation.emailInvalid)
+      return
+    }
 
     if (password !== confirmPassword) {
       setError(strings.register.passwordMismatch)
       return
     }
 
-    if (!passwordRequirements.every(req => req.met)) {
-      setError(strings.register.passwordReqsError)
+    if (!isValidPassword(password)) {
+      setError(strings.validation.passwordReqsError)
       return
     }
 
@@ -137,18 +143,7 @@ export default function RegisterPage() {
                   </button>
                 </div>
 
-                <div className="space-y-1 pt-2">
-                  {passwordRequirements.map((req, index) => (
-                    <div key={index} className="flex items-center gap-2 text-xs">
-                      <div className={`h-4 w-4 rounded-full flex items-center justify-center ${req.met ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                        {req.met && <Check className="h-3 w-3" />}
-                      </div>
-                      <span className={req.met ? "text-foreground" : "text-muted-foreground"}>
-                        {req.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <PasswordRequirements password={password} />
               </div>
 
               <div className="space-y-2">

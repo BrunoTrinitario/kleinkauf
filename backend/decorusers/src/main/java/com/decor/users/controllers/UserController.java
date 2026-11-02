@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.PatchUserDto;
+import com.decor.users.dtos.UserPageDto;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.services.UserService;
 
@@ -46,6 +47,17 @@ public class UserController {
     public ResponseEntity<ArrayList<FullUserDto>> getAllUsers() {
         ArrayList<FullUserDto> users = userService.getAllUsers();
         return new ResponseEntity<>(users, org.springframework.http.HttpStatus.OK);
+    }
+
+    // Listado paginado del panel: q busca en nombre y email, role filtra por rol. size: 20 por defecto, maximo 100
+    @GetMapping()
+    public ResponseEntity<UserPageDto> searchUsers(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) throws ApiException {
+        return ResponseEntity.ok(userService.searchUsers(q, role, page, size));
     }
 
     @PostMapping()

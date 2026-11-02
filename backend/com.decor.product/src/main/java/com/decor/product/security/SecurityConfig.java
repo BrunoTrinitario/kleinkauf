@@ -36,6 +36,10 @@ public class SecurityConfig {
                             .access(AuthorizationManagers.allOf(
                                     AuthorityAuthorizationManager.hasAuthority(PermissionArea.PRODUCTOS.authority()),
                                     AuthorityAuthorizationManager.hasAuthority(PermissionArea.PRECIOS.authority())))
+                        // Listado del panel con stock exacto: cualquier area del panel (el EMPLEADO por defecto solo tiene STOCK)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/all").hasAnyAuthority(
+                                PermissionArea.PRODUCTOS.authority(), PermissionArea.PRECIOS.authority(),
+                                PermissionArea.STOCK.authority(), PermissionArea.COMBOS.authority())
                         // Productos: alta, edicion, borrado, imagenes, metadatos y destacados
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())

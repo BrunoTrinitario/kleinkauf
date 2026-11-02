@@ -76,7 +76,7 @@ class TenantOnboardingTest {
 		assertTrue(tenant.getEnable());
 		assertNotNull(UUID.fromString(tenant.getConfigId()));
 
-		verify(tenantOwnerCreator).createOwner("mi_tienda", "Ana", "ana@mail.com", "secreta");
+		verify(tenantOwnerCreator).createOwner("mi_tienda", "Ana", "ana@mail.com", "secreta12");
 		assertEquals("mi-tienda", result.identifier());
 		assertEquals("http://mi-tienda.localhost:3000", result.url());
 		assertTrue(result.enabled());
@@ -140,6 +140,17 @@ class TenantOnboardingTest {
 				() -> tenantService.createTenant(new NewTenantDto("mi-tienda", "Ana", " ", "secreta")));
 
 		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+		verifyNoInteractions(tenantRepository, tenantOwnerCreator);
+	}
+
+	@Test
+	void datosDelDuenioInvalidos_respondeBadRequest() {
+		for (NewTenantDto dto : List.of(
+				new NewTenantDto("mi-tienda", "Ana", "r", "secreta12"),
+				new NewTenantDto("mi-tienda", "Ana", "ana@mail.com", "r"))) {
+			ApiException ex = assertThrows(ApiException.class, () -> tenantService.createTenant(dto));
+			assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+		}
 		verifyNoInteractions(tenantRepository, tenantOwnerCreator);
 	}
 
@@ -214,6 +225,6 @@ class TenantOnboardingTest {
 	}
 
 	private static NewTenantDto dto(String identifier) {
-		return new NewTenantDto(identifier, "Ana", "ana@mail.com", "secreta");
+		return new NewTenantDto(identifier, "Ana", "ana@mail.com", "secreta12");
 	}
 }

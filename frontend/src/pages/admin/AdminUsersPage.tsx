@@ -6,8 +6,12 @@ import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
-import type { User } from "@/lib/types"
+import type { Page, User, UserRole } from "@/lib/types"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { AdminUserCard } from "@/components/admin-user-card"
+import { PaginationControls } from "@/components/pagination-controls"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 import { AdminUserEditModal } from "@/components/admin-user-edit-modal"
 import { AdminUserCreateModal } from "@/components/admin-user-create-modal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,8 +31,14 @@ import axios from "axios"
 export default function AdminUsersPage() {
   const navigate = useNavigate()
   const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
-  const [users, setUsers] = useState<User[]>([])
+  const [usersPage, setUsersPage] = useState<Page<User> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState("")
+  const searchQuery = useDebouncedValue(searchInput.trim())
+  const [roleFilter, setRoleFilter] = useState<UserRole | "">("")
+  const [page, setPage] = useState(0)
+  // Se incrementa para volver a pedir la pagina actual (despues de crear o borrar)
+  const [reloadKey, setReloadKey] = useState(0)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -52,6 +62,11 @@ export default function AdminUsersPage() {
     }
   }, [isAuthenticated, isAuthLoading, activeRole, navigate])
 
+  // Un filtro nuevo arranca desde la primera pagina
+  useEffect(() => {
+    setPage(0)
+  }, [searchQuery, roleFilter])
+
   useEffect(() => {
     if (!user?.token) {
       return
@@ -60,18 +75,24 @@ export default function AdminUsersPage() {
     let isMounted = true
 
     const loadUsers = async () => {
+      setIsLoading(true)
       try {
-        const response = await axios.get(`${apiBasePublic}/api/v1/users/all`, {
+        const response = await axios.get<Page<User>>(`${apiBasePublic}/api/v1/users`, {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
+          params: {
+            q: searchQuery || undefined,
+            role: roleFilter || undefined,
+            page,
+          },
         })
         if (isMounted) {
-          setUsers(response.data as User[])
+          setUsersPage(response.data)
         }
       } catch (err) {
         if (isMounted) {
-          setUsers([])
+          setUsersPage(null)
           notifyError(err, strings.errors.loadUsers)
         }
       } finally {
@@ -86,11 +107,14 @@ export default function AdminUsersPage() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, user?.token])
+  }, [apiBasePublic, user?.token, searchQuery, roleFilter, page, reloadKey])
 
   if (isAuthLoading || !isAuthenticated || activeRole !== "ADMINISTRADOR") {
     return null
   }
+
+  const users = usersPage?.items ?? []
+  const hasFilters = searchQuery !== "" || roleFilter !== ""
 
   const handleEditUser = (target: User) => {
     setSelectedUser(target)
@@ -112,8 +136,10 @@ export default function AdminUsersPage() {
   }
 
   const updateUserLocally = (updatedUser: User) => {
-    setUsers((prev) =>
-      prev.map((item) => (item.id === updatedUser.id ? updatedUser : item))
+    setUsersPage((prev) =>
+      prev
+        ? { ...prev, items: prev.items.map((item) => (item.id === updatedUser.id ? updatedUser : item)) }
+        : prev
     )
   }
 
@@ -189,7 +215,12 @@ export default function AdminUsersPage() {
           Authorization: `Bearer ${user.token}`,
         },
       })
-      setUsers((prev) => prev.filter((item) => item.id !== target.id))
+      // Si era el ultimo de la pagina se vuelve a la anterior; si no, se recarga la actual
+      if (users.length === 1 && page > 0) {
+        setPage(page - 1)
+      } else {
+        setReloadKey((prev) => prev + 1)
+      }
     } catch (err) {
       notifyError(err, strings.errors.deleteUser)
     }
@@ -209,7 +240,7 @@ export default function AdminUsersPage() {
     setCreateError(null)
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${apiBasePublic}/api/v1/users`,
         payload,
         {
@@ -219,8 +250,8 @@ export default function AdminUsersPage() {
         }
       )
 
-      const createdUser = response.data as User
-      setUsers((prev) => [createdUser, ...prev])
+      // El usuario nuevo puede caer en otra pagina segun el orden: se recarga la actual
+      setReloadKey((prev) => prev + 1)
       setIsCreateOpen(false)
     } catch (err) {
       setCreateError(getErrorMessage(err, strings.adminUsers.createError))
@@ -257,16 +288,45 @@ export default function AdminUsersPage() {
           <Button onClick={() => setIsCreateOpen(true)}>{strings.adminUsers.createButton}</Button>
         </div>
 
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={strings.adminUsers.searchPlaceholder}
+                  className="pl-10"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value as UserRole | "")}
+                className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">{strings.adminUsers.allRoles}</option>
+                <option value="ADMINISTRADOR">{strings.roles.administrador}</option>
+                <option value="EMPLEADO">{strings.roles.empleado}</option>
+                <option value="CLIENTE">{strings.roles.cliente}</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Users List */}
         <Card>
           <CardHeader>
-            <CardTitle>{strings.adminUsers.usersTitle} ({users.length})</CardTitle>
+            <CardTitle>{strings.adminUsers.usersTitle} ({usersPage?.totalItems ?? 0})</CardTitle>
           </CardHeader>
-          <CardContent>
-            {isLoading ? (
+          <CardContent className="space-y-6">
+            {isLoading && !usersPage ? (
               <p className="text-sm text-muted-foreground">{strings.adminUsers.loading}</p>
             ) : users.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{strings.adminUsers.empty}</p>
+              <p className="text-sm text-muted-foreground">
+                {hasFilters ? strings.adminUsers.emptySearch : strings.adminUsers.empty}
+              </p>
             ) : (
               <div className="space-y-4">
                 {users.map((u) => (
@@ -280,6 +340,12 @@ export default function AdminUsersPage() {
                 ))}
               </div>
             )}
+            <PaginationControls
+              page={page}
+              totalPages={usersPage?.totalPages ?? 0}
+              disabled={isLoading}
+              onPageChange={setPage}
+            />
           </CardContent>
         </Card>
       </main>

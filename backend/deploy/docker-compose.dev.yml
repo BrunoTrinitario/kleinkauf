@@ -129,7 +129,7 @@ services:
       DEMO_IDENTIFIER: demo
       DEMO_OWNER_NAME: Dueño Demo
       DEMO_OWNER_EMAIL: admin@demo.local
-      DEMO_OWNER_PASSWORD: demo123
+      DEMO_OWNER_PASSWORD: demo1234
     restart: "no"
     depends_on:
       gateway-service:

@@ -11,6 +11,7 @@ import com.decor.users.entities.Tenant;
 import com.decor.users.repositories.TenantRepository;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.Parser;
+import com.decor.users.util.UserValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -174,6 +175,8 @@ public class TenantService {
         if (isBlank(dto.ownerName()) || isBlank(dto.ownerEmail()) || isBlank(dto.ownerPassword())) {
             throw new ApiException(ErrorMessages.OWNER_DATA_REQUIRED, HttpStatus.BAD_REQUEST);
         }
+        // El dueno es un usuario mas: mismas reglas de nombre, email y contrasena
+        UserValidator.validateNewUser(dto.ownerName(), dto.ownerEmail(), dto.ownerPassword());
     }
 
     private static boolean isBlank(String value) {

@@ -33,8 +33,10 @@ import com.decor.users.entities.User;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.repositories.RoleRepository;
 import com.decor.users.repositories.UserRepository;
+import com.decor.users.repositories.UserSearchRepository;
 import com.decor.users.util.Parser;
 import com.decor.users.util.RoleUtility;
+import com.decor.users.util.UserValidator;
 
 import jakarta.transaction.Transactional;
 
@@ -51,6 +53,8 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private RoleRepository roleRepository;
+    @Autowired
+    private UserSearchRepository userSearchRepository;
     @Autowired
     private CacheUtil cacheUtil;
     @Autowired
@@ -72,6 +76,46 @@ public class UserService {
             );
         });
         return userList;
+    }
+
+    public static final int DEFAULT_PAGE_SIZE = 20;
+    public static final int MAX_PAGE_SIZE = 100;
+
+    /*
+    Listado paginado del panel, ordenado por nombre. query busca en nombre y email; role filtra por rol.
+    Los roles de toda la pagina salen de una sola consulta y la mascara de cada tipo se calcula una vez.
+     */
+    public UserPageDto searchUsers(String query, String role, Integer page, Integer size) throws ApiException {
+        int pageNumber = page == null ? 0 : page;
+        int pageSize = size == null ? DEFAULT_PAGE_SIZE : size;
+        if (pageNumber < 0 || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
+            throw new ApiException(ErrorMessages.INVALID_PAGE, HttpStatus.BAD_REQUEST);
+        }
+        String roleFilter = role == null || role.isBlank() ? null : role.trim().toUpperCase(Locale.ROOT);
+        if (roleFilter != null && !RoleUtility.existsRole(roleFilter)) {
+            throw new ApiException(ErrorMessages.INVALID_ROLE, HttpStatus.BAD_REQUEST);
+        }
+
+        UserSearchRepository.Filter filter = new UserSearchRepository.Filter(query, roleFilter);
+        long total = userSearchRepository.count(filter);
+        List<User> users = userSearchRepository.search(filter, pageNumber, pageSize);
+
+        Map<Long, List<RoleDto>> rolesByUser = new HashMap<>();
+        Map<String, Integer> masks = new HashMap<>();
+        if (!users.isEmpty()) {
+            List<Long> ids = users.stream().map(User::getId).toList();
+            for (Role r : roleRepository.findByUser_IdIn(ids)) {
+                int mask = masks.computeIfAbsent(r.getType(), rolePermissionService::maskFor);
+                rolesByUser.computeIfAbsent(r.getUser().getId(), k -> new ArrayList<>())
+                        .add(new RoleDto(r.getType(), mask));
+            }
+        }
+
+        List<FullUserDto> items = users.stream()
+                .map(u -> Parser.fromUserEntityToFullDto(u, rolesByUser.getOrDefault(u.getId(), List.of())))
+                .toList();
+        int totalPages = (int) ((total + pageSize - 1) / pageSize);
+        return new UserPageDto(items, pageNumber, pageSize, total, totalPages);
     }
 
 
@@ -101,6 +145,9 @@ public class UserService {
     }
 
     public FullUserDto createUser(String name, String email, String password, Set<String> roles) throws ApiException {
+        UserValidator.validateNewUser(name, email, password);
+        name = name.trim();
+        email = email.trim();
         if (userExistsByEmail(email)){
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.BAD_REQUEST);
         }
@@ -191,10 +238,13 @@ public class UserService {
         }
     }
 
+    // name o password en null = no se cambian; si vienen, tienen que cumplir las reglas de UserValidator
     public FullUserDto updateUser(Long id, String name, String password) throws ApiException {
+        if (name != null) UserValidator.validateName(name);
+        if (password != null) UserValidator.validatePassword(password);
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null){
-            if (name != null) rawUser.setName(name);
+            if (name != null) rawUser.setName(name.trim());
             if (password != null ) rawUser.setPassword(passwordEncoder.encode(password));
             rawUser = this.userRepository.save(rawUser);
             return Parser.fromUserEntityToFullDto(rawUser,this.getUserRoles(rawUser.getId()));

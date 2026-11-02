@@ -22,6 +22,18 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
+    // Listado paginado del panel (stock exacto): q busca en nombre, descripcion y categoria.
+    // size: 20 por defecto, maximo 100. Pide algun permiso del panel (ver SecurityConfig)
+    @GetMapping
+    public ResponseEntity<ProductPageDto> searchProducts(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) throws ApiException {
+        return ResponseEntity.ok(productService.searchProducts(q, category, page, size));
+    }
+
     // Publico: destacados para la home del catalogo
     @GetMapping("/featured")
     public ResponseEntity<ArrayList<LightProductDto>> getFeaturedProducts() throws ApiException {

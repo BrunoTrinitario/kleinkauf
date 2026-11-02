@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { useAuth } from "@/lib/auth-context"
-import type { Product, User } from "@/lib/types"
+import type { Page } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { notifyError } from "@/lib/api-error"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,8 +9,8 @@ import { Users, Package } from "lucide-react"
 
 export function AdminDashboard() {
   const { user } = useAuth()
-  const [products, setProducts] = useState<Product[]>([])
-  const [users, setUsers] = useState<User[]>([])
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [totalUsers, setTotalUsers] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const apiBasePublic =
     import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
@@ -23,30 +22,29 @@ export function AdminDashboard() {
 
     let isMounted = true
 
+    // Solo hacen falta los totales: se pide una pagina de 1 y se lee totalItems
     const loadStats = async () => {
+      const options = {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+        params: { size: 1 },
+      }
       try {
         const [productsResponse, usersResponse] = await Promise.all([
-          axios.get(`${apiBasePublic}/api/v1/products/all`, {
-            headers: {
-              Authorization: `Bearer ${user.token}`,
-            },
-          }),
-          axios.get(`${apiBasePublic}/api/v1/users/all`, {
-            headers: {
-              Authorization: `Bearer ${user.token}`,
-            },
-          }),
+          axios.get<Page<unknown>>(`${apiBasePublic}/api/v1/products`, options),
+          axios.get<Page<unknown>>(`${apiBasePublic}/api/v1/users`, options),
         ])
 
         if (isMounted) {
-          setProducts(productsResponse.data as Product[])
-          setUsers(usersResponse.data as User[])
+          setTotalProducts(productsResponse.data.totalItems)
+          setTotalUsers(usersResponse.data.totalItems)
         }
       } catch (err) {
         if (isMounted) {
           notifyError(err, strings.errors.loadDashboard)
-          setProducts([])
-          setUsers([])
+          setTotalProducts(0)
+          setTotalUsers(0)
         }
       } finally {
         if (isMounted) {
@@ -74,7 +72,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-medium">
-              {isLoading ? "-" : products.length}
+              {isLoading ? "-" : totalProducts}
             </div>
           </CardContent>
         </Card>
@@ -88,7 +86,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-medium">
-              {isLoading ? "-" : users.length}
+              {isLoading ? "-" : totalUsers}
             </div>
           </CardContent>
         </Card>

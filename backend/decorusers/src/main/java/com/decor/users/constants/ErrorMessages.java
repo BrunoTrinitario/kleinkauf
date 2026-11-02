@@ -14,6 +14,10 @@ public class ErrorMessages {
     public static String INVALID_CREDENTIALS = "Invalid username or password.";
     public static String EMAIL_ALREADY_IN_USE = "The email is already in use.";
     public static String INVALID_ROLE = "The role provided is invalid.";
+    public static String INVALID_NAME = "The name is required and can have up to 100 characters.";
+    public static String INVALID_EMAIL = "The email is not valid.";
+    public static String INVALID_PASSWORD = "The password must have 8 to 72 characters, with at least one letter and one number.";
+    public static String INVALID_PAGE ="Invalid page: page must be 0 or more and size between 1 and 100.";
     public static String ROLES_MUST_BE_EMPTY = "Should not be any role";
     public static String INVALID_TOKEN = "The access token is invalid.";
     public static String TENANT_NOT_FOUND = "The tenant was not found.";

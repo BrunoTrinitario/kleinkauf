@@ -72,13 +72,16 @@ export interface CatalogProductDetail extends CatalogProduct {
   metadata: ProductMetadata | null
 }
 
-export interface CatalogPage {
-  items: CatalogProduct[]
+// Pagina de un listado del backend (catalogo, usuarios y productos del panel). page empieza en 0
+export interface Page<T> {
+  items: T[]
   page: number
   size: number
   totalItems: number
   totalPages: number
 }
+
+export type CatalogPage = Page<CatalogProduct>
 
 export interface CatalogCategory {
   name: string

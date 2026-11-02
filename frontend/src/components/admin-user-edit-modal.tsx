@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type { RoleDto, User, UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { NAME_MAX_LENGTH, isValidName } from "@/lib/validation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -38,7 +39,10 @@ export function AdminUserEditModal({
   const [email, setEmail] = useState("")
   const [roles, setRoles] = useState<RoleDto[]>([])
 
-  const canSave = useMemo(() => !!onSave && !!user && !!token, [onSave, user, token])
+  const canSave = useMemo(
+    () => !!onSave && !!user && !!token && isValidName(name),
+    [onSave, user, token, name]
+  )
 
   useEffect(() => {
     if (!user || !open) return
@@ -85,7 +89,15 @@ export function AdminUserEditModal({
             <div className="grid gap-3">
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserEdit.name}</label>
-                <Input value={name} onChange={(event) => setName(event.target.value)} />
+                <Input
+                  value={name}
+                  maxLength={NAME_MAX_LENGTH}
+                  aria-invalid={!isValidName(name)}
+                  onChange={(event) => setName(event.target.value)}
+                />
+                {!isValidName(name) ? (
+                  <p className="text-xs text-destructive">{strings.validation.nameInvalid}</p>
+                ) : null}
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserEdit.email}</label>

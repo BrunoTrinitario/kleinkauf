@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
-import type { Product } from "@/lib/types"
+import type { Page, Product } from "@/lib/types"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { PaginationControls } from "@/components/pagination-controls"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { Headline } from "@/components/highlight"
@@ -32,8 +34,12 @@ import { Link } from "react-router-dom"
 export default function ProductsManagementPage() {
   const navigate = useNavigate()
   const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
-  const [products, setProducts] = useState<Product[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [productsPage, setProductsPage] = useState<Page<Product> | null>(null)
+  const [searchInput, setSearchInput] = useState("")
+  const searchQuery = useDebouncedValue(searchInput.trim())
+  const [page, setPage] = useState(0)
+  // Se incrementa para volver a pedir la pagina actual (despues de crear o borrar)
+  const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -62,23 +68,36 @@ export default function ProductsManagementPage() {
     }
   }, [isAuthenticated, isAuthLoading, canManageProducts, navigate])
 
+  // Una busqueda nueva arranca desde la primera pagina
   useEffect(() => {
-    if (!canManageProducts) {
+    setPage(0)
+  }, [searchQuery])
+
+  useEffect(() => {
+    if (!canManageProducts || !user?.token) {
       return
     }
 
     let isMounted = true
 
     const loadProducts = async () => {
+      setIsLoading(true)
       try {
-        const response = await axios.get(`${apiBasePublic}/api/v1/products/all`)
-        const data = response.data as Product[]
+        const response = await axios.get<Page<Product>>(`${apiBasePublic}/api/v1/products`, {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+          params: {
+            q: searchQuery || undefined,
+            page,
+          },
+        })
         if (isMounted) {
-          setProducts(data)
+          setProductsPage(response.data)
         }
       } catch (err) {
         if (isMounted) {
-          setProducts([])
+          setProductsPage(null)
           notifyError(err, strings.errors.loadProducts)
         }
       } finally {
@@ -93,23 +112,13 @@ export default function ProductsManagementPage() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, canManageProducts])
+  }, [apiBasePublic, canManageProducts, user?.token, searchQuery, page, reloadKey])
 
   if (isAuthLoading || !isAuthenticated || !canManageProducts) {
     return null
   }
 
-  const filteredProducts = products.filter(product => {
-    const query = searchQuery.toLowerCase()
-    const name = product.name?.toLowerCase() ?? ""
-    const category = product.category?.toLowerCase() ?? ""
-    const description = product.description?.toLowerCase() ?? ""
-    return (
-      name.includes(query) ||
-      category.includes(query) ||
-      description.includes(query)
-    )
-  })
+  const products = productsPage?.items ?? []
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product)
@@ -149,15 +158,22 @@ export default function ProductsManagementPage() {
           Authorization: `Bearer ${user.token}`,
         },
       })
-      setProducts((prev) => prev.filter((item) => item.id !== product.id))
+      // Si era el ultimo de la pagina se vuelve a la anterior; si no, se recarga la actual
+      if (products.length === 1 && page > 0) {
+        setPage(page - 1)
+      } else {
+        setReloadKey((prev) => prev + 1)
+      }
     } catch (err) {
       notifyError(err, strings.errors.deleteProduct)
     }
   }
 
   const handleSaveProduct = (updatedProduct: Product) => {
-    setProducts((prev) =>
-      prev.map((item) => (item.id === updatedProduct.id ? updatedProduct : item))
+    setProductsPage((prev) =>
+      prev
+        ? { ...prev, items: prev.items.map((item) => (item.id === updatedProduct.id ? updatedProduct : item)) }
+        : prev
     )
     setIsEditOpen(false)
     setSelectedProduct(null)
@@ -172,7 +188,7 @@ export default function ProductsManagementPage() {
     setCreateError(null)
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${apiBasePublic}/api/v1/products`,
         {
           name: createName,
@@ -187,14 +203,8 @@ export default function ProductsManagementPage() {
         }
       )
 
-      const created = response.data as Product
-      setProducts((prev) => [
-        {
-          ...created,
-          images: created.images ?? [],
-        },
-        ...prev,
-      ])
+      // El producto nuevo puede caer en otra pagina segun el orden: se recarga la actual
+      setReloadKey((prev) => prev + 1)
       setIsCreateOpen(false)
       resetCreateForm()
     } catch (err) {
@@ -233,8 +243,8 @@ export default function ProductsManagementPage() {
                 <Input 
                   placeholder={strings.adminProducts.searchPlaceholder}
                   className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
               <Button onClick={() => setIsCreateOpen(true)}>
@@ -248,24 +258,24 @@ export default function ProductsManagementPage() {
         {/* Products grid */}
         <Card>
           <CardHeader>
-            <CardTitle>{strings.adminProducts.productsTitle} ({filteredProducts.length})</CardTitle>
+            <CardTitle>{strings.adminProducts.productsTitle} ({productsPage?.totalItems ?? 0})</CardTitle>
             <CardDescription>
               {strings.adminProducts.productsDescription}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {isLoading ? (
+          <CardContent className="space-y-6">
+            {isLoading && !productsPage ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">{strings.adminProducts.loading}</p>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">{strings.adminProducts.empty}</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <AdminProductCard
                     key={product.id}
                     product={product}
@@ -276,6 +286,12 @@ export default function ProductsManagementPage() {
                 ))}
               </div>
             )}
+            <PaginationControls
+              page={page}
+              totalPages={productsPage?.totalPages ?? 0}
+              disabled={isLoading}
+              onPageChange={setPage}
+            />
           </CardContent>
         </Card>
       </main>
