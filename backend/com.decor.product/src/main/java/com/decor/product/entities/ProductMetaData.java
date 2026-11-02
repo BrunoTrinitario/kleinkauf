@@ -28,9 +28,10 @@ public class ProductMetaData {
     private double weight;
 
     public ProductMetaData(){
-        this.material = "unknown";
-        this.color = "unknown";
-        this.style = "unknown";
+        // Sin dato = vacio (no un valor de relleno que despues se muestra o se exporta como si fuera real)
+        this.material = "";
+        this.color = "";
+        this.style = "";
         this.height = 0.0;
         this.width = 0.0;
         this.length = 0.0;

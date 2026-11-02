@@ -2,7 +2,7 @@
 import axios from "axios"
 import { useEffect, useMemo, useState } from "react"
 import type { Product, ProductMetadata } from "@/lib/types"
-import { defaultProductMetadata } from "@/lib/types"
+import { defaultProductMetadata, normalizeMetadata } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { notifyError } from "@/lib/api-error"
 import { Button } from "@/components/ui/button"
@@ -77,9 +77,10 @@ export function AdminProductEditModal({
             },
           }
         )
-        const data = response.data == "" ? defaultProductMetadata : response.data
+        // Sin metadatos el backend responde vacio
+        const data = response.data === "" ? null : response.data
         if (isActive) {
-          setMetadata(data ?? defaultProductMetadata)
+          setMetadata(normalizeMetadata(data))
         }
       } catch {
         if (isActive) {

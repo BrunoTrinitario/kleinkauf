@@ -118,6 +118,20 @@ function ProductModalContent({
     }
   }, [apiBasePublic, open, product.slug])
 
+  const metadataRows: [string, string][] = []
+  if (metadata) {
+    if (metadata.material?.trim()) metadataRows.push([strings.productModal.material, metadata.material])
+    if (metadata.color?.trim()) metadataRows.push([strings.productModal.color, metadata.color])
+    if (metadata.style?.trim()) metadataRows.push([strings.productModal.style, metadata.style])
+    if (metadata.height || metadata.width || metadata.length) {
+      metadataRows.push([
+        strings.productModal.dimensions,
+        `${metadata.height} x ${metadata.width} x ${metadata.length}`,
+      ])
+    }
+    if (metadata.weight) metadataRows.push([strings.productModal.weight, String(metadata.weight)])
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl p-0 gap-0 overflow-hidden">
@@ -204,16 +218,12 @@ function ProductModalContent({
                 </span>
               </div>
 
-              {/* Metadata */}
-              {metadata ? (
+              {/* Metadata: solo los datos cargados (texto vacio o medida en 0 = sin dato) */}
+              {metadataRows.length > 0 ? (
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>{strings.productModal.material} {metadata.material}</p>
-                  <p>{strings.productModal.color} {metadata.color}</p>
-                  <p>{strings.productModal.style} {metadata.style}</p>
-                  <p>
-                    {strings.productModal.dimensions} {metadata.height} x {metadata.width} x {metadata.length}
-                  </p>
-                  <p>{strings.productModal.weight} {metadata.weight}</p>
+                  {metadataRows.map(([label, value]) => (
+                    <p key={label}>{label} {value}</p>
+                  ))}
                 </div>
               ) : metadataError ? (
                 <p className="text-sm text-destructive">{metadataError}</p>

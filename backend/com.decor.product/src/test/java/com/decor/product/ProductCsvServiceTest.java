@@ -78,8 +78,8 @@ class ProductCsvServiceTest {
 		assertTrue(csv.startsWith("﻿"));
 		String[] lines = csv.substring(1).split("\r\n");
 		assertEquals(HEADER, lines[0]);
-		// La descripcion con ";" va entre comillas. ProductMetaData arranca con "unknown" en color y estilo: se exporta lo guardado
-		assertEquals("Mesa;comedor;\"Mesa de roble; 6 personas\";150000,50;90000;Roble;unknown;unknown;75,5;0;0;0", lines[1]);
+		// La descripcion con ";" va entre comillas. Color y estilo sin cargar quedan vacios
+		assertEquals("Mesa;comedor;\"Mesa de roble; 6 personas\";150000,50;90000;Roble;;;75,5;0;0;0", lines[1]);
 		assertEquals("Silla;;;;;;;;;;;", lines[2]);
 	}
 

@@ -88,13 +88,27 @@ export interface CatalogCategory {
   products: number
 }
 
+// Producto sin metadatos cargados: campos vacios (no un "Unknown" que se guardaria como dato real)
 export const defaultProductMetadata: ProductMetadata = {
-  material: "Unknown",
-  color: "Unknown",
-  style: "Unknown",
+  material: "",
+  color: "",
+  style: "",
   height: 0,
   width: 0,
   length: 0,
   weight: 0,
+}
+
+// Completa con vacio lo que venga en null (filas viejas de la base)
+export function normalizeMetadata(data: Partial<ProductMetadata> | null | undefined): ProductMetadata {
+  return {
+    material: data?.material ?? "",
+    color: data?.color ?? "",
+    style: data?.style ?? "",
+    height: data?.height ?? 0,
+    width: data?.width ?? 0,
+    length: data?.length ?? 0,
+    weight: data?.weight ?? 0,
+  }
 }
 
