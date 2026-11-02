@@ -16,12 +16,12 @@ const roleLabels: Record<UserRole, string> = {
   ADMINISTRADOR: strings.roles.administrador,
 }
 
-const resolvePrimaryRole = (roles: RoleDto[] | undefined): UserRole | null => {
-  const roleType = roles?.[0]?.type
-  if (roleType === "CLIENTE" || roleType === "EMPLEADO" || roleType === "ADMINISTRADOR") {
-    return roleType
-  }
-  return null
+// Orden fijo de los badges, del rol con mas permisos al de menos
+const ROLE_ORDER: UserRole[] = ["ADMINISTRADOR", "EMPLEADO", "CLIENTE"]
+
+const resolveRoles = (roles: RoleDto[] | undefined): UserRole[] => {
+  const types = new Set(roles?.map((role) => role.type))
+  return ROLE_ORDER.filter((role) => types.has(role))
 }
 
 interface AdminUserCardProps {
@@ -32,7 +32,7 @@ interface AdminUserCardProps {
 }
 
 export function AdminUserCard({ user, onEdit, onDelete, disableDelete }: AdminUserCardProps) {
-  const primaryRole = resolvePrimaryRole(user.roles)
+  const roles = resolveRoles(user.roles)
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-border">
@@ -50,9 +50,17 @@ export function AdminUserCard({ user, onEdit, onDelete, disableDelete }: AdminUs
       </div>
 
       <div className="flex items-center gap-3">
-        <Badge className={primaryRole ? roleColors[primaryRole] : "bg-muted text-muted-foreground"}>
-          {primaryRole ? roleLabels[primaryRole] : strings.roles.noRole}
-        </Badge>
+        <div className="flex flex-wrap gap-1.5">
+          {roles.length > 0 ? (
+            roles.map((role) => (
+              <Badge key={role} className={roleColors[role]}>
+                {roleLabels[role]}
+              </Badge>
+            ))
+          ) : (
+            <Badge className="bg-muted text-muted-foreground">{strings.roles.noRole}</Badge>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="icon"
