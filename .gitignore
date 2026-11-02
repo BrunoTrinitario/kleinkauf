@@ -10,6 +10,10 @@ bin/
 .DS_Store
 Thumbs.db
 
+# Gradle
+.gradle/
+build/
+
 # Uploads de los microservicios
 uploads/
 

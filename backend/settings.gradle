@@ -1,0 +1,9 @@
+// Agrupa todos los proyectos del backend para poder importarlos juntos (Eclipse, IntelliJ).
+// Cada proyecto sigue siendo un build independiente y se puede compilar por separado.
+rootProject.name = 'decor-backend'
+
+includeBuild('decor-common')
+includeBuild('eureka')
+includeBuild('gateway')
+includeBuild('decorusers')
+includeBuild('com.decor.product')
