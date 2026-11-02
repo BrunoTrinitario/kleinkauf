@@ -33,6 +33,8 @@ public class PermittedUrls {
                 "GET:/api/v1/sales/checkout",
                 "POST:/api/v1/sales/orders",
                 "POST:/api/v1/sales/orders/lookup",
+                "POST:/api/v1/sales/orders/{code}/receipt",
+                "POST:/api/v1/sales/orders/{code}/cancel",
                 "GET:/api/v1/bundles/all",
                 "GET:/api/v1/bundles/{id}",
                 "/products/images/{any}"
@@ -76,9 +78,10 @@ public class PermittedUrls {
                 continue;
             }
 
-            // Convertir placeholders a regex
+            // Convertir placeholders a regex. {code}: un segmento (ej. numero de pedido K7QM-4X2P)
             String regex = allowedPath
                     .replace("{id}", "\\d+")
+                    .replace("{code}", "[^/]+")
                     .replace("{any}", ".*$")
                     .replace("/", "\\/");
 

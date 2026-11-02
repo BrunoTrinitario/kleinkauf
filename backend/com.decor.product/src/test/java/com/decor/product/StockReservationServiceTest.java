@@ -4,6 +4,7 @@ import com.decor.common.dto.stock.ReservationDto;
 import com.decor.common.dto.stock.ReservationItemDto;
 import com.decor.common.dto.stock.ReservationItemType;
 import com.decor.common.dto.stock.ReservationRequestDto;
+import com.decor.common.dto.stock.SoldItemsDto;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.entities.Bundle;
 import com.decor.product.entities.BundleProduct;
@@ -209,9 +210,68 @@ class StockReservationServiceTest {
 	}
 
 	@Test
+	void ventaDelLocal_sinStock_ajustaYDejaEnCero_yAnularDevuelveTodo() throws ApiException {
+		Product mesa = product("Mesa", 2, null, null);
+
+		ReservationDto reservation = service.reserve(new ReservationRequestDto("LOCA-L001",
+				List.of(item(ReservationItemType.PRODUCT, mesa.getId(), 5)), true));
+
+		// Sin precio ('a consultar') se puede vender en el local
+		assertNull(reservation.items().get(0).unitPrice());
+		assertEquals(List.of("Mesa"), reservation.shortages());
+		assertEquals(0, stock(mesa));
+		List<StockMovement> movements = stockMovementRepository.findAll();
+		assertTrue(movements.stream().anyMatch(m -> m.getType() == StockMovementType.AJUSTE && m.getQuantity() == 3));
+		assertTrue(movements.stream().anyMatch(m -> m.getType() == StockMovementType.SALIDA && m.getQuantity() == -5));
+
+		// El reintento informa lo mismo
+		assertEquals(List.of("Mesa"), service.reserve(new ReservationRequestDto("LOCA-L001",
+				List.of(item(ReservationItemType.PRODUCT, mesa.getId(), 5)), true)).shortages());
+
+		// Anular devuelve todo lo vendido
+		service.release("LOCA-L001");
+		assertEquals(5, stock(mesa));
+	}
+
+	@Test
+	void vendidos_sumaYRestaUnaSolaVez() throws ApiException {
+		Product mesa = product("Mesa", 10, "100.00", null);
+		Bundle combo = bundle("Comedor", "150.00", mesa, 1, null, 0);
+		service.reserve(request("K7QM-4X2P", item(ReservationItemType.PRODUCT, mesa.getId(), 2),
+				item(ReservationItemType.BUNDLE, combo.getId(), 1)));
+		SoldItemsDto sold = new SoldItemsDto(List.of(item(ReservationItemType.PRODUCT, mesa.getId(), 2),
+				item(ReservationItemType.BUNDLE, combo.getId(), 1)));
+
+		service.markSold("K7QM-4X2P", sold);
+		service.markSold("K7QM-4X2P", sold);
+
+		assertEquals(2, productRepository.findById(mesa.getId()).orElseThrow().getSoldCount());
+		assertEquals(1, bundleRepository.findById(combo.getId()).orElseThrow().getSoldCount());
+
+		service.unmarkSold("K7QM-4X2P", sold);
+		service.unmarkSold("K7QM-4X2P", sold);
+
+		assertEquals(0, productRepository.findById(mesa.getId()).orElseThrow().getSoldCount());
+		assertEquals(0, bundleRepository.findById(combo.getId()).orElseThrow().getSoldCount());
+	}
+
+	@Test
+	void vendidos_deUnaReservaDevuelta_esConflicto() throws ApiException {
+		Product mesa = product("Mesa", 10, "100.00", null);
+		service.reserve(request("K7QM-4X2P", item(ReservationItemType.PRODUCT, mesa.getId(), 1)));
+		service.release("K7QM-4X2P");
+
+		ApiException e = assertThrows(ApiException.class, () -> service.markSold("K7QM-4X2P",
+				new SoldItemsDto(List.of(item(ReservationItemType.PRODUCT, mesa.getId(), 1)))));
+		assertEquals(HttpStatus.CONFLICT, e.getStatus());
+		assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.markSold("NO-EXISTE",
+				new SoldItemsDto(List.of()))).getStatus());
+	}
+
+	@Test
 	void pedidoInvalido_esBadRequest() {
 		assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ApiException.class,
-				() -> service.reserve(new ReservationRequestDto(" ", List.of(item(ReservationItemType.PRODUCT, 1L, 1))))).getStatus());
+				() -> service.reserve(new ReservationRequestDto(" ", List.of(item(ReservationItemType.PRODUCT, 1L, 1)), false))).getStatus());
 		assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ApiException.class,
 				() -> service.reserve(request("A", item(ReservationItemType.PRODUCT, 1L, 0)))).getStatus());
 	}
@@ -255,6 +315,6 @@ class StockReservationServiceTest {
 	}
 
 	private static ReservationRequestDto request(String reference, ReservationItemDto... items) {
-		return new ReservationRequestDto(reference, List.of(items));
+		return new ReservationRequestDto(reference, List.of(items), false);
 	}
 }

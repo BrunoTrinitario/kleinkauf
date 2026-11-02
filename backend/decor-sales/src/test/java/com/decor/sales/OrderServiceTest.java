@@ -7,26 +7,33 @@ import com.decor.common.dto.stock.ReservationRequestDto;
 import com.decor.common.dto.stock.ReservedItemDto;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.common.servlet.security.CustomUserDetails;
+import com.decor.common.servlet.tenant.TenantContext;
 import com.decor.sales.dto.AddressDto;
 import com.decor.sales.dto.BuyerDto;
 import com.decor.sales.dto.LookupDto;
 import com.decor.sales.dto.NewOrderDto;
 import com.decor.sales.dto.NewOrderItemDto;
 import com.decor.sales.dto.OrderCreatedDto;
+import com.decor.sales.dto.OrderDto;
 import com.decor.sales.entities.DeliveryType;
 import com.decor.sales.entities.Order;
 import com.decor.sales.entities.OrderStatus;
 import com.decor.sales.entities.PaymentMethod;
+import com.decor.sales.entities.PaymentReceipt;
 import com.decor.sales.entities.SalesChannel;
 import com.decor.sales.entities.SalesSettings;
 import com.decor.sales.repositories.OrderRepository;
 import com.decor.sales.services.OrderNumberGenerator;
 import com.decor.sales.services.OrderService;
+import com.decor.sales.services.OrderStatusService;
+import com.decor.sales.services.OrderStock;
 import com.decor.sales.services.PricesChangedException;
 import com.decor.sales.services.ProductsClient;
 import com.decor.sales.services.SalesSettingsService;
+import com.decor.sales.util.ReceiptStorage;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -41,6 +48,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -53,6 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -75,13 +85,26 @@ class OrderServiceTest {
 	@Mock
 	private OrderNumberGenerator numberGenerator;
 
+	@Mock
+	private OrderStatusService statusService;
+
+	@Mock
+	private ReceiptStorage receiptStorage;
+
 	@InjectMocks
 	private OrderService service;
 
 	@BeforeEach
 	void setUp() {
+		// OrderStock real sobre el cliente mockeado: se prueba tambien el manejo de errores de products
+		OrderStock orderStock = new OrderStock();
+		ReflectionTestUtils.setField(orderStock, "productsClient", productsClient);
+		ReflectionTestUtils.setField(service, "orderStock", orderStock);
 		ReflectionTestUtils.setField(service, "maxLines", 30);
 		ReflectionTestUtils.setField(service, "maxQuantity", 20);
+		ReflectionTestUtils.setField(service, "maxReceipts", 5);
+		ReflectionTestUtils.setField(service, "maxReceiptSize", 5L * 1024 * 1024);
+		TenantContext.setCurrentTenant("tienda1");
 		SalesSettings settings = new SalesSettings();
 		settings.setAlias("tienda.decor");
 		settings.setHolder("Decor SRL");
@@ -93,6 +116,92 @@ class OrderServiceTest {
 	@AfterEach
 	void clearContext() {
 		SecurityContextHolder.clearContext();
+		TenantContext.clear();
+	}
+
+	private static final byte[] PNG = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3};
+
+	@Test
+	void comprobante_pasaARevisionYSeGuarda() throws Exception {
+		Order order = pending();
+		when(receiptStorage.save(eq("tienda1"), eq(NUMBER), any(), eq(ReceiptStorage.FileType.PNG))).thenReturn("tienda1/K7QM-4X2P/a.png");
+		when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(i -> i.getArgument(0));
+
+		OrderDto dto = service.uploadReceipt("k7qm-4x2p", "ANA@mail.com", file(PNG, "image/png"));
+
+		assertEquals(OrderStatus.PAGO_EN_REVISION, dto.status());
+		assertEquals(1, dto.receipts());
+		// Ya no se muestran los datos para transferir
+		assertNull(dto.payment());
+		assertEquals("image/png", order.getReceipts().get(0).getContentType());
+	}
+
+	@Test
+	void comprobante_tipoPorContenido_noPorElNombre() {
+		pending();
+		// Dice ser PNG pero no lo es
+		ApiException e = assertThrows(ApiException.class,
+				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file("<html>".getBytes(StandardCharsets.UTF_8), "image/png")));
+		assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+		verify(receiptStorage, never()).save(any(), any(), any(), any());
+	}
+
+	@Test
+	void comprobante_soloMientrasEsperaElPagoYAntesDeVencer() {
+		Order vencido = pending();
+		vencido.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+		assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class,
+				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file(PNG, "image/png"))).getStatus());
+
+		Order pagado = pending();
+		pagado.setStatus(OrderStatus.PAGADO);
+		assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class,
+				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file(PNG, "image/png"))).getStatus());
+	}
+
+	@Test
+	void comprobante_hasta5() {
+		Order order = pending();
+		for (int i = 0; i < 5; i++) order.addReceipt(new PaymentReceipt());
+
+		ApiException e = assertThrows(ApiException.class,
+				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file(PNG, "image/png")));
+		assertEquals(HttpStatus.CONFLICT, e.getStatus());
+	}
+
+	@Test
+	void comprobante_otroEmail_404() {
+		pending();
+		ApiException e = assertThrows(ApiException.class,
+				() -> service.uploadReceipt(NUMBER, "otro@mail.com", file(PNG, "image/png")));
+		assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+	}
+
+	@Test
+	void comprobante_siNoSePuedeGuardarElPedido_borraElArchivo() {
+		pending();
+		when(receiptStorage.save(any(), any(), any(), any())).thenReturn("tienda1/K7QM-4X2P/a.png");
+		when(orderRepository.saveAndFlush(any(Order.class))).thenThrow(new ObjectOptimisticLockingFailureException(Order.class, 1L));
+
+		ApiException e = assertThrows(ApiException.class,
+				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file(PNG, "image/png")));
+
+		assertEquals(HttpStatus.CONFLICT, e.getStatus());
+		verify(receiptStorage).deleteQuietly("tienda1/K7QM-4X2P/a.png");
+	}
+
+	private Order pending() {
+		Order order = new Order();
+		order.setNumber(NUMBER);
+		order.setBuyerEmail("ana@mail.com");
+		order.setStatus(OrderStatus.PENDIENTE_PAGO);
+		order.setExpiresAt(LocalDateTime.now().plusHours(1));
+		when(orderRepository.findByNumber(NUMBER)).thenReturn(Optional.of(order));
+		return order;
+	}
+
+	private static MockMultipartFile file(byte[] bytes, String contentType) {
+		return new MockMultipartFile("file", "comprobante.png", contentType, bytes);
 	}
 
 	@Test
@@ -272,7 +381,7 @@ class OrderServiceTest {
 	}
 
 	private void reserves(ReservedItemDto... items) {
-		when(productsClient.reserve(any())).thenReturn(new ReservationDto(NUMBER, List.of(items)));
+		when(productsClient.reserve(any())).thenReturn(new ReservationDto(NUMBER, List.of(items), List.of()));
 	}
 
 	private Order savedOrder() {

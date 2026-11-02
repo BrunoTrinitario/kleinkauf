@@ -22,7 +22,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/internal/**").hasRole("INTERNAL")
                         // Checkout publico: invitado o logueado (si viene logueado el pedido queda asociado)
                         .requestMatchers(HttpMethod.GET, "/api/v1/sales/checkout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/sales/orders", "/api/v1/sales/orders/lookup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/sales/orders", "/api/v1/sales/orders/lookup",
+                                "/api/v1/sales/orders/*/receipt", "/api/v1/sales/orders/*/cancel").permitAll()
                         // Gestion de pedidos y configuracion de ventas: solo el administrador (no se delega)
                         .requestMatchers("/api/v1/sales/admin/**").hasRole("ADMINISTRADOR")
                         // Mis pedidos y el resto: cualquier usuario logueado

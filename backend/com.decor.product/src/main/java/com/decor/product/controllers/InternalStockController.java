@@ -2,6 +2,7 @@ package com.decor.product.controllers;
 
 import com.decor.common.dto.stock.ReservationDto;
 import com.decor.common.dto.stock.ReservationRequestDto;
+import com.decor.common.dto.stock.SoldItemsDto;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.services.StockReservationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,18 @@ public class InternalStockController {
     @PostMapping("/{reference}/release")
     public ResponseEntity<Void> release(@PathVariable String reference) throws ApiException {
         reservationService.release(reference);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{reference}/sold")
+    public ResponseEntity<Void> markSold(@PathVariable String reference, @RequestBody SoldItemsDto dto) throws ApiException {
+        reservationService.markSold(reference, dto);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{reference}/unsold")
+    public ResponseEntity<Void> unmarkSold(@PathVariable String reference, @RequestBody SoldItemsDto dto) throws ApiException {
+        reservationService.unmarkSold(reference, dto);
         return ResponseEntity.noContent().build();
     }
 }

@@ -2,12 +2,19 @@ package com.decor.sales.controllers;
 
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.sales.dto.AdminOrderDto;
+import com.decor.sales.dto.LocalOrderDto;
 import com.decor.sales.dto.OrderSummaryDto;
 import com.decor.sales.dto.PageDto;
 import com.decor.sales.dto.SalesSettingsDto;
+import com.decor.sales.dto.StatusUpdateDto;
 import com.decor.sales.services.AdminOrderService;
 import com.decor.sales.services.SalesSettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,9 +46,33 @@ public class AdminSalesController {
         return ResponseEntity.ok(adminOrderService.list(filter, page, size));
     }
 
+    // Venta del local (ya cobrada)
+    @PostMapping("/orders")
+    public ResponseEntity<AdminOrderDto> createLocal(@RequestBody LocalOrderDto dto) throws ApiException {
+        return new ResponseEntity<>(adminOrderService.createLocal(dto), HttpStatus.CREATED);
+    }
+
     @GetMapping("/orders/{number}")
     public ResponseEntity<AdminOrderDto> get(@PathVariable String number) throws ApiException {
         return ResponseEntity.ok(adminOrderService.get(number));
+    }
+
+    // Validar, rechazar, avanzar o cancelar (ver OrderStatus.canChangeTo)
+    @PutMapping("/orders/{number}/status")
+    public ResponseEntity<AdminOrderDto> changeStatus(@PathVariable String number, @RequestBody StatusUpdateDto dto) throws ApiException {
+        return ResponseEntity.ok(adminOrderService.changeStatus(number, dto));
+    }
+
+    @GetMapping("/orders/{number}/receipts/{id}")
+    public ResponseEntity<Resource> receipt(@PathVariable String number, @PathVariable Long id) throws ApiException {
+        AdminOrderService.ReceiptFile receipt = adminOrderService.receipt(number, id);
+        String extension = receipt.receipt().getPath().substring(receipt.receipt().getPath().lastIndexOf('.'));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(receipt.receipt().getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("comprobante-" + number.trim().toUpperCase() + "-" + id + extension)
+                        .build().toString())
+                .body(receipt.file());
     }
 
     @GetMapping("/settings")

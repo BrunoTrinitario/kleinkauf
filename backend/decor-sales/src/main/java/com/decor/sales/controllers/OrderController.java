@@ -1,6 +1,7 @@
 package com.decor.sales.controllers;
 
 import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.sales.dto.CancelDto;
 import com.decor.sales.dto.CheckoutDto;
 import com.decor.sales.dto.LookupDto;
 import com.decor.sales.dto.NewOrderDto;
@@ -12,8 +13,10 @@ import com.decor.sales.services.OrderService;
 import com.decor.sales.services.PricesChangedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 // Checkout de la tienda: publico (invitado o logueado), salvo mis pedidos (ver SecurityConfig)
 @RestController
@@ -36,6 +39,19 @@ public class OrderController {
     @PostMapping("/orders/lookup")
     public ResponseEntity<OrderDto> lookup(@RequestBody LookupDto dto) throws ApiException {
         return ResponseEntity.ok(orderService.lookup(dto));
+    }
+
+    // multipart: file (JPG, PNG o PDF hasta 5 MB) y email del pedido
+    @PostMapping(value = "/orders/{number}/receipt", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<OrderDto> uploadReceipt(@PathVariable String number,
+                                                  @RequestParam String email,
+                                                  @RequestParam MultipartFile file) throws ApiException {
+        return ResponseEntity.ok(orderService.uploadReceipt(number, email, file));
+    }
+
+    @PostMapping("/orders/{number}/cancel")
+    public ResponseEntity<OrderDto> cancel(@PathVariable String number, @RequestBody CancelDto dto) throws ApiException {
+        return ResponseEntity.ok(orderService.cancel(number, dto));
     }
 
     @GetMapping("/orders/mine")

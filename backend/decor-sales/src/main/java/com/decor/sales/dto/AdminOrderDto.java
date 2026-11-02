@@ -27,6 +27,7 @@ public record AdminOrderDto(
         LocalDateTime expiresAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        List<StatusChangeDto> history
+        List<StatusChangeDto> history,
+        List<ReceiptDto> receipts
 ) {
 }

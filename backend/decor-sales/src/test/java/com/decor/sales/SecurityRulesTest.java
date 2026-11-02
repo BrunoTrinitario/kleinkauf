@@ -9,6 +9,7 @@ import com.decor.sales.config.SalesExceptionHandler;
 import com.decor.sales.controllers.AdminSalesController;
 import com.decor.sales.controllers.OrderController;
 import com.decor.sales.dto.PriceChangeDto;
+import com.decor.sales.entities.PaymentReceipt;
 import com.decor.sales.security.SecurityConfig;
 import com.decor.sales.services.AdminOrderService;
 import com.decor.sales.services.OrderService;
@@ -24,7 +25,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -32,8 +35,11 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -114,6 +120,37 @@ class SecurityRulesTest {
 		mockMvc.perform(as(ADMIN, get("/api/v1/sales/admin/orders"))).andExpect(status().isOk());
 		mockMvc.perform(as(ADMIN, get("/api/v1/sales/admin/orders/K7QM-4X2P"))).andExpect(status().isOk());
 		mockMvc.perform(as(ADMIN, json(put("/api/v1/sales/admin/settings"), "{}"))).andExpect(status().isOk());
+	}
+
+	@Test
+	void comprobanteYCancelacion_publicos() throws Exception {
+		MockMultipartFile file = new MockMultipartFile("file", "c.png", "image/png", new byte[]{1});
+		mockMvc.perform(as(null, multipart("/api/v1/sales/orders/K7QM-4X2P/receipt").file(file).param("email", "ana@mail.com")))
+				.andExpect(status().isOk());
+		mockMvc.perform(as(null, json(post("/api/v1/sales/orders/K7QM-4X2P/cancel"), "{\"email\":\"ana@mail.com\"}")))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void ventasDelLocalEstadosYComprobantes_soloAdministrador() throws Exception {
+		PaymentReceipt receipt = new PaymentReceipt();
+		receipt.setPath("tienda1/K7QM-4X2P/a.pdf");
+		receipt.setContentType("application/pdf");
+		when(adminOrderService.receipt(any(), any())).thenReturn(
+				new AdminOrderService.ReceiptFile(receipt, new ByteArrayResource("%PDF-1.7".getBytes())));
+
+		for (Long user : new Long[]{null, CLIENTE, EMPLEADO}) {
+			mockMvc.perform(as(user, json(post("/api/v1/sales/admin/orders"), "{}"))).andExpect(status().isForbidden());
+			mockMvc.perform(as(user, json(put("/api/v1/sales/admin/orders/K7QM-4X2P/status"), "{}"))).andExpect(status().isForbidden());
+			mockMvc.perform(as(user, get("/api/v1/sales/admin/orders/K7QM-4X2P/receipts/1"))).andExpect(status().isForbidden());
+		}
+		mockMvc.perform(as(ADMIN, json(post("/api/v1/sales/admin/orders"), "{}"))).andExpect(status().isCreated());
+		mockMvc.perform(as(ADMIN, json(put("/api/v1/sales/admin/orders/K7QM-4X2P/status"), "{\"status\":\"PAGADO\"}")))
+				.andExpect(status().isOk());
+		mockMvc.perform(as(ADMIN, get("/api/v1/sales/admin/orders/k7qm-4x2p/receipts/1")))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType("application/pdf"))
+				.andExpect(header().string("Content-Disposition", "attachment; filename=\"comprobante-K7QM-4X2P-1.pdf\""));
 	}
 
 	@Test

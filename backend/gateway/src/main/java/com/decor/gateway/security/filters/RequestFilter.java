@@ -34,6 +34,9 @@ public class RequestFilter implements WebFilter {
     @Value("${limit.lookup}")
     private int lookupLimit;
 
+    @Value("${limit.receipt}")
+    private int receiptLimit;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String requestIdentifier = Parser.generateRequestIdentifier(exchange);
@@ -61,6 +64,8 @@ public class RequestFilter implements WebFilter {
         if (type.equals(RequestTenantFactory.ORDER) && count>orderLimit)
             return true;
         if (type.equals(RequestTenantFactory.LOOKUP) && count>lookupLimit)
+            return true;
+        if (type.equals(RequestTenantFactory.RECEIPT) && count>receiptLimit)
             return true;
         return false;
     }

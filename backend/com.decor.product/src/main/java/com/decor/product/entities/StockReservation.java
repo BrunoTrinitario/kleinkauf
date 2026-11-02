@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 
@@ -35,6 +36,15 @@ public class StockReservation {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
+
+    // Si el pedido ya sumo al contador de vendidos (para no sumar ni restar dos veces)
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean sold;
+
+    // Venta del local: productos a los que les falto stock y se ajustaron (separados por coma); null si no falto
+    @Column(length = 1000)
+    private String shortages;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

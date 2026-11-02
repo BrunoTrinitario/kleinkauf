@@ -41,8 +41,8 @@ public class OrderItem {
     @Column(nullable = false)
     private int quantity;
 
-    // Precio de lista al vender
-    @Column(name = "list_price", nullable = false, precision = 12, scale = 2)
+    // Precio de lista al vender; null si era 'a consultar' (solo en ventas del local)
+    @Column(name = "list_price", precision = 12, scale = 2)
     private BigDecimal listPrice;
 
     // Precio cobrado (en el local el administrador lo puede cambiar; online es el de lista)

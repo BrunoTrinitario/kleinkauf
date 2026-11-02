@@ -14,7 +14,8 @@ import java.util.List;
 @Entity
 @Table(name = "orders", indexes = {
         @Index(name = "idx_orders_user", columnList = "user_id"),
-        @Index(name = "idx_orders_created", columnList = "created_at")
+        @Index(name = "idx_orders_created", columnList = "created_at"),
+        @Index(name = "idx_orders_expiration", columnList = "status, expires_at")
 })
 @Getter
 @Setter
@@ -89,6 +90,16 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    // Control optimista: un cambio del administrador, un comprobante y el vencimiento no se pisan
+    @Version
+    @ColumnDefault("0")
+    @Column(nullable = false)
+    private long version;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC, id ASC")
+    private List<PaymentReceipt> receipts = new ArrayList<>();
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
     private List<OrderItem> items = new ArrayList<>();
@@ -100,6 +111,16 @@ public class Order {
     public void addItem(OrderItem item) {
         item.setOrder(this);
         items.add(item);
+    }
+
+    public void addReceipt(PaymentReceipt receipt) {
+        receipt.setOrder(this);
+        receipts.add(receipt);
+    }
+
+    // Suma de los subtotales antes del descuento
+    public BigDecimal subtotal() {
+        return items.stream().map(OrderItem::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // Cambia el estado y lo deja en el historial

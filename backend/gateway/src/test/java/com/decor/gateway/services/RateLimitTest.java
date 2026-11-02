@@ -34,6 +34,20 @@ class RateLimitTest {
         ReflectionTestUtils.setField(filter, "globalLimit", 300);
         ReflectionTestUtils.setField(filter, "orderLimit", 5);
         ReflectionTestUtils.setField(filter, "lookupLimit", 10);
+        ReflectionTestUtils.setField(filter, "receiptLimit", 5);
+    }
+
+    @Test
+    void comprobantes_5PorMinuto_yCancelarComparteElLimiteDeLaConsulta() {
+        for (int i = 0; i < 5; i++) {
+            assertNull(statusOf("POST", "/api/v1/sales/orders/K7QM-4X2P/receipt"), "comprobante " + (i + 1));
+        }
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/sales/orders/OTRO-0000/receipt"));
+
+        for (int i = 0; i < 10; i++) {
+            assertNull(statusOf("POST", "/api/v1/sales/orders/K7QM-4X2P/cancel"), "cancelar " + (i + 1));
+        }
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/sales/orders/lookup"));
     }
 
     @Test

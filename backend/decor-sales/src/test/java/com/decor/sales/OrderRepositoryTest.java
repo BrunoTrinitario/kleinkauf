@@ -10,11 +10,17 @@ import com.decor.sales.entities.Order;
 import com.decor.sales.entities.OrderItem;
 import com.decor.sales.entities.OrderStatus;
 import com.decor.sales.entities.PaymentMethod;
+import com.decor.sales.entities.PaymentReceipt;
 import com.decor.sales.entities.SalesChannel;
 import com.decor.sales.repositories.OrderRepository;
 import com.decor.sales.services.AdminOrderService;
+import com.decor.sales.services.OrderService;
+import com.decor.sales.services.OrderStatusService;
+import com.decor.sales.services.OrderStock;
+import com.decor.sales.util.ReceiptStorage;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +28,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,6 +52,59 @@ class OrderRepositoryTest {
 
 	@Autowired
 	private AdminOrderService adminOrderService;
+
+	@MockitoBean
+	private OrderService orderService;
+
+	@MockitoBean
+	private OrderStatusService orderStatusService;
+
+	@MockitoBean
+	private OrderStock orderStock;
+
+	@MockitoBean
+	private ReceiptStorage receiptStorage;
+
+	@Test
+	void vencidos_soloSinComprobanteYConElPlazoCumplido() {
+		LocalDateTime now = LocalDateTime.of(2026, 11, 2, 12, 0);
+		Order vencido = order("AAAA-AAAA", "a@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now.minusDays(3));
+		vencido.setExpiresAt(now.minusMinutes(1));
+		Order rechazado = order("BBBB-BBBB", "b@mail.com", null, OrderStatus.RECHAZADO, SalesChannel.ONLINE, now.minusDays(3));
+		rechazado.setExpiresAt(now.minusHours(1));
+		Order enPlazo = order("CCCC-CCCC", "c@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now);
+		enPlazo.setExpiresAt(now.plusHours(1));
+		Order enRevision = order("DDDD-DDDD", "d@mail.com", null, OrderStatus.PAGO_EN_REVISION, SalesChannel.ONLINE, now.minusDays(3));
+		enRevision.setExpiresAt(now.minusHours(1));
+		List.of(vencido, rechazado, enPlazo, enRevision).forEach(em::persist);
+		em.flush();
+
+		List<String> numbers = orderRepository.findExpiredNumbers(
+				EnumSet.of(OrderStatus.PENDIENTE_PAGO, OrderStatus.RECHAZADO), now);
+
+		assertEquals(List.of("AAAA-AAAA", "BBBB-BBBB"), numbers.stream().sorted().toList());
+	}
+
+	@Test
+	void comprobantes_seGuardanConElPedido_yLaVersionSube() throws Exception {
+		Order order = order("AAAA-AAAA", "a@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, LocalDateTime.now());
+		em.persistAndFlush(order);
+		long version = order.getVersion();
+		PaymentReceipt receipt = new PaymentReceipt();
+		receipt.setPath("tienda1/AAAA-AAAA/a.png");
+		receipt.setContentType("image/png");
+		receipt.setSize(1234);
+		order.addReceipt(receipt);
+		order.changeStatus(OrderStatus.PAGO_EN_REVISION, null, null);
+		em.flush();
+		em.clear();
+
+		AdminOrderDto loaded = adminOrderService.get("AAAA-AAAA");
+
+		assertEquals(1, loaded.receipts().size());
+		assertEquals("image/png", loaded.receipts().get(0).contentType());
+		assertTrue(orderRepository.findByNumber("AAAA-AAAA").orElseThrow().getVersion() > version);
+	}
 
 	@Test
 	void guardaElPedidoConItemsHistorialYDireccion() throws Exception {

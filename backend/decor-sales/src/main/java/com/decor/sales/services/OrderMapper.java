@@ -8,11 +8,11 @@ import com.decor.sales.dto.OrderDto;
 import com.decor.sales.dto.OrderItemDto;
 import com.decor.sales.dto.OrderSummaryDto;
 import com.decor.sales.dto.PaymentDetailsDto;
+import com.decor.sales.dto.ReceiptDto;
 import com.decor.sales.dto.StatusChangeDto;
 import com.decor.sales.entities.Address;
 import com.decor.sales.entities.Order;
 import com.decor.sales.entities.OrderItem;
-import com.decor.sales.entities.OrderStatus;
 import com.decor.sales.entities.SalesSettings;
 
 import java.util.List;
@@ -22,9 +22,7 @@ public class OrderMapper {
 
     // Vista del comprador: sin costos ni usuarios del historial; datos de pago solo si falta pagar
     public static OrderDto toBuyerDto(Order order, SalesSettings settings) {
-        boolean awaitingPayment = order.getStatus() == OrderStatus.PENDIENTE_PAGO
-                || order.getStatus() == OrderStatus.RECHAZADO;
-        PaymentDetailsDto payment = awaitingPayment ? SalesSettingsService.paymentDetails(settings) : null;
+        PaymentDetailsDto payment = order.getStatus().acceptsReceipt() ? SalesSettingsService.paymentDetails(settings) : null;
         List<OrderItemDto> items = order.getItems().stream()
                 .map(i -> new OrderItemDto(i.getType(), i.getItemId(), i.getName(), i.getQuantity(), i.getUnitPrice(), i.getSubtotal()))
                 .toList();
@@ -33,7 +31,7 @@ public class OrderMapper {
                 .toList();
         return new OrderDto(order.getNumber(), order.getStatus(), order.getCreatedAt(), order.getExpiresAt(),
                 buyer(order), order.getDeliveryType(), address(order.getAddress()), order.getNotes(),
-                items, order.getDiscount(), order.getTotal(), payment, history);
+                items, order.getDiscount(), order.getTotal(), payment, history, order.getReceipts().size());
     }
 
     public static AdminOrderDto toAdminDto(Order order) {
@@ -47,7 +45,10 @@ public class OrderMapper {
         return new AdminOrderDto(order.getNumber(), order.getStatus(), order.getChannel(), order.getPaymentMethod(),
                 buyer(order), order.getUserId(), order.getDeliveryType(), address(order.getAddress()), order.getNotes(),
                 items, order.getDiscount(), order.getTotal(), order.isStockReview(), order.getExpiresAt(),
-                order.getCreatedAt(), order.getUpdatedAt(), history);
+                order.getCreatedAt(), order.getUpdatedAt(), history,
+                order.getReceipts().stream()
+                        .map(r -> new ReceiptDto(r.getId(), r.getContentType(), r.getSize(), r.getCreatedAt()))
+                        .toList());
     }
 
     public static OrderSummaryDto toSummary(Order order) {

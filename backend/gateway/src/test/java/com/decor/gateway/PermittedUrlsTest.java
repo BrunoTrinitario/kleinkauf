@@ -41,6 +41,13 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/sales/orders/mine"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/sales/admin/orders"));
         assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/sales/admin/settings"));
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders/K7QM-4X2P/receipt"));
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders/K7QM-4X2P/cancel"));
+        // {code} es un solo segmento: no abre otras rutas que terminen igual
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/sales/admin/orders/K7QM-4X2P/cancel"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders/a/b/cancel"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/sales/admin/orders"));
+        assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/sales/admin/orders/K7QM-4X2P/status"));
 
         // Solo crear el pedido toma el usuario si viene logueado
         assertTrue(PermittedUrls.isOptionalAuth("POST", "/api/v1/sales/orders"));

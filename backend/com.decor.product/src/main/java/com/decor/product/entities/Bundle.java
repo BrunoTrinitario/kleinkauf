@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -28,6 +29,11 @@ public class Bundle {
     // Precio del combo; el de lista (suma de los productos) se calcula en BundleFactory
     @Column(precision = 12, scale = 2)
     private BigDecimal price;
+
+    // Combos vendidos (pedidos pagos de sales). Solo lo ve el administrador
+    @ColumnDefault("0")
+    @Column(name = "sold_count", nullable = false)
+    private int soldCount;
 
     @OneToMany(
             mappedBy = "bundle",
