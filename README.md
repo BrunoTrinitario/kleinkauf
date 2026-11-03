@@ -47,7 +47,9 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 | **Gateway** (`backend/gateway`) | Único punto de entrada. Valida el JWT, resuelve el tenant, aplica CORS y rate limit. Spring Cloud Gateway (reactivo) | 3000 |
 | **decorusers** (`backend/decorusers`) | Autenticación (login, registro, refresh, recupero de contraseña), usuarios, roles, permisos y alta de tenants | 3001 |
 | **product** (`backend/com.decor.product`) | Productos con imágenes, combos, precios y costos, movimientos de stock, destacados, catálogo público e importación/exportación CSV | 3002 |
-| **decor-common** (`backend/decor-common`) | Librería compartida: DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate y filtros | — |
+| **decor-sales** (`backend/decor-sales`) | Pedidos online y del local, pagos por transferencia y reportes | 3003 |
+| **decor-observability** (`backend/decor-observability`) | Salud y métricas de los servicios, auditoría y paneles en tiempo real por WebSocket | 3004 |
+| **decor-common** (`backend/decor-common`) | Librería compartida: DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros, configuración de observabilidad y captura de auditoría | — |
 | **Eureka** (`backend/eureka`) | Registro y descubrimiento de servicios | 8761 |
 
 ### Decisiones de diseño
@@ -58,6 +60,8 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
   **Resilience4j** (circuit breaker, reintentos y timeouts).
 - **Rutas**: públicas bajo `/api/v1/**`, internas bajo `/api/internal/**`, y las imágenes en `/{recurso}/images/{archivo}`.
 - **Permisos por área**, configurables por rol en cada tienda (`ADMINISTRADOR`, `EMPLEADO`, `CLIENTE`).
+- **Observabilidad**: Actuator en un puerto de gestión interno, trazas con OpenTelemetry, logs JSON y, en desarrollo,
+  Prometheus, Grafana, Tempo y Loki. **Auditoría** con outbox: ningún cambio se pierde aunque se caiga un servicio.
 
 ### Stack
 
@@ -163,9 +167,11 @@ decor/
 │   ├── gateway/              API Gateway
 │   ├── decorusers/           Usuarios, auth, roles y tenants
 │   ├── com.decor.product/    Productos, stock y catálogo
+│   ├── decor-sales/          Ventas: pedidos, pagos y reportes
+│   ├── decor-observability/  Salud, métricas, auditoría y WebSocket
 │   ├── decor-common/         Librería común
 │   ├── eureka/               Servidor de descubrimiento
-│   └── deploy/               Docker Compose (PostgreSQL, Redis) e init.sql
+│   └── deploy/               Docker Compose (base, servicios y stack de observabilidad) e init.sql
 ├── frontend/                 Aplicación web (Vite + React)
 │   ├── src/pages/            Páginas: catálogo, login, registro, ajustes y panel de administración
 │   ├── src/components/       Componentes de la aplicación y de UI (shadcn/ui)
@@ -175,10 +181,10 @@ decor/
 │   ├── endpoints.md          Endpoints de la API
 │   ├── tenants.md            Cómo funcionan los tenants
 │   ├── permisos.md           Permisos por área y rol
-│   ├── ventas.md             Plan del módulo de ventas
-│   ├── panel-admin.md        Plan del panel de administración
-│   ├── auditoria.md          Plan de auditoría
-│   └── observabilidad.md     Plan de observabilidad
+│   ├── ventas.md             Módulo de ventas
+│   ├── panel-admin.md        Panel de administración
+│   ├── auditoria.md          Auditoría
+│   └── observabilidad.md     Observabilidad: salud, métricas, trazas, logs y WebSocket
 ├── MVP.md                    Estado actual y propuesta de funcionalidades
 ├── TODO                      Pendientes y cosas a tener en cuenta
 └── .gitignore                Reglas de ignore comunes a todo el repo
@@ -196,5 +202,6 @@ decor/
 - [MVP.md](MVP.md): análisis del proyecto y hoja de ruta.
 - [docs/endpoints.md](docs/endpoints.md): referencia de la API.
 - [docs/tenants.md](docs/tenants.md) y [docs/permisos.md](docs/permisos.md): multi-tenant y permisos.
-- [docs/ventas.md](docs/ventas.md), [docs/panel-admin.md](docs/panel-admin.md), [docs/auditoria.md](docs/auditoria.md),
-  [docs/observabilidad.md](docs/observabilidad.md): planes de los próximos módulos.
+- [docs/ventas.md](docs/ventas.md) y [docs/panel-admin.md](docs/panel-admin.md): ventas y paneles de administración.
+- [docs/observabilidad.md](docs/observabilidad.md) y [docs/auditoria.md](docs/auditoria.md): salud, métricas, trazas,
+  logs, auditoría y paneles en tiempo real (incluye cómo levantar Grafana y Prometheus).

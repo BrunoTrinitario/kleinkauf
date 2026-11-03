@@ -156,10 +156,12 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] Reportes: totales por período, ranking de productos, ganancia, desglose por canal y medio de pago
 - [ ] Contador de vendidos en productos y orden "más vendidos" en el catálogo
 
-### 9. Auditoría y observabilidad **[plan]**
-- [ ] Panel de la plataforma: salud de los servicios y métricas en tiempo real
-- [ ] Panel de la tienda: feed de auditoría en vivo (quién hizo qué)
-- [ ] Cliente WebSocket: pedir el ticket (`POST /observability/ws-ticket`, un solo uso, 30 s), conectar, reconectar con ticket nuevo si se corta
+### 9. Auditoría y observabilidad **[listo en el backend; actividad, uso y conectados de la tienda: plan]**
+- [ ] Panel de la plataforma: salud de los servicios, tráfico y recursos en tiempo real (`GET /platform/observability/overview` + canales `platform.health` y `platform.traffic`)
+- [ ] Panel de la plataforma: refrescar el resumen cuando hay un alta o una baja de tienda (canal `platform.business`)
+- [ ] Panel de la plataforma: auditoría de la plataforma (`GET /platform/observability/audit` + `platform.audit`)
+- [ ] Panel de la tienda: feed de auditoría en vivo (quién hizo qué) e historial con filtros y por cosa (`GET /observability/store/audit` + `store.audit`)
+- [ ] Cliente WebSocket: pedir el ticket (`POST /platform/observability/ws-ticket` o `POST /observability/ws-ticket`, un solo uso, 30 s), conectar a `/ws?ticket=`, ping cada 30 s, reconectar con ticket nuevo si se corta y no reintentar si el ticket responde 403
 - [ ] Historial por REST al abrir el panel; el WS solo trae lo nuevo
 
 ### 10. Calidad

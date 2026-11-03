@@ -25,6 +25,7 @@ Qué hace cada microservicio y la lista completa de endpoints. Para el detalle d
  Postgres "users"     Redis    Postgres "products"            Postgres "sales"
  (schema por tenant + public)  (schema por tenant)            (schema por tenant)
 
+          decor-observability :3004  ─  salud, métricas, eventos, auditoría y WS (Postgres "observability")
           eureka :8761  ─  registro de servicios
           decor-common  ─  librería compartida (no es un servicio)
 ```
@@ -36,9 +37,12 @@ tienda por el header `Origin`, así que las llamadas tienen que salir desde la U
 
 ### eureka (`:8761`)
 
-Registro de servicios (Spring Cloud Netflix Eureka). gateway, users, products y sales se registran y se encuentran
-por nombre (`lb://users-microservice`, `lb://products-microservice`, `lb://sales-microservice`). No tiene endpoints
-propios de la app.
+Registro de servicios (Spring Cloud Netflix Eureka). gateway, users, products, sales y observability se registran y
+se encuentran por nombre (`lb://users-microservice`, `lb://products-microservice`, `lb://sales-microservice`,
+`lb://observability-microservice`). No tiene endpoints propios de la app.
+
+Todos los servicios tienen además `/health`, `/ready`, `/metrics` y `/status` en un **puerto de gestión** interno
+(el del servicio + 6000) que el gateway no expone. Ver [observabilidad.md](observabilidad.md).
 
 ### gateway (`:3000`, `gateway-microservice`)
 
@@ -47,12 +51,15 @@ Spring Cloud Gateway (WebFlux, reactivo). No tiene endpoints propios: enruta y p
 - **Enrutamiento:** `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**`, `/products/images/**` y
   `/api/v1/platform/products/**` → products; `/api/v1/users/**`, `/api/v1/auth/**`, el resto de `/api/v1/platform/**`
   y `/api/internal/tenants/**` → users;
-  `/api/v1/sales/**` → sales.
+  `/api/v1/sales/**` → sales; `/api/v1/platform/observability/**`, `/api/v1/observability/**` y el WebSocket `/ws`
+  → observability.
 - **Tenant:** lo reconoce por el `Origin`, responde 404 si no existe o está borrado y 403 si está deshabilitado, y le
   pasa el schema a los servicios en `X-Forwarded-Host`.
 - **Autenticación:** valida el JWT en las rutas no públicas (y que sea del tenant de la request) y pasa el usuario en
-  `X-User-Id`. En `POST /api/v1/sales/orders` el login es opcional: si viene un token válido pasa el usuario; si es
+  `X-User-Id`. `/ws` no lleva JWT: se entra con un ticket de un solo uso. En `POST /api/v1/sales/orders` el login es opcional: si viene un token válido pasa el usuario; si es
   inválido, 401.
+- **Observabilidad:** marca la última actividad de cada usuario en Redis y pasa la IP de la conexión en
+  `X-Client-Ip` (para la auditoría).
 - **Seguridad:** borra los headers internos que mande el cliente; CORS solo para orígenes de tenants y de la
   plataforma; rate limit por IP y origen (login 5/min, alta de tenants 3/min, crear pedidos 5/min, consultar o
   cancelar un pedido 10/min, subir comprobantes 5/min, resto 300/min, sin contar imágenes).
@@ -93,12 +100,23 @@ Ventas de la tienda online y del local. Base `sales`. Detalle completo en [venta
 - Reportes por período y ranking de productos, por canal y medio de pago.
 - Llama a products (stock y vendidos) y a users (roles y tenants) con circuit breaker y reintentos.
 
+### decor-observability (`:3004`, `observability-microservice`)
+
+Salud, métricas, eventos y auditoría. Base `observability` (un schema por tienda y `public`). Detalle en
+[observabilidad.md](observabilidad.md) y [auditoria.md](auditoria.md).
+
+- Lee cada 10 s `/ready` y `/metrics` de cada instancia y arma la salud y el tráfico por servicio.
+- Guarda la auditoría que mandan users, products y sales (Redis Streams) y la deja consultar.
+- WebSocket `/ws` con ticket corto para los paneles de la plataforma y de la tienda en tiempo real.
+- Consulta roles y nombres a users (con circuit breaker y reintentos).
+
 ### decor-common (librería)
 
 No es un servicio: es un build compuesto de Gradle que usan todos. Trae DTOs (`TenantDto`, `RoleDto`, los de reservas
 de stock entre sales y products), headers, Redis, caché Caffeine, tokens internos (`InternalTokenService`), áreas de
 permisos (`PermissionArea`) y, para users, products y sales, el multi-tenant de Hibernate, el `TenantFilter`,
-`CustomUserDetails` y el manejo de errores.
+`CustomUserDetails` y el manejo de errores. También la configuración común de Actuator, trazas y logs, el
+publicador de eventos y la captura de auditoría (`@Audited`, outbox).
 
 ## Convenciones
 
@@ -304,3 +322,30 @@ Reglas, estados y ejemplos en [ventas.md](ventas.md).
 | GET | `/api/v1/sales/admin/reports/products?from&to&channel&sort&limit` | ADMINISTRADOR | Ranking de productos y combos por unidades, facturado o ganancia |
 | GET | `/api/v1/sales/admin/settings` | ADMINISTRADOR | Configuración de ventas (datos para transferir y plazo de vencimiento) |
 | PUT | `/api/v1/sales/admin/settings` | ADMINISTRADOR | Cambia la configuración. Body `{alias, cbu, holder, bank, expirationHours}` |
+
+## decor-observability
+
+Ver [observabilidad.md](observabilidad.md) (salud, tráfico y WebSocket) y [auditoria.md](auditoria.md) (filtros y
+formato de la auditoría).
+
+### Plataforma — `/api/v1/platform/observability` (sin tenant)
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/api/v1/platform/observability/ws-ticket` | SUPERADMIN | Ticket para el WS (un solo uso, 30 s): `{ticket, expiresIn}` |
+| GET | `/api/v1/platform/observability/overview` | SUPERADMIN | Última lectura: salud de los servicios, tráfico, recursos y usuarios conectados |
+| GET | `/api/v1/platform/observability/audit?from&to&userId&entity&entityId&action&page&size` | SUPERADMIN | Auditoría de la plataforma, paginada |
+
+### Tienda — `/api/v1/observability`
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/api/v1/observability/ws-ticket` | ADMINISTRADOR | Ticket para el WS de la tienda |
+| GET | `/api/v1/observability/store/audit?from&to&userId&entity&action&page&size` | ADMINISTRADOR | Auditoría de la tienda, paginada |
+| GET | `/api/v1/observability/store/audit/{entity}/{entityId}?page&size` | ADMINISTRADOR | Auditoría de una cosa puntual (ej. `Product/12`) |
+
+### WebSocket — `/ws`
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/ws?ticket=...` | Ticket | WebSocket de los paneles. Canales y mensajes en [observabilidad.md](observabilidad.md#websocket) |

@@ -1,13 +1,11 @@
-# Observabilidad (plan)
+# Observabilidad
 
-Plan para saber en todo momento cómo está la plataforma y cada tienda: salud de los servicios, métricas, trazas,
-logs y un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y a nivel **tienda**
+Cómo saber en todo momento cómo está la plataforma y cada tienda: salud de los servicios, métricas, trazas, logs y
+un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y a nivel **tienda**
 (administrador). La auditoría usa la misma base y está en [auditoria.md](auditoria.md).
 
-> Estado: **etapa 1 hecha** (Actuator, trazas, logs, etiqueta `tenant` y stack de Docker: ver
-> [Cómo se usa](#cómo-se-usa-etapa-1)). **Etapas 2 y 3: backend hecho** (`decor-observability`, ticket y WS,
-> eventos, última actividad, auditoría con outbox y su feed en vivo); faltan las páginas de los paneles en el
-> frontend y los canales `store.activity`, `store.usage` y `store.users`. La etapa 4 sigue en plan.
+> Estado: **backend hecho** en las tres etapas de código (base técnica, servicio `decor-observability` con su WS y
+> auditoría). Falta el **frontend** de los paneles y algunos canales de la tienda: ver [Pendiente](#pendiente).
 
 ## Decisiones
 
@@ -16,14 +14,14 @@ logs y un panel en **tiempo real por WebSocket**, a nivel **plataforma** (supera
 | Salud y métricas | **Spring Boot Actuator** en todos los servicios, configurado en `decor-common`: `/health`, `/ready` y `/metrics` |
 | Acceso | **Puerto de gestión interno** por servicio, que el gateway no expone. Lo leen Docker, Prometheus y observability |
 | Visualización | **Panel propio** en la app (tiempo real por WS) **+ Prometheus y Grafana** en Docker para lo técnico |
-| Servicio | **MS nuevo `decor-observability`**: junta salud, métricas y eventos, guarda la auditoría y empuja todo por WS |
+| Servicio | **MS `decor-observability`**: junta salud, métricas y eventos, guarda la auditoría y empuja todo por WS |
 | Trazas y logs | **OpenTelemetry + Tempo + Loki**: cada request lleva un `traceId` de punta a punta y los logs salen en JSON con `traceId` y `tenant`. **Grafana Alloy** hace de colector (trazas por OTLP y logs de los contenedores) |
-| Recolección | **Eventos + consulta periódica**: los servicios publican eventos en Redis Streams; la salud y las métricas técnicas se consultan cada 5–10 s |
+| Recolección | **Eventos + consulta periódica**: los servicios publican eventos en Redis Streams; la salud y las métricas técnicas se consultan cada 10 s |
 | Protocolo | **WebSocket puro** con mensajes JSON propios (sin STOMP) |
 | Autenticación del WS | **Ticket corto por REST**: un solo uso, 30 s. El JWT nunca va en la URL |
+| Acceso revocado | Cada minuto se revisan los roles de los conectados y se **cierra el WS** de quien ya no tiene el rol |
 | Métricas por tienda | Las métricas HTTP llevan la etiqueta **`tenant`** |
 | Usuarios conectados | Por **última actividad**: conectado = alguna request en los últimos 5 minutos |
-| Ramas | **4 etapas**, una rama por etapa |
 
 ## /health, /ready y /metrics
 
@@ -50,146 +48,144 @@ logs y un panel en **tiempo real por WebSocket**, a nivel **plataforma** (supera
 
 ### Plataforma (superadmin)
 
-| Sección | Contenido |
-|---|---|
-| Estado de servicios | Cada servicio arriba o abajo, instancias registradas en Eureka, resultado de `/ready`, circuit breakers abiertos |
-| Tráfico y errores | Requests por segundo, latencia (p50 / p95 / p99), errores 4xx y 5xx por servicio y endpoint, 429 del rate limit |
-| Recursos | JVM (memoria, CPU, hilos, GC), pool de conexiones a la base, Redis, cachés (aciertos y fallos) |
-| Negocio global | Tenants activos y altas, pedidos y facturación de toda la plataforma, ranking de tiendas por uso |
+| Sección | Contenido | Estado |
+|---|---|---|
+| Estado de servicios | Cada servicio arriba, degradado o abajo; sus instancias de Eureka con el resultado de `/ready` por componente; circuit breakers abiertos | Hecho (`overview` y `platform.health`) |
+| Tráfico y errores | Requests por segundo, latencia p50 / p95 / p99, errores 5xx y 4xx, 429 del rate limit, por servicio | Hecho (`platform.traffic`). Por endpoint: en Grafana |
+| Recursos | Heap, CPU, hilos y conexiones a la base en uso, por servicio | Hecho. Redis y aciertos de caché: pendiente |
+| Usuarios conectados | Total y por tienda | Hecho (`platform.traffic`) |
+| Negocio global | Tenants por estado, altas y uso por tienda | Por REST en users y products ([panel-admin.md](panel-admin.md)); `platform.business` avisa cuando cambian |
+| Auditoría | Quién hizo qué en la plataforma | Hecho (`platform.audit` y su historial) |
+| Pedidos y facturación de la plataforma | Totales de todas las tiendas | Pendiente |
 
-**Lo que ya existe sin observability.** El panel de la plataforma (`/dashboard` en el frontend) ya muestra tenants
-por estado, altas por período y uso por tienda (usuarios, activos, última actividad, productos, combos) con REST:
-`GET /api/v1/platform/admin/dashboard`, `/admin/usage` y `/platform/products/usage` (ver [panel-admin.md](panel-admin.md)).
-observability **no los vuelve a calcular**: suma lo que falta (pedidos y facturación de la plataforma, tráfico,
-salud) y el tiempo real (`platform.business` avisa de un alta nueva para refrescar ese panel).
-
-**Última actividad.** Hoy `/admin/usage` toma el **último login** de cada tienda. Cuando el gateway marque la actividad
-por request (`activity:<tenant>:<userId>`, ver abajo), ese endpoint debería pasar a usarla, y "usuarios activos"
-podría usar la misma fuente.
+observability **no vuelve a calcular** lo que ya da el panel de la plataforma
+(`GET /api/v1/platform/admin/dashboard`, `/admin/usage` y `/platform/products/usage`): suma la salud, el tráfico y
+el tiempo real.
 
 ### Tienda (administrador)
 
-| Sección | Contenido |
-|---|---|
-| Actividad en vivo | Pedidos nuevos, comprobantes subidos, stock bajo y movimientos de stock, apenas pasan |
-| Uso de la tienda | Visitas al catálogo, productos más vistos, requests y errores de su tienda |
-| Usuarios conectados | Empleados con actividad en los últimos 5 minutos y su última actividad |
-| Auditoría en vivo | Quién hizo qué en su tienda (ver [auditoria.md](auditoria.md)) |
-| Ventas | **Dinero recaudado** e **historial de pedidos** |
-
-Pedidos, comprobantes, recaudación e historial salen del módulo de [ventas](ventas.md) (`decor-sales`), que ya
-existe: el panel de ventas y sus reportes (`/api/v1/sales/admin/reports/**`) son REST; observability suma los
-eventos en vivo (pedido nuevo, comprobante subido) y no rehace los reportes.
+| Sección | Contenido | Estado |
+|---|---|---|
+| Auditoría en vivo | Quién hizo qué en su tienda (ver [auditoria.md](auditoria.md)) | Hecho (`store.audit` y su historial) |
+| Ventas | **Dinero recaudado** e **historial de pedidos** | Por REST en [ventas](ventas.md) (`/api/v1/sales/admin/**`) |
+| Actividad en vivo | Pedidos nuevos, comprobantes subidos, stock bajo y movimientos de stock, apenas pasan | Pendiente (`store.activity`) |
+| Uso de la tienda | Visitas al catálogo, productos más vistos, requests y errores de su tienda | Pendiente (`store.usage`) |
+| Usuarios conectados | Empleados con actividad en los últimos 5 minutos y su última actividad | Pendiente (`store.users`; las marcas ya existen) |
 
 ## Componentes
 
 ### decor-common
 
 - Configuración de Actuator (rutas, puerto de gestión, grupos de salud).
-- Micrometer Tracing con OpenTelemetry y propagación del `traceId` en `RestTemplate` / `WebClient`.
-- Logs en JSON con `traceId`, `spanId`, `tenant` y `userId` (MDC desde el `TenantContext`).
-- Etiqueta `tenant` en las métricas HTTP.
+- Micrometer Tracing con OpenTelemetry y propagación del `traceId` en `RestTemplate` / `WebClient`. El envío de
+  trazas por OTLP está **apagado por defecto** (`management.otlp.tracing.export.enabled`) y lo prende el stack de
+  Docker.
+- Logs con `traceId`, `spanId`, `tenant` y `userId` (MDC desde el `TenantContext`): en texto por defecto y en JSON
+  (logstash) con `LOGGING_STRUCTURED_FORMAT_CONSOLE=logstash`.
+- Etiqueta `tenant` en las métricas HTTP (`TenantTag`: solo valores con forma de schema; lo demás va como `invalid`).
 - `DecorEventPublisher`: publica eventos en el stream `decor:events` de Redis (`type`, `tenant`, `at` en UTC y
   `data` en JSON), recortado a unos 10.000. Dentro de una transacción publica después del commit. Si Redis falla
   se loguea y la operación sigue: estos eventos son solo para el panel en vivo. La auditoría, que no se puede
   perder, va aparte con una tabla **outbox** (`com.decor.common.audit`, ver [auditoria.md](auditoria.md)).
-- `ActivityKeys`: el formato de las keys de última actividad, que escribe el gateway y lee observability.
 - Eventos que se publican hoy: users, al crear, habilitar, deshabilitar o borrar una tienda (`tenant.created`,
   `tenant.enabled`, `tenant.disabled`, `tenant.deleted`).
+- `ActivityKeys`: el formato de las keys de última actividad, que escribe el gateway y lee observability.
 
 ### decor-observability
 
-- Proyecto Gradle propio con `decor-common`, registrado en Eureka, puerto 3004 (gestión 9004).
-  El estado del recolector está en memoria. La base `observability` (un schema por tienda y `public` para la
-  plataforma) guarda la auditoría, con JDBC y sin Hibernate (así no se activan el multi-tenant ni la captura de
-  auditoría de `decor-common`, que son para los servicios que la mandan).
-- **Auditoría** (`audit/`): consume el stream `decor:audit`, la guarda y la manda por el WS. Detalle en
-  [auditoria.md](auditoria.md).
+- Proyecto Gradle propio con `decor-common`, registrado en Eureka, puerto 3004 (gestión 9004). Base `observability`
+  para la auditoría, con JDBC y sin Hibernate: así no se activan el multi-tenant ni la captura de auditoría de
+  `decor-common`, que son para los servicios que la mandan.
 - **Recolector** (`collector/`): cada 10 s (`observability.poll.interval`) lee `/ready` y `/metrics` de cada
   instancia de Eureka que publica `management.port`, todas a la vez, con 2 s de timeout cada una. Eureka se lee
   aparte (`observability.static-targets`). De `/metrics` toma requests, 5xx, 4xx, 429 y el histograma de latencias
-  (las tasas y los p50 / p95 / p99 salen de restar dos lecturas), heap, CPU, hilos, conexiones a la base y circuit
-  breakers abiertos. No cuenta las requests del puerto de gestión ni las del WS.
+  (las tasas y los percentiles salen de restar dos lecturas), heap, CPU, hilos, conexiones a la base y circuit
+  breakers abiertos. No cuenta las requests del puerto de gestión ni las del WS. El estado queda en memoria.
   - Un servicio está `UP` si todas sus instancias están listas, `DEGRADED` si algunas y `DOWN` si ninguna. Los de
     `observability.services` que no tienen instancias en Eureka figuran `DOWN`.
   - Usuarios conectados: recorre las keys `activity:*` con `SCAN`.
 - **Eventos** (`events/`): lee el stream `decor:events` **sin grupo de consumidores**, porque cada instancia tiene
-  sus propios WS y tiene que ver todos los eventos. Empieza por los que llegan desde que arrancó. La auditoría (etapa
-  3) va a usar un grupo aparte que guarde y confirme cada evento.
-- **WebSocket** en `/ws`, ruteado por el gateway, y REST para lo que había antes de abrir el panel
-  (`GET /api/v1/platform/observability/overview`, la última lectura del recolector). El WS manda solo lo nuevo.
+  sus propios WS y tiene que ver todos los eventos. Empieza por los que llegan desde que arrancó.
+- **Auditoría** (`audit/`): consume el stream `decor:audit` con un grupo de consumidores, la guarda y la manda por
+  el WS. Detalle en [auditoria.md](auditoria.md).
+- **WebSocket** (`ws/`) en `/ws`, y REST para lo que había antes de abrir el panel. El WS manda solo lo nuevo.
 
 ### gateway
 
-- Ruta `/ws` hacia observability (`lb:ws://`) y `/api/v1/platform/observability/**`. `/ws` no pide JWT (entra con
-  el ticket) y desde el frontend de la plataforma no busca tienda. `/api/v1/observability/**` (panel y auditoría
-  de la tienda) va a observability.
-- `X-Client-Ip`: la IP de la conexión, para la auditoría (la que manda el cliente se borra).
+- Ruta `/ws` hacia observability (`lb:ws://`), `/api/v1/platform/observability/**` y `/api/v1/observability/**`.
+  `/ws` no pide JWT (entra con el ticket) y desde el frontend de la plataforma no busca tienda.
 - `ActivityFilter` marca en Redis la **última actividad** de cada usuario logueado (`activity:<tenant>:<userId>`,
   TTL 5 min; `public` para los superadmins), como mucho una vez cada 30 s por usuario y sin frenar la request.
+- `X-Client-Ip`: la IP de la conexión, para la auditoría (la que manda el cliente se borra).
 - En las métricas, el WS va con `uri="/ws"` para que sus conexiones largas no se mezclen con las latencias.
-- Pendiente: publicar el evento de tráfico por tenant que usa "uso de la tienda".
 
-### Docker (desarrollo)
+## Endpoints
 
-Prometheus, Grafana (con un dashboard ya cargado), Tempo, Loki y Alloy en
-`backend/deploy/docker-compose.observability.yml`, que se suma al compose de desarrollo. Ver
-[Cómo se usa](#cómo-se-usa-etapa-1).
+Todos por el gateway. Las rutas de plataforma no tienen tienda (desde una tienda responden 404) y las de la tienda
+tampoco se pueden pedir desde la plataforma (404).
+
+| Método | Ruta | Quién | Qué hace |
+|---|---|---|---|
+| POST | `/api/v1/platform/observability/ws-ticket` | Superadmin | Ticket para el WS de la plataforma |
+| GET | `/api/v1/platform/observability/overview` | Superadmin | Última lectura del recolector: salud, tráfico, recursos y usuarios conectados |
+| GET | `/api/v1/platform/observability/audit` | Superadmin | Historial de auditoría de la plataforma ([auditoria.md](auditoria.md)) |
+| POST | `/api/v1/observability/ws-ticket` | Admin de la tienda | Ticket para el WS de su tienda |
+| GET | `/api/v1/observability/store/audit` | Admin de la tienda | Historial de auditoría de su tienda |
+| GET | `/api/v1/observability/store/audit/{entity}/{entityId}` | Admin de la tienda | Historial de una cosa puntual |
+| GET | `/ws?ticket=…` | Con ticket | WebSocket |
 
 ## WebSocket
 
-1. El frontend pide un ticket con su JWT:
-   `POST /api/v1/platform/observability/ws-ticket` → `{ "ticket": "…", "expiresIn": 30 }` (superadmin) o
-   `POST /api/v1/observability/ws-ticket` (administrador de la tienda; desde la plataforma responde 404).
+1. El frontend pide un ticket con su JWT (`POST …/ws-ticket` de arriba) → `{ "ticket": "…", "expiresIn": 30 }`.
    Se emite con los roles **actuales** (observability se los pide a users en el momento). Se guarda en Redis
    (`ws-ticket:<id>`) con el usuario y el tenant, dura **30 s** y sirve **una sola vez** (se lee y se borra con
    `GETDEL`).
 2. Abre `ws://<gateway>/ws?ticket=…`. El gateway reconoce el tenant por el `Origin`; observability valida el
    ticket (sin ticket, vencido o usado: 401) y que su tenant sea el de la conexión (si no: 403).
    - **Superadmin**: el frontend de la plataforma (`platform.url` del gateway) no tiene tienda, así que el gateway
-     acepta `/ws` desde ese `Origin` sin buscar tenant y la conexión es de `public`. Con ese ticket solo se puede
-     suscribir a `platform.*`.
+     acepta `/ws` desde ese `Origin` sin buscar tenant y la conexión es de `public`.
 3. Se suscribe a canales con mensajes JSON:
 
 ```json
-{ "type": "subscribe", "channel": "orders" }
+{ "type": "subscribe", "channel": "platform.health" }
 ```
 
 ```json
-{ "type": "event", "channel": "orders", "data": { … }, "at": "2026-11-02T10:00:00Z" }
+{ "type": "event", "channel": "platform.health", "data": [ … ], "at": "2026-11-02T10:00:00Z" }
 ```
 
-| Canal | Quién | Qué manda |
-|---|---|---|
-| `platform.health` | Superadmin | Cambios de estado de los servicios |
-| `platform.traffic` | Superadmin | Resumen de tráfico, errores y recursos cada pocos segundos |
-| `platform.business` | Superadmin | Altas de tenants, pedidos de la plataforma |
-| `platform.audit` | Superadmin | Auditoría de plataforma |
-| `store.activity` | Admin de la tienda | Pedidos, comprobantes, stock |
-| `store.usage` | Admin de la tienda | Visitas, productos vistos, errores |
-| `store.users` | Admin de la tienda | Usuarios conectados |
-| `store.audit` | Admin de la tienda | Auditoría de su tienda |
-
-Hoy están `platform.health` (se manda cuando cambia algún estado), `platform.traffic` (en cada lectura, con los
-usuarios conectados), `platform.business` (los eventos `tenant.*`), `platform.audit` y `store.audit` (cada evento de
-auditoría apenas se guarda). Faltan `store.activity`, `store.usage` y `store.users`.
+| Canal | Quién | Qué manda | Estado |
+|---|---|---|---|
+| `platform.health` | Superadmin | La salud de todos los servicios, cuando cambia algún estado | Hecho |
+| `platform.traffic` | Superadmin | Tráfico, recursos y usuarios conectados, en cada lectura (10 s) | Hecho |
+| `platform.business` | Superadmin | Altas, bajas y cambios de tiendas (`tenant.*`) | Hecho |
+| `platform.audit` | Superadmin | Cada evento de auditoría de la plataforma, apenas se guarda | Hecho |
+| `store.audit` | Admin de la tienda | Cada evento de auditoría de su tienda, apenas se guarda | Hecho |
+| `store.activity` | Admin de la tienda | Pedidos, comprobantes, stock | Pendiente |
+| `store.usage` | Admin de la tienda | Visitas, productos vistos, errores | Pendiente |
+| `store.users` | Admin de la tienda | Usuarios conectados | Pendiente |
 
 Mensajes del cliente: `subscribe` y `unsubscribe` (con `channel`) y `ping`. El servidor responde `subscribed`,
 `unsubscribed`, `pong` o `{ "type": "error", "message": … }` sin cortar la conexión.
 
-- Los canales `store.*` son siempre **de la tienda del ticket**: no se puede pedir el canal de otra, y un ticket de
-  tienda no puede suscribirse a los `platform.*` (ni al revés).
+- Un ticket de plataforma solo se suscribe a `platform.*` y uno de tienda solo a `store.*`. Los `store.*` son siempre
+  **de la tienda del ticket**: no se puede pedir el canal de otra.
 - Ping cada 30 s; si se corta, el frontend pide un ticket nuevo y vuelve a conectarse.
 - Un cliente que no lee (más de 5 s o 512 KB pendientes) se desconecta.
 - **Acceso revocado**: quien perdió el rol (un superadmin desactivado, por ejemplo) no consigue tickets nuevos. Y
   cada minuto observability vuelve a pedir los roles de los conectados y **cierra el WS** de quien ya no lo tiene
   (código 1008), el mismo minuto en que se le corta el REST. Si users no responde no se desconecta a nadie.
 
-## Cómo se usa (etapa 1)
+## Cómo se usa
+
+### Con Docker
 
 ```bash
 docker compose -f backend/deploy/docker-compose.dev.yml -f backend/deploy/docker-compose.observability.yml up -d
 ```
+
+El primer archivo levanta los servicios (observability incluido); el segundo suma Prometheus, Grafana, Tempo, Loki y
+Alloy. Con el primero solo, todo anda igual pero sin ese stack.
 
 | Qué | Dónde |
 |---|---|
@@ -214,17 +210,42 @@ docker compose -f backend/deploy/docker-compose.dev.yml -f backend/deploy/docker
 - Los healthchecks del compose de desarrollo usan `/health` del puerto de gestión.
 - Muestreo de trazas: 100 % (`management.tracing.sampling.probability`, se puede bajar por servicio).
 - Los datos del stack no tienen volumen: se pierden al borrar los contenedores. Prometheus guarda 3 días y Tempo 72 h.
+- La VM de Docker necesita memoria: con 4 GB, los servicios compilando con `bootRun` a la vez no entran. Conviene
+  darle 6 GB o más (`memory=` en `.wslconfig` en Windows) o levantarlos de a uno la primera vez.
+
+### Sin Docker (bootRun)
+
+observability necesita Postgres (base `observability`), Redis y Eureka, igual que los demás. `init.sql` crea la base;
+con un volumen de Postgres de antes hay que crearla a mano:
+
+```bash
+docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"
+```
 
 ## Etapas
 
 | # | Rama | Qué incluye | Estado |
 |---|---|---|---|
 | 1 | `feature/obs-base` | Actuator (`/health`, `/ready`, `/metrics`) en todos los servicios con puerto de gestión, trazas OpenTelemetry, logs JSON con `traceId` y `tenant`, etiqueta `tenant`, Docker con Prometheus, Grafana, Tempo, Loki y Alloy | **Hecha** |
-| 2 | `feature/obs-servicio` | MS `decor-observability`, recolector, Redis Streams, ticket y WS, panel de plataforma, última actividad | **Backend hecho**; falta la página del panel |
-| 3 | `feature/auditoria` | Auditoría con outbox (ver [auditoria.md](auditoria.md)), feed en vivo y panel de tienda | **Backend de la auditoría hecho**; faltan el panel de la tienda en el frontend y sus canales de actividad, uso y usuarios |
-| 4 | `docs/observabilidad` | Documentación final y `MVP.md` | Plan |
+| 2 | `feature/obs-servicio` | MS `decor-observability`, recolector, Redis Streams, ticket y WS, panel de plataforma, última actividad | **Backend hecho** |
+| 3 | `feature/auditoria` | Auditoría con outbox ([auditoria.md](auditoria.md)), feed en vivo y panel de tienda | **Backend de la auditoría hecho** |
+| 4 | `docs/observabilidad` | Documentación final y `MVP.md` | **Hecha** |
 
-## Para decidir al arrancar
+Cada rama sale de la anterior.
+
+## Pendiente
+
+- **Frontend**: la página del panel de la plataforma (salud, tráfico y auditoría en vivo), la vista de auditoría de
+  la tienda y el cliente del WS (pedir el ticket, conectar, ping, reconectar con un ticket nuevo). Ver la sección 9
+  de [frontend.md](frontend.md).
+- **Canales de la tienda** `store.activity`, `store.usage` y `store.users`, con sus eventos: sales (pedido nuevo,
+  comprobante subido), products (stock bajo, movimientos) y el gateway (tráfico por tienda).
+- **Pedidos y facturación de toda la plataforma** en el panel del superadmin.
+- `/admin/usage` de users sigue tomando el **último login** como última actividad; falta que use las keys
+  `activity:*`.
+- **Prueba de punta a punta con Docker**: todo junto con Postgres y Redis reales (los tests usan H2 y mocks).
+
+## Para decidir
 
 - Muestreo de trazas en producción (en desarrollo es 100 %).
 - Alertas en Grafana y más dashboards (por ahora hay uno, sin alertas).
@@ -242,8 +263,5 @@ docker compose -f backend/deploy/docker-compose.dev.yml -f backend/deploy/docker
   mismo, así que solo difieren por unos segundos).
 - Los eventos de `decor:events` (no la auditoría) se pierden si Redis está caído al publicarlos. Solo afecta al
   panel en vivo.
-- Las respuestas de error de observability (400, 404) salen por `/error`, que no pide login.
-- `/admin/usage` de users sigue tomando el **último login** como última actividad; falta que use las keys
-  `activity:*`.
 - Los logs del gateway llevan `traceId` pero no `tenant` ni `userId` (es reactivo y el MDC no se arma por request);
   el tenant del gateway sí está en las métricas.

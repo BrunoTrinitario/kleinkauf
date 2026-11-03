@@ -19,7 +19,7 @@ Plan de los endpoints de resumen para el **administrador de la tienda** y para e
 | `GET /api/v1/users/stats` | **Se borra**: lo reemplaza el panel de usuarios (el frontend se reescribe) |
 | Períodos | Parámetros **`from`, `to` y `groupBy=DAY\|WEEK\|MONTH`**. Por defecto, los últimos 30 días por día. Se devuelven **todos los períodos, también los que tienen 0** |
 | Uso por tenant | products expone **su propio endpoint de plataforma** (cuenta productos por schema); users da usuarios y última actividad por tenant |
-| Última actividad | El **último login** de los usuarios de la tienda (cuando exista observabilidad, la última request) |
+| Última actividad | El **último login** de los usuarios de la tienda. El gateway ya marca la última request (`activity:<tenant>:<userId>`, ver [observabilidad.md](observabilidad.md)); falta que este panel la use |
 | Orden del uso por tenant | **Elegible** (`sort`), descendente; por defecto, por productos |
 | Caché | **Solo el uso por tenant**, 5 minutos en Redis. Los paneles de la tienda siempre al día |
 | Valor del inventario | Los productos **sin costo o sin precio se excluyen y se cuentan** aparte |
@@ -240,5 +240,6 @@ Se arma en el frontend juntando dos listas por `schema`:
 ## Para después
 
 - Ventas: recaudación, pedidos del día y del mes, más vendidos (cuando exista [ventas](ventas.md)).
-- Observabilidad: tráfico, errores, salud y tiempo real por WS (ver [observabilidad.md](observabilidad.md)).
+- Observabilidad: tráfico, errores, salud y tiempo real por WS. El backend ya está (ver
+  [observabilidad.md](observabilidad.md)); falta sumarlo a las páginas de los paneles.
 - "Tareas pendientes" (productos sin precio o sin imagen, combos que no se pueden armar) como lista accionable.

@@ -110,7 +110,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | Mejora | Para qué | Decisión |
 |---|---|---|
 | **Resilience4j** (circuit breaker + reintentos) | Proteger las llamadas de productos a usuarios, que hoy usan `RestTemplate` sin protección | ☑ Sí — **hecho** |
-| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **etapa 1 hecha** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator, OpenTelemetry, Prometheus, Grafana, Tempo, Loki y Alloy en Docker; falta el MS `decor-observability` con el panel en tiempo real por WS |
+| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **backend hecho** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator en un puerto de gestión, OpenTelemetry, logs JSON, Prometheus, Grafana, Tempo, Loki y Alloy en Docker, y el MS `decor-observability` con salud, tráfico y auditoría en tiempo real por WS. Falta el frontend de los paneles y los canales de actividad, uso y conectados de la tienda |
 | **Testcontainers** | Tests de integración con Postgres y Redis reales | ☐ Sí ☐ No ☐ Después |
 | **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`decor-common`) |
 | **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☑ Sí — **hecho** (permisos por área y por rol) |
@@ -123,7 +123,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 2. ~~**Movimientos de stock** (punto 2)~~ — **hecho**.
 3. ~~**Ventas** (punto 3)~~ — **hecho** en 3 etapas: ver [docs/ventas.md](docs/ventas.md). El pedido reserva stock
    (`SALIDA` por cada producto o por cada producto del combo) y lo devuelve si se cancela o vence.
-4. **Panel de administración** (punto 4) — en [docs/panel-admin.md](docs/panel-admin.md): **la parte de plataforma está hecha** (backend y frontend); falta el panel de la tienda, con los datos de hoy y los reportes de ventas. Observabilidad se suma cuando exista.
+4. **Panel de administración** (punto 4) — en [docs/panel-admin.md](docs/panel-admin.md): **la parte de plataforma está hecha** (backend y frontend); falta el panel de la tienda, con los datos de hoy y los reportes de ventas. El backend de observabilidad y auditoría ya está ([docs/observabilidad.md](docs/observabilidad.md)): se suma a las páginas de los paneles.
 5. ~~**Onboarding de tenants** (punto 5)~~ — **hecho**.
 6. **Gestión presencial** (sección 3): P1, P2, P5 y P6 como próxima etapa de ventas; el resto después, en el orden de
    esa sección.
@@ -188,6 +188,10 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-02 | Número de pedido `XXXX-XXXX` sin caracteres confusos, **único por tienda** | Se puede dictar y no se puede recorrer |
 | 2026-11-02 | Pedido online: hasta **30 líneas y 20 unidades** por línea; comprador con nombre, email y teléfono; envío con dirección completa. Rate limit: 5 pedidos, 10 consultas o cancelaciones y 5 comprobantes por minuto | Frenar abuso del checkout público |
 | 2026-11-02 | Si el precio cambió entre el carrito y el pedido, **409 con los precios nuevos** y el pedido no se crea | Que el comprador no pague otro precio sin enterarse |
+| 2026-11-02 | Observabilidad: **puerto de gestión = puerto del servicio + 6000**; `/health` es liveness y `/ready` no depende de los otros microservicios; el envío de trazas y los logs JSON se prenden solo con el stack de Docker | Que un servicio caído no tire a los demás y que sin el stack no haya errores de conexión |
+| 2026-11-02 | Stack de desarrollo como **overlay** del compose (`docker-compose.observability.yml`) con **Alloy** como colector de trazas y logs; Prometheus encuentra las instancias en Eureka | Un solo comando y sin listas de servicios a mano |
+| 2026-11-02 | WS: **acceso revocado** = cada minuto se revisan los roles de los conectados y se cierra el WS de quien ya no los tiene. Eventos en vivo por `decor:events` sin grupo (cada instancia ve todo) | El mismo minuto en que se corta el REST, sin eventos extra entre users y observability |
+| 2026-11-02 | Auditoría: **listener de Hibernate** para el antes/después, **una outbox por servicio** (`public.outbox_events`, con columna `tenant`), solo lo que hace una persona (no llamadas internas ni tareas de fondo), el nombre del usuario se guarda al recibir el evento y la importación CSV es **una** entrada con el resumen | Atómico con el cambio sin recorrer schemas, sin ruido y sin perder quién fue si se borra el usuario |
 | 2026-11-02 | **Login opcional** al crear un pedido: el gateway pasa el usuario si el token es válido y responde 401 si es inválido | Asociar el pedido a "mis pedidos" sin obligar a registrarse |
 | 2026-11-02 | **Combos en el catálogo público** (habilitados, con precio y productos vigentes) e `id` en los productos del catálogo | El carrito necesita el id para armar el pedido; antes los combos no se podían comprar |
 | 2026-11-02 | Comprobantes: JPG, PNG o PDF hasta 5 MB (tipo por contenido), **hasta 5 por pedido, no se borran**. El administrador puede validar sin comprobante; rechazar y cancelar piden motivo | Respaldo de cada venta; cubrir pagos por otro medio |
