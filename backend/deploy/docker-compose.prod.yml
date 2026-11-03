@@ -121,7 +121,7 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile.service
       args:
-        SERVICE: com.kleinkauf.product
+        SERVICE: kleinkauf-product
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/products
