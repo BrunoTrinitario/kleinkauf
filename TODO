@@ -1,5 +1,31 @@
 # Pendientes
 
+## Performance
+- Revisar la performance del codigo: consultas lentas, N+1, uso de cache, tiempos por endpoint
+- Revisar el servidor: uso de CPU, memoria y disco por contenedor, heap de cada JVM, latencia de punta a punta
+
+## Seguridad
+- Auditar la seguridad de la API: autenticacion, permisos por rol, validaciones, rate limit, headers, CORS
+- Rutas inexistentes en el gateway: hoy responden 401, revisar que corresponda
+
+## Frontend
+- Sumar las funcionalidades que faltan: ventas (pedidos online y del local, pagos, reportes)
+- Dashboard del superadmin y dashboard del admin de la tienda
+- Disclaimers de uso de datos en el footer (privacidad y terminos)
+- SEO: checks de las paginas (meta tags, Open Graph, sitemap, robots, performance)
+- "Reportar un bug" en el footer: le llega a los superadmins y lo consultan desde el panel de la plataforma
+
+## Tenants
+- Que el admin de la tienda pueda configurar su frontend (marca, colores, textos)
+- Mails de recuperacion de contraseña configurables por tienda
+- Configuracion general del tenant desde su panel
+
+## Deploy
+- Dominio pago: DNS con comodin (*.dominio) y pasar PLATFORM_DOMAIN y demas en ~/kleinkauf/.env (ver deploy.md)
+- Cargar MAIL_USERNAME y MAIL_PASSWORD (contraseña de aplicacion de Gmail) en el .env del server
+- Backups de Postgres
+- SSH: entrar solo con clave (PasswordAuthentication no) y fail2ban
+- Cambiar la contraseña del superadmin inicial
 
 
 # NO ENTRA
