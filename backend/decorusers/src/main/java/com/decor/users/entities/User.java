@@ -5,6 +5,8 @@
 
 package com.decor.users.entities;
 
+import com.decor.common.audit.AuditIgnore;
+import com.decor.common.audit.Audited;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -29,6 +31,7 @@ import lombok.Setter;
  * @author bruno.trinitario
  */
 @Entity
+@Audited
 @Table(name = "usuarios")
 @Getter
 @Setter
@@ -56,6 +59,8 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Cambia en cada login y los logins no se auditan
+    @AuditIgnore
     private LocalDateTime lastLogin;
 
 }

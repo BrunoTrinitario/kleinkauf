@@ -1,9 +1,12 @@
 package com.decor.observability.controllers;
 
+import com.decor.common.audit.AuditEvent;
 import com.decor.common.constants.TenantConstants;
 import com.decor.common.dto.RoleDto;
 import com.decor.common.servlet.security.CustomUserDetails;
+import com.decor.observability.audit.AuditStore;
 import com.decor.observability.collector.PlatformState;
+import com.decor.observability.dto.PageDto;
 import com.decor.observability.dto.PlatformOverviewDto;
 import com.decor.observability.dto.WsTicketDto;
 import com.decor.observability.security.HeaderAuthFilter;
@@ -17,6 +20,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,6 +32,8 @@ igual que el resto de /api/v1/platform/**.
 - POST /ws-ticket: ticket para abrir el WS. Se emite con los roles actuales (pedidos a users en el momento):
   un superadmin desactivado no consigue otro.
 - GET /overview: la ultima lectura del recolector, para mostrar algo antes del primer mensaje del WS.
+- GET /audit: la auditoria de la plataforma (tiendas, superadmins), paginada y con filtros. No incluye la de
+  las tiendas: esa la ve solo cada administrador.
  */
 @RestController
 @RequestMapping("/api/v1/platform/observability")
@@ -36,11 +42,13 @@ public class PlatformObservabilityController {
     private final TicketStore tickets;
     private final RolesService roles;
     private final PlatformState state;
+    private final AuditStore audit;
 
-    public PlatformObservabilityController(TicketStore tickets, RolesService roles, PlatformState state) {
+    public PlatformObservabilityController(TicketStore tickets, RolesService roles, PlatformState state, AuditStore audit) {
         this.tickets = tickets;
         this.roles = roles;
         this.state = state;
+        this.audit = audit;
     }
 
     @PostMapping("/ws-ticket")
@@ -61,6 +69,23 @@ public class PlatformObservabilityController {
     public ResponseEntity<PlatformOverviewDto> overview(HttpServletRequest request) {
         requirePlatform(request);
         return ResponseEntity.ok(state.overview());
+    }
+
+    @GetMapping("/audit")
+    public ResponseEntity<PageDto<AuditEvent>> audit(
+            HttpServletRequest request,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String entity,
+            @RequestParam(required = false) String entityId,
+            @RequestParam(required = false) String action,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + AuditQueries.DEFAULT_SIZE) int size
+    ) {
+        requirePlatform(request);
+        return ResponseEntity.ok(audit.page(TenantConstants.PUBLIC,
+                AuditQueries.query(from, to, userId, entity, entityId, action), page, size));
     }
 
     private static void requirePlatform(HttpServletRequest request) {

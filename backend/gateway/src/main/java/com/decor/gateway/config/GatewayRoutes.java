@@ -63,6 +63,10 @@ public class GatewayRoutes {
                         .order(-1)
                         .path("/api/v1/platform/observability/**")
                         .uri(observabilityUrl))
+                // Observabilidad y auditoria de la tienda (solo el administrador, lo valida observability)
+                .route("observability", r -> r
+                        .path("/api/v1/observability/**")
+                        .uri(observabilityUrl))
                 // WebSocket del panel en tiempo real (se entra con un ticket, ver docs/observabilidad.md)
                 .route("observability ws", r -> r
                         .path("/ws")

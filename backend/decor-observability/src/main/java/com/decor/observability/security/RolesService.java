@@ -54,7 +54,7 @@ public class RolesService {
         return roles;
     }
 
-    // El rol que hace falta para el WS: superadmin en la plataforma; en la tienda, el administrador (etapa 3)
+    // El rol que hace falta para el WS: superadmin en la plataforma; en la tienda, el administrador
     public static String requiredRole(WsTicket ticket) {
         return ticket.isPlatform() ? SUPERADMIN : ADMINISTRADOR;
     }

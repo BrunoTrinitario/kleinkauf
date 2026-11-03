@@ -1,5 +1,6 @@
 package com.decor.users.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,6 +12,7 @@ permissions es una mascara de bits de PermissionArea. Si un rol no tiene fila us
 permisos por defecto (ver RolePermissionService).
  */
 @Entity
+@Audited
 @Table(name = "role_permissions")
 @Getter
 @Setter

@@ -1,5 +1,6 @@
 package com.decor.sales.services;
 
+import com.decor.common.audit.AuditLog;
 import com.decor.common.dto.stock.ReservationDto;
 import com.decor.common.dto.stock.ReservationItemDto;
 import com.decor.common.dto.stock.ReservedItemDto;
@@ -67,6 +68,10 @@ public class AdminOrderService {
     @Value("${sales.local.max-quantity:999}")
     private int maxQuantity;
 
+    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    @Autowired
+    private AuditLog auditLog;
+
     @Autowired
     private OrderRepository orderRepository;
 
@@ -125,6 +130,8 @@ public class AdminOrderService {
             log.error("Falta el archivo del comprobante {} del pedido {}: {}", id, number, receipt.getPath());
             throw new ApiException(ErrorMessages.RECEIPT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
+        // Lectura sensible: el comprobante de pago
+        auditLog.read("PaymentReceipt", id);
         return new ReceiptFile(receipt, file);
     }
 

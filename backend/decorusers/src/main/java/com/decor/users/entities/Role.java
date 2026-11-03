@@ -5,6 +5,7 @@
 
 package com.decor.users.entities;
 
+import com.decor.common.audit.Audited;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.SQLDelete;
@@ -29,6 +30,7 @@ import lombok.Setter;
  * @author bruno.trinitario
  */
 @Entity
+@Audited
 @Table(
     name = "roles",
     uniqueConstraints = @UniqueConstraint(columnNames = {"userId", "type"})

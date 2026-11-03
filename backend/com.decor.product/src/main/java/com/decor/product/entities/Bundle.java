@@ -1,5 +1,6 @@
 package com.decor.product.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Audited
 @Table(name = "bundles")
 @Getter
 @Setter

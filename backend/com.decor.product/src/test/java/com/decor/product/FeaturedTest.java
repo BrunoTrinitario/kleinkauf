@@ -1,5 +1,6 @@
 package com.decor.product;
 
+import com.decor.common.audit.AuditLog;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.dto.FeaturedDto;
 import com.decor.product.dto.LightProductDto;
@@ -43,6 +44,9 @@ class FeaturedTest {
 
 	@Mock
 	private CatalogCacheService catalogCache;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private ProductService productService;

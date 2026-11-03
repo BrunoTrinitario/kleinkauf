@@ -1,5 +1,6 @@
 package com.decor.product;
 
+import com.decor.common.audit.AuditLog;
 import com.decor.common.dto.RoleDto;
 import com.decor.common.security.PermissionArea;
 import com.decor.common.servlet.security.CustomUserDetails;
@@ -70,6 +71,9 @@ class ProductServiceTest {
 
 	@Mock
 	private CatalogCacheService catalogCache;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private ProductService productService;

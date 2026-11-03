@@ -1,5 +1,7 @@
 package com.decor.users.services;
 
+import com.decor.common.audit.AuditEvent;
+import com.decor.common.audit.AuditLog;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.constants.ErrorMessages;
 import com.decor.users.constants.RolesType;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /*
 Gestion de superadmins (usuarios de public con rol SUPERADMIN) desde el panel de la plataforma.
@@ -39,6 +42,10 @@ van con SQL directo sobre public.
 public class SuperadminService {
 
     private static final String SUPERADMIN = RolesType.SUPERADMIN.name();
+
+    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    @Autowired
+    private AuditLog auditLog;
 
     @Autowired
     private UserRepository userRepository;
@@ -122,6 +129,8 @@ public class SuperadminService {
         if (!active) {
             cacheUtil.deleteUserRoles(id, null);
         }
+        auditLog.record(active ? AuditEvent.ACTIVATE : AuditEvent.DEACTIVATE, "Superadmin", id,
+                Map.of("active", AuditLog.change(!active, active)));
         return find(id);
     }
 

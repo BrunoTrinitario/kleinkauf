@@ -2,6 +2,8 @@ package com.decor.observability;
 
 import com.decor.common.constants.Headers;
 import com.decor.common.dto.RoleDto;
+import com.decor.observability.audit.AuditStore;
+import com.decor.observability.dto.PageDto;
 import com.decor.observability.security.UsersClient;
 import com.decor.observability.ws.AccessRevalidator;
 import com.decor.observability.ws.Channels;
@@ -43,8 +45,10 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
@@ -53,7 +57,8 @@ El servicio levantado de verdad con un cliente WebSocket. Redis (tickets) y user
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "eureka.client.enabled=false",
         "observability.scheduling.enabled=false",
-        "observability.events.enabled=false"
+        "observability.events.enabled=false",
+        "observability.audit.enabled=false"
 })
 class WebSocketFlowTest {
 
@@ -80,6 +85,9 @@ class WebSocketFlowTest {
 
     @MockitoBean
     UsersClient usersClient;
+
+    @MockitoBean
+    AuditStore auditStore;
 
     private final BlockingQueue<String> received = new LinkedBlockingQueue<>();
     private final CompletableFuture<CloseStatus> closed = new CompletableFuture<>();
@@ -177,7 +185,7 @@ class WebSocketFlowTest {
         assertThat(postTicket(null, null).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         when(usersClient.getUserRoles(eq(2L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         assertThat(postTicket("2", null).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(postTicket("4", "mi_tienda").getStatusCode()).isIn(HttpStatus.FORBIDDEN, HttpStatus.NOT_FOUND);
+        assertThat(postTicket("4", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -193,6 +201,82 @@ class WebSocketFlowTest {
         assertThat(ok.getBody()).containsKeys("services", "traffic");
         assertThat(rest.getForEntity("/api/v1/platform/observability/overview", Map.class).getStatusCode())
                 .isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void elAdministradorAbreElWsDeSuTiendaYVeSoloSuAuditoria() throws Exception {
+        when(tickets.redeem("tienda")).thenReturn(Optional.of(new WsTicket(10L, "mi_tienda")));
+        connect("tienda", "mi_tienda");
+
+        send(Map.of("type", "subscribe", "channel", Channels.STORE_AUDIT));
+        assertThat(next().path("type").asText()).isEqualTo("subscribed");
+        // Los canales de la plataforma no son para la tienda
+        send(Map.of("type", "subscribe", "channel", Channels.PLATFORM_HEALTH));
+        assertThat(next().path("type").asText()).isEqualTo("error");
+
+        sessions.publishToTenant(Channels.STORE_AUDIT, "otra_tienda", Map.of("entity", "ajena"));
+        sessions.publishToTenant(Channels.STORE_AUDIT, "mi_tienda", Map.of("entity", "Product"));
+        JsonNode event = next();
+        assertThat(event.path("data").path("entity").asText()).isEqualTo("Product");
+    }
+
+    @Test
+    void unTicketDeTiendaNoSirveDesdeOtraTiendaNiDesdeLaPlataforma() {
+        when(tickets.redeem("tienda")).thenReturn(Optional.of(new WsTicket(10L, "mi_tienda")));
+        assertThatThrownBy(() -> connect("tienda", "otra_tienda")).isInstanceOf(ExecutionException.class);
+        assertThatThrownBy(() -> connect("tienda", null)).isInstanceOf(ExecutionException.class);
+    }
+
+    @Test
+    void elTicketDeLaTiendaEsSoloParaSuAdministrador() {
+        when(usersClient.getUserRoles(eq(10L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
+        when(usersClient.getUserRoles(eq(11L), any())).thenReturn(List.of(new RoleDto("EMPLEADO", 0)));
+        when(tickets.issue(new WsTicket(10L, "mi_tienda"))).thenReturn("de-tienda");
+
+        ResponseEntity<Map> ok = post("/api/v1/observability/ws-ticket", "10", "mi_tienda");
+        assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(ok.getBody()).containsEntry("ticket", "de-tienda");
+
+        assertThat(post("/api/v1/observability/ws-ticket", "11", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        // Sin tienda (desde la plataforma) no hay panel de tienda
+        assertThat(post("/api/v1/observability/ws-ticket", "10", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void cadaAdministradorConsultaLaAuditoriaDeSuTiendaYElSuperadminLaDeLaPlataforma() {
+        when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
+        when(usersClient.getUserRoles(eq(13L), any())).thenReturn(SUPERADMIN_ROLES);
+        when(auditStore.page(any(), any(), anyInt(), anyInt())).thenReturn(new PageDto<>(List.of(), 0, 20, 0, 0));
+
+        assertThat(get("/api/v1/observability/store/audit?entity=Product&action=update", "12", "mi_tienda").getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        verify(auditStore).page(eq("mi_tienda"), eq(new AuditStore.Query(null, null, null, "Product", null, "UPDATE")), eq(0), eq(20));
+
+        assertThat(get("/api/v1/observability/store/audit/Product/12", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(auditStore).page(eq("mi_tienda"), eq(new AuditStore.Query(null, null, null, "Product", "12", null)), eq(0), eq(20));
+
+        assertThat(get("/api/v1/platform/observability/audit", "13", null).getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(auditStore).page(eq("public"), any(), eq(0), eq(20));
+
+        // El superadmin no ve la de las tiendas, ni el administrador la de la plataforma
+        assertThat(get("/api/v1/observability/store/audit", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(get("/api/v1/platform/observability/audit", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(get("/api/v1/observability/store/audit?from=ayer", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    private ResponseEntity<Map> post(String path, String userId, String tenant) {
+        return rest.exchange(path, HttpMethod.POST, new HttpEntity<>(headers(userId, tenant)), Map.class);
+    }
+
+    private ResponseEntity<Map> get(String path, String userId, String tenant) {
+        return rest.exchange(path, HttpMethod.GET, new HttpEntity<>(headers(userId, tenant)), Map.class);
+    }
+
+    private static HttpHeaders headers(String userId, String tenant) {
+        HttpHeaders headers = new HttpHeaders();
+        if (userId != null) headers.set(Headers.USER_ID, userId);
+        if (tenant != null) headers.set(Headers.FORWARDED_HOST, tenant);
+        return headers;
     }
 
     private ResponseEntity<Map> postTicket(String userId, String tenant) {

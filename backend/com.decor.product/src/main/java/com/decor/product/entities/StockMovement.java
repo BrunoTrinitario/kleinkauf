@@ -1,5 +1,6 @@
 package com.decor.product.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,6 +13,7 @@ Historial de cambios de stock de un producto. No se modifica ni se borra:
 cada cambio es un movimiento nuevo.
  */
 @Entity
+@Audited
 @Table(name = "stock_movements")
 @Getter
 @Setter

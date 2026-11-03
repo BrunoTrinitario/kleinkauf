@@ -61,7 +61,17 @@ public class SessionRegistry {
     }
 
     public void publish(String channel, Object data) {
-        List<Client> subscribed = clients.values().stream().filter(c -> c.channels().contains(channel)).toList();
+        send(channel, data, clients.values().stream().filter(c -> c.channels().contains(channel)).toList());
+    }
+
+    // Canales de la tienda: solo a los WS abiertos con un ticket de esa tienda
+    public void publishToTenant(String channel, String tenant, Object data) {
+        send(channel, data, clients.values().stream()
+                .filter(c -> c.channels().contains(channel) && tenant.equals(c.ticket().tenant()))
+                .toList());
+    }
+
+    private void send(String channel, Object data, List<Client> subscribed) {
         if (subscribed.isEmpty()) {
             return;
         }

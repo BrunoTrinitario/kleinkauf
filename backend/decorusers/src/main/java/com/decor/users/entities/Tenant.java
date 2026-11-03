@@ -1,5 +1,6 @@
 package com.decor.users.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
+@Audited
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

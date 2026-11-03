@@ -1,5 +1,8 @@
 package com.decor.product.services;
 
+import com.decor.common.audit.AuditEvent;
+import com.decor.common.audit.AuditLog;
+import com.decor.common.audit.AuditSuppression;
 import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.dto.csv.ImportResultDto.RowError;
 import com.decor.product.entities.Product;
@@ -73,6 +76,10 @@ public class ProductCsvService {
     private static final Map<String, Column> BY_HEADER = Arrays.stream(Column.values())
             .collect(Collectors.toMap(Column::header, Function.identity()));
 
+    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    @Autowired
+    private AuditLog auditLog;
+
     @Autowired
     private ProductRepository productRepository;
 
@@ -86,6 +93,8 @@ public class ProductCsvService {
     private CatalogCacheService catalogCache;
 
     public byte[] exportCsv() {
+        // Lectura sensible: el CSV trae los costos
+        auditLog.read("ProductExport", null);
         StringBuilder out = new StringBuilder().append(BOM);
         try (CSVPrinter printer = new CSVPrinter(out, format())) {
             printer.printRecord(headers());
@@ -156,18 +165,23 @@ public class ProductCsvService {
             return new ImportResultDto(0, 0, errors);
         }
 
-        // Todo o nada: una sola transaccion
+        // Todo o nada: una sola transaccion. En la auditoria va una entrada con el resumen, no una por producto
         int[] counts = new int[2];
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            for (ParsedRow row : rows) {
-                if (row.existing() == null) {
-                    create(row);
-                    counts[0]++;
-                } else {
-                    update(row);
-                    counts[1]++;
+            AuditSuppression.run(() -> {
+                for (ParsedRow row : rows) {
+                    if (row.existing() == null) {
+                        create(row);
+                        counts[0]++;
+                    } else {
+                        update(row);
+                        counts[1]++;
+                    }
                 }
-            }
+            });
+            auditLog.record(AuditEvent.IMPORT, "Product", null, Map.of(
+                    "created", AuditLog.change(null, counts[0]),
+                    "updated", AuditLog.change(null, counts[1])));
         });
         catalogCache.invalidate();
         return new ImportResultDto(counts[0], counts[1], List.of());

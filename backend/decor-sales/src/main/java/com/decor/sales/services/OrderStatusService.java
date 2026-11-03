@@ -1,5 +1,9 @@
 package com.decor.sales.services;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import com.decor.common.audit.AuditEvent;
+import com.decor.common.audit.AuditLog;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.sales.constants.ErrorMessages;
 import com.decor.sales.entities.Order;
@@ -31,6 +35,10 @@ public class OrderStatusService {
     public static final String BUYER_CANCEL_REASON = "Cancelado por el comprador";
     public static final String EXPIRED_REASON = "Vencio el plazo para pagar";
 
+    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    @Autowired
+    private AuditLog auditLog;
+
     @Autowired
     private OrderRepository orderRepository;
 
@@ -60,7 +68,12 @@ public class OrderStatusService {
             }
         }
         order.changeStatus(target, userId, cleanReason);
-        return save(order, target == OrderStatus.PAGADO);
+        Order saved = save(order, target == OrderStatus.PAGADO);
+        Map<String, AuditEvent.Change> changes = new LinkedHashMap<>();
+        changes.put("status", AuditLog.change(current, target));
+        if (cleanReason != null) changes.put("reason", AuditLog.change(null, cleanReason));
+        auditLog.record(AuditEvent.STATUS_CHANGE, "Order", saved.getNumber(), changes);
+        return saved;
     }
 
     // Cancelacion del comprador: solo hasta que se valida el pago

@@ -2,8 +2,10 @@
 Microservicio de observabilidad (docs/observabilidad.md):
 - Recolector: cada pocos segundos lee /ready y /metrics del puerto de gestion de cada instancia de Eureka.
 - Eventos: lee los eventos de los servicios en Redis Streams y los reenvia en vivo.
-- WebSocket (/ws) con ticket corto: el panel de la plataforma (y despues el de la tienda) en tiempo real.
-Por ahora sin base de datos: el estado esta en memoria y en Redis. La base llega con la auditoria (etapa 3).
+- WebSocket (/ws) con ticket corto: el panel de la plataforma y el de la tienda en tiempo real.
+- Auditoria (docs/auditoria.md): la guarda en la base observability (un schema por tienda y public) con JDBC.
+  Sin Hibernate a proposito: asi no se activan el multi-tenant ni la auditoria de decor-common, que son para
+  los servicios que la mandan. El estado del recolector sigue en memoria.
  */
 plugins {
 	id 'java'
@@ -43,6 +45,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.cloud:spring-cloud-starter'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
@@ -54,6 +58,7 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'com.h2database:h2'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'

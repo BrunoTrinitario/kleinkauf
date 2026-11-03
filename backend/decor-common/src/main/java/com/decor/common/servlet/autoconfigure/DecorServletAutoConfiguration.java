@@ -1,5 +1,7 @@
 package com.decor.common.servlet.autoconfigure;
 
+import com.decor.common.audit.AuditHibernateListener;
+import com.decor.common.audit.AuditIntegrator;
 import com.decor.common.servlet.exceptions.GlobalExceptionHandler;
 import com.decor.common.servlet.tenant.DatabaseMultiTenantConnectionProvider;
 import com.decor.common.servlet.tenant.TenantFilter;
@@ -8,7 +10,9 @@ import com.decor.common.servlet.tenant.TenantSchemaManager;
 import org.hibernate.cfg.Environment;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
+import org.hibernate.jpa.boot.spi.IntegratorProvider;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
@@ -37,6 +41,7 @@ Configuracion comun de los microservicios servlet:
 - Hibernate multi-tenant por schema (el servicio tiene que tener un bean TenantSchemaManager)
 - Filtro de tenant (decor.tenant.required=false lo hace opcional)
 - Manejo global de excepciones
+- Auditoria de las entidades @Audited, si esta activa (DecorAuditAutoConfiguration)
  */
 @AutoConfiguration(after = DataSourceAutoConfiguration.class, before = HibernateJpaAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -93,7 +98,8 @@ public class DecorServletAutoConfiguration {
             JpaVendorAdapter jpaVendorAdapter,
             DataSource dataSource,
             MultiTenantConnectionProvider<String> multiTenantConnectionProvider,
-            CurrentTenantIdentifierResolver<String> currentTenantIdentifierResolver
+            CurrentTenantIdentifierResolver<String> currentTenantIdentifierResolver,
+            ObjectProvider<AuditHibernateListener> auditListener
     ) {
 
         Map<String, Object> jpaPropertiesMap = new HashMap<>(jpaProperties.getProperties());
@@ -110,6 +116,12 @@ public class DecorServletAutoConfiguration {
         jpaPropertiesMap.put(Environment.FORMAT_SQL, true);
         jpaPropertiesMap.put(Environment.SHOW_SQL, true);
         jpaPropertiesMap.put(Environment.HBM2DDL_AUTO, "update");
+
+        AuditHibernateListener listener = auditListener.getIfAvailable();
+        if (listener != null) {
+            jpaPropertiesMap.put("hibernate.integrator_provider",
+                    (IntegratorProvider) () -> List.of(new AuditIntegrator(listener)));
+        }
 
         List<String> packages = AutoConfigurationPackages.get(beanFactory);
 

@@ -1,5 +1,6 @@
 package com.decor.product.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Audited
 @Getter
 @Setter
 @NoArgsConstructor

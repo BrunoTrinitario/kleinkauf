@@ -1,5 +1,6 @@
 package com.decor.product.services;
 
+import com.decor.common.audit.AuditLog;
 import com.decor.common.security.PermissionArea;
 import com.decor.product.constants.ErrorMessages;
 import com.decor.product.dto.*;
@@ -34,6 +35,10 @@ import java.util.Map;
 public class ProductService {
 
     public static final long MAX_IMAGE_BYTES = 1024 * 1024; // 1 MB
+
+    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    @Autowired
+    private AuditLog auditLog;
 
     @Autowired
     private ProductRepository productRepository;
@@ -244,6 +249,8 @@ public class ProductService {
     public PricingDto getPricing(Long id) throws ApiException {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        // Lectura sensible: el costo y el margen
+        auditLog.read("ProductPricing", id);
         return toPricing(product);
     }
 

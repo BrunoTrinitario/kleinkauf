@@ -19,8 +19,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // WS: se entra con el ticket (TicketHandshakeInterceptor)
                         .requestMatchers("/ws").permitAll()
+                        // Los errores de los controllers (400, 404) se responden por /error: si no, saldrian como 403
+                        .requestMatchers("/error").permitAll()
                         // Panel de la plataforma: solo el superadmin
                         .requestMatchers("/api/v1/platform/observability/**").hasRole(RolesService.SUPERADMIN)
+                        // Panel y auditoria de la tienda: solo el administrador
+                        .requestMatchers("/api/v1/observability/**").hasRole(RolesService.ADMINISTRADOR)
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

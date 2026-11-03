@@ -45,7 +45,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **plataforma hecha**, **tienda planificada** ([docs/panel-admin.md](docs/panel-admin.md)): el superadmin ya tiene resumen de tiendas, uso por tienda y gestión de superadmins; el panel de la tienda sigue en plan. Observabilidad se suma después. Ventas ya tiene sus reportes para enchufar |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
 | 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
-| 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **planificado** ([docs/auditoria.md](docs/auditoria.md)) |
+| 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **backend hecho** ([docs/auditoria.md](docs/auditoria.md)); falta la vista en el frontend |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
 

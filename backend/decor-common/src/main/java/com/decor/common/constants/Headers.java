@@ -10,6 +10,8 @@ public final class Headers {
     public static final String INTERNAL_TOKEN = "X-Internal-Token";
     public static final String OPEN_PATH = "X-Open-Path";
     public static final String TENANT_NAME = "X-Tenant-Name";
+    // IP del cliente segun el gateway (para la auditoria); la del cliente se borra
+    public static final String CLIENT_IP = "X-Client-Ip";
 
     private Headers() {
     }

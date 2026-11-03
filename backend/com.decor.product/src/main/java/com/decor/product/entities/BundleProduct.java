@@ -1,10 +1,12 @@
 package com.decor.product.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Audited
 @Table(name = "bundle_products")
 @Getter
 @Setter

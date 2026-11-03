@@ -1,5 +1,6 @@
 package com.decor.product.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@Audited
 @Table(name = "productimages")
 @Getter
 @Setter

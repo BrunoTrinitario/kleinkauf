@@ -1,5 +1,6 @@
 package com.decor.sales;
 
+import com.decor.common.audit.AuditLog;
 import com.decor.common.dto.RoleDto;
 import com.decor.common.dto.stock.ReservationDto;
 import com.decor.common.dto.stock.ReservationItemType;
@@ -66,6 +67,9 @@ class LocalSaleTest {
 
 	@Mock
 	private ProductsClient productsClient;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private AdminOrderService service;

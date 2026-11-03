@@ -1,5 +1,8 @@
 package com.decor.sales;
 
+import java.util.Map;
+import com.decor.common.audit.AuditEvent;
+import com.decor.common.audit.AuditLog;
 import com.decor.common.dto.stock.ReservationItemType;
 import com.decor.common.dto.stock.SoldItemsDto;
 import com.decor.common.servlet.exceptions.ApiException;
@@ -55,6 +58,9 @@ class OrderStatusServiceTest {
 
 	@Mock
 	private ProductsClient productsClient;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private OrderStatusService service;
@@ -123,6 +129,10 @@ class OrderStatusServiceTest {
 		assertEquals(OrderStatus.RECHAZADO, order.getStatus());
 		assertTrue(order.getExpiresAt().isAfter(LocalDateTime.now().plusHours(47)));
 		assertEquals("El monto no coincide", order.getHistory().get(order.getHistory().size() - 1).getReason());
+		// Queda en la auditoria con el estado anterior, el nuevo y el motivo
+		verify(auditLog).record(AuditEvent.STATUS_CHANGE, "Order", order.getNumber(), Map.of(
+				"status", new AuditEvent.Change("PAGO_EN_REVISION", "RECHAZADO"),
+				"reason", new AuditEvent.Change(null, "El monto no coincide")));
 	}
 
 	@Test

@@ -1,45 +1,69 @@
-# Auditoría (plan)
+# Auditoría
 
-Plan para registrar quién hizo qué, cuándo y qué cambió, en cada tienda y en la plataforma, y verlo en tiempo real.
+Registro de quién hizo qué, cuándo y qué cambió, en cada tienda y en la plataforma, y verlo en tiempo real.
 Se apoya en el servicio de [observabilidad](observabilidad.md).
 
-> Estado: **plan**. Cuando se implemente, este archivo pasa a ser la documentación.
+> Estado: **backend hecho** (captura, outbox, guardado, consultas y WS). Falta la vista en el frontend.
 
 ## Decisiones
 
 | Tema | Decisión |
 |---|---|
 | Qué se audita | **Cambios de datos**, **acciones de plataforma** y **lecturas sensibles**. Los logins no |
+| Quién cuenta | Solo lo que hace **una persona**: una request con usuario o una pública (el alta por autoservicio). Las llamadas internas entre servicios (sales reservando stock en products) y lo que corre sin request (tareas programadas, el arranque) no se registran |
 | Detalle | Quién, cuándo, IP, acción, entidad e id, y **solo los campos que cambiaron, con valor anterior y nuevo**. Nunca contraseñas ni tokens |
-| Dónde se guarda | En **`decor-observability`**, base `observability`: un schema por tienda y `public` para la plataforma |
-| Cómo llega | **Outbox**: cada servicio guarda el evento en la misma transacción que el cambio y después lo publica en Redis Streams. **No se pierde** aunque observability o Redis estén caídos |
+| Cómo se captura | **Listener de Hibernate** para las entidades `@Audited`; a mano con `AuditLog` para lo demás |
+| Cómo llega | **Outbox**: la fila se guarda en la misma transacción que el cambio y después se publica en Redis Streams. **No se pierde** aunque observability o Redis estén caídos |
+| Outbox | **Una sola tabla por servicio**, `public.outbox_events`, con columna `tenant` (no una por schema): se escribe con la misma conexión que el cambio y el publicador lee una sola tabla |
+| Dónde se guarda | En **`decor-observability`**, base `observability`: `<schema>.audit_events`, un schema por tienda y `public` para la plataforma |
 | Retención | **Para siempre**. Nadie la edita ni la borra |
 | Quién la ve | **Cada uno lo suyo**: el administrador ve la de su tienda y el superadmin la de la plataforma. El superadmin **no** ve la de las tiendas |
+| Nombres | Observability busca el nombre del usuario en users **al guardar** y lo deja guardado: si después lo borran, su auditoría sigue diciendo quién era |
+| Tienda borrada | Su auditoría se conserva, pero no se consulta desde la app (su administrador ya no entra y el superadmin no ve las tiendas). Queda en la base |
 | En vivo | Canales `store.audit` y `platform.audit` del WebSocket |
 
 ## Qué se registra
 
-### Cambios de datos (tienda)
+### Cambios de datos (tienda), automáticos
 
-| Servicio | Acciones |
+Entidades `@Audited`: cada alta (`CREATE`), cambio (`UPDATE`) y baja (`DELETE`).
+
+| Servicio | Entidades |
 |---|---|
-| products | Crear, editar y borrar productos; precio y costo; movimientos de stock; combos y su precio; imágenes; metadatos; destacados; importación CSV (una entrada con el resumen: creados, actualizados) |
-| users | Crear, editar y borrar usuarios; asignar y quitar roles; cambiar los permisos de un rol |
-| sales | Configuración de ventas; cambios de estado de pedidos (validar, rechazar, cancelar…) |
+| products | `Product` (precio y costo incluidos), `Bundle`, `BundleProduct`, `ProductImage`, `ProductMetadata`, `StockMovement` |
+| users | `User`, `Role` (asignar y quitar roles), `RolePermission` (permisos de un rol), `Tenant` |
+| sales | `SalesSettings` |
+
+- Un borrado lógico (`deletedAt` de vacío a una fecha) se registra como `DELETE`.
+- Las colecciones no se registran: se audita la entidad hija (ej. cada `ProductImage`). Una relación a otra
+  entidad se guarda con su id.
+- Si en un cambio solo cambiaron campos ignorados (`@AuditIgnore`, ej. el último login), no se registra nada.
+
+### A mano (`AuditLog`)
+
+| Servicio | Qué | Acción y entidad |
+|---|---|---|
+| products | Importación CSV: **una** entrada con el resumen (creados, actualizados), no una por producto | `IMPORT` `Product` |
+| sales | Cambios de estado de pedidos del administrador (validar, rechazar, cancelar…), con el motivo | `STATUS_CHANGE` `Order` (número) |
+| users | Desactivar y reactivar superadmins (van con SQL directo, no pasan por Hibernate) | `DEACTIVATE` / `ACTIVATE` `Superadmin` |
+
+El alta de superadmins sí pasa por Hibernate (`User` y `Role` en `public`).
 
 ### Acciones de plataforma
 
-| Servicio | Acciones |
+Las de users sobre tiendas (`Tenant`) y superadmins quedan con `tenant = "public"`. Si las hace un superadmin,
+`actor.role` es `SUPERADMIN`. El alta por **autoservicio** no tiene usuario: `actor` va en `null` y queda la IP.
+El dueño que se crea con la tienda queda en la auditoría de esa tienda (`User` `CREATE`).
+
+Leer el panel de la plataforma (resumen, uso por tienda, lista de superadmins) **no** se audita.
+
+### Lecturas sensibles (`READ`)
+
+| Qué | Entidad |
 |---|---|
-| users | Alta, deshabilitar, habilitar y borrar tenants (superadmin o autoservicio) |
-| users | Alta de superadmins, desactivarlos y reactivarlos (`/platform/admin/superadmins`, ver [panel-admin.md](panel-admin.md)). Son las acciones más sensibles de la plataforma: dan o quitan acceso total |
-
-Leer el panel de la plataforma (resumen, uso por tienda, lista de superadmins) **no** se audita: no muestra datos
-sensibles de las tiendas, solo conteos.
-
-### Lecturas sensibles
-
-Ver costo y margen (`/products/{id}/pricing`), exportar el CSV y descargar comprobantes de pago.
+| Ver costo y margen (`GET /products/{id}/pricing`) | `ProductPricing` (id del producto) |
+| Exportar el CSV de productos | `ProductExport` |
+| Descargar un comprobante de pago | `PaymentReceipt` (id del comprobante) |
 
 ## Formato del evento
 
@@ -62,54 +86,70 @@ Ver costo y margen (`/products/{id}/pricing`), exportar el CSV y descargar compr
 }
 ```
 
-- `action`: `CREATE`, `UPDATE`, `DELETE`, `READ` (lecturas sensibles) o una acción propia (`STATUS_CHANGE`,
-  `IMPORT`, `PERMISSIONS_CHANGE`…).
+- `action`: `CREATE`, `UPDATE`, `DELETE`, `READ`, `STATUS_CHANGE`, `IMPORT`, `ACTIVATE` o `DEACTIVATE`.
+- `actor.role`: el rol más alto del usuario. `actor.name` lo completa observability.
+- `ip`: la de la conexión, que el gateway pasa en `X-Client-Ip` (si el cliente manda ese header, se borra). No se
+  toma de `X-Forwarded-For`, que lo puede inventar el cliente; detrás de un proxy habría que tomarla del proxy.
 - El `traceId` une la auditoría con la traza y los logs de esa request en Grafana.
-- **Acciones de plataforma**: `tenant` es `"public"`. Si la hace un superadmin, `actor.role` es `SUPERADMIN`. El alta
-  por **autoservicio** no tiene usuario logueado: `actor` va en `null` y se identifica por la IP (el dueño que se
-  crea con la tienda queda en `entityId` / `changes`). En una acción sobre otra tienda, la entidad dice cuál
-  (`"entity": "Tenant", "entityId": "7"`).
-- `at` siempre **con zona** (UTC, `Z`), guardado como `Instant` / `timestamptz`. Los servicios hoy guardan
-  `LocalDateTime` en la hora del servidor (UTC en Docker) y, sin offset, el navegador lo mostraba corrido 3 horas
-  (ver `util/Dates.java` en users).
-- Los campos sensibles se excluyen con una anotación (`@AuditIgnore`) o una lista en la configuración.
+- `at` siempre **con zona** (UTC, `Z`), guardado como `timestamptz`.
+- En un alta, `changes` trae los campos con valor (`from` vacío). En un cambio, solo los que cambiaron. Los valores
+  van como texto, cortados a 500 caracteres.
+- Nunca van los campos marcados con `@AuditIgnore` ni los que tienen `password`, `token` o `secret` en el nombre.
 
 ## Cómo funciona
 
 ```
-products / users / sales                         decor-observability
-────────────────────────                         ───────────────────
-cambio + fila en outbox  (misma transacción)
+products / users / sales                                 decor-observability
+────────────────────────                                 ───────────────────
+cambio + fila en public.outbox_events  (misma transacción)
         │
         ▼
-publicador (cada pocos segundos) ──► Redis Streams ──► consumidor ──► audit_events (schema de la tienda / public)
-        marca la fila como enviada        decor:audit                         │
-                                                                              └──► WS store.audit / platform.audit
+OutboxPublisher (cada 2 s) ──► Redis Streams ──► AuditConsumer ──► <schema>.audit_events
+   marca la fila como enviada    decor:audit     (grupo observability-audit)      │
+                                                                                   └──► WS store.audit / platform.audit
 ```
 
-1. **Captura**: un componente de `decor-common` calcula las diferencias (antes / después) al guardar. Para cambios
-   que no son una entidad (importación, cambio de estado, lectura sensible) se registra a mano con un servicio
-   `AuditLog`.
-2. **Outbox**: la tabla `outbox_events` se escribe en la misma transacción que el cambio.
-3. **Publicador**: envía los pendientes a Redis Streams y los marca como enviados; si falla, reintenta.
-4. **Consumidor**: observability lo guarda **una sola vez** (por `id`, aunque llegue repetido) y lo reenvía por WS.
+1. **Captura** (`decor-common`, `com.decor.common.audit`): `AuditHibernateListener` escucha `PostInsert`,
+   `PostUpdate` y `PostDelete`. El "antes" sale del estado que Hibernate tenía cargado, y los campos que cambiaron,
+   de los que Hibernate marcó como sucios. Inserta la fila con la conexión de la misma sesión: si el cambio se
+   deshace, la auditoría también. `AuditLog` hace lo mismo a mano con `JdbcTemplate` (dentro de una transacción se
+   suma a ella).
+2. **Outbox**: `public.outbox_events` se crea al arrancar el servicio. Los enviados se borran a la semana: la
+   auditoría vive en observability, acá es solo de paso.
+3. **Publicador** (`OutboxPublisher`): toma los pendientes con `FOR UPDATE SKIP LOCKED` (con varias instancias cada
+   una toma filas distintas), los manda al stream `decor:audit` y los marca. Si Redis falla, no marca nada y reintenta.
+4. **Consumidor** (`AuditConsumer` en observability): grupo de consumidores `observability-audit`, así con varias
+   instancias cada evento lo guarda una sola. Lo guarda **una sola vez** aunque llegue repetido (por `id`) y recién
+   después lo confirma (`XACK`): si la base falla, queda pendiente y se reintenta. Los pendientes de una instancia que
+   se cayó los toma otra al minuto. Después lo manda por el WS.
+
+La importación del CSV apaga la captura automática mientras corre (`AuditSuppression`) y deja la entrada del resumen.
+
+`decor.audit.enabled=false` apaga la auditoría de un servicio; `decor.audit.publisher.enabled=false`, solo el envío.
 
 ## Consultas
 
 | Método | Ruta | Quién | Qué hace |
 |---|---|---|---|
-| GET | `/api/v1/observability/store/audit` | Admin de la tienda | Historial de su tienda, paginado, con filtros por fecha, usuario, entidad y acción |
-| GET | `/api/v1/observability/store/audit/{entity}/{id}` | Admin de la tienda | Historial de una cosa puntual (ej. todos los cambios del producto 12) |
-| GET | `/api/v1/observability/platform/audit` | Superadmin | Historial de la plataforma, paginado y con filtros |
+| GET | `/api/v1/observability/store/audit` | Admin de la tienda | Historial de su tienda, paginado (`page`, `size` hasta 100), con filtros `from`, `to`, `userId`, `entity` y `action` |
+| GET | `/api/v1/observability/store/audit/{entity}/{entityId}` | Admin de la tienda | Historial de una cosa puntual (ej. `Product/12`) |
+| GET | `/api/v1/platform/observability/audit` | Superadmin | Historial de la plataforma, paginado y con los mismos filtros (y `entityId`) |
 
-## Para decidir al arrancar
+- `from` y `to` son fechas con zona (ISO-8601, ej. `2026-11-02T03:00:00Z`); `to` no se incluye. Una fecha mal
+  escrita responde 400.
+- Respuesta: `{ "items": [ … ], "page": 0, "size": 20, "totalItems": 3, "totalPages": 1 }`, lo más nuevo primero.
+- Desde la plataforma, las rutas de la tienda responden 404; un administrador que pide la de la plataforma, 403.
 
-- Dónde vive la tabla outbox en products (hoy hay un schema por tienda): una por schema o una sola en `public` con
-  columna `tenant`.
-- Cómo se calcula el "antes" (listener de Hibernate o copia al cargar la entidad).
-- Si la auditoría de una tienda borrada se conserva y cómo se consulta.
-- users escribe los cambios de superadmins con SQL directo (`SuperadminService`, por el `@SQLRestriction` que
-  oculta a los borrados): esos no pasan por el listener de Hibernate y se registran a mano con `AuditLog`.
+## Límites conocidos
+
+- Las acciones registradas a mano fuera de una transacción (el cambio de estado de un pedido, la desactivación de
+  un superadmin) se escriben justo después del cambio, no en la misma transacción: si el servicio se cae entre
+  las dos, se pierde esa entrada.
+- El stream `decor:audit` se recorta a unos 100.000 eventos: si observability estuviera caída mucho tiempo con
+  mucho movimiento, se perderían los más viejos (la outbox ya los marcó como enviados).
+- Los cambios hechos con SQL directo que no pasan por `AuditLog` no quedan registrados.
+
+## Para decidir
+
 - Si se puede exportar el historial (CSV).
-- Si la vista del administrador incluye a los usuarios borrados con su nombre.
-- Índices y particionado de `audit_events`, ya que se guarda para siempre.
+- Particionado de `audit_events` si crece mucho (hoy tiene índices por fecha, por usuario y por entidad).

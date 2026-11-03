@@ -1,5 +1,7 @@
 package com.decor.product;
 
+import static org.mockito.Mockito.verify;
+import com.decor.common.audit.AuditLog;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.dto.PricingDto;
 import com.decor.product.dto.UpdatePricingDto;
@@ -30,6 +32,9 @@ class PricingTest {
 
 	@Mock
 	private CatalogCacheService catalogCache;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private ProductService productService;
@@ -42,6 +47,8 @@ class PricingTest {
 
 		assertEquals(new BigDecimal("6000.00"), pricing.margin());
 		assertEquals(new BigDecimal("40.00"), pricing.marginPercent());
+		// Ver el costo es una lectura sensible
+		verify(auditLog).read("ProductPricing", 1L);
 	}
 
 	@Test

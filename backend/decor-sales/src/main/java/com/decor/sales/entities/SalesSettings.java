@@ -1,5 +1,6 @@
 package com.decor.sales.entities;
 
+import com.decor.common.audit.Audited;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 
 // Configuracion de ventas de la tienda: una sola fila por schema
 @Entity
+@Audited
 @Table(name = "sales_settings")
 @Getter
 @Setter

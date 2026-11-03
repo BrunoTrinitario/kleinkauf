@@ -129,7 +129,9 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9001/health"]
 
-  #Observabilidad: recolector, eventos y WS del panel en tiempo real (docs/observabilidad.md). Sin base por ahora
+  #Observabilidad: recolector, eventos, auditoria y WS del panel en tiempo real (docs/observabilidad.md).
+  #La base observability la crea init.sql; con un volumen de postgres de antes hay que crearla a mano:
+  #  docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"
   observability-service:
     <<: *service
     container_name: observability-service
@@ -143,15 +145,12 @@ services:
       - /decor-common/.gradle
     environment:
       <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/observability
       #Eureka no se registra en si mismo: el recolector lo lee directo
       OBSERVABILITY_STATIC_TARGETS: eureka=http://eureka:9761
     ports:
       - "3004:3004"
-    depends_on:
-      redis:
-        condition: service_healthy
-      eureka:
-        condition: service_healthy
+    depends_on: *depends
     healthcheck:
       <<: *healthcheck
       test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9004/health"]

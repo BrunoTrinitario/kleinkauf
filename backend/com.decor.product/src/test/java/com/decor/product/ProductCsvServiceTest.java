@@ -1,5 +1,8 @@
 package com.decor.product;
 
+import java.util.Map;
+import com.decor.common.audit.AuditEvent;
+import com.decor.common.audit.AuditLog;
 import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.entities.Product;
 import com.decor.product.entities.ProductMetaData;
@@ -51,6 +54,9 @@ class ProductCsvServiceTest {
 
 	@Mock
 	private CatalogCacheService catalogCache;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private ProductCsvService service;
@@ -112,6 +118,11 @@ class ProductCsvServiceTest {
 		assertEquals("Rústico", md.getValue().getStyle());
 		assertEquals(75.5, md.getValue().getHeight());
 		assertEquals(40.0, md.getValue().getWeight());
+
+		// Una sola entrada con el resumen
+		verify(auditLog).record(AuditEvent.IMPORT, "Product", null, Map.of(
+				"created", new AuditEvent.Change(null, "1"),
+				"updated", new AuditEvent.Change(null, "0")));
 	}
 
 	@Test

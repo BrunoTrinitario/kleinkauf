@@ -2,6 +2,7 @@ package com.decor.gateway;
 
 import com.decor.common.constants.Headers;
 import com.decor.gateway.security.filters.ClientHeadersFilter;
+import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +22,8 @@ class ClientHeadersFilterTest {
                 .header(Headers.FORWARDED_HOST, "tienda_a")
                 .header(Headers.OPEN_PATH, "true")
                 .header(Headers.TENANT_NAME, "tienda_a")
+                .header(Headers.CLIENT_IP, "1.1.1.1")
+                .remoteAddress(new InetSocketAddress("190.1.2.3", 51000))
                 .header(HttpHeaders.AUTHORIZATION, "Bearer x")
                 .header(HttpHeaders.ORIGIN, "http://tienda-a.localhost:3000"));
         AtomicReference<HttpHeaders> received = new AtomicReference<>();
@@ -35,6 +38,8 @@ class ClientHeadersFilterTest {
         assertFalse(headers.containsKey(Headers.FORWARDED_HOST));
         assertFalse(headers.containsKey(Headers.OPEN_PATH));
         assertFalse(headers.containsKey(Headers.TENANT_NAME));
+        // La IP para la auditoria es la de la conexion, no la que manda el cliente
+        assertEquals("190.1.2.3", headers.getFirst(Headers.CLIENT_IP));
         // Los demas siguen
         assertEquals("Bearer x", headers.getFirst(HttpHeaders.AUTHORIZATION));
         assertEquals("http://tienda-a.localhost:3000", headers.getOrigin());

@@ -1,5 +1,8 @@
 package com.decor.users;
 
+import java.util.Map;
+import com.decor.common.audit.AuditEvent;
+import com.decor.common.audit.AuditLog;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.dtos.platform.NewSuperadminDto;
 import com.decor.users.dtos.platform.SuperadminDto;
@@ -55,6 +58,9 @@ class SuperadminServiceTest {
 
 	@Mock
 	private CacheUtil cacheUtil;
+	@Mock
+	private AuditLog auditLog;
+
 
 	@InjectMocks
 	private SuperadminService service;
@@ -133,6 +139,9 @@ class SuperadminServiceTest {
 		verify(jdbcTemplate).update(eq("UPDATE public.roles SET deleted_at = ? WHERE userid = ? AND type = ?"),
 				any(), eq(OTHER), eq("SUPERADMIN"));
 		verify(cacheUtil).deleteUserRoles(OTHER, null);
+		// Va con SQL directo: se registra a mano
+		verify(auditLog).record(AuditEvent.DEACTIVATE, "Superadmin", OTHER,
+				Map.of("active", new AuditEvent.Change("true", "false")));
 	}
 
 	@Test
