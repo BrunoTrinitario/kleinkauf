@@ -1,0 +1,50 @@
+#Despliegue al server: un push a deploy/backend despliega el backend y uno a deploy/frontend el frontend.
+#Entra por SSH, deja el checkout de esa rama en el commit pusheado y corre backend/deploy/deploy.sh,
+#que compila las imagenes en el server y levanta los servicios.
+#En el server hay un checkout por rama: ~/kleinkauf/backend y ~/kleinkauf/frontend, con el .env en ~/kleinkauf/.env.
+#Secrets del repo: DEPLOY_HOST, DEPLOY_PORT, DEPLOY_USER, DEPLOY_SSH_KEY (privada) y DEPLOY_KNOWN_HOSTS
+name: Deploy
+
+on:
+  push:
+    branches: [deploy/backend, deploy/frontend]
+  workflow_dispatch:
+
+#Un deploy por rama a la vez; el siguiente espera en vez de cortar uno a medio levantar
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: startsWith(github.ref_name, 'deploy/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Desplegar
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          PART="${BRANCH#deploy/}"
+          ssh -p "$PORT" "$USER@$HOST" bash -s -- "$PART" "$BRANCH" "$SHA" <<'EOF'
+          set -euo pipefail
+          PART=$1; BRANCH=$2; SHA=$3
+          cd ~/kleinkauf/"$PART"
+          git fetch --quiet origin "$BRANCH"
+          git checkout --quiet --force --detach "$SHA"
+          bash backend/deploy/deploy.sh "$PART"
+          EOF
