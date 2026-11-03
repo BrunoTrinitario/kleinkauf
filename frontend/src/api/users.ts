@@ -7,6 +7,33 @@ import type { Page, User, UserRole } from "@/lib/types"
 export const userKeys = {
   all: ["users"] as const,
   list: (params: UserListParams) => [...userKeys.all, "list", params] as const,
+  permissions: () => [...userKeys.all, "permissions"] as const,
+}
+
+// Mascara de areas de cada rol de la tienda (ver docs/permisos.md)
+export interface RolePermissions {
+  role: UserRole
+  permissions: number
+}
+
+export function useRolePermissions(enabled: boolean) {
+  return useQuery({
+    queryKey: userKeys.permissions(),
+    queryFn: () => api.get<RolePermissions[]>("/users/roles/permissions").then((response) => response.data),
+    enabled,
+    meta: { errorMessage: strings.adminPermissions.loadError },
+  })
+}
+
+// Solo EMPLEADO y CLIENTE, sin USUARIOS (400). products lo aplica en hasta 1 minuto (cache de roles).
+// Los roles de la lista de usuarios traen la mascara: tambien se recargan
+export function useSetRolePermissions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ role, permissions }: RolePermissions) =>
+      api.put<RolePermissions>(`/users/roles/${role}/permissions`, { permissions }).then((response) => response.data),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: userKeys.all }),
+  })
 }
 
 export interface UserListParams {

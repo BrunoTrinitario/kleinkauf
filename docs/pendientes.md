@@ -40,6 +40,9 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **Panel de productos** (B3): movimientos de stock con historial (`STOCK`), tarjeta de stock bajo y contador en el
   menú, destacados con estrella y diálogo para ordenarlos (`PRODUCTOS`), importar y exportar CSV con la tabla de
   errores por fila (`PRODUCTOS` y `PRECIOS`) y página de combos en `/admin/bundles` (`COMBOS` para cambiar).
+- **Usuarios y permisos** (B4): los roles se dan y se sacan desde la edición de cada usuario, y la página de usuarios
+  suma la matriz de permisos por rol (`EMPLEADO` y `CLIENTE` configurables, `ADMINISTRADOR` solo lectura,
+  `USUARIOS` bloqueado, aviso de que tarda hasta 1 minuto).
 - **Movimientos de stock sin motivo daban 500**: `DecorEvent` copiaba los datos con `Map.copyOf`, que no acepta
   `null`, y el `NullPointerException` deshacía el movimiento. Ahora acepta `null`. Además, `GlobalExceptionHandler`
   loguea con la traza cualquier 500 no previsto (antes no dejaba rastro).
@@ -106,12 +109,6 @@ esto ya está.
 - Destacados en la home con `GET /api/v1/catalog/featured`.
 - Combos: listado y detalle (`/catalog/bundles`), con el ahorro frente al precio de lista.
 - Compartir por WhatsApp y copiar el link (depende de A2).
-
-### B4. Usuarios y permisos
-
-- Asignar y quitar roles.
-- **Matriz de permisos** (`GET`/`PUT /users/roles/.../permissions`): `USUARIOS` bloqueado, `ADMINISTRADOR` solo
-  lectura y un aviso de que el cambio tarda hasta 1 minuto.
 
 ### B5. Resumen de la tienda
 
@@ -250,11 +247,10 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B4**: usuarios y permisos. Ya están la base del frontend (B0), la cuenta (B1, salvo el recupero de
-   contraseña) y el panel de productos (B3).
-2. **B5**: el panel de la tienda, que ya tiene todo el backend.
-3. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
-4. **B6 y B7**: compra online y panel de ventas.
-5. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
-6. **Decidir y planificar C1**, la próxima etapa de ventas.
-7. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
+1. **B5**: el panel de la tienda, que ya tiene todo el backend. Ya están la base del frontend (B0), la cuenta (B1,
+   salvo el recupero de contraseña), el panel de productos (B3) y usuarios y permisos (B4).
+2. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
+3. **B6 y B7**: compra online y panel de ventas.
+4. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
+5. **Decidir y planificar C1**, la próxima etapa de ventas.
+6. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.

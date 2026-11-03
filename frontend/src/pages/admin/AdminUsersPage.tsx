@@ -10,6 +10,7 @@ import type { User, UserRole } from "@/lib/types"
 import { useCreateUser, useDeleteUser, useSaveUser, useUsers, type NewUserDto } from "@/api/users"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { AdminUserCard } from "@/components/admin-user-card"
+import { AdminPermissionsCard } from "@/components/admin-permissions-card"
 import { PaginationControls } from "@/components/pagination-controls"
 import { Plus } from "lucide-react"
 import { AdminUserEditModal } from "@/components/admin-user-edit-modal"
@@ -200,6 +201,8 @@ export default function AdminUsersPage() {
             />
           </CardContent>
         </Card>
+
+        <AdminPermissionsCard enabled={!!user?.token} />
       </main>
 
       <AdminUserEditModal
