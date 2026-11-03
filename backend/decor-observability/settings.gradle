@@ -1,0 +1,3 @@
+rootProject.name = 'decor-observability'
+
+includeBuild('../decor-common')

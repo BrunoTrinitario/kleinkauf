@@ -23,6 +23,8 @@ services:
     environment: *observability-env
   gateway-service:
     environment: *observability-env
+  observability-service:
+    environment: *observability-env
 
   #Metricas: encuentra a cada instancia en eureka y lee /metrics en su puerto de gestion
   prometheus:

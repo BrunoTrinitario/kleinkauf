@@ -33,6 +33,15 @@ class PermittedUrlsTest {
 
     // Muestran el stock exacto: son del panel, no del catalogo
     @Test
+    void wsSinJwt_ticketDeObservabilityPideLogin() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/ws"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/ws"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/ws/otra"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/platform/observability/ws-ticket"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/observability/overview"));
+    }
+
+    @Test
     void listadosDelPanelPidenLogin() {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/all"));

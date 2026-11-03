@@ -1,6 +1,9 @@
 package com.decor.users.services;
 
+import com.decor.common.constants.TenantConstants;
 import com.decor.common.dto.TenantDto;
+import com.decor.common.events.DecorEvent;
+import com.decor.common.events.DecorEventPublisher;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.constants.CacheKeys;
 import com.decor.users.constants.ErrorMessages;
@@ -23,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -47,6 +51,10 @@ public class TenantService {
 
     @Autowired
     private TenantOwnerCreator tenantOwnerCreator;
+
+    // Altas, habilitar / deshabilitar y bajas: el panel de la plataforma se actualiza en vivo (observability)
+    @Autowired
+    private DecorEventPublisher events;
 
     @Value("${platform.scheme:http}")
     private String platformScheme;
@@ -127,6 +135,7 @@ public class TenantService {
             tenantRepository.delete(tenant);
             throw e;
         }
+        publish(DecorEvent.TENANT_CREATED, tenant);
         return toPlatformDto(tenant);
     }
 
@@ -146,6 +155,7 @@ public class TenantService {
         tenant.setEnable(enabled);
         tenantRepository.save(tenant);
         cacheUtil.deleteTenant(tenant.getSchema(), tenant.getUrl());
+        publish(enabled ? DecorEvent.TENANT_ENABLED : DecorEvent.TENANT_DISABLED, tenant);
         return toPlatformDto(tenant);
     }
 
@@ -155,6 +165,15 @@ public class TenantService {
         tenant.setDeletedAt(LocalDateTime.now());
         tenantRepository.save(tenant);
         cacheUtil.deleteTenant(tenant.getSchema(), tenant.getUrl());
+        publish(DecorEvent.TENANT_DELETED, tenant);
+    }
+
+    // Eventos de plataforma: van con tenant "public"; la tienda va en los datos
+    private void publish(String type, Tenant tenant) {
+        events.publish(type, TenantConstants.PUBLIC, Map.of(
+                "id", tenant.getId(),
+                "identifier", tenant.getSchema().replace('_', '-'),
+                "schema", tenant.getSchema()));
     }
 
     private Tenant findActive(Long id) throws ApiException {

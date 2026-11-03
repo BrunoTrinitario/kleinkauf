@@ -1,5 +1,7 @@
 package com.decor.users;
 
+import com.decor.common.events.DecorEvent;
+import com.decor.common.events.DecorEventPublisher;
 import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.users.dtos.platform.NewTenantDto;
 import com.decor.users.dtos.platform.PlatformTenantDto;
@@ -9,6 +11,7 @@ import com.decor.users.services.TenantOwnerCreator;
 import com.decor.users.services.TenantService;
 import com.decor.users.util.CacheUtil;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +52,9 @@ class TenantOnboardingTest {
 	@Mock
 	private TenantOwnerCreator tenantOwnerCreator;
 
+	@Mock
+	private DecorEventPublisher events;
+
 	@InjectMocks
 	private TenantService tenantService;
 
@@ -80,6 +86,8 @@ class TenantOnboardingTest {
 		assertEquals("mi-tienda", result.identifier());
 		assertEquals("http://mi-tienda.localhost:3000", result.url());
 		assertTrue(result.enabled());
+		verify(events).publish(DecorEvent.TENANT_CREATED, "public",
+				Map.of("id", 7L, "identifier", "mi-tienda", "schema", "mi_tienda"));
 	}
 
 	@Test
@@ -165,6 +173,7 @@ class TenantOnboardingTest {
 
 		assertSame(error, thrown);
 		verify(tenantRepository).delete(saved);
+		verifyNoInteractions(events);
 	}
 
 	@Test
@@ -177,6 +186,7 @@ class TenantOnboardingTest {
 		assertFalse(result.enabled());
 		verify(tenantRepository).save(tenant);
 		verify(cacheUtil).deleteTenant("mi_tienda", "http://mi-tienda.localhost:3000");
+		verify(events).publish(eq(DecorEvent.TENANT_DISABLED), eq("public"), any());
 	}
 
 	@Test
@@ -188,6 +198,7 @@ class TenantOnboardingTest {
 		assertNotNull(tenant.getDeletedAt());
 		verify(tenantRepository).save(tenant);
 		verify(cacheUtil).deleteTenant("mi_tienda", "http://mi-tienda.localhost:3000");
+		verify(events).publish(eq(DecorEvent.TENANT_DELETED), eq("public"), any());
 	}
 
 	@Test

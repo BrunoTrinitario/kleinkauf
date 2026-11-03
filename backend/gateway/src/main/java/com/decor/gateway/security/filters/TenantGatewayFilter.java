@@ -8,6 +8,7 @@ import com.decor.gateway.services.TenantService;
 import com.decor.gateway.util.ManagementRequests;
 import com.decor.gateway.util.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -30,18 +31,24 @@ public class TenantGatewayFilter implements WebFilter {
     @Autowired
     private TenantService tenantService;
 
+    @Value("${platform.url:}")
+    private String platformUrl;
+
     /*
     Resuelve el tenant por el Origin y le pasa su schema a los microservicios.
     - Rutas de plataforma (/api/v1/platform/**) e imagenes de productos (/products/images/**): no tienen
       tenant, siguen sin el header (el navegador no manda Origin al cargar un <img>).
     - Tenant inexistente o borrado: 404. Deshabilitado: 403.
+    - WS (/ws) desde el frontend de la plataforma: es el panel del superadmin, sin tienda. Desde una tienda
+      se resuelve como cualquier request y observability valida que el ticket sea de esa tienda.
     Solo los errores de la busqueda del tenant se responden aca; los de los servicios siguen su curso.
     El schema queda tambien en el atributo TENANT_ATTRIBUTE: lo usa la etiqueta "tenant" de las metricas.
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        if (PermittedUrls.isTenantlessPath(exchange.getRequest().getURI().getPath())
-                || ManagementRequests.isManagement(exchange)) {
+        String path = exchange.getRequest().getURI().getPath();
+        if (PermittedUrls.isTenantlessPath(path) || ManagementRequests.isManagement(exchange)
+                || isPlatformWebSocket(exchange, path)) {
             return chain.filter(exchange);
         }
 
@@ -62,6 +69,11 @@ public class TenantGatewayFilter implements WebFilter {
                             .request(mutatedRequest)
                             .build());
                 });
+    }
+
+    private boolean isPlatformWebSocket(ServerWebExchange exchange, String path) {
+        return PermittedUrls.WS_PATH.equals(path) && platformUrl != null && !platformUrl.isBlank()
+                && platformUrl.equals(Parser.getBaseUrlFromRequest(exchange));
     }
 
     private Mono<Void> setError(Throwable ex, ServerWebExchange exchange){

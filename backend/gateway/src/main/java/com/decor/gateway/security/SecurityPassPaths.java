@@ -8,6 +8,8 @@ public class SecurityPassPaths{
         return ex -> ex
                 .pathMatchers("/api/v1/**").permitAll()
                 .pathMatchers("/products/images/**").permitAll()
+                // El WS no lleva JWT: observability lo abre con un ticket de un solo uso
+                .pathMatchers("/ws").permitAll()
                 .anyExchange().authenticated();
     }
 }

@@ -1,6 +1,7 @@
 package com.decor.gateway.config;
 
 import com.decor.common.observability.TenantTag;
+import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.security.filters.TenantGatewayFilter;
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
@@ -23,8 +24,13 @@ public class TenantObservationConfig {
             @Override
             public KeyValues getLowCardinalityKeyValues(ServerRequestObservationContext context) {
                 Object tenant = context.getAttributes().get(TenantGatewayFilter.TENANT_ATTRIBUTE);
-                return super.getLowCardinalityKeyValues(context)
+                KeyValues values = super.getLowCardinalityKeyValues(context)
                         .and(KeyValue.of(TenantTag.KEY, TenantTag.of(tenant == null ? null : tenant.toString())));
+                // El WS dura lo que dura la conexion: con su propio uri se puede dejar afuera de las latencias
+                if (PermittedUrls.WS_PATH.equals(context.getCarrier().getPath().value())) {
+                    values = values.and(KeyValue.of("uri", PermittedUrls.WS_PATH));
+                }
+                return values;
             }
         };
     }

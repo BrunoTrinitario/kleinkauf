@@ -39,7 +39,7 @@ discovery.relabel "decor" {
 
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex         = "/(eureka-service|product-service|sales-service|user-service|gateway-service)"
+    regex         = "/(eureka-service|product-service|sales-service|user-service|gateway-service|observability-service)"
     action        = "keep"
   }
 

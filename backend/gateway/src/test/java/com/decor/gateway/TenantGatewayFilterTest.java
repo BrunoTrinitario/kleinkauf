@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 class TenantGatewayFilterTest {
 
     private static final String ORIGIN = "http://tienda-a.localhost:3000";
+    private static final String PLATFORM_ORIGIN = "http://localhost:2999";
 
     private final TenantService tenantService = mock(TenantService.class);
     private final TenantGatewayFilter filter = new TenantGatewayFilter();
@@ -33,6 +34,7 @@ class TenantGatewayFilterTest {
 
     TenantGatewayFilterTest() {
         ReflectionTestUtils.setField(filter, "tenantService", tenantService);
+        ReflectionTestUtils.setField(filter, "platformUrl", PLATFORM_ORIGIN);
     }
 
     @Test
@@ -114,6 +116,30 @@ class TenantGatewayFilterTest {
                 () -> filter.filter(exchange, e -> Mono.error(downstream)).block());
 
         assertEquals(downstream, thrown);
+    }
+
+    // El panel del superadmin abre el WS desde el frontend de la plataforma: no hay tienda que buscar
+    @Test
+    void wsDesdeLaPlataforma_noBuscaTenant() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/ws?ticket=abc").header(HttpHeaders.ORIGIN, PLATFORM_ORIGIN));
+
+        run(exchange);
+
+        assertNotNull(forwarded.get());
+        assertNull(forwarded.get().getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST));
+        verifyNoInteractions(tenantService);
+    }
+
+    // Desde una tienda se resuelve como cualquier request: observability compara el tenant con el del ticket
+    @Test
+    void wsDesdeUnaTienda_pasaElSchema() {
+        when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(true)));
+        MockServerWebExchange exchange = request("/ws");
+
+        run(exchange);
+
+        assertEquals("tienda_a", forwarded.get().getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST));
     }
 
     private void run(MockServerWebExchange exchange) {

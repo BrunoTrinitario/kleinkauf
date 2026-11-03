@@ -129,6 +129,33 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9001/health"]
 
+  #Observabilidad: recolector, eventos y WS del panel en tiempo real (docs/observabilidad.md). Sin base por ahora
+  observability-service:
+    <<: *service
+    container_name: observability-service
+    volumes:
+      - ../decor-observability:/app
+      - ../decor-common:/decor-common
+      - observability-gradle-cache:/home/gradle/.gradle
+      - /app/build
+      - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
+    environment:
+      <<: *service-env
+      #Eureka no se registra en si mismo: el recolector lo lee directo
+      OBSERVABILITY_STATIC_TARGETS: eureka=http://eureka:9761
+    ports:
+      - "3004:3004"
+    depends_on:
+      redis:
+        condition: service_healthy
+      eureka:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9004/health"]
+
   gateway-service:
     <<: *service
     container_name: gateway-service
@@ -184,3 +211,4 @@ volumes:
   user-gradle-cache:
   gateway-gradle-cache:
   sales-gradle-cache:
+  observability-gradle-cache:

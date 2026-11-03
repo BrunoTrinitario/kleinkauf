@@ -1,11 +1,14 @@
 package com.decor.common.autoconfigure;
 
+import com.decor.common.events.DecorEventPublisher;
 import com.decor.common.security.InternalTokenService;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
@@ -28,6 +31,16 @@ class DecorCoreAutoConfigurationTest {
             RedisTemplate<?, ?> redisTemplate = context.getBean("redisTemplate", RedisTemplate.class);
             assertThat(redisTemplate.getValueSerializer()).isInstanceOf(GenericJackson2JsonRedisSerializer.class);
         });
+    }
+
+    @Test
+    void elPublicadorDeEventosEsSoloParaServlet() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(DecorCoreAutoConfiguration.class, RedisAutoConfiguration.class))
+                .run(context -> assertThat(context).hasSingleBean(DecorEventPublisher.class));
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(DecorCoreAutoConfiguration.class, RedisAutoConfiguration.class))
+                .run(context -> assertThat(context).doesNotHaveBean(DecorEventPublisher.class));
     }
 
     @Test

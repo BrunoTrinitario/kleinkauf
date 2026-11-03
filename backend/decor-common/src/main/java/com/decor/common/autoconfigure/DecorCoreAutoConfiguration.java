@@ -1,6 +1,9 @@
 package com.decor.common.autoconfigure;
 
+import com.decor.common.events.DecorEventPublisher;
 import com.decor.common.security.InternalTokenService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,14 +11,17 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 
 /*
@@ -49,6 +55,21 @@ public class DecorCoreAutoConfiguration {
             template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
 
             return template;
+        }
+    }
+
+    // Eventos para observability (Redis Streams). Solo servlet: es bloqueante y el gateway no publica
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass({StringRedisTemplate.class, ObjectMapper.class})
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    static class EventsConfig {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public DecorEventPublisher decorEventPublisher(RedisConnectionFactory factory) {
+            StringRedisTemplate redis = new StringRedisTemplate(factory);
+            redis.afterPropertiesSet();
+            return new DecorEventPublisher(redis, JsonMapper.builder().findAndAddModules().build(), Clock.systemUTC());
         }
     }
 

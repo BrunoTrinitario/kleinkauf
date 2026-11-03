@@ -15,6 +15,10 @@ public class GatewayRoutes {
     private String productUrl;
     @Value("${sales.url}")
     private String salesUrl;
+    @Value("${observability.url}")
+    private String observabilityUrl;
+    @Value("${observability.ws-url}")
+    private String observabilityWsUrl;
 
 
     @Bean
@@ -54,6 +58,15 @@ public class GatewayRoutes {
                         .order(-1)
                         .path("/api/v1/platform/products/**")
                         .uri(productUrl))
+                // Panel de observabilidad de la plataforma: tambien antes que la ruta general de plataforma
+                .route("platform observability", r -> r
+                        .order(-1)
+                        .path("/api/v1/platform/observability/**")
+                        .uri(observabilityUrl))
+                // WebSocket del panel en tiempo real (se entra con un ticket, ver docs/observabilidad.md)
+                .route("observability ws", r -> r
+                        .path("/ws")
+                        .uri(observabilityWsUrl))
                 .route("platform", r -> r
                         .path("/api/v1/platform/**")
                         .uri(userUrl))
