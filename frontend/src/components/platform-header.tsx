@@ -73,7 +73,7 @@ export function PlatformHeader() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator className="md:hidden" />
-            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               {strings.auth.signOut}
             </DropdownMenuItem>

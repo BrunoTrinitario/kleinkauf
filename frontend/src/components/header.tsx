@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import type { UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { PRODUCT_PANEL_AREAS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -25,7 +26,7 @@ const roles: { value: UserRole; label: string; icon: typeof User }[] = [
 ]
 
 export function Header() {
-  const { user, activeRole, isAuthenticated, logout, switchRole } = useAuth()
+  const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
   const availableRoles = user?.roles.map(role => role.type) ?? []
 
   const getRoleBadgeColor = () => {
@@ -39,7 +40,9 @@ export function Header() {
     }
   }
 
-  const canManageProducts = activeRole === "ADMINISTRADOR" || activeRole === "EMPLEADO"
+  // Los mismos criterios que las rutas protegidas de App.tsx (areas del rol activo)
+  const canManageProducts = PRODUCT_PANEL_AREAS.some((area) => can(area))
+  const canManageUsers = can("USUARIOS")
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-card">
@@ -60,7 +63,7 @@ export function Header() {
               {strings.nav.products}
             </Link>
           )}
-          {isAuthenticated && activeRole === "ADMINISTRADOR" && (
+          {isAuthenticated && canManageUsers && (
             <Link to="/admin/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {strings.nav.users}
             </Link>
@@ -146,7 +149,7 @@ export function Header() {
                     </>
                   )}
 
-                  {activeRole === "ADMINISTRADOR" && (
+                  {canManageUsers && (
                     <>
                       <DropdownMenuItem asChild>
                         <Link to="/admin/users">
@@ -164,7 +167,7 @@ export function Header() {
                       {strings.auth.settings}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                  <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
                     {strings.auth.signOut}
                   </DropdownMenuItem>

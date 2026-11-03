@@ -1,33 +1,10 @@
-
-import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { loginUrl, useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import { AdminDashboard } from "@/components/admin-dashboard"
 
+// Solo ADMINISTRADOR: lo controla la ruta (RequireRole en App.tsx)
 export default function AdminPage() {
-  const navigate = useNavigate()
-  const { activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
-
-  useEffect(() => {
-    if (isAuthLoading) {
-      return
-    }
-    if (!isAuthenticated) {
-      navigate(loginUrl())
-      return
-    }
-    if (activeRole !== "ADMINISTRADOR") {
-      navigate("/")
-    }
-  }, [isAuthenticated, isAuthLoading, activeRole, navigate])
-
-  if (isAuthLoading || !isAuthenticated || activeRole !== "ADMINISTRADOR") {
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Header />

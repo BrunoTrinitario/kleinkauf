@@ -32,6 +32,11 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **Tienda no disponible y 429** (paso 3 de B0): si el gateway dice que la tienda no existe (404) o está
   deshabilitada (403), la app muestra una página en lugar de las rutas, también al entrar directo al login. El 429
   sale como un solo aviso aunque fallen varias llamadas.
+- **Rutas protegidas** (paso 4 de B0, con lo que B0 queda completo): `RequireAuth`, `RequireRole`, `RequireArea` y
+  `RequireSuperadmin` en `App.tsx`, en lugar del guard de cada página. Siguen al **rol activo** (el de "Cambiar
+  rol"): el panel de productos abre con cualquier área del panel y crear, editar o borrar piden `PRODUCTOS`;
+  usuarios pide `USUARIOS`; el panel de la tienda, `ADMINISTRADOR`. El menú usa los mismos criterios. Cerrar sesión
+  lleva a la home (a `/login` en la plataforma).
 - **Sesión vencida** (B1): un 401 cierra la sesión y vuelve a `/login?next=<página>`; las páginas privadas también
   mandan al login con `next`, y el login vuelve ahí.
 - **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
@@ -83,14 +88,6 @@ Flujo: confirmar con un grep en `frontend/src` que no se usan, borrar, sacar las
 
 Sigue el orden de [frontend.md](frontend.md). Lo de abajo es lo que no existe en `frontend/src`. El backend de todo
 esto ya está.
-
-### B0. Base técnica
-
-Va primero porque todo lo demás depende de esto. Ya están el cliente HTTP único (`lib/api.ts`), TanStack Query
-(`src/api/`) y las páginas de tienda no disponible.
-
-1. Rutas protegidas por rol y área usando `hasPermission`, en lugar del guard de cada página (que hoy ya manda al
-   login con `next`).
 
 ### B1. Cuenta
 
@@ -258,11 +255,11 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B0**: el resto de la base del frontend, así lo demás no se repite. B1 ya está salvo el recupero de contraseña.
-2. **B3 y B4**: lo que el backend ya tiene listo y lo que más usa el dueño.
-3. **B5**: el panel de la tienda, que ya tiene todo el backend.
-4. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
-5. **B6 y B7**: compra online y panel de ventas.
-6. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
-7. **Decidir y planificar C1**, la próxima etapa de ventas.
-8. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
+1. **B3 y B4**: lo que el backend ya tiene listo y lo que más usa el dueño. La base del frontend (B0) ya está y B1
+   también, salvo el recupero de contraseña.
+2. **B5**: el panel de la tienda, que ya tiene todo el backend.
+3. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
+4. **B6 y B7**: compra online y panel de ventas.
+5. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
+6. **Decidir y planificar C1**, la próxima etapa de ventas.
+7. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.

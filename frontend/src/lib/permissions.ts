@@ -11,8 +11,15 @@ export const PERMISSIONS = {
 
 export type PermissionArea = keyof typeof PERMISSIONS
 
-// Con varios roles vale la union de sus mascaras (igual que en el backend).
-// La UI lo usa para no mostrar lo que no se puede usar; el backend igual valida
-export function hasPermission(roles: RoleDto[] | undefined, area: PermissionArea): boolean {
-  return (roles ?? []).some((role) => (role.permissions & PERMISSIONS[area]) !== 0)
+// Las que abren el panel de productos: el backend pide cualquiera de ellas para leer con stock exacto
+export const PRODUCT_PANEL_AREAS: PermissionArea[] = ["PRODUCTOS", "PRECIOS", "STOCK", "COMBOS"]
+
+/*
+Lo que puede hacer el rol activo (el que se elige en "Cambiar rol"). Las rutas y el menu siguen al rol activo, asi
+cambiar de rol sirve para ver la app como ese rol. El backend valida con la union de los roles: la UI nunca muestra
+de mas, a lo sumo de menos.
+ */
+export function roleCan(roles: RoleDto[] | undefined, activeRole: string | null, area: PermissionArea): boolean {
+  const role = (roles ?? []).find((item) => item.type === activeRole)
+  return !!role && (role.permissions & PERMISSIONS[area]) !== 0
 }

@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { loginUrl, useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { PageHeader } from "@/components/page-header"
@@ -28,9 +27,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+// Pide el area USUARIOS, que solo tiene el ADMINISTRADOR (RequireArea en App.tsx)
 export default function AdminUsersPage() {
-  const navigate = useNavigate()
-  const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const { user } = useAuth()
   const [searchInput, setSearchInput] = useState("")
   const searchQuery = useDebouncedValue(searchInput.trim())
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("")
@@ -42,35 +41,18 @@ export default function AdminUsersPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [selectedDeleteUser, setSelectedDeleteUser] = useState<User | null>(null)
 
-  useEffect(() => {
-    if (isAuthLoading) {
-      return
-    }
-    if (!isAuthenticated) {
-      navigate(loginUrl())
-      return
-    }
-    if (activeRole !== "ADMINISTRADOR") {
-      navigate("/")
-    }
-  }, [isAuthenticated, isAuthLoading, activeRole, navigate])
-
   // Un filtro nuevo arranca desde la primera pagina
   useEffect(() => {
     setPage(0)
   }, [searchQuery, roleFilter])
 
-  const usersQuery = useUsers({ q: searchQuery, role: roleFilter, page }, activeRole === "ADMINISTRADOR" && !!user?.token)
+  const usersQuery = useUsers({ q: searchQuery, role: roleFilter, page }, !!user?.token)
   const usersPage = usersQuery.data
   const isLoading = usersQuery.isFetching
   const saveUser = useSaveUser()
   const deleteUser = useDeleteUser()
   const createUser = useCreateUser()
   const isCreating = createUser.isPending
-
-  if (isAuthLoading || !isAuthenticated || activeRole !== "ADMINISTRADOR") {
-    return null
-  }
 
   const users = usersPage?.items ?? []
   const hasFilters = searchQuery !== "" || roleFilter !== ""

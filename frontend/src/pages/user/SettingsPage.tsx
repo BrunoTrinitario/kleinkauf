@@ -1,8 +1,7 @@
 
-import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { loginUrl, useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
 import { useDeleteAccount, useMe, useUpdateProfile } from "@/api/account"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
@@ -27,8 +26,7 @@ import { Input } from "@/components/ui/input"
 
 
 export default function UserSettingsPage() {
-	const navigate = useNavigate()
-	const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth()
+	const { user, logout } = useAuth()
 	const [profile, setProfile] = useState<ProfileFormState | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState<string | null>(null)
@@ -40,19 +38,6 @@ export default function UserSettingsPage() {
 	const isLoading = me.isPending
 	const isSaving = updateProfile.isPending
 	const isDeleting = deleteAccount.isPending
-	// Despues de borrar la cuenta se va a la home, no al login (el guard de abajo lo haria al quedar sin sesion)
-	const accountDeleted = useRef(false)
-
-
-	useEffect(() => {
-		if (isAuthLoading || accountDeleted.current) {
-			return
-		}
-		if (!isAuthenticated) {
-			navigate(loginUrl())
-			return
-		}
-	}, [isAuthenticated, isAuthLoading, navigate])
 
 	// El formulario arranca con lo que devuelve /auth/me (y se vuelve a llenar despues de guardar)
 	useEffect(() => {
@@ -107,18 +92,13 @@ export default function UserSettingsPage() {
 		setDeleteError(null)
 		try {
 			await deleteAccount.mutateAsync()
-			accountDeleted.current = true
 			setIsDeleteOpen(false)
 			toast.success(strings.userSettings.deletedToast)
-			navigate("/", { replace: true })
-			logout()
+			// A la home, no al login: logout navega despues de que la ruta protegida reacciona
+			logout("/")
 		} catch (err) {
 			setDeleteError(getErrorMessage(err, strings.userSettings.deleteError, { conflict: strings.userSettings.lastAdmin }))
 		}
-	}
-
-	if (isAuthLoading || !isAuthenticated) {
-		return null
 	}
 
 	return (

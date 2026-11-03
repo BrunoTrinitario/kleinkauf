@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { LoggedUser, LoginUserDto, User, UserRole } from "./types"
 import { strings } from "./strings"
 import { IS_PLATFORM } from "./platform"
 import { api, configureApiSession, PLATFORM_PATH } from "./api"
+import { roleCan, type PermissionArea } from "./permissions"
 
 interface AuthContextType {
   user: LoggedUser | null
@@ -14,8 +15,13 @@ interface AuthContextType {
   isLoading: boolean
   login: (credentials: LoginUserDto) => Promise<LoggedUser>
   register: (email: string, password: string, name: string) => Promise<void>
-  logout: () => void
+  // Cierra la sesion y va a redirectTo (por defecto la home de la tienda o el login de la plataforma)
+  logout: (redirectTo?: string) => void
   switchRole: (role: UserRole) => void
+  // Areas del rol activo (ver lib/permissions.ts)
+  can: (area: PermissionArea) => boolean
+  // Destino de un cierre de sesion en curso (null si no hay): las rutas protegidas van ahi y no al login
+  signedOutTo: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -114,11 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   // El cliente HTTP lee el token de aca: se actualiza antes que el estado para que la proxima llamada ya lo use
   const tokenRef = useRef<string | null>(storedToken())
-  // Pagina donde vencio la sesion: se navega al login desde un efecto de este provider
-  const [expiredAt, setExpiredAt] = useState<string | null>(null)
+  // A donde ir despues de cerrar la sesion. Dura hasta llegar ahi: las rutas protegidas tambien redirigen al
+  // quedarse sin usuario, y mientras tanto van al mismo destino (si no, la ultima navegacion pisa a la otra)
+  const [signedOutTo, setSignedOutTo] = useState<string | null>(null)
+  const location = useLocation()
 
   // Los datos cargados son del usuario que sale: el proximo no los tiene que ver
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
     tokenRef.current = null
     clearAuthCookie()
     clearPlatformUser()
@@ -126,6 +134,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setActiveRole(null)
   }, [queryClient])
+
+  const logout = useCallback((to: string = IS_PLATFORM ? "/login" : "/") => {
+    clearSession()
+    setSignedOutTo(to)
+  }, [clearSession])
 
   // Un 401 de una llamada con token: se cierra la sesion y se vuelve al login, que despues trae de vuelta aca
   useEffect(() => {
@@ -135,22 +148,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!tokenRef.current) {
           return
         }
-        logout()
+        logout(loginUrl())
         toast.error(strings.errors.sessionExpired, { id: "session-expired" })
-        setExpiredAt(window.location.pathname + window.location.search)
       },
     })
   }, [logout])
 
-  // Los efectos del provider corren despues que los de la pagina: si la pagina tambien manda al login
-  // al quedarse sin usuario, esta navegacion (con la pagina de vuelta) es la que queda
   useEffect(() => {
-    if (expiredAt === null) {
-      return
+    if (signedOutTo !== null) {
+      navigate(signedOutTo, { replace: true })
     }
-    navigate(loginUrl(expiredAt))
-    setExpiredAt(null)
-  }, [expiredAt, navigate])
+  }, [signedOutTo, navigate])
+
+  useEffect(() => {
+    if (signedOutTo !== null && location.pathname + location.search === signedOutTo) {
+      setSignedOutTo(null)
+    }
+  }, [signedOutTo, location.pathname, location.search])
 
   useEffect(() => {
     if (IS_PLATFORM) {
@@ -213,6 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const startSession = useCallback((loggedUser: LoggedUser) => {
     queryClient.clear()
+    setSignedOutTo(null)
     tokenRef.current = loggedUser.token ?? null
     if (IS_PLATFORM) {
       savePlatformUser(loggedUser)
@@ -245,8 +260,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
+  const can = useCallback((area: PermissionArea) => roleCan(user?.roles, activeRole, area), [user, activeRole])
+
   return (
-    <AuthContext.Provider value={{ user, activeRole, isAuthenticated: !!user, isLoading, login, register, logout, switchRole }}>
+    <AuthContext.Provider value={{ user, activeRole, isAuthenticated: !!user, isLoading, login, register, logout, switchRole, can, signedOutTo }}>
       {children}
     </AuthContext.Provider>
   )

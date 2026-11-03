@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { loginUrl, useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
 import { useQueryClient } from "@tanstack/react-query"
 import type { Product } from "@/lib/types"
 import { useCatalogCategories } from "@/api/catalog"
@@ -15,7 +14,6 @@ import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "@/component
 import { Header } from "@/components/header"
 import { AdminProductCard } from "@/components/admin-product-card"
 import { AdminProductFormModal } from "@/components/admin-product-form-modal"
-import { hasPermission } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -30,9 +28,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, Package } from "lucide-react"
 
+// Abre con cualquier area del panel (RequireArea en App.tsx); crear, editar y borrar piden PRODUCTOS
 export default function ProductsManagementPage() {
-  const navigate = useNavigate()
-  const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const { user, activeRole, can } = useAuth()
   const queryClient = useQueryClient()
   const [searchInput, setSearchInput] = useState("")
   const searchQuery = useDebouncedValue(searchInput.trim())
@@ -43,20 +41,7 @@ export default function ProductsManagementPage() {
   // Producto a borrar: se pide confirmacion antes (borrar no se puede deshacer desde el panel)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
 
-  const canManageProducts = activeRole === "ADMINISTRADOR" || activeRole === "EMPLEADO"
-
-  useEffect(() => {
-    if (isAuthLoading) {
-      return
-    }
-    if (!isAuthenticated) {
-      navigate(loginUrl())
-      return
-    }
-    if (!canManageProducts) {
-      navigate("/")
-    }
-  }, [isAuthenticated, isAuthLoading, canManageProducts, navigate])
+  const canEditProducts = can("PRODUCTOS")
 
   // Una busqueda o filtro nuevo arranca desde la primera pagina
   useEffect(() => {
@@ -65,17 +50,10 @@ export default function ProductsManagementPage() {
 
   // Categorias para el filtro (las mismas que el catalogo, con su cantidad de productos)
   const categories = useCatalogCategories().data ?? []
-  const productsQuery = useAdminProducts(
-    { q: searchQuery, category: categoryFilter, page },
-    canManageProducts && !!user?.token
-  )
+  const productsQuery = useAdminProducts({ q: searchQuery, category: categoryFilter, page }, !!user?.token)
   const productsPage = productsQuery.data
   const isLoading = productsQuery.isFetching
   const deleteProduct = useDeleteProduct()
-
-  if (isAuthLoading || !isAuthenticated || !canManageProducts) {
-    return null
-  }
 
   const products = productsPage?.items ?? []
 
@@ -119,12 +97,14 @@ export default function ProductsManagementPage() {
           title={strings.adminProducts.title}
           highlight="productos"
           subtitle={strings.adminProducts.subtitle}
-          backTo="/admin"
+          backTo={activeRole === "ADMINISTRADOR" ? "/admin" : "/"}
           action={
-            <Button onClick={openCreateForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              {strings.adminProducts.createButton}
-            </Button>
+            canEditProducts ? (
+              <Button onClick={openCreateForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                {strings.adminProducts.createButton}
+              </Button>
+            ) : undefined
           }
         />
 
@@ -172,8 +152,8 @@ export default function ProductsManagementPage() {
                   <AdminProductCard
                     key={product.id}
                     product={product}
-                    onEdit={handleEditProduct}
-                    onDelete={setProductToDelete}
+                    onEdit={canEditProducts ? handleEditProduct : undefined}
+                    onDelete={canEditProducts ? setProductToDelete : undefined}
                   />
                 ))}
               </div>
@@ -195,7 +175,7 @@ export default function ProductsManagementPage() {
           setIsFormOpen(open)
           if (!open) setSelectedProduct(null)
         }}
-        canEditPrices={hasPermission(user?.roles, "PRECIOS")}
+        canEditPrices={can("PRECIOS")}
         onSaved={handleSaved}
       />
 
