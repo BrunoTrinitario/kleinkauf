@@ -1,0 +1,10 @@
+#Carga los dashboards de observability/grafana/dashboards al arrancar
+apiVersion: 1
+
+providers:
+  - name: decor
+    folder: Decor
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards

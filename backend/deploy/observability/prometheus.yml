@@ -1,0 +1,33 @@
+#Prometheus de desarrollo (docker-compose.observability.yml)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  #Los servicios registrados en eureka. Cada instancia publica su puerto de gestion en la metadata
+  #(management.port, lo pone decor-common): se lee /metrics en <ip>:<puerto de gestion>
+  - job_name: decor
+    metrics_path: /metrics
+    eureka_sd_configs:
+      - server: http://eureka:8761/eureka
+        refresh_interval: 15s
+    relabel_configs:
+      - source_labels: [__meta_eureka_app_instance_metadata_management_port]
+        regex: ""
+        action: drop
+      - source_labels: [__meta_eureka_app_instance_ip_addr, __meta_eureka_app_instance_metadata_management_port]
+        separator: ":"
+        target_label: __address__
+      - source_labels: [__meta_eureka_app_name]
+        action: lowercase
+        target_label: service
+      - source_labels: [__meta_eureka_app_instance_id]
+        target_label: instance
+
+  #Eureka no se registra en si mismo
+  - job_name: eureka
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["eureka:9761"]
+        labels:
+          service: eureka

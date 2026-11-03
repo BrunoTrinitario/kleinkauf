@@ -21,7 +21,7 @@ x-service: &service
     #durante las pausas de bootRun y activa la autopreservacion de eureka
     EUREKA_CLIENT_REGISTRYFETCHINTERVALSECONDS: "5"
 
-#Healthcheck por HTTP: cualquier respuesta en el puerto significa que Spring ya arranco
+#Healthcheck: /health (liveness) en el puerto de gestion, que es interno y no se publica (docs/observabilidad.md)
 #start_period largo porque bootRun compila antes de levantar
 x-healthcheck: &healthcheck
   interval: 10s
@@ -46,10 +46,13 @@ services:
     container_name: eureka-service
     volumes:
       - ../eureka:/app
+      - ../decor-common:/decor-common
       - gradle-cache:/home/gradle/.gradle
       #build y .gradle propios del contenedor para no pisar los del host
       - /app/build
       - /app/.gradle
+      - /decor-common/build
+      - /decor-common/.gradle
     environment:
       #Solo en desarrollo: responder con el registro al dia en vez de una copia que se refresca cada 30s
       EUREKA_SERVER_USEREADONLYRESPONSECACHE: "false"
@@ -57,7 +60,7 @@ services:
       - "8761:8761"
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:8761/eureka/apps"]
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9761/health"]
 
   #Cada servicio compila decor-common en su propio build/ para no chocar con los otros
   product-service:
@@ -79,7 +82,7 @@ services:
     depends_on: *depends
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3002/"]
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9002/health"]
 
   sales-service:
     <<: *service
@@ -100,7 +103,7 @@ services:
     depends_on: *depends
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3003/"]
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9003/health"]
 
   user-service:
     <<: *service
@@ -124,7 +127,7 @@ services:
     depends_on: *depends
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3001/"]
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9001/health"]
 
   gateway-service:
     <<: *service
@@ -146,7 +149,7 @@ services:
     depends_on: *depends
     healthcheck:
       <<: *healthcheck
-      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:3000/"]
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9000/health"]
 
   #Seed de desarrollo: crea la tienda demo (http://demo.localhost:2999), la carga con productos
   #(con imagenes genericas por categoria) y usuarios de prueba, y termina. Datos en seed/data.json

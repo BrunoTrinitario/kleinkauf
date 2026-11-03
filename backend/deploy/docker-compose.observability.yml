@@ -1,0 +1,96 @@
+#Stack de observabilidad de desarrollo (docs/observabilidad.md): Prometheus, Grafana, Tempo, Loki y Alloy.
+#Se suma al compose de desarrollo, no se usa solo:
+#  docker compose -f backend/deploy/docker-compose.dev.yml -f backend/deploy/docker-compose.observability.yml up -d
+#Grafana en http://localhost:3300 (sin login) y Prometheus en http://localhost:9090.
+#Tempo, Loki y Alloy no se publican: se consultan desde Grafana.
+#Los datos no tienen volumen: se pierden al borrar los contenedores (es solo para desarrollo).
+
+#Lo que cambia en los servicios con el stack levantado: logs en JSON (Alloy los pasa a Loki por campo)
+#y envio de trazas por OTLP a Alloy, que las pasa a Tempo
+x-observability-env: &observability-env
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: logstash
+  MANAGEMENT_OTLP_TRACING_EXPORT_ENABLED: "true"
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: http://alloy:4318/v1/traces
+
+services:
+  eureka:
+    environment: *observability-env
+  product-service:
+    environment: *observability-env
+  sales-service:
+    environment: *observability-env
+  user-service:
+    environment: *observability-env
+  gateway-service:
+    environment: *observability-env
+
+  #Metricas: encuentra a cada instancia en eureka y lee /metrics en su puerto de gestion
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=3d
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      eureka:
+        condition: service_healthy
+
+  #Trazas
+  tempo:
+    image: grafana/tempo:2.8.1
+    container_name: tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+
+  #Logs
+  loki:
+    image: grafana/loki:3.5.3
+    container_name: loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/loki.yaml:ro
+
+  #Colector: recibe las trazas por OTLP y las manda a Tempo, y lee los logs de los contenedores
+  #de los servicios (por el socket de Docker) y los manda a Loki
+  alloy:
+    image: grafana/alloy:v1.10.0
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./observability/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - tempo
+      - loki
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      #Solo en desarrollo: entra directo como admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3300:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki

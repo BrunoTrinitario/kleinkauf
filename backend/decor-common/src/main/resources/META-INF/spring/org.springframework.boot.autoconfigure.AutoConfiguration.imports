@@ -1,2 +1,3 @@
 com.decor.common.autoconfigure.DecorCoreAutoConfiguration
 com.decor.common.servlet.autoconfigure.DecorServletAutoConfiguration
+com.decor.common.observability.servlet.DecorObservabilityServletAutoConfiguration

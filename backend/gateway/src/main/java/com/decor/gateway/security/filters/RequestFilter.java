@@ -2,6 +2,7 @@ package com.decor.gateway.security.filters;
 
 import com.decor.gateway.factories.RequestTenantFactory;
 import com.decor.gateway.services.LocalCacheService;
+import com.decor.gateway.util.ManagementRequests;
 import com.decor.gateway.util.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,10 @@ public class RequestFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        // El puerto de gestion lo consultan Prometheus y observability cada pocos segundos
+        if (ManagementRequests.isManagement(exchange)) {
+            return chain.filter(exchange);
+        }
         String requestIdentifier = Parser.generateRequestIdentifier(exchange);
         String type = requestIdentifier.split(":")[1];
         if (type.equals(RequestTenantFactory.IMAGE)) {

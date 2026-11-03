@@ -4,6 +4,7 @@ import com.decor.common.constants.Headers;
 import com.decor.common.constants.TenantConstants;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.util.JwtUtil;
+import com.decor.gateway.util.ManagementRequests;
 import com.decor.gateway.util.ResponseUtil;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -28,6 +29,11 @@ public class JwtFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+
+        // Puerto de gestion (/health, /ready, /metrics): interno, sin login
+        if (ManagementRequests.isManagement(exchange)) {
+            return chain.filter(exchange);
+        }
 
         String method = exchange.getRequest().getMethod().name();
         String path = exchange.getRequest().getURI().getPath();

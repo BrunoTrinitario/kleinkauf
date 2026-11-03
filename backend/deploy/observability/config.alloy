@@ -1,0 +1,94 @@
+// Alloy de desarrollo (docker-compose.observability.yml): colector de trazas y de logs
+
+// ---- Trazas: los servicios mandan OTLP aca, se pasan a Tempo ----
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// ---- Logs: salida de los contenedores de los servicios, se pasan a Loki ----
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Solo los servicios de decor; la etiqueta "service" es el nombre del contenedor
+discovery.relabel "decor" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(eureka-service|product-service|sales-service|user-service|gateway-service)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "decor" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.decor.rules
+  forward_to    = [loki.process.decor.receiver]
+}
+
+// Los logs salen en JSON (logstash). El nivel es etiqueta; traceId, tenant y userId van como
+// structured metadata para filtrar sin crear una serie por valor. Las lineas que no son JSON
+// (la salida de gradle) pasan igual
+loki.process "decor" {
+  stage.json {
+    expressions = {
+      level   = "level",
+      traceId = "traceId",
+      tenant  = "tenant",
+      userId  = "userId",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  stage.structured_metadata {
+    values = {
+      traceId = "",
+      tenant  = "",
+      userId  = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

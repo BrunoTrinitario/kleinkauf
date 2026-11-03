@@ -110,7 +110,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | Mejora | Para qué | Decisión |
 |---|---|---|
 | **Resilience4j** (circuit breaker + reintentos) | Proteger las llamadas de productos a usuarios, que hoy usan `RestTemplate` sin protección | ☑ Sí — **hecho** |
-| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **planificado** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator, OpenTelemetry, Prometheus, Grafana, Tempo, Loki y panel en tiempo real por WS |
+| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **etapa 1 hecha** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator, OpenTelemetry, Prometheus, Grafana, Tempo, Loki y Alloy en Docker; falta el MS `decor-observability` con el panel en tiempo real por WS |
 | **Testcontainers** | Tests de integración con Postgres y Redis reales | ☐ Sí ☐ No ☐ Después |
 | **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`decor-common`) |
 | **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☑ Sí — **hecho** (permisos por área y por rol) |

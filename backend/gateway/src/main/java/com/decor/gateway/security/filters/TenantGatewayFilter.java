@@ -5,6 +5,7 @@ import com.decor.common.dto.TenantDto;
 import com.decor.gateway.constants.ErrorMessages;
 import com.decor.gateway.constants.PermittedUrls;
 import com.decor.gateway.services.TenantService;
+import com.decor.gateway.util.ManagementRequests;
 import com.decor.gateway.util.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -24,6 +25,8 @@ import reactor.core.publisher.Mono;
 @Order(2)
 public class TenantGatewayFilter implements WebFilter {
 
+    public static final String TENANT_ATTRIBUTE = "decor.tenant";
+
     @Autowired
     private TenantService tenantService;
 
@@ -33,10 +36,12 @@ public class TenantGatewayFilter implements WebFilter {
       tenant, siguen sin el header (el navegador no manda Origin al cargar un <img>).
     - Tenant inexistente o borrado: 404. Deshabilitado: 403.
     Solo los errores de la busqueda del tenant se responden aca; los de los servicios siguen su curso.
+    El schema queda tambien en el atributo TENANT_ATTRIBUTE: lo usa la etiqueta "tenant" de las metricas.
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        if (PermittedUrls.isTenantlessPath(exchange.getRequest().getURI().getPath())) {
+        if (PermittedUrls.isTenantlessPath(exchange.getRequest().getURI().getPath())
+                || ManagementRequests.isManagement(exchange)) {
             return chain.filter(exchange);
         }
 
@@ -47,6 +52,7 @@ public class TenantGatewayFilter implements WebFilter {
                         : Mono.<TenantDto>error(new ResponseStatusException(HttpStatus.FORBIDDEN, ErrorMessages.TENANT_DISABLED)))
                 .onErrorResume(ex -> setError(ex, exchange).then(Mono.empty()))
                 .flatMap(tenant -> {
+                    exchange.getAttributes().put(TENANT_ATTRIBUTE, tenant.schema());
                     ServerHttpRequest mutatedRequest = exchange.getRequest()
                             .mutate()
                             .header(Headers.FORWARDED_HOST, tenant.schema())

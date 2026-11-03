@@ -1,8 +1,10 @@
 /*
 Libreria comun de los microservicios de decor.
 - com.decor.common: lo que usan todos (gateway incluido): DTOs, headers, Redis, Caffeine y tokens internos.
-- com.decor.common.servlet: lo que usan los servicios servlet (users, products): multi-tenant de Hibernate,
+- com.decor.common.servlet: lo que usan los servicios servlet (users, products, sales): multi-tenant de Hibernate,
   filtro de tenant, excepciones y usuario autenticado. En el gateway (reactivo) no se activa.
+- com.decor.common.observability: Actuator igual en todos (puerto de gestion, /health, /ready, /metrics),
+  etiqueta tenant en las metricas HTTP y tenant / usuario en los logs.
 Las dependencias de Spring son compileOnly: cada servicio ya trae las suyas y cada autoconfiguracion
 se activa solo si encuentra las clases que necesita.
 Los servicios la consumen como build compuesto: includeBuild('../decor-common') en su settings.gradle.
@@ -43,6 +45,7 @@ dependencies {
 	compileOnly 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.springframework.boot:spring-boot-starter-data-jpa'
 	compileOnly 'org.springframework.boot:spring-boot-starter-security'
+	compileOnly 'org.springframework.boot:spring-boot-starter-actuator'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -54,6 +57,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security'
+	testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
 	testRuntimeOnly 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

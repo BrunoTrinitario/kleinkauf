@@ -22,6 +22,11 @@ ext {
 }
 
 dependencies {
+    // Observabilidad: /health, /ready y /metrics (Prometheus), traceId en los logs y trazas por OTLP (configurado en decor-common)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'com.decor:decor-common:0.0.1-SNAPSHOT'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
