@@ -576,6 +576,30 @@ Combos que se pueden comprar (ver [reglas](#conceptos-y-reglas)), por nombre.
 `listPrice` sirve para mostrar el ahorro; `image` es la primera imagen del primer producto que tenga. Un combo
 solo está `DISPONIBLE` o `AGOTADO`.
 
+## Link para compartir
+
+### GET /share/{tienda}/products/{slug}
+
+**Acceso:** público (sin login). Es el link que comparte el frontend en WhatsApp o Instagram.
+
+Los crawlers de las vistas previas no ejecutan JavaScript ni mandan `Origin`: por eso la tienda va en la ruta. El
+gateway la resuelve con su identificador (arma la URL de la tienda con el esquema, host y puerto de `platform.url`)
+y reescribe la ruta a `/share/products/{slug}` en products.
+
+Respuesta **200** `text/html` con las etiquetas `og:title`, `og:description` (precio y descripción, hasta 200
+caracteres), `og:image` (la primera imagen, con URL absoluta), `og:url` y una redirección
+(`<meta http-equiv="refresh">`) a `<URL de la tienda>/productos/{slug}`, la página del producto en el frontend.
+`Cache-Control: public, max-age=3600`. Los textos se escapan. Usa el detalle del catálogo, con su caché.
+
+- Producto inexistente o borrado: **404** con el mismo HTML, sin `og:title`, que redirige a la home de la tienda.
+- Tienda inexistente (404) o deshabilitada (403): los responde el gateway, en texto.
+- Configuración: `share.store-url` (default `http://{identifier}.localhost:2999`) y `share.public-url` (el gateway
+  visto desde afuera, para la imagen; default `http://localhost:3000`).
+
+```bash
+curl http://localhost:3000/share/demo/products/mesa-de-roble
+```
+
 ## Plataforma
 
 ### GET /api/v1/platform/products/usage?sort=

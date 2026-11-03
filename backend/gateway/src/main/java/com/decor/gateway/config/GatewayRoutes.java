@@ -32,6 +32,13 @@ public class GatewayRoutes {
                         .path("/products/images/**")
                         .uri(productUrl))
 
+                // Link para compartir (Open Graph): la tienda va en la ruta y products no la necesita (ya la
+                // resolvio TenantGatewayFilter y llega como X-Forwarded-Host)
+                .route("share", r -> r
+                        .path("/share/*/products/*")
+                        .filters(f -> f.rewritePath("/share/[^/]+/products/(?<slug>[^/]+)", "/share/products/${slug}"))
+                        .uri(productUrl))
+
                 .route("bundles", r -> r
                         .path("/api/v1/bundles/**")
                         .uri(productUrl))

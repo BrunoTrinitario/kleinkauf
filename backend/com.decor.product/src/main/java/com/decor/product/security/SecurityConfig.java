@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/products/**").permitAll()
                         .requestMatchers("/api/v1/bundles/**").permitAll()
                         .requestMatchers("/products/images/**").permitAll()
+                        // Link para compartir (Open Graph): lo abre un crawler, sin login
+                        .requestMatchers(HttpMethod.GET, "/share/products/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

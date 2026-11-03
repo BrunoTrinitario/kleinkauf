@@ -50,6 +50,18 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/observability/overview"));
     }
 
+    // Link para compartir: lo abre un crawler, sin login ni Origin (la tienda va en la ruta)
+    @Test
+    void linkParaCompartir() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/share/mi-tienda/products/mesa-de-roble"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/share/mi-tienda/products/mesa-de-roble"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/share/mi-tienda/products/mesa/otra"));
+
+        assertTrue(PermittedUrls.SHARE_PATH.matcher("/share/mi-tienda/products/mesa-de-roble").matches());
+        assertFalse(PermittedUrls.SHARE_PATH.matcher("/share/Mi_Tienda/products/mesa").matches());
+        assertFalse(PermittedUrls.SHARE_PATH.matcher("/share/a/products/mesa").matches());
+    }
+
     @Test
     void listadosDelPanelPidenLogin() {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products"));

@@ -43,6 +43,7 @@ Los filtros corren en este orden. Cada uno puede cortar la request; lo que respo
 |---|---|---|
 | `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**` | products | Sí |
 | `/products/images/**` | products | No |
+| `GET /share/{tienda}/products/{slug}` | products (`/share/products/{slug}`) | Sí, por la **ruta** y no por el `Origin` (lo abre un crawler). Sin login. Tienda inexistente 404, deshabilitada 403 |
 | `/api/v1/platform/products/**` | products | No |
 | `/api/v1/sales/**` | sales | Sí |
 | `/api/v1/users/**`, `/api/v1/auth/**` | users | Sí |

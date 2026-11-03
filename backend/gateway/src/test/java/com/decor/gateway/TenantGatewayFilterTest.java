@@ -118,6 +118,30 @@ class TenantGatewayFilterTest {
         assertEquals(downstream, thrown);
     }
 
+    // El crawler de WhatsApp no manda Origin: la tienda del link para compartir sale de la ruta, con platform.url
+    @Test
+    void linkParaCompartir_buscaLaTiendaPorLaRuta() {
+        when(tenantService.getTenant("http://tienda-a.localhost:2999")).thenReturn(Mono.just(tenant(true)));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/share/tienda-a/products/mesa-de-roble"));
+
+        run(exchange);
+
+        assertEquals("tienda_a", forwarded.get().getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST));
+    }
+
+    @Test
+    void linkParaCompartirDeUnaTiendaDeshabilitada_respondeForbidden() {
+        when(tenantService.getTenant("http://tienda-a.localhost:2999")).thenReturn(Mono.just(tenant(false)));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/share/tienda-a/products/mesa-de-roble"));
+
+        run(exchange);
+
+        assertNull(forwarded.get());
+        assertEquals(HttpStatus.FORBIDDEN, exchange.getResponse().getStatusCode());
+    }
+
     // El panel del superadmin abre el WS desde el frontend de la plataforma: no hay tienda que buscar
     @Test
     void wsDesdeLaPlataforma_noBuscaTenant() {

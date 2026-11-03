@@ -12,6 +12,10 @@ import com.decor.product.controllers.InternalStockController;
 import com.decor.product.controllers.ProductCsvController;
 import com.decor.product.controllers.ProductController;
 import com.decor.product.controllers.StockController;
+import com.decor.product.controllers.ShareController;
+import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.product.dto.catalog.Availability;
+import com.decor.product.dto.catalog.CatalogProductDetailDto;
 import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.security.SecurityConfig;
 import com.decor.product.services.BundleService;
@@ -42,6 +46,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class, DashboardController.class})
+@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class, DashboardController.class, ShareController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -127,6 +132,27 @@ class SecurityRulesTest {
 		// Sin stock: siguen publicos
 		mockMvc.perform(as(null, get("/api/v1/products/5/metadata"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/products/5/images"))).andExpect(status().isOk());
+	}
+
+	// Link para compartir: lo abre un crawler sin login; HTML con Open Graph que redirige a la tienda
+	@Test
+	void linkParaCompartir_esPublicoYDevuelveHtml() throws Exception {
+		when(catalogService.getBySlug("mesa-de-roble")).thenReturn(new CatalogProductDetailDto(5L, "mesa-de-roble",
+				"Mesa de roble", "Mesas", "Maciza", new java.math.BigDecimal("150000"), Availability.DISPONIBLE, false,
+				List.of("abc.png"), null));
+		when(catalogService.getBySlug("no-existe"))
+				.thenThrow(new ApiException("Product not found", org.springframework.http.HttpStatus.NOT_FOUND));
+
+		mockMvc.perform(as(null, get("/share/products/mesa-de-roble")))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"<meta property=\"og:url\" content=\"http://tienda1.localhost:2999/productos/mesa-de-roble\">")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"<meta property=\"og:image\" content=\"http://localhost:3000/products/images/abc.png\">")));
+		mockMvc.perform(as(null, get("/share/products/no-existe")))
+				.andExpect(status().isNotFound())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("url=http://tienda1.localhost:2999/")));
 	}
 
 	// Los listados del panel muestran el stock exacto: piden algun area del panel (el EMPLEADO por defecto tiene STOCK)

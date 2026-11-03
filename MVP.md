@@ -46,7 +46,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 3 | **Ventas**: carrito, pedido, pago por transferencia con comprobante y validación del administrador | Uso diario del negocio | **MS de ventas** que publica `VentaRegistrada` y productos descuenta stock (outbox + mensajería) | ☑ Sí — **hecho** ([docs/ventas.md](docs/ventas.md)): pedidos, pagos, ventas del local y reportes. Comunicación síncrona e idempotente con products; eventos con outbox después |
 | 4 | **Panel de administración**: ventas del día y del mes, más vendidos, stock bajo, usuarios | Vista del dueño | Agregación entre servicios, caché de reportes | ☑ Sí — **backend hecho** ([docs/panel-admin.md](docs/panel-admin.md)): el superadmin tiene resumen de tiendas, uso por tienda y gestión de superadmins (con frontend); la tienda tiene el panel de productos, stock y usuarios, los reportes de ventas y el tiempo real (`store.*`). Falta el frontend del panel de la tienda |
 | 5 | **Alta de tenant (onboarding)**: registrarse y que se cree el schema solo | Autoservicio real | Flyway / Liquibase por schema | ☑ Sí — **hecho** (autoservicio + superadmin; schemas con `hbm2ddl`, sin Flyway) |
-| 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API; las vistas previas Open Graph las arma el frontend) |
+| 6 | **Catálogo público** con link para compartir (WhatsApp / Instagram) | Muy útil para emprendimientos chicos. Las imágenes ya están | Endpoint público cacheable | ☑ Sí — **hecho** (API, frontend y link para compartir con vista previa Open Graph) |
 | 7 | **Auditoría** (quién creó o modificó cada cosa) | Control sobre los empleados | Outbox + Redis Streams hacia un MS de observabilidad | ☑ Sí — **backend hecho** ([docs/auditoria.md](docs/auditoria.md)); falta la vista en el frontend |
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
@@ -211,6 +211,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-03 | El mail de recupero lleva a `<URL de la tienda>/reset-password?token=` (antes, a la API del gateway) | Un link de mail hace GET: tiene que abrir una página del frontend |
 | 2026-11-03 | `CorsConfig` corre **antes** de los filtros que cortan (`@Order(-150)`) y acepta cualquier **subdominio de la plataforma** con forma de identificador, aunque la tienda no exista | Los 401, 404/403 y 429 del gateway salían sin cabeceras CORS: el navegador los veía como error de red y el frontend no podía leer el código |
 | 2026-11-03 | El **último `ADMINISTRADOR`** de una tienda no se puede borrar (ni a sí mismo ni desde el panel) ni perder el rol: **409**, como el último superadmin | Sin administrador nadie puede administrar la tienda ni devolverle el rol a alguien |
+| 2026-11-03 | Link para compartir en **`/share/{tienda}/products/{slug}`**: la tienda va en la ruta y el gateway la resuelve por el identificador; products devuelve un HTML con Open Graph que redirige a la página del producto | Los crawlers de WhatsApp e Instagram no ejecutan JavaScript ni mandan `Origin`; así no hace falta un servidor de Node para el frontend |
 
 ### Detalle de la librería común
 
@@ -328,8 +329,9 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 - Cada producto devuelve `id, slug, name, category, description, price, availability, featured, images`. El listado y el
   detalle del panel (`/api/v1/products`) también devuelven `slug`, para armar el botón de compartir.
-- **Vistas previas en WhatsApp/Instagram:** las etiquetas Open Graph las genera el frontend (Next.js `generateMetadata`)
-  con el detalle por slug.
+- **Vistas previas en WhatsApp/Instagram:** las etiquetas Open Graph las arma products en
+  `GET /share/{tienda}/products/{slug}` (por el gateway), que redirige a `/productos/{slug}` en la tienda. Ver
+  [docs/backend/products.md](docs/backend/products.md#link-para-compartir).
 
 ### Detalle de permisos (decorusers, solo ADMINISTRADOR)
 

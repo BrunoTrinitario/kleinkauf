@@ -22,6 +22,9 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+import java.util.regex.Matcher;
+
 @Component
 @Order(2)
 public class TenantGatewayFilter implements WebFilter {
@@ -52,7 +55,7 @@ public class TenantGatewayFilter implements WebFilter {
             return chain.filter(exchange);
         }
 
-        return tenantService.getTenant(Parser.getTenantIdentifierFromRequest(exchange))
+        return tenantService.getTenant(tenantOrigin(exchange, path))
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, ErrorMessages.TENANT_NOT_FOUND)))
                 .flatMap(tenant -> Boolean.TRUE.equals(tenant.enable())
                         ? Mono.just(tenant)
@@ -69,6 +72,21 @@ public class TenantGatewayFilter implements WebFilter {
                             .request(mutatedRequest)
                             .build());
                 });
+    }
+
+    /*
+    La URL de la tienda con la que se la busca: el Origin, salvo en el link para compartir, que abre un crawler sin
+    Origin. Ahi la tienda sale del identificador de la ruta, con el esquema, host y puerto de platform.url
+    (http://localhost:2999 + mitienda -> http://mitienda.localhost:2999, como arma la URL users en el alta).
+     */
+    private String tenantOrigin(ServerWebExchange exchange, String path) {
+        Matcher share = PermittedUrls.SHARE_PATH.matcher(path);
+        if (!share.matches() || platformUrl == null || platformUrl.isBlank()) {
+            return Parser.getTenantIdentifierFromRequest(exchange);
+        }
+        URI platform = URI.create(platformUrl);
+        String port = platform.getPort() == -1 ? "" : ":" + platform.getPort();
+        return platform.getScheme() + "://" + share.group(1) + "." + platform.getHost() + port;
     }
 
     private boolean isPlatformWebSocket(ServerWebExchange exchange, String path) {
