@@ -1,0 +1,7 @@
+#Contexto de las imagenes de los servicios (deploy/Dockerfile.service): solo hace falta el codigo
+**/build
+**/bin
+**/.gradle
+**/uploads
+.settings
+deploy

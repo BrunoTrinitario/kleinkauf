@@ -1,0 +1,233 @@
+#Levanta toda la aplicacion con imagenes de produccion: cada servicio es un jar compilado (Dockerfile.service)
+#y el frontend es el build de Vite servido por nginx. No monta codigo ni corre gradle.
+#Los secretos y las URLs salen de backend/deploy/.env (copiar .env.example y completarlo; no se commitea).
+#Uso, desde la raiz del repo:
+#  docker compose -f backend/deploy/docker-compose.prod.yml build
+#  docker compose -f backend/deploy/docker-compose.prod.yml up -d
+#Seed de la tienda demo (opcional, solo para probar):
+#  docker compose -f backend/deploy/docker-compose.prod.yml --profile seed up seed
+#Hacia afuera se publican solo el frontend y el gateway. Postgres, Redis, Eureka y los puertos de gestion son internos
+name: decor
+
+#Imagen de un servicio del backend: mismo Dockerfile, cambia la carpeta
+x-service: &service
+  restart: unless-stopped
+  environment: &service-env
+    SPRING_DATA_REDIS_HOST: redis
+    SPRING_DATA_REDIS_PORT: "6379"
+    EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+    SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+    API_INTERNAL_KEY: ${API_INTERNAL_KEY:?falta API_INTERNAL_KEY en .env}
+    #application.properties trae logs de desarrollo (SQL, binds, seguridad en TRACE): en produccion van en INFO
+    SPRING_JPA_SHOW_SQL: "false"
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: INFO
+    LOGGING_LEVEL_ORG_HIBERNATE_SQL: INFO
+    LOGGING_LEVEL_ORG_HIBERNATE_ORM_JDBC_BIND: INFO
+    LOGGING_LEVEL_ORG_HIBERNATE_ENGINE_JDBC_CONNECTIONS: INFO
+    LOGGING_LEVEL_COM_DECOR_USERS_DECORUSERS: INFO
+    #Heap acotado: con 6 JVM en la misma maquina la memoria es lo que manda
+    JAVA_TOOL_OPTIONS: ${JAVA_OPTS:--Xms64m -Xmx256m -XX:+UseSerialGC}
+
+#Healthcheck: /health (liveness) en el puerto de gestion (docs/observabilidad.md)
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 3m
+
+x-depends: &depends
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  eureka:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      #Crea las bases users, products, sales y observability la primera vez
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  eureka:
+    <<: *service
+    image: decor/eureka
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE: eureka
+    environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_OPTS:--Xms64m -Xmx256m -XX:+UseSerialGC}
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9761/health"]
+
+  user-service:
+    <<: *service
+    image: decor/users
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE: decorusers
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
+      #URL de cada tienda: <scheme>://<identificador>.<domain>
+      PLATFORM_SCHEME: ${PLATFORM_SCHEME}
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+      #Primer superadmin: se crea al arrancar si no existe
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      #Mail para recuperar la contrasena
+      SPRING_MAIL_HOST: ${MAIL_HOST}
+      SPRING_MAIL_PORT: ${MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9001/health"]
+
+  product-service:
+    <<: *service
+    image: decor/products
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE: com.decor.product
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/products
+    volumes:
+      #Imagenes de los productos
+      - product-uploads:/app/uploads
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9002/health"]
+
+  sales-service:
+    <<: *service
+    image: decor/sales
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE: decor-sales
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sales
+    volumes:
+      #Comprobantes de pago
+      - sales-uploads:/app/uploads
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9003/health"]
+
+  observability-service:
+    <<: *service
+    image: decor/observability
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE: decor-observability
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/observability
+      #Eureka no se registra en si mismo: el recolector lo lee directo
+      OBSERVABILITY_STATIC_TARGETS: eureka=http://eureka:9761
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9004/health"]
+
+  gateway-service:
+    <<: *service
+    image: decor/gateway
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE: gateway
+    environment:
+      <<: *service-env
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
+      #Frontend de la plataforma (sin tienda): se permite por CORS
+      PLATFORM_URL: ${PLATFORM_URL}
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on: *depends
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9000/health"]
+
+  frontend:
+    image: decor/frontend
+    restart: unless-stopped
+    build:
+      context: ../../frontend
+      args:
+        VITE_API_BASE_PUBLIC: ${PUBLIC_API_URL}
+        VITE_PLATFORM_HOSTNAME: ${PLATFORM_HOSTNAME}
+    ports:
+      - "${FRONTEND_PORT:-2999}:80"
+
+  #Seed de la tienda demo: solo con --profile seed. Es para probar, no para el server real
+  seed:
+    image: node:22.11.0-alpine3.20
+    profiles: [seed]
+    volumes:
+      - ./seed:/seed:ro
+    command: ["node", "/seed/seed.mjs"]
+    environment:
+      GATEWAY_URL: http://gateway-service:3000
+      PLATFORM_URL: ${PLATFORM_URL}
+      STORE_SCHEME: ${PLATFORM_SCHEME}
+      STORE_DOMAIN: ${PLATFORM_DOMAIN}
+      DEMO_IDENTIFIER: demo
+      DEMO_OWNER_NAME: Dueño Demo
+      DEMO_OWNER_EMAIL: admin@demo.local
+      DEMO_OWNER_PASSWORD: demo1234
+    restart: "no"
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  product-uploads:
+  sales-uploads:

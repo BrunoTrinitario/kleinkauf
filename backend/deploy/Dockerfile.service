@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+#Imagen de produccion de un servicio del backend: compila el jar una vez y lo corre con java -jar.
+#El mismo Dockerfile sirve para todos: SERVICE es la carpeta del servicio dentro de backend/.
+#El contexto del build es backend/ porque cada servicio consume decor-common como build compuesto.
+#  docker build -f backend/deploy/Dockerfile.service --build-arg SERVICE=gateway backend
+ARG SERVICE
+
+FROM gradle:8.14.4-jdk21 AS build
+ARG SERVICE
+WORKDIR /src
+COPY decor-common decor-common
+COPY ${SERVICE} ${SERVICE}
+WORKDIR /src/${SERVICE}
+#La cache de gradle queda en BuildKit y se reusa entre servicios y entre builds
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle bootJar --no-daemon -x test \
+ && cp "$(ls build/libs/*.jar | grep -v -- '-plain.jar')" /app.jar
+
+FROM eclipse-temurin:21-jre
+#Usuario sin privilegios. uploads/ es donde products y sales guardan imagenes y comprobantes (rutas relativas a /app)
+RUN useradd --system --create-home decor \
+ && mkdir -p /app/uploads \
+ && chown -R decor:decor /app
+WORKDIR /app
+COPY --from=build --chown=decor:decor /app.jar app.jar
+USER decor
+#La memoria se ajusta desde afuera con JAVA_TOOL_OPTIONS (ver docker-compose.prod.yml)
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

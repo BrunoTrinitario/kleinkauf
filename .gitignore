@@ -22,3 +22,6 @@ node_modules/
 .env*.local
 dist/
 
+
+# Secretos del deploy (copiar backend/deploy/.env.example)
+backend/deploy/.env
