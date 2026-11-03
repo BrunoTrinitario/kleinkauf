@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { api } from "@/lib/api"
 import { loginUrl, useAuth } from "@/lib/auth-context"
+import { useDeleteAccount, useMe, useUpdateProfile } from "@/api/account"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
 import {
@@ -30,13 +30,16 @@ export default function UserSettingsPage() {
 	const navigate = useNavigate()
 	const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth()
 	const [profile, setProfile] = useState<ProfileFormState | null>(null)
-	const [isLoading, setIsLoading] = useState(true)
-	const [isSaving, setIsSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState<string | null>(null)
 	const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-	const [isDeleting, setIsDeleting] = useState(false)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
+	const me = useMe(!!user?.token)
+	const updateProfile = useUpdateProfile()
+	const deleteAccount = useDeleteAccount()
+	const isLoading = me.isPending
+	const isSaving = updateProfile.isPending
+	const isDeleting = deleteAccount.isPending
 	// Despues de borrar la cuenta se va a la home, no al login (el guard de abajo lo haria al quedar sin sesion)
 	const accountDeleted = useRef(false)
 
@@ -51,45 +54,23 @@ export default function UserSettingsPage() {
 		}
 	}, [isAuthenticated, isAuthLoading, navigate])
 
+	// El formulario arranca con lo que devuelve /auth/me (y se vuelve a llenar despues de guardar)
 	useEffect(() => {
-		if (!user?.token) {
-			return
+		if (me.data) {
+			setProfile({
+				id: Number(me.data.id),
+				name: me.data.name ?? "",
+				email: me.data.email ?? "",
+				password: "",
+			})
 		}
+	}, [me.data])
 
-		let isMounted = true
-
-		const loadProfile = async () => {
-			try {
-				setError(null)
-				const response = await api.get(`/auth/me`)
-				if (!isMounted) {
-					return
-				}
-
-				const data = response.data as ProfileFormState
-				setProfile({
-					id: Number(data.id),
-					name: data.name ?? "",
-					email: data.email ?? "",
-					password: "",
-				})
-			} catch (err) {
-				if (isMounted) {
-					setError(getErrorMessage(err, strings.userSettings.loadError))
-				}
-			} finally {
-				if (isMounted) {
-					setIsLoading(false)
-				}
-			}
+	useEffect(() => {
+		if (me.isError) {
+			setError(getErrorMessage(me.error, strings.userSettings.loadError))
 		}
-
-		loadProfile()
-
-		return () => {
-			isMounted = false
-		}
-	}, [user?.token])
+	}, [me.isError, me.error])
 
 	const handleSave = async () => {
 		if (!profile || !user?.token) {
@@ -109,28 +90,23 @@ export default function UserSettingsPage() {
 			return
 		}
 
-		setIsSaving(true)
-
 		try {
-			// El email no se puede cambiar; la contrasena solo se manda si se escribio una nueva
-			await api.put("/auth/update", {
+			// La contrasena solo se manda si se escribio una nueva
+			await updateProfile.mutateAsync({
 				name: profile.name.trim(),
 				password: profile.password === "" ? undefined : profile.password,
 			})
-				setSuccess(strings.userSettings.saveSuccess)
+			setSuccess(strings.userSettings.saveSuccess)
 		} catch (err) {
-				setError(getErrorMessage(err, strings.userSettings.saveError))
-		} finally {
-			setIsSaving(false)
+			setError(getErrorMessage(err, strings.userSettings.saveError))
 		}
 	}
 
 	// 409: es el unico ADMINISTRADOR de la tienda (el backend no la deja sin administrador)
 	const handleDeleteAccount = async () => {
-		setIsDeleting(true)
 		setDeleteError(null)
 		try {
-			await api.delete("/auth/delete")
+			await deleteAccount.mutateAsync()
 			accountDeleted.current = true
 			setIsDeleteOpen(false)
 			toast.success(strings.userSettings.deletedToast)
@@ -138,8 +114,6 @@ export default function UserSettingsPage() {
 			logout()
 		} catch (err) {
 			setDeleteError(getErrorMessage(err, strings.userSettings.deleteError, { conflict: strings.userSettings.lastAdmin }))
-		} finally {
-			setIsDeleting(false)
 		}
 	}
 

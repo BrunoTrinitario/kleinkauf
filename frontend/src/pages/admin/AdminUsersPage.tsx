@@ -7,7 +7,8 @@ import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { PageHeader } from "@/components/page-header"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "@/components/list-toolbar"
 import { Header } from "@/components/header"
-import type { Page, User, UserRole } from "@/lib/types"
+import type { User, UserRole } from "@/lib/types"
+import { useCreateUser, useDeleteUser, useSaveUser, useUsers, type NewUserDto } from "@/api/users"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { AdminUserCard } from "@/components/admin-user-card"
 import { PaginationControls } from "@/components/pagination-controls"
@@ -26,23 +27,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { api } from "@/lib/api"
 
 export default function AdminUsersPage() {
   const navigate = useNavigate()
   const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
-  const [usersPage, setUsersPage] = useState<Page<User> | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [searchInput, setSearchInput] = useState("")
   const searchQuery = useDebouncedValue(searchInput.trim())
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("")
   const [page, setPage] = useState(0)
-  // Se incrementa para volver a pedir la pagina actual (despues de crear o borrar)
-  const [reloadKey, setReloadKey] = useState(0)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [selectedDeleteUser, setSelectedDeleteUser] = useState<User | null>(null)
@@ -65,44 +60,13 @@ export default function AdminUsersPage() {
     setPage(0)
   }, [searchQuery, roleFilter])
 
-  useEffect(() => {
-    if (!user?.token) {
-      return
-    }
-
-    let isMounted = true
-
-    const loadUsers = async () => {
-      setIsLoading(true)
-      try {
-        const response = await api.get<Page<User>>(`/users`, {
-          params: {
-            q: searchQuery || undefined,
-            role: roleFilter || undefined,
-            page,
-          },
-        })
-        if (isMounted) {
-          setUsersPage(response.data)
-        }
-      } catch (err) {
-        if (isMounted) {
-          setUsersPage(null)
-          notifyError(err, strings.errors.loadUsers)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    loadUsers()
-
-    return () => {
-      isMounted = false
-    }
-  }, [user?.token, searchQuery, roleFilter, page, reloadKey])
+  const usersQuery = useUsers({ q: searchQuery, role: roleFilter, page }, activeRole === "ADMINISTRADOR" && !!user?.token)
+  const usersPage = usersQuery.data
+  const isLoading = usersQuery.isFetching
+  const saveUser = useSaveUser()
+  const deleteUser = useDeleteUser()
+  const createUser = useCreateUser()
+  const isCreating = createUser.isPending
 
   if (isAuthLoading || !isAuthenticated || activeRole !== "ADMINISTRADOR") {
     return null
@@ -130,114 +94,43 @@ export default function AdminUsersPage() {
     }
   }
 
-  const updateUserLocally = (updatedUser: User) => {
-    setUsersPage((prev) =>
-      prev
-        ? { ...prev, items: prev.items.map((item) => (item.id === updatedUser.id ? updatedUser : item)) }
-        : prev
-    )
-  }
-
+  // La lista se recarga despues de guardar (bien o mal): trae los roles con sus permisos reales
   const handleSaveUser = async (updatedUser: User) => {
-    if (!user?.token) {
-      return
-    }
-
     const existingUser = users.find((item) => item.id === updatedUser.id)
     if (!existingUser) {
       return
     }
 
-    const previousRoles = new Set(existingUser.roles.map((role) => role.type))
-    const nextRoles = new Set(updatedUser.roles.map((role) => role.type))
-    const rolesToAdd = Array.from(nextRoles).filter((role) => !previousRoles.has(role))
-    const rolesToRemove = Array.from(previousRoles).filter((role) => !nextRoles.has(role))
-
     try {
-      // El PATCH solo cambia nombre y contrasena: el email no se puede editar
-      if (existingUser.name !== updatedUser.name) {
-        await api.patch(`/users/${updatedUser.id}`, { name: updatedUser.name })
-      }
-
-      // roleName va como query param, no en el body
-      await Promise.all(
-        rolesToAdd.map((roleName) =>
-          api.post(`/users/${updatedUser.id}/roles`, null, {
-            params: { roleName },
-          })
-        )
-      )
-
-      await Promise.all(
-        rolesToRemove.map((roleName) =>
-          api.delete(`/users/${updatedUser.id}/roles`, {
-            params: { roleName },
-          })
-        )
-      )
-
-      // Se usa el usuario que devuelve el backend: trae los roles con sus permisos reales
-      const response = await api.get(`/users/${updatedUser.id}`)
-      updateUserLocally(response.data as User)
+      await saveUser.mutateAsync({ previous: existingUser, next: updatedUser })
       setIsEditOpen(false)
       setSelectedUser(null)
     } catch (err) {
       // 409: era el ultimo ADMINISTRADOR de la tienda y se le queria sacar el rol
       notifyError(err, strings.errors.saveUser, { conflict: strings.adminUsers.lastAdmin })
-      // Si algo fallo a mitad de camino, se recarga el usuario para no mostrar datos que no se guardaron
-      api
-        .get(`/users/${updatedUser.id}`)
-        .then((response) => updateUserLocally(response.data as User))
-        .catch(() => {})
     }
   }
 
   const handleDeleteUser = async (target: User) => {
-    if (!user?.token) {
-      return
-    }
-
     try {
-      await api.delete(`/users/${target.id}`)
-      // Si era el ultimo de la pagina se vuelve a la anterior; si no, se recarga la actual
+      await deleteUser.mutateAsync(target.id)
+      // Si era el ultimo de la pagina se vuelve a la anterior (la actual se recarga sola)
       if (users.length === 1 && page > 0) {
         setPage(page - 1)
-      } else {
-        setReloadKey((prev) => prev + 1)
       }
     } catch (err) {
       notifyError(err, strings.errors.deleteUser, { conflict: strings.adminUsers.lastAdmin })
     }
   }
 
-  const handleCreateUser = async (payload: {
-    name: string
-    email: string
-    password: string
-    roles: string[]
-  }) => {
-    if (!user?.token) {
-      return
-    }
-
-    setIsCreating(true)
+  // El usuario nuevo puede caer en otra pagina segun el orden: se recarga la actual
+  const handleCreateUser = async (payload: NewUserDto) => {
     setCreateError(null)
-
     try {
-      await api.post(
-        `/users`,
-        payload,
-        {
-        }
-      )
-
-      // El usuario nuevo puede caer en otra pagina segun el orden: se recarga la actual
-      setReloadKey((prev) => prev + 1)
+      await createUser.mutateAsync(payload)
       setIsCreateOpen(false)
     } catch (err) {
       setCreateError(getErrorMessage(err, strings.adminUsers.createError))
-    } finally {
-      setIsCreating(false)
     }
   }
 

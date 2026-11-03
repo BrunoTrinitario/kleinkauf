@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { LoggedUser, LoginUserDto, User, UserRole } from "./types"
 import { strings } from "./strings"
@@ -107,6 +108,7 @@ export function loginUrl(next: string = window.location.pathname + window.locati
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<LoggedUser | null>(null)
   const [activeRole, setActiveRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -115,13 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Pagina donde vencio la sesion: se navega al login desde un efecto de este provider
   const [expiredAt, setExpiredAt] = useState<string | null>(null)
 
+  // Los datos cargados son del usuario que sale: el proximo no los tiene que ver
   const logout = useCallback(() => {
     tokenRef.current = null
     clearAuthCookie()
     clearPlatformUser()
+    queryClient.clear()
     setUser(null)
     setActiveRole(null)
-  }, [])
+  }, [queryClient])
 
   // Un 401 de una llamada con token: se cierra la sesion y se vuelve al login, que despues trae de vuelta aca
   useEffect(() => {
@@ -208,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const startSession = useCallback((loggedUser: LoggedUser) => {
+    queryClient.clear()
     tokenRef.current = loggedUser.token ?? null
     if (IS_PLATFORM) {
       savePlatformUser(loggedUser)
@@ -216,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(loggedUser)
     setActiveRole((loggedUser.roles?.[0]?.type as UserRole) ?? null)
-  }, [])
+  }, [queryClient])
 
   const login = useCallback(async (credentials: LoginUserDto): Promise<LoggedUser> => {
     const response = await api.post<LoggedUser>(LOGIN_PATH, credentials)

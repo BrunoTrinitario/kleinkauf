@@ -2,7 +2,10 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { loginUrl, useAuth } from "@/lib/auth-context"
-import type { CatalogCategory, Page, Product } from "@/lib/types"
+import { useQueryClient } from "@tanstack/react-query"
+import type { Product } from "@/lib/types"
+import { useCatalogCategories } from "@/api/catalog"
+import { invalidateProducts, useAdminProducts, useDeleteProduct } from "@/api/products"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { PaginationControls } from "@/components/pagination-controls"
 import { strings } from "@/lib/strings"
@@ -25,21 +28,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { api } from "@/lib/api"
 import { Plus, Package } from "lucide-react"
 
 export default function ProductsManagementPage() {
   const navigate = useNavigate()
   const { user, activeRole, isAuthenticated, isLoading: isAuthLoading } = useAuth()
-  const [productsPage, setProductsPage] = useState<Page<Product> | null>(null)
+  const queryClient = useQueryClient()
   const [searchInput, setSearchInput] = useState("")
   const searchQuery = useDebouncedValue(searchInput.trim())
   const [categoryFilter, setCategoryFilter] = useState("")
-  const [categories, setCategories] = useState<CatalogCategory[]>([])
   const [page, setPage] = useState(0)
-  // Se incrementa para volver a pedir la pagina actual (despues de crear o borrar)
-  const [reloadKey, setReloadKey] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   // Producto a borrar: se pide confirmacion antes (borrar no se puede deshacer desde el panel)
@@ -66,51 +64,14 @@ export default function ProductsManagementPage() {
   }, [searchQuery, categoryFilter])
 
   // Categorias para el filtro (las mismas que el catalogo, con su cantidad de productos)
-  useEffect(() => {
-    api
-      .get<CatalogCategory[]>(`/catalog/categories`)
-      .then((response) => setCategories(response.data))
-      .catch(() => {})
-  }, [reloadKey])
-
-  useEffect(() => {
-    if (!canManageProducts || !user?.token) {
-      return
-    }
-
-    let isMounted = true
-
-    const loadProducts = async () => {
-      setIsLoading(true)
-      try {
-        const response = await api.get<Page<Product>>(`/products`, {
-          params: {
-            q: searchQuery || undefined,
-            category: categoryFilter || undefined,
-            page,
-          },
-        })
-        if (isMounted) {
-          setProductsPage(response.data)
-        }
-      } catch (err) {
-        if (isMounted) {
-          setProductsPage(null)
-          notifyError(err, strings.errors.loadProducts)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    loadProducts()
-
-    return () => {
-      isMounted = false
-    }
-  }, [canManageProducts, user?.token, searchQuery, categoryFilter, page, reloadKey])
+  const categories = useCatalogCategories().data ?? []
+  const productsQuery = useAdminProducts(
+    { q: searchQuery, category: categoryFilter, page },
+    canManageProducts && !!user?.token
+  )
+  const productsPage = productsQuery.data
+  const isLoading = productsQuery.isFetching
+  const deleteProduct = useDeleteProduct()
 
   if (isAuthLoading || !isAuthenticated || !canManageProducts) {
     return null
@@ -133,21 +94,15 @@ export default function ProductsManagementPage() {
   const handleSaved = () => {
     setIsFormOpen(false)
     setSelectedProduct(null)
-    setReloadKey((prev) => prev + 1)
+    invalidateProducts(queryClient)
   }
 
   const handleDeleteProduct = async (product: Product) => {
-    if (!user?.token) {
-      return
-    }
-
     try {
-      await api.delete(`/products/${product.id}`)
-      // Si era el ultimo de la pagina se vuelve a la anterior; si no, se recarga la actual
+      await deleteProduct.mutateAsync(product.id)
+      // Si era el ultimo de la pagina se vuelve a la anterior (la actual se recarga sola)
       if (products.length === 1 && page > 0) {
         setPage(page - 1)
-      } else {
-        setReloadKey((prev) => prev + 1)
       }
     } catch (err) {
       notifyError(err, strings.errors.deleteProduct)

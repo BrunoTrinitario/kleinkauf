@@ -26,6 +26,9 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   tenant y del JWT, y acepta los subdominios de la plataforma aunque la tienda no exista. Los 401, 404/403 y 429
   salen con las cabeceras CORS.
 - **Cliente HTTP único** (paso 1 de B0): todas las llamadas pasan por `lib/api.ts`.
+- **TanStack Query** (paso 2 de B0): las pantallas leen con hooks por dominio (`src/api/catalog.ts`, `products.ts`,
+  `users.ts`, `account.ts`, `platform.ts`); los cambios invalidan lo que corresponde (un producto nuevo se ve en el
+  panel y en el catálogo) y la caché se vacía al entrar o salir de la sesión.
 - **Sesión vencida** (B1): un 401 cierra la sesión y vuelve a `/login?next=<página>`; las páginas privadas también
   mandan al login con `next`, y el login vuelve ahí.
 - **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
@@ -80,12 +83,12 @@ esto ya está.
 
 ### B0. Base técnica
 
-Va primero porque todo lo demás depende de esto. El cliente HTTP único ya está (`lib/api.ts`).
+Va primero porque todo lo demás depende de esto. Ya están el cliente HTTP único (`lib/api.ts`) y TanStack Query
+(`src/api/`).
 
-1. Instalar TanStack Query y migrar las páginas existentes.
-2. Páginas de "tienda inexistente" (404) y "tienda deshabilitada" (403), y el aviso de "demasiados intentos" como
+1. Páginas de "tienda inexistente" (404) y "tienda deshabilitada" (403), y el aviso de "demasiados intentos" como
    estado global (hoy el 429 se muestra como mensaje de error de cada pantalla).
-3. Rutas protegidas por rol y área usando `hasPermission`, en lugar del guard de cada página (que hoy ya manda al
+2. Rutas protegidas por rol y área usando `hasPermission`, en lugar del guard de cada página (que hoy ya manda al
    login con `next`).
 
 ### B1. Cuenta

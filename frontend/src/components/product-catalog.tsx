@@ -1,9 +1,8 @@
 
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
-import type { CatalogCategory, CatalogPage, CatalogProduct, CatalogSort } from "@/lib/types"
+import type { CatalogProduct, CatalogSort } from "@/lib/types"
 import { strings } from "@/lib/strings"
-import { notifyError } from "@/lib/api-error"
+import { useCatalogCategories, useCatalogProducts } from "@/api/catalog"
 import { ProductCard } from "./product-card"
 import { ProductModal } from "./product-modal"
 import { PaginationControls } from "./pagination-controls"
@@ -11,9 +10,6 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "./list-toolbar"
 
 export function ProductCatalog() {
-  const [catalog, setCatalog] = useState<CatalogPage | null>(null)
-  const [categories, setCategories] = useState<CatalogCategory[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [searchInput, setSearchInput] = useState("")
@@ -27,60 +23,10 @@ export function ProductCatalog() {
     setPage(0)
   }, [searchQuery])
 
-  useEffect(() => {
-    let isMounted = true
-
-    api
-      .get<CatalogCategory[]>("/catalog/categories")
-      .then((response) => {
-        if (isMounted) {
-          setCategories(response.data)
-        }
-      })
-      .catch(() => {
-        // Sin categorias el catalogo sigue funcionando, solo sin el filtro
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadCatalog = async () => {
-      setIsLoading(true)
-      try {
-        const response = await api.get<CatalogPage>("/catalog/products", {
-          params: {
-            q: searchQuery || undefined,
-            category: selectedCategory || undefined,
-            sort: sortBy,
-            page,
-          },
-        })
-        if (isMounted) {
-          setCatalog(response.data)
-        }
-      } catch (err) {
-        if (isMounted) {
-          setCatalog(null)
-          notifyError(err, strings.errors.loadProducts)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    loadCatalog()
-
-    return () => {
-      isMounted = false
-    }
-  }, [searchQuery, selectedCategory, sortBy, page])
+  const categories = useCatalogCategories().data ?? []
+  const catalogQuery = useCatalogProducts({ q: searchQuery, category: selectedCategory, sort: sortBy, page })
+  const catalog = catalogQuery.data
+  const isLoading = catalogQuery.isFetching
 
   const products = catalog?.items ?? []
   const totalItems = catalog?.totalItems ?? 0

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
-import { api, isSessionExpired, PLATFORM_PATH } from "@/lib/api"
+import { useState } from "react"
+import { isSessionExpired } from "@/lib/api"
+import { useCreateSuperadmin, useSetSuperadminActive, useSuperadmins } from "@/api/platform"
 import { toast } from "sonner"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
@@ -19,28 +20,15 @@ const dateTimeFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", ti
 
 export default function PlatformSuperadminsPage() {
   const { user, ready, handleError } = usePlatformSession()
-  const [superadmins, setSuperadmins] = useState<Superadmin[] | null>(null)
   const [savingId, setSavingId] = useState<number | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!ready) return
-    let isMounted = true
-    api
-      .get<Superadmin[]>(`${PLATFORM_PATH}/admin/superadmins`)
-      .then((response) => isMounted && setSuperadmins(response.data))
-      .catch((err) => {
-        if (isMounted) {
-          setSuperadmins([])
-          handleError(err, strings.errors.loadSuperadmins)
-        }
-      })
-    return () => {
-      isMounted = false
-    }
-  }, [ready, handleError])
+  const superadminsQuery = useSuperadmins(ready)
+  // Si la lista falla se muestra vacia (el aviso sale del QueryClient)
+  const superadmins = superadminsQuery.data ?? (superadminsQuery.isError ? [] : null)
+  const setActive = useSetSuperadminActive()
+  const createSuperadmin = useCreateSuperadmin()
+  const isCreating = createSuperadmin.isPending
 
   if (!ready) {
     return null
@@ -49,8 +37,7 @@ export default function PlatformSuperadminsPage() {
   const handleToggle = async (target: Superadmin, active: boolean) => {
     setSavingId(target.id)
     try {
-      const response = await api.put<Superadmin>(`${PLATFORM_PATH}/admin/superadmins/${target.id}/active`, { active })
-      setSuperadmins((prev) => prev?.map((item) => (item.id === target.id ? response.data : item)) ?? prev)
+      await setActive.mutateAsync({ id: target.id, active })
       toast.success(
         active
           ? strings.platformSuperadmins.activatedToast(target.name)
@@ -68,17 +55,13 @@ export default function PlatformSuperadminsPage() {
   }
 
   const handleCreate = async (payload: { name: string; email: string; password: string }) => {
-    setIsCreating(true)
     setCreateError(null)
     try {
-      const response = await api.post<Superadmin>(`${PLATFORM_PATH}/admin/superadmins`, payload)
-      setSuperadmins((prev) => [...(prev ?? []), response.data])
+      await createSuperadmin.mutateAsync(payload)
       setIsCreateOpen(false)
     } catch (err) {
       if (isSessionExpired(err)) return
       setCreateError(getErrorMessage(err, strings.platformSuperadminCreate.createError))
-    } finally {
-      setIsCreating(false)
     }
   }
 

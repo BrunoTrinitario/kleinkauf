@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react"
-import { api, PLATFORM_PATH } from "@/lib/api"
+import { useMemo, useState } from "react"
+import { usePlatformDashboard, usePlatformProductsUsage, usePlatformUsersUsage } from "@/api/platform"
 import { strings } from "@/lib/strings"
-import type { PeriodGroupBy, PlatformDashboard, TenantProductsUsage, TenantUsersUsage } from "@/lib/types"
+import type { PeriodGroupBy, TenantUsersUsage } from "@/lib/types"
 import { usePlatformSession } from "@/hooks/use-platform-session"
 import { PageHeader } from "@/components/page-header"
 import { FilterSelect } from "@/components/list-toolbar"
@@ -74,52 +74,18 @@ function compareUsage(sort: UsageSort) {
 }
 
 export default function PlatformDashboardPage() {
-  const { ready, handleError } = usePlatformSession()
+  const { ready } = usePlatformSession()
   const [rangeKey, setRangeKey] = useState<RangeKey>("days")
-  const [dashboard, setDashboard] = useState<PlatformDashboard | null>(null)
-  const [usersUsage, setUsersUsage] = useState<TenantUsersUsage[] | null>(null)
-  const [productsUsage, setProductsUsage] = useState<TenantProductsUsage[] | null>(null)
-  const [productsFailed, setProductsFailed] = useState(false)
   const [usageSort, setUsageSort] = useState<UsageSort>("products")
-
-  useEffect(() => {
-    if (!ready) return
-    let isMounted = true
-    api
-      .get<PlatformDashboard>(`${PLATFORM_PATH}/admin/dashboard`, { params: rangeParams(rangeKey) })
-      .then((response) => isMounted && setDashboard(response.data))
-      .catch((err) => isMounted && handleError(err, strings.errors.loadDashboard))
-    return () => {
-      isMounted = false
-    }
-  }, [ready, rangeKey, handleError])
+  const dashboard = usePlatformDashboard(rangeParams(rangeKey), ready).data ?? null
 
   // Cada servicio arma su parte: si products falla, la tabla se muestra igual sin productos ni combos
-  useEffect(() => {
-    if (!ready) return
-    let isMounted = true
-    Promise.allSettled([
-      api.get<TenantUsersUsage[]>(`${PLATFORM_PATH}/admin/usage`),
-      api.get<TenantProductsUsage[]>(`${PLATFORM_PATH}/products/usage`),
-    ]).then(([users, products]) => {
-      if (!isMounted) return
-      if (users.status === "fulfilled") {
-        setUsersUsage(users.value.data)
-      } else {
-        setUsersUsage([])
-        handleError(users.reason, strings.errors.loadDashboard)
-      }
-      if (products.status === "fulfilled") {
-        setProductsUsage(products.value.data)
-      } else {
-        setProductsFailed(true)
-        // Un 401 ya lo maneja la llamada de users; aca solo se avisa en la tabla
-      }
-    })
-    return () => {
-      isMounted = false
-    }
-  }, [ready, handleError])
+  // (el error de users se avisa; el de products solo se ve en la tabla)
+  const usersUsageQuery = usePlatformUsersUsage(ready)
+  const productsUsageQuery = usePlatformProductsUsage(ready)
+  const usersUsage = usersUsageQuery.data ?? (usersUsageQuery.isError ? [] : null)
+  const productsUsage = productsUsageQuery.data ?? null
+  const productsFailed = productsUsageQuery.isError
 
   const usageRows = useMemo<UsageRow[]>(() => {
     const bySchema = new Map((productsUsage ?? []).map((usage) => [usage.schema, usage]))

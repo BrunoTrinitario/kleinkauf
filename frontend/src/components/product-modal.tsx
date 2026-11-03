@@ -1,9 +1,10 @@
 
 import { useEffect, useMemo, useState } from "react"
-import { api, productImageUrl } from "@/lib/api"
-import type { CatalogProduct, CatalogProductDetail, ProductMetadata } from "@/lib/types"
+import { productImageUrl } from "@/lib/api"
+import type { CatalogProduct } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
+import { useCatalogProduct } from "@/api/catalog"
 import { formatPrice } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Package, Check, ChevronLeft, ChevronRight } from "lucide-react"
@@ -15,7 +16,6 @@ interface ProductModalProps {
 }
 
 const imageObjectUrlCache = new Map<string, string>()
-const metadataCache = new Map<string, ProductMetadata | null>()
 
 const preloadImageAsObjectUrl = async (url: string) => {
   const cached = imageObjectUrlCache.get(url)
@@ -44,9 +44,6 @@ function ProductModalContent({
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [resolvedImageUrls, setResolvedImageUrls] = useState<string[]>([])
-
-  const [metadata, setMetadata] = useState<ProductMetadata | null>(null)
-  const [metadataError, setMetadataError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -79,38 +76,10 @@ function ProductModalContent({
     }
   }, [open, imageUrls])
 
-  useEffect(() => {
-    if (!open) return
-    let isActive = true
-
-    const fetchMetadata = async () => {
-      try {
-        setMetadataError(null)
-        // Los metadatos vienen en el detalle publico por slug; null = el producto no los tiene cargados
-        const cacheKey = `/catalog/products/${product.slug}`
-        if (metadataCache.has(cacheKey)) {
-          if (isActive) setMetadata(metadataCache.get(cacheKey) ?? null)
-          return
-        }
-        const response = await api.get<CatalogProductDetail>(cacheKey)
-        if (isActive) {
-          const resolved = response.data.metadata ?? null
-          metadataCache.set(cacheKey, resolved)
-          setMetadata(resolved)
-        }
-      } catch (err) {
-        if (isActive) {
-          setMetadataError(getErrorMessage(err, strings.productModal.metadataError))
-        }
-      }
-    }
-
-    fetchMetadata()
-
-    return () => {
-      isActive = false
-    }
-  }, [open, product.slug])
+  // Los metadatos vienen en el detalle publico por slug; null = el producto no los tiene cargados
+  const detail = useCatalogProduct(product.slug, open)
+  const metadata = detail.data?.metadata ?? null
+  const metadataError = detail.isError ? getErrorMessage(detail.error, strings.productModal.metadataError) : null
 
   const metadataRows: [string, string][] = []
   if (metadata) {

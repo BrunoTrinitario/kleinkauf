@@ -1,57 +1,36 @@
-import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import type { Page } from "@/lib/types"
 import { strings } from "@/lib/strings"
-import { notifyError } from "@/lib/api-error"
+import { productKeys } from "@/api/products"
+import { userKeys } from "@/api/users"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Package } from "lucide-react"
 
+// Solo hacen falta los totales: se pide una pagina de 1 y se lee totalItems.
+// Las keys cuelgan de productos y usuarios, asi un alta o una baja los actualiza
+const totalOf = (path: string) => () =>
+  api.get<Page<unknown>>(path, { params: { size: 1 } }).then((response) => response.data.totalItems)
+
 export function AdminDashboard() {
   const { user } = useAuth()
-  const [totalProducts, setTotalProducts] = useState(0)
-  const [totalUsers, setTotalUsers] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    if (!user?.token) {
-      return
-    }
-
-    let isMounted = true
-
-    // Solo hacen falta los totales: se pide una pagina de 1 y se lee totalItems
-    const loadStats = async () => {
-      const options = { params: { size: 1 } }
-      try {
-        const [productsResponse, usersResponse] = await Promise.all([
-          api.get<Page<unknown>>("/products", options),
-          api.get<Page<unknown>>("/users", options),
-        ])
-
-        if (isMounted) {
-          setTotalProducts(productsResponse.data.totalItems)
-          setTotalUsers(usersResponse.data.totalItems)
-        }
-      } catch (err) {
-        if (isMounted) {
-          notifyError(err, strings.errors.loadDashboard)
-          setTotalProducts(0)
-          setTotalUsers(0)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    loadStats()
-
-    return () => {
-      isMounted = false
-    }
-  }, [user?.token])
+  const enabled = !!user?.token
+  const products = useQuery({
+    queryKey: [...productKeys.all, "total"],
+    queryFn: totalOf("/products"),
+    enabled,
+    meta: { errorMessage: strings.errors.loadDashboard },
+  })
+  const users = useQuery({
+    queryKey: [...userKeys.all, "total"],
+    queryFn: totalOf("/users"),
+    enabled,
+    meta: { errorMessage: strings.errors.loadDashboard },
+  })
+  const isLoading = products.isPending || users.isPending
+  const totalProducts = products.data ?? 0
+  const totalUsers = users.data ?? 0
 
   return (
     <div className="space-y-8">

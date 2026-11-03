@@ -1,8 +1,15 @@
 
 import { api, productImageUrl } from "@/lib/api"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { Product, ProductMetadata } from "@/lib/types"
-import { defaultProductMetadata, normalizeMetadata } from "@/lib/types"
+import { defaultProductMetadata } from "@/lib/types"
+import {
+  useDeleteProductImage,
+  useProductImages,
+  useProductMetadata,
+  useProductPricing,
+  type ProductImage,
+} from "@/api/products"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { Button } from "@/components/ui/button"
@@ -25,12 +32,6 @@ interface AdminProductFormModalProps {
   // Precio y costo piden el permiso PRECIOS: sin el, esos campos no se muestran
   canEditPrices: boolean
   onSaved: () => void
-}
-
-interface ImageDto {
-  id: number
-  path: string
-  order: number
 }
 
 // Mismo limite que el backend (ProductService.MAX_IMAGE_BYTES)
@@ -60,10 +61,19 @@ export function AdminProductFormModal({
   const [stock, setStock] = useState(0)
   const [minStock, setMinStock] = useState(0)
   const [metadata, setMetadata] = useState<ProductMetadata>(defaultProductMetadata)
-  const [images, setImages] = useState<ImageDto[]>([])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+
+  // En edicion: metadatos, imagenes y (con PRECIOS) el costo, que no viene en el listado
+  const editing = open && isEdit
+  const metadataQuery = useProductMetadata(product?.id, editing)
+  const imagesQuery = useProductImages(product?.id, editing)
+  const pricingQuery = useProductPricing(product?.id, editing && canEditPrices)
+  const removeImage = useDeleteProductImage(product?.id)
+  const images = (editing ? imagesQuery.data : undefined) ?? []
+  // Los datos cargados llenan el formulario una vez por apertura: un refresco no pisa lo que se esta editando
+  const filledFrom = useRef<{ metadata?: string; pricing?: string }>({})
 
 
   // Vista previa de las imagenes elegidas que todavia no se subieron (se liberan al cambiar)
@@ -83,47 +93,29 @@ export function AdminProductFormModal({
     setStock(product?.stock ?? 0)
     setMinStock(product?.minStock ?? 0)
     setMetadata(defaultProductMetadata)
-    setImages([])
     setPendingFiles([])
     setError(null)
+    filledFrom.current = {}
   }, [product, open])
 
-  // En edicion: metadatos, imagenes y (con PRECIOS) el costo, que no viene en el listado
+  // Sin metadatos (o si fallan) quedan los valores por defecto
   useEffect(() => {
-    if (!product || !open) return
-    let isActive = true
+    if (!open || !product || !metadataQuery.data || filledFrom.current.metadata === product.id) return
+    filledFrom.current.metadata = product.id
+    setMetadata(metadataQuery.data)
+  }, [open, product, metadataQuery.data])
 
-    api
-      .get(`/products/${product.id}/metadata`)
-      // Sin metadatos el backend responde vacio
-      .then((response) => isActive && setMetadata(normalizeMetadata(response.data === "" ? null : response.data)))
-      .catch(() => isActive && setMetadata(defaultProductMetadata))
-
-    api
-      .get<ImageDto[]>(`/products/${product.id}/images`)
-      .then((response) => isActive && setImages(response.data ?? []))
-      .catch((err) => isActive && notifyError(err, strings.errors.loadImages))
-
-    if (canEditPrices) {
-      api
-        .get<{ price: number | null; cost: number | null }>(`/products/${product.id}/pricing`)
-        .then((response) => {
-          if (!isActive) return
-          const loaded = {
-            price: response.data.price != null ? String(response.data.price) : "",
-            cost: response.data.cost != null ? String(response.data.cost) : "",
-          }
-          setPrice(loaded.price)
-          setCost(loaded.cost)
-          setInitialPricing(loaded)
-        })
-        .catch(() => {})
+  useEffect(() => {
+    if (!open || !product || !pricingQuery.data || filledFrom.current.pricing === product.id) return
+    filledFrom.current.pricing = product.id
+    const loaded = {
+      price: pricingQuery.data.price != null ? String(pricingQuery.data.price) : "",
+      cost: pricingQuery.data.cost != null ? String(pricingQuery.data.cost) : "",
     }
-
-    return () => {
-      isActive = false
-    }
-  }, [open, product, canEditPrices])
+    setPrice(loaded.price)
+    setCost(loaded.cost)
+    setInitialPricing(loaded)
+  }, [open, product, pricingQuery.data])
 
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
@@ -137,17 +129,11 @@ export function AdminProductFormModal({
     setPendingFiles((prev) => [...prev, ...files])
   }
 
-  const refreshImages = async (productId: string) => {
-    const response = await api.get<ImageDto[]>(`/products/${productId}/images`)
-    setImages(response.data ?? [])
-  }
-
   // Quitar una imagen ya guardada es inmediato (como antes en la edicion)
-  const handleRemoveImage = async (image: ImageDto) => {
+  const handleRemoveImage = async (image: ProductImage) => {
     if (!product) return
     try {
-      await api.delete(`/products/images/${image.id}`)
-      await refreshImages(product.id)
+      await removeImage.mutateAsync(image.id)
     } catch (err) {
       notifyError(err, strings.errors.deleteImage)
     }

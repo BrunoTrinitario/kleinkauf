@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { api, isSessionExpired, PLATFORM_PATH } from "@/lib/api"
+import { useMemo, useState } from "react"
+import { isSessionExpired } from "@/lib/api"
+import { useCreateTenant, useDeleteTenant, usePlatformTenants, useSetTenantEnabled } from "@/api/platform"
 import { toast } from "sonner"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
@@ -26,54 +27,23 @@ import { Plus } from "lucide-react"
 
 type StatusFilter = "" | "enabled" | "disabled"
 
-const TENANTS_URL = `${PLATFORM_PATH}/admin/tenants`
-
 export default function PlatformTenantsPage() {
   const { ready, handleError } = usePlatformSession()
-  const [tenants, setTenants] = useState<PlatformTenant[] | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [searchInput, setSearchInput] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("")
   const [savingId, setSavingId] = useState<number | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   // El objetivo se mantiene al cerrar el dialogo para que el texto no cambie durante la animacion
   const [deleteTarget, setDeleteTarget] = useState<PlatformTenant | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-
-  useEffect(() => {
-    if (!ready) {
-      return
-    }
-
-    let isMounted = true
-
-    const loadTenants = async () => {
-      setIsLoading(true)
-      try {
-        const response = await api.get<PlatformTenant[]>(TENANTS_URL)
-        if (isMounted) {
-          setTenants(response.data)
-        }
-      } catch (err) {
-        if (isMounted) {
-          setTenants(null)
-          handleError(err, strings.errors.loadTenants)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    loadTenants()
-
-    return () => {
-      isMounted = false
-    }
-  }, [ready, handleError])
+  const tenantsQuery = usePlatformTenants(ready)
+  const tenants = tenantsQuery.data ?? null
+  const isLoading = tenantsQuery.isPending
+  const setTenantEnabled = useSetTenantEnabled()
+  const deleteTenant = useDeleteTenant()
+  const createTenant = useCreateTenant()
+  const isCreating = createTenant.isPending
 
   // El backend devuelve todas las tiendas no borradas sin paginar: se filtra aca
   const visibleTenants = useMemo(() => {
@@ -94,15 +64,11 @@ export default function PlatformTenantsPage() {
 
   const hasFilters = searchInput.trim() !== "" || statusFilter !== ""
 
-  const replaceTenant = (updated: PlatformTenant) => {
-    setTenants((prev) => prev?.map((tenant) => (tenant.id === updated.id ? updated : tenant)) ?? prev)
-  }
-
+  // Cada cambio recarga la lista (y el resumen): va de la mas nueva a la mas vieja, como la devuelve el backend
   const handleToggleEnabled = async (target: PlatformTenant, enabled: boolean) => {
     setSavingId(target.id)
     try {
-      const response = await api.put<PlatformTenant>(`${TENANTS_URL}/${target.id}/enabled`, { enabled })
-      replaceTenant(response.data)
+      await setTenantEnabled.mutateAsync({ id: target.id, enabled })
       toast.success(
         enabled
           ? strings.platformTenants.enabledToast(target.identifier)
@@ -117,26 +83,20 @@ export default function PlatformTenantsPage() {
 
   const handleDelete = async (target: PlatformTenant) => {
     try {
-      await api.delete(`${TENANTS_URL}/${target.id}`)
-      setTenants((prev) => prev?.filter((tenant) => tenant.id !== target.id) ?? prev)
+      await deleteTenant.mutateAsync(target.id)
     } catch (err) {
       handleError(err, strings.errors.deleteTenant)
     }
   }
 
   const handleCreate = async (payload: NewTenantDto) => {
-    setIsCreating(true)
     setCreateError(null)
     try {
-      const response = await api.post<PlatformTenant>(TENANTS_URL, payload)
-      // La lista va de la mas nueva a la mas vieja, igual que la devuelve el backend
-      setTenants((prev) => [response.data, ...(prev ?? [])])
+      await createTenant.mutateAsync(payload)
       setIsCreateOpen(false)
     } catch (err) {
       if (isSessionExpired(err)) return
       setCreateError(getErrorMessage(err, strings.platformTenantCreate.createError))
-    } finally {
-      setIsCreating(false)
     }
   }
 
