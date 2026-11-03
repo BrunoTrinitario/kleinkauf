@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 import { IS_PLATFORM } from "@/lib/platform"
+import { useTenantStatus } from "@/lib/tenant-status"
+import { useCatalogCategories } from "@/api/catalog"
+import StoreUnavailablePage from "@/pages/StoreUnavailablePage"
 import HomePage from "@/pages/HomePage"
 import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
@@ -26,6 +29,14 @@ function PlatformRoutes() {
 }
 
 function StoreRoutes() {
+  // Consulta publica y en cache que hace cualquier pagina de la tienda: si la tienda no existe o esta
+  // deshabilitada, el gateway lo dice al abrir (tambien en el login, que no llama a la API hasta enviar)
+  useCatalogCategories()
+  const tenantStatus = useTenantStatus()
+  if (tenantStatus !== "ok") {
+    return <StoreUnavailablePage status={tenantStatus} />
+  }
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />

@@ -29,6 +29,9 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **TanStack Query** (paso 2 de B0): las pantallas leen con hooks por dominio (`src/api/catalog.ts`, `products.ts`,
   `users.ts`, `account.ts`, `platform.ts`); los cambios invalidan lo que corresponde (un producto nuevo se ve en el
   panel y en el catálogo) y la caché se vacía al entrar o salir de la sesión.
+- **Tienda no disponible y 429** (paso 3 de B0): si el gateway dice que la tienda no existe (404) o está
+  deshabilitada (403), la app muestra una página en lugar de las rutas, también al entrar directo al login. El 429
+  sale como un solo aviso aunque fallen varias llamadas.
 - **Sesión vencida** (B1): un 401 cierra la sesión y vuelve a `/login?next=<página>`; las páginas privadas también
   mandan al login con `next`, y el login vuelve ahí.
 - **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
@@ -83,12 +86,10 @@ esto ya está.
 
 ### B0. Base técnica
 
-Va primero porque todo lo demás depende de esto. Ya están el cliente HTTP único (`lib/api.ts`) y TanStack Query
-(`src/api/`).
+Va primero porque todo lo demás depende de esto. Ya están el cliente HTTP único (`lib/api.ts`), TanStack Query
+(`src/api/`) y las páginas de tienda no disponible.
 
-1. Páginas de "tienda inexistente" (404) y "tienda deshabilitada" (403), y el aviso de "demasiados intentos" como
-   estado global (hoy el 429 se muestra como mensaje de error de cada pantalla).
-2. Rutas protegidas por rol y área usando `hasPermission`, en lugar del guard de cada página (que hoy ya manda al
+1. Rutas protegidas por rol y área usando `hasPermission`, en lugar del guard de cada página (que hoy ya manda al
    login con `next`).
 
 ### B1. Cuenta
@@ -218,7 +219,8 @@ preguntas antes de implementarla, como se hizo con ventas.
   que van todos.
 - **Imágenes**: se guardan siempre como `.png` y no se valida que sean imágenes (solo el tamaño).
 - **Respuestas inconsistentes**: las altas responden 200 en vez de 201; un email repetido da 400 en las tiendas y 409
-  en los superadmins; un rol inexistente da 400 o 404 según el endpoint.
+  en los superadmins; un rol inexistente da 400 o 404 según el endpoint; en users, un método que la ruta no tiene
+  (ej. `PUT /api/v1/platform/admin/tenants/{id}`) responde 500 en vez de 405.
 - **El mail del recupero puede fallar sin aviso.**
 
 **Seguridad**

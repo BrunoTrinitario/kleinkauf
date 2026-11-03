@@ -2,6 +2,8 @@ import axios from "axios"
 import { toast } from "sonner"
 import { strings } from "@/lib/strings"
 import { isSessionExpired } from "@/lib/api"
+import { IS_PLATFORM } from "@/lib/platform"
+import { isTenantUnavailable } from "@/lib/tenant-status"
 
 export interface ErrorOverrides {
   badRequest?: string
@@ -80,7 +82,8 @@ export function getErrorMessage(
 
 /**
  * Muestra el error como aviso (toast) y devuelve el mensaje.
- * La sesion vencida ya la avisa el cliente HTTP; el mismo mensaje no se repite (ej. varios 429 seguidos).
+ * La sesion vencida ya la avisa el cliente HTTP y la tienda no disponible tiene su pagina; el mismo mensaje no se
+ * repite (ej. varios 429 seguidos).
  */
 export function notifyError(
   error: unknown,
@@ -88,7 +91,7 @@ export function notifyError(
   overrides: ErrorOverrides = {}
 ): string {
   const message = getErrorMessage(error, fallback, overrides)
-  if (!isSessionExpired(error)) {
+  if (!isSessionExpired(error) && !(!IS_PLATFORM && isTenantUnavailable(error))) {
     toast.error(message, { id: message })
   }
   return message

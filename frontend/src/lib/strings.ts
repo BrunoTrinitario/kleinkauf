@@ -82,6 +82,16 @@ export const strings = {
     genericError: "Ocurrió un error. Inténtalo de nuevo.",
   },
   // Login del superadmin en la plataforma (sin tienda)
+  storeUnavailable: {
+    notFoundTitle: "Esta tienda no existe",
+    notFoundHighlight: "no existe",
+    notFoundDescription: (address: string) =>
+      `No hay ninguna tienda en ${address}. Revisa que la dirección esté bien escrita.`,
+    disabledTitle: "Esta tienda está deshabilitada",
+    disabledHighlight: "deshabilitada",
+    disabledDescription: "Por ahora no se puede usar. Si es tu tienda, comunícate con la plataforma.",
+    retry: "Volver a intentar",
+  },
   platformLogin: {
     title: "Panel de la plataforma",
     highlight: "plataforma",

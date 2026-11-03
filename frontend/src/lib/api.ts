@@ -1,4 +1,8 @@
 import axios, { AxiosHeaders } from "axios"
+import { toast } from "sonner"
+import { IS_PLATFORM } from "./platform"
+import { strings } from "./strings"
+import { reportTenantError } from "./tenant-status"
 
 // Cliente unico para hablarle al gateway. El tenant lo reconoce el gateway por el Origin, que el navegador manda solo
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
@@ -52,6 +56,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(undefined, (error) => {
   if (isSessionExpired(error)) {
     session.onSessionExpired()
+  }
+  if (!IS_PLATFORM) {
+    reportTenantError(error)
+  }
+  // Rate limit del gateway (ventanas de 1 minuto): un solo aviso aunque fallen varias llamadas juntas.
+  // El id es el mismo mensaje que usa notifyError, asi una pantalla que tambien lo avisa no lo repite
+  if (axios.isAxiosError(error) && error.response?.status === 429) {
+    toast.error(strings.errors.tooManyRequests, { id: strings.errors.tooManyRequests })
   }
   return Promise.reject(error)
 })
