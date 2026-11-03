@@ -95,6 +95,9 @@ public class OrderService {
     @Autowired
     private ReceiptStorage receiptStorage;
 
+    @Autowired
+    private OrderEvents orderEvents;
+
     public CheckoutDto checkout() {
         SalesSettings settings = settingsService.current();
         boolean configured = SalesSettingsService.isPaymentConfigured(settings);
@@ -128,6 +131,7 @@ public class OrderService {
             orderStock.releaseQuietly(number);
             throw new ApiException(ErrorMessages.ORDER_NOT_CREATED, HttpStatus.SERVICE_UNAVAILABLE);
         }
+        orderEvents.created(order);
         return new OrderCreatedDto(order.getNumber(), order.getStatus(), order.getTotal(), order.getExpiresAt(),
                 SalesSettingsService.paymentDetails(settings));
     }
@@ -174,6 +178,8 @@ public class OrderService {
             receiptStorage.deleteQuietly(path);
             throw e;
         }
+        // Se publica despues del commit
+        orderEvents.receiptUploaded(order);
         return OrderMapper.toBuyerDto(order, settingsService.current());
     }
 

@@ -16,6 +16,7 @@ import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.security.SecurityConfig;
 import com.decor.product.services.BundleService;
 import com.decor.product.services.CatalogService;
+import com.decor.product.services.CatalogUsage;
 import com.decor.product.services.DashboardService;
 import com.decor.product.services.ProductCsvService;
 import com.decor.product.services.ProductService;
@@ -93,6 +94,9 @@ class SecurityRulesTest {
 
 	@MockitoBean
 	private DashboardService dashboardService;
+
+	@MockitoBean
+	private CatalogUsage catalogUsage;
 
 	// Lo que users devuelve para EMPLEADO: por defecto solo STOCK; cada test puede configurarlo
 	private int empleadoPermissions = PermissionArea.STOCK.bit();

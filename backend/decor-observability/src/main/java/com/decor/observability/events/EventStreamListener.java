@@ -1,5 +1,6 @@
 package com.decor.observability.events;
 
+import com.decor.common.constants.TenantConstants;
 import com.decor.common.events.DecorEvent;
 import com.decor.observability.ws.Channels;
 import com.decor.observability.ws.SessionRegistry;
@@ -20,6 +21,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /*
 Lee los eventos de los servicios (stream decor:events, ver DecorEventPublisher) y los reenvia al WS.
@@ -27,7 +29,9 @@ Lee los eventos de los servicios (stream decor:events, ver DecorEventPublisher) 
   tiene sus propios WS abiertos. Empieza por los que llegan desde que arranco (lo anterior es historia y
   el panel lo pide por REST).
 - Un error de Redis no corta la lectura: se loguea (una vez por minuto) y se sigue intentando.
-- La auditoria (etapa 3) va a usar un grupo de consumidores aparte, que si guarda y confirma cada evento.
+- Los de tiendas (tenant.*) van a platform.business; los de pedidos y stock de una tienda (order.*, stock.*) a
+  store.activity, solo a los WS de esa tienda.
+- La auditoria usa un grupo de consumidores aparte (AuditConsumer), que si guarda y confirma cada evento.
  */
 @Slf4j
 @Component
@@ -36,6 +40,8 @@ public class EventStreamListener implements SmartLifecycle {
 
     private static final Duration POLL_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration ERROR_LOG_INTERVAL = Duration.ofMinutes(1);
+    private static final Set<String> STORE_ACTIVITY = Set.of(DecorEvent.ORDER_CREATED, DecorEvent.ORDER_RECEIPT_UPLOADED,
+            DecorEvent.STOCK_MOVEMENT, DecorEvent.STOCK_LOW);
 
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> container;
     private final SessionRegistry sessions;
@@ -73,12 +79,20 @@ public class EventStreamListener implements SmartLifecycle {
         }
         // Las tiendas (altas, bajas, habilitar): el panel de la plataforma refresca su resumen
         if (event.type().startsWith("tenant.")) {
-            Map<String, Object> data = new LinkedHashMap<>();
-            data.put("type", event.type());
-            data.put("at", event.at());
-            data.putAll(event.data());
-            sessions.publish(Channels.PLATFORM_BUSINESS, data);
+            sessions.publish(Channels.PLATFORM_BUSINESS, payload(event));
+        } else if (STORE_ACTIVITY.contains(event.type()) && !TenantConstants.PUBLIC.equals(event.tenant())) {
+            // Pedidos y stock: solo a los WS de esa tienda
+            sessions.publishToTenant(Channels.STORE_ACTIVITY, event.tenant(), payload(event));
         }
+    }
+
+    // { type, at, ...data }
+    private static Map<String, Object> payload(DecorEvent event) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("type", event.type());
+        data.put("at", event.at());
+        data.putAll(event.data());
+        return data;
     }
 
     private void logError(Throwable error) {

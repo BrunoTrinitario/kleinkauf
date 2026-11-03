@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /*
 WS abiertos en esta instancia y sus suscripciones. Manda los eventos a los suscriptos de cada canal:
@@ -69,6 +70,14 @@ public class SessionRegistry {
         send(channel, data, clients.values().stream()
                 .filter(c -> c.channels().contains(channel) && tenant.equals(c.ticket().tenant()))
                 .toList());
+    }
+
+    // Tiendas con algun WS suscripto al canal: el recolector arma los datos de la tienda solo para esas
+    public Set<String> tenantsSubscribedTo(String channel) {
+        return clients.values().stream()
+                .filter(c -> !c.ticket().isPlatform() && c.channels().contains(channel))
+                .map(c -> c.ticket().tenant())
+                .collect(Collectors.toSet());
     }
 
     private void send(String channel, Object data, List<Client> subscribed) {

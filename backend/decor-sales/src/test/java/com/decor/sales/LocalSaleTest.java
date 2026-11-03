@@ -17,6 +17,7 @@ import com.decor.sales.entities.OrderStatus;
 import com.decor.sales.entities.PaymentMethod;
 import com.decor.sales.entities.SalesChannel;
 import com.decor.sales.repositories.OrderRepository;
+import com.decor.sales.services.OrderEvents;
 import com.decor.sales.services.AdminOrderService;
 import com.decor.sales.services.OrderService;
 import com.decor.sales.services.OrderStock;
@@ -70,6 +71,9 @@ class LocalSaleTest {
 	@Mock
 	private AuditLog auditLog;
 
+
+	@Mock
+	private OrderEvents orderEvents;
 
 	@InjectMocks
 	private AdminOrderService service;
@@ -125,6 +129,7 @@ class LocalSaleTest {
 		assertTrue(request.getValue().local());
 		verify(productsClient).markSold(eq(NUMBER), any());
 		verify(productsClient, never()).release(anyString());
+		verify(orderEvents).created(any());
 	}
 
 	@Test

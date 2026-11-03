@@ -93,6 +93,9 @@ public class AdminOrderService {
     @Autowired
     private SalesTime salesTime;
 
+    @Autowired
+    private OrderEvents orderEvents;
+
     // Comprobante a descargar: el registro y el archivo
     public record ReceiptFile(PaymentReceipt receipt, Resource file) {
     }
@@ -166,6 +169,7 @@ public class AdminOrderService {
             orderStock.releaseQuietly(number);
             throw new ApiException(ErrorMessages.ORDER_NOT_CREATED, HttpStatus.SERVICE_UNAVAILABLE);
         }
+        orderEvents.created(order);
         return OrderMapper.toAdminDto(order);
     }
 

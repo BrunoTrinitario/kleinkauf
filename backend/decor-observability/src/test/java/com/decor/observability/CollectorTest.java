@@ -8,13 +8,16 @@ import com.decor.observability.collector.InstanceProbe.Result;
 import com.decor.observability.collector.PlatformState;
 import com.decor.observability.collector.TargetDiscovery;
 import com.decor.observability.collector.TargetDiscovery.Target;
+import com.decor.observability.collector.Traffic;
 import com.decor.observability.dto.ConnectedUsersDto;
 import com.decor.observability.dto.PlatformOverviewDto;
 import com.decor.observability.dto.ServiceHealthDto;
 import com.decor.observability.dto.ServiceTrafficDto;
+import com.decor.observability.store.StoreFeeds;
 import com.decor.observability.ws.Channels;
 import com.decor.observability.ws.SessionRegistry;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -41,9 +44,11 @@ class CollectorTest {
     private final InstanceProbe probe = mock(InstanceProbe.class);
     private final ConnectedUsers connectedUsers = mock(ConnectedUsers.class);
     private final SessionRegistry sessions = mock(SessionRegistry.class);
+    private final StoreFeeds storeFeeds = mock(StoreFeeds.class);
     private final PlatformState state = new PlatformState();
     private final MutableClock clock = new MutableClock(Instant.parse("2026-11-02T10:00:00Z"));
-    private final Collector collector = new Collector(discovery, probe, connectedUsers, state, sessions, clock, Duration.ofSeconds(2));
+    private final Collector collector = new Collector(discovery, probe, connectedUsers, state, sessions, storeFeeds, clock,
+            Duration.ofSeconds(2), "gateway-microservice");
 
     CollectorTest() {
         when(discovery.targets()).thenReturn(List.of(PRODUCTS_1, PRODUCTS_2));
@@ -97,6 +102,31 @@ class CollectorTest {
 
         verify(sessions, times(2)).publish(eq(Channels.PLATFORM_HEALTH), any());
         verify(sessions, times(3)).publish(eq(Channels.PLATFORM_TRAFFIC), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void elTraficoPorTiendaSaleSoloDelGatewayDesdeLaSegundaLectura() {
+        Target gateway = new Target("gateway-microservice", "g1", "http://10.0.0.3:9000");
+        when(discovery.targets()).thenReturn(List.of(PRODUCTS_1, gateway));
+        when(probe.probe(PRODUCTS_1)).thenReturn(withTenant(PRODUCTS_1, 0), withTenant(PRODUCTS_1, 999));
+        when(probe.probe(gateway)).thenReturn(withTenant(gateway, 100), withTenant(gateway, 150));
+
+        collector.collect();
+        clock.advance(Duration.ofSeconds(10));
+        collector.collect();
+
+        ArgumentCaptor<Map<String, Traffic.TenantRates>> rates = ArgumentCaptor.forClass(Map.class);
+        verify(storeFeeds, times(2)).update(rates.capture());
+        // Primera lectura: todavia no hay tasas
+        assertThat(rates.getAllValues().get(0)).isNull();
+        // 50 requests en 10 s; las de products no suman
+        assertThat(rates.getAllValues().get(1)).containsEntry("demo", new Traffic.TenantRates(5.0, 0.0, 0.0));
+    }
+
+    private static Result withTenant(Target target, double requests) {
+        InstanceMetrics metrics = MetricsParsingTest.tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(requests, 0, 0)));
+        return new Result(target, ServiceHealthDto.UP, Map.of(), null, metrics);
     }
 
     private static Result up(Target target, double requests) {

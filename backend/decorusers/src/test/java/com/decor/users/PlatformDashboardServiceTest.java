@@ -9,10 +9,15 @@ import com.decor.users.entities.Tenant;
 import com.decor.users.repositories.TenantRepository;
 import com.decor.users.services.PlatformDashboardService;
 import com.decor.users.util.CacheUtil;
+import com.decor.users.util.RecentActivity;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -43,6 +49,9 @@ class PlatformDashboardServiceTest {
 
 	@Mock
 	private CacheUtil cacheUtil;
+
+	@Mock
+	private RecentActivity recentActivity;
 
 	@InjectMocks
 	private PlatformDashboardService service;
@@ -101,6 +110,36 @@ class PlatformDashboardServiceTest {
 		assertEquals("sin-tabla", sinTabla.identifier());
 		assertEquals(0, sinTabla.users());
 		verify(cacheUtil).savePlatformUsage(any());
+	}
+
+	@Test
+	void uso_laUltimaActividadEsLoMasRecienteEntreElLoginYLasRequests() throws ApiException {
+		when(cacheUtil.getPlatformUsage()).thenReturn(null);
+		when(tenantRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()).thenReturn(List.of(
+				tenant(1L, "con_sesion", true, "2026-10-01T10:00", null),
+				tenant(2L, "sin_requests", true, "2026-10-02T10:00", null),
+				tenant(3L, "sin_login", true, "2026-10-03T10:00", null)));
+		when(jdbcTemplate.queryForList(anyString(), eq(String.class)))
+				.thenReturn(List.of("con_sesion", "sin_requests", "sin_login"));
+		LocalDateTime login = LocalDateTime.parse("2026-10-20T10:00");
+		LocalDateTime request = LocalDateTime.parse("2026-11-03T09:30");
+		when(jdbcTemplate.queryForObject(anyString(), any(RowMapper.class), any()))
+				.thenAnswer(inv -> {
+					String sql = inv.getArgument(0);
+					RowMapper<?> mapper = inv.getArgument(1);
+					ResultSet rs = mock(ResultSet.class);
+					when(rs.getLong("users")).thenReturn(1L);
+					when(rs.getTimestamp("last")).thenReturn(sql.contains("sin_login.") ? null : Timestamp.valueOf(login));
+					return mapper.mapRow(rs, 0);
+				});
+		when(recentActivity.byTenant()).thenReturn(Map.of("con_sesion", request, "sin_login", request));
+
+		Map<String, OffsetDateTime> last = new HashMap<>();
+		service.usage(null).forEach(u -> last.put(u.schema(), u.lastActivity()));
+
+		assertEquals(request, last.get("con_sesion").toLocalDateTime());
+		assertEquals(login, last.get("sin_requests").toLocalDateTime());
+		assertEquals(request, last.get("sin_login").toLocalDateTime());
 	}
 
 	@Test

@@ -5,7 +5,8 @@ un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y
 (administrador). La auditoría usa la misma base y está en [auditoria.md](auditoria.md).
 
 > Estado: **backend hecho** en las tres etapas de código (base técnica, servicio `decor-observability` con su WS y
-> auditoría). Falta el **frontend** de los paneles y algunos canales de la tienda: ver [Pendiente](#pendiente).
+> auditoría), también los canales de la tienda (`store.activity`, `store.usage` y `store.users`). Falta el
+> **frontend** de los paneles: ver [Pendiente](#pendiente).
 
 ## Decisiones
 
@@ -68,9 +69,45 @@ el tiempo real.
 |---|---|---|
 | Auditoría en vivo | Quién hizo qué en su tienda (ver [auditoria.md](auditoria.md)) | Hecho (`store.audit` y su historial) |
 | Ventas | **Dinero recaudado** e **historial de pedidos** | Por REST en [ventas](ventas.md) (`/api/v1/sales/admin/**`) |
-| Actividad en vivo | Pedidos nuevos, comprobantes subidos, stock bajo y movimientos de stock, apenas pasan | Pendiente (`store.activity`) |
-| Uso de la tienda | Visitas al catálogo, productos más vistos, requests y errores de su tienda | Pendiente (`store.usage`) |
-| Usuarios conectados | Empleados con actividad en los últimos 5 minutos y su última actividad | Pendiente (`store.users`; las marcas ya existen) |
+| Actividad en vivo | Pedidos nuevos y ventas del local, comprobantes subidos, movimientos de stock cargados a mano y productos que pasan a stock bajo, apenas pasan | Hecho (`store.activity`) |
+| Uso de la tienda | Visitas al catálogo y productos más vistos del día; requests y errores por segundo de su tienda | Hecho (`store.usage` y `GET /store/usage`) |
+| Usuarios conectados | Usuarios con actividad en los últimos 5 minutos (todos los logueados, también clientes) y su última actividad | Hecho (`store.users` y `GET /store/users`) |
+
+#### Actividad de la tienda (`store.activity`)
+
+Eventos de `decor:events` de esa tienda, reenviados tal cual: `{ "type", "at", ...datos }`.
+
+| `type` | Lo publica | Cuándo | Datos |
+|---|---|---|---|
+| `order.created` | sales | Pedido online creado o venta del local cargada | `number`, `channel` (`ONLINE`/`LOCAL`), `status`, `total`, `buyerName` |
+| `order.receipt-uploaded` | sales | El comprador subió un comprobante (el pedido pasa a revisión) | Igual que `order.created` |
+| `stock.movement` | products | Movimiento cargado a mano desde el panel (los de los pedidos no: ya llega el pedido) | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
+| `stock.low` | products | Un producto con mínimo **cruza** a stock bajo con cualquier movimiento, también los de los pedidos (no se repite mientras siga bajo) | `productId`, `productName`, `stock`, `minStock` |
+
+Se publican después del commit (`DecorEventPublisher`); si Redis falla no hay evento y la operación sigue. Son en
+vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
+
+#### Uso y conectados (`store.usage` y `store.users`)
+
+- En cada lectura del recolector (10 s), solo para las tiendas que tienen algún WS suscripto.
+- **Tráfico**: requests, 4xx y 5xx por segundo de la tienda, de las métricas del **gateway** con la etiqueta
+  `tenant` (cada request de una tienda pasa una vez por ahí; en los servicios se contaría de nuevo). El servicio
+  sale de `observability.gateway-service`. Hasta la segunda lectura del gateway `traffic` es `null`.
+- **Catálogo**: products cuenta en Redis, por tienda y por día (`usage:<tenant>:<yyyy-MM-dd>`, `UsageKeys` en
+  `decor-common`), las **visitas** (la primera página del listado sin búsqueda) y las **vistas** del detalle de cada
+  producto (por slug). Se mandan los 5 más vistos. Vencen a los 8 días. El día es el de Buenos Aires para todas las
+  tiendas.
+- **Conectados**: `SCAN` de `activity:<tenant>:*` con la hora de la última request y el nombre (de users, con caché).
+
+```json
+{ "at": "…", "date": "2026-11-03", "catalogVisits": 40,
+  "topProducts": [ { "slug": "mesa-de-roble", "views": 12 } ],
+  "traffic": { "requestsPerSecond": 2.5, "errors4xxPerSecond": 0.1, "errors5xxPerSecond": 0.0 } }
+```
+
+```json
+{ "total": 2, "users": [ { "userId": 8, "name": "Beto", "lastActivity": "2026-11-03T13:00:05Z" } ] }
+```
 
 ## Componentes
 
@@ -88,7 +125,9 @@ el tiempo real.
   se loguea y la operación sigue: estos eventos son solo para el panel en vivo. La auditoría, que no se puede
   perder, va aparte con una tabla **outbox** (`com.decor.common.audit`, ver [auditoria.md](auditoria.md)).
 - Eventos que se publican hoy: users, al crear, habilitar, deshabilitar o borrar una tienda (`tenant.created`,
-  `tenant.enabled`, `tenant.disabled`, `tenant.deleted`).
+  `tenant.enabled`, `tenant.disabled`, `tenant.deleted`); sales, los pedidos (`order.created`,
+  `order.receipt-uploaded`); products, el stock (`stock.movement`, `stock.low`).
+- `UsageKeys`: el formato de los contadores de uso del catálogo, que escribe products y lee observability.
 - `ActivityKeys`: el formato de las keys de última actividad, que escribe el gateway y lee observability.
 
 ### decor-observability
@@ -105,7 +144,10 @@ el tiempo real.
     `observability.services` que no tienen instancias en Eureka figuran `DOWN`.
   - Usuarios conectados: recorre las keys `activity:*` con `SCAN`.
 - **Eventos** (`events/`): lee el stream `decor:events` **sin grupo de consumidores**, porque cada instancia tiene
-  sus propios WS y tiene que ver todos los eventos. Empieza por los que llegan desde que arrancó.
+  sus propios WS y tiene que ver todos los eventos. Empieza por los que llegan desde que arrancó. `tenant.*` va a
+  `platform.business`; `order.*` y `stock.*` a `store.activity` de esa tienda.
+- **Tienda** (`store/`): arma `store.usage` y `store.users` en cada lectura del recolector (`StoreFeeds`) y responde
+  sus GET.
 - **Auditoría** (`audit/`): consume el stream `decor:audit` con un grupo de consumidores, la guarda y la manda por
   el WS. Detalle en [auditoria.md](auditoria.md).
 - **WebSocket** (`ws/`) en `/ws`, y REST para lo que había antes de abrir el panel. El WS manda solo lo nuevo.
@@ -132,6 +174,8 @@ tampoco se pueden pedir desde la plataforma (404).
 | POST | `/api/v1/observability/ws-ticket` | Admin de la tienda | Ticket para el WS de su tienda |
 | GET | `/api/v1/observability/store/audit` | Admin de la tienda | Historial de auditoría de su tienda |
 | GET | `/api/v1/observability/store/audit/{entity}/{entityId}` | Admin de la tienda | Historial de una cosa puntual |
+| GET | `/api/v1/observability/store/users` | Admin de la tienda | Usuarios conectados (lo mismo que `store.users`) |
+| GET | `/api/v1/observability/store/usage` | Admin de la tienda | Uso del catálogo del día y tráfico (lo mismo que `store.usage`) |
 | GET | `/ws?ticket=…` | Con ticket | WebSocket |
 
 ## WebSocket
@@ -161,9 +205,9 @@ tampoco se pueden pedir desde la plataforma (404).
 | `platform.business` | Superadmin | Altas, bajas y cambios de tiendas (`tenant.*`) | Hecho |
 | `platform.audit` | Superadmin | Cada evento de auditoría de la plataforma, apenas se guarda | Hecho |
 | `store.audit` | Admin de la tienda | Cada evento de auditoría de su tienda, apenas se guarda | Hecho |
-| `store.activity` | Admin de la tienda | Pedidos, comprobantes, stock | Pendiente |
-| `store.usage` | Admin de la tienda | Visitas, productos vistos, errores | Pendiente |
-| `store.users` | Admin de la tienda | Usuarios conectados | Pendiente |
+| `store.activity` | Admin de la tienda | Pedidos, ventas del local, comprobantes y stock, apenas pasan | Hecho |
+| `store.usage` | Admin de la tienda | Visitas al catálogo, productos más vistos, requests y errores, en cada lectura (10 s) | Hecho |
+| `store.users` | Admin de la tienda | Usuarios conectados, en cada lectura (10 s) | Hecho |
 
 Mensajes del cliente: `subscribe` y `unsubscribe` (con `channel`) y `ping`. El servidor responde `subscribed`,
 `unsubscribed`, `pong` o `{ "type": "error", "message": … }` sin cortar la conexión.
@@ -235,14 +279,10 @@ Cada rama sale de la anterior.
 
 ## Pendiente
 
-- **Frontend**: la página del panel de la plataforma (salud, tráfico y auditoría en vivo), la vista de auditoría de
-  la tienda y el cliente del WS (pedir el ticket, conectar, ping, reconectar con un ticket nuevo). Ver la sección 9
-  de [frontend.md](frontend.md).
-- **Canales de la tienda** `store.activity`, `store.usage` y `store.users`, con sus eventos: sales (pedido nuevo,
-  comprobante subido), products (stock bajo, movimientos) y el gateway (tráfico por tienda).
+- **Frontend**: la página del panel de la plataforma (salud, tráfico y auditoría en vivo), las vistas de la tienda
+  (auditoría, actividad, uso y conectados) y el cliente del WS (pedir el ticket, conectar, ping, reconectar con un
+  ticket nuevo). Ver la sección 9 de [frontend.md](frontend.md).
 - **Pedidos y facturación de toda la plataforma** en el panel del superadmin.
-- `/admin/usage` de users sigue tomando el **último login** como última actividad; falta que use las keys
-  `activity:*`.
 - **Prueba de punta a punta con Docker**: todo junto con Postgres y Redis reales (los tests usan H2 y mocks).
 
 ## Para decidir
@@ -259,6 +299,8 @@ Cada rama sale de la anterior.
 - La etiqueta `tenant` en las métricas está bien con cientos de tiendas; con miles conviene contar el uso por tienda
   solo en observability.
 - "Conectado" es una aproximación: alguien que cerró el navegador figura hasta 5 minutos.
+- Las visitas al catálogo son requests a la primera página del listado: un bot o recargar la página también cuentan.
+  No hay historial de uso más allá de 8 días (ver "Para decidir").
 - El estado del recolector está en memoria: con varias instancias de observability cada una tiene el suyo (leen lo
   mismo, así que solo difieren por unos segundos).
 - Los eventos de `decor:events` (no la auditoría) se pierden si Redis está caído al publicarlos. Solo afecta al

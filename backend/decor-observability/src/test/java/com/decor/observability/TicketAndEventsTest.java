@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,6 +69,26 @@ class TicketAndEventsTest {
         ArgumentCaptor<Map<String, Object>> data = ArgumentCaptor.forClass(Map.class);
         verify(sessions).publish(eq(Channels.PLATFORM_BUSINESS), data.capture());
         assertThat(data.getValue()).containsEntry("type", "tenant.created").containsEntry("schema", "mi_tienda");
+    }
+
+    @Test
+    void losPedidosYElStockVanSoloALaActividadDeSuTienda() {
+        SessionRegistry sessions = mock(SessionRegistry.class);
+        TestableListener listener = new TestableListener(sessions);
+
+        listener.receive(new DecorEvent(DecorEvent.ORDER_CREATED, "demo", Instant.parse("2026-11-02T10:00:00Z"),
+                Map.of("number", "K7QM-4X2P", "channel", "ONLINE")).toFields(mapper));
+        listener.receive(new DecorEvent(DecorEvent.STOCK_LOW, "demo", Instant.now(), Map.of("productId", 12)).toFields(mapper));
+        // Un evento de tienda con tenant public no es de ninguna tienda; uno desconocido no se reenvia
+        listener.receive(new DecorEvent(DecorEvent.STOCK_LOW, "public", Instant.now(), Map.of()).toFields(mapper));
+        listener.receive(new DecorEvent("order.otra-cosa", "demo", Instant.now(), Map.of()).toFields(mapper));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> data = ArgumentCaptor.forClass(Map.class);
+        verify(sessions, times(2)).publishToTenant(eq(Channels.STORE_ACTIVITY), eq("demo"), data.capture());
+        assertThat(data.getAllValues().get(0)).containsEntry("type", "order.created").containsEntry("number", "K7QM-4X2P");
+        assertThat(data.getAllValues().get(1)).containsEntry("type", "stock.low");
+        verify(sessions, never()).publish(anyString(), any());
     }
 
     @Test

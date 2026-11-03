@@ -11,6 +11,9 @@ Plataforma (superadmin, ticket de public):
 - platform.audit: la auditoria de la plataforma, apenas se guarda.
 Tienda (administrador, ticket de su tienda): siempre de la tienda del ticket, no se puede pedir otra.
 - store.audit: la auditoria de su tienda, apenas se guarda.
+- store.activity: pedidos nuevos, ventas del local, comprobantes y stock (eventos de sales y products), apenas pasan.
+- store.usage: visitas al catalogo, productos mas vistos del dia y requests y errores, en cada lectura del recolector.
+- store.users: los usuarios conectados (alguna request en los ultimos 5 minutos), en cada lectura del recolector.
  */
 public final class Channels {
 
@@ -19,9 +22,12 @@ public final class Channels {
     public static final String PLATFORM_BUSINESS = "platform.business";
     public static final String PLATFORM_AUDIT = "platform.audit";
     public static final String STORE_AUDIT = "store.audit";
+    public static final String STORE_ACTIVITY = "store.activity";
+    public static final String STORE_USAGE = "store.usage";
+    public static final String STORE_USERS = "store.users";
 
     static final Set<String> PLATFORM = Set.of(PLATFORM_HEALTH, PLATFORM_TRAFFIC, PLATFORM_BUSINESS, PLATFORM_AUDIT);
-    static final Set<String> STORE = Set.of(STORE_AUDIT);
+    static final Set<String> STORE = Set.of(STORE_AUDIT, STORE_ACTIVITY, STORE_USAGE, STORE_USERS);
 
     private Channels() {
     }

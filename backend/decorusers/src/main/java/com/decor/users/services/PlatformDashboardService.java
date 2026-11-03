@@ -10,6 +10,7 @@ import com.decor.users.repositories.TenantRepository;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.Dates;
 import com.decor.users.util.Periods;
+import com.decor.users.util.RecentActivity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -34,6 +36,8 @@ Panel de la plataforma (superadmin): resumen de tenants y uso por tenant.
 - El resumen lee la tabla de tenants de public (incluidos los borrados: es la historia de altas).
 - El uso recorre el schema de cada tenant no borrado con SQL directo (sin Hibernate, que solo ve el schema
   del tenant actual) y se guarda 5 minutos en Redis. Si Redis falla, se calcula igual.
+- lastActivity: lo mas reciente entre el ultimo login y la ultima request que marco el gateway (RecentActivity),
+  porque un usuario con la sesion abierta no vuelve a loguearse.
 Las columnas son las que crea hbm2ddl sin la estrategia de nombres de Spring: lastLogin quedo como "lastlogin".
  */
 @Slf4j
@@ -55,6 +59,9 @@ public class PlatformDashboardService {
 
     @Autowired
     private CacheUtil cacheUtil;
+
+    @Autowired
+    private RecentActivity recentActivity;
 
     public PlatformDashboardDto dashboard(String from, String to, String groupBy) throws ApiException {
         Periods.Range range = Periods.parse(from, to, groupBy, LocalDate.now());
@@ -91,6 +98,7 @@ public class PlatformDashboardService {
         // users crea el schema del tenant en el alta, pero un tenant viejo podria no tener la tabla todavia
         Set<String> withUsersTable = new HashSet<>(jdbcTemplate.queryForList(
                 "SELECT table_schema FROM information_schema.tables WHERE table_name = 'usuarios'", String.class));
+        Map<String, LocalDateTime> recent = recentActivity.byTenant();
 
         List<TenantUsageDto> usage = new ArrayList<>();
         for (Tenant tenant : tenantRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()) {
@@ -112,6 +120,7 @@ public class PlatformDashboardService {
             } else if (!SCHEMA.matcher(schema).matches()) {
                 log.warn("Schema invalido en la tabla de tenants, no se cuenta: {}", schema);
             }
+            lastActivity = latest(lastActivity, recent.get(schema));
             usage.add(new TenantUsageDto(tenant.getId(), schema.replace('_', '-'), schema,
                     Boolean.TRUE.equals(tenant.getEnable()), Dates.withServerOffset(tenant.getCreatedAt()),
                     users, activeUsers, Dates.withServerOffset(lastActivity)));
@@ -120,6 +129,12 @@ public class PlatformDashboardService {
     }
 
     private record UserCounts(long users, long active, Timestamp last) {
+    }
+
+    private static LocalDateTime latest(LocalDateTime a, LocalDateTime b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a.isAfter(b) ? a : b;
     }
 
     private static UsageSort parseSort(String sort) throws ApiException {

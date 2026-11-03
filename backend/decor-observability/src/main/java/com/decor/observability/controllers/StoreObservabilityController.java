@@ -6,9 +6,12 @@ import com.decor.common.dto.RoleDto;
 import com.decor.common.servlet.security.CustomUserDetails;
 import com.decor.observability.audit.AuditStore;
 import com.decor.observability.dto.PageDto;
+import com.decor.observability.dto.StoreUsageDto;
+import com.decor.observability.dto.StoreUsersDto;
 import com.decor.observability.dto.WsTicketDto;
 import com.decor.observability.security.HeaderAuthFilter;
 import com.decor.observability.security.RolesService;
+import com.decor.observability.store.StoreFeeds;
 import com.decor.observability.ws.TicketStore;
 import com.decor.observability.ws.WsTicket;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +34,8 @@ Panel de la tienda (solo ADMINISTRADOR, ver SecurityConfig). Siempre de la tiend
 - POST /ws-ticket: ticket para el WS de la tienda, con los roles actuales.
 - GET /store/audit: historial de la tienda, paginado y con filtros (fecha, usuario, entidad, accion).
 - GET /store/audit/{entity}/{entityId}: historial de una cosa puntual (ej. Product/12).
+- GET /store/users y /store/usage: lo mismo que mandan store.users y store.usage, para cuando se abre el panel
+  (el WS manda solo lo nuevo). 503 si no se pudo leer Redis.
  */
 @RestController
 @RequestMapping("/api/v1/observability")
@@ -39,11 +44,13 @@ public class StoreObservabilityController {
     private final TicketStore tickets;
     private final RolesService roles;
     private final AuditStore audit;
+    private final StoreFeeds storeFeeds;
 
-    public StoreObservabilityController(TicketStore tickets, RolesService roles, AuditStore audit) {
+    public StoreObservabilityController(TicketStore tickets, RolesService roles, AuditStore audit, StoreFeeds storeFeeds) {
         this.tickets = tickets;
         this.roles = roles;
         this.audit = audit;
+        this.storeFeeds = storeFeeds;
     }
 
     @PostMapping("/ws-ticket")
@@ -85,6 +92,23 @@ public class StoreObservabilityController {
     ) {
         String tenant = requireStore(request);
         return ResponseEntity.ok(audit.page(tenant, AuditQueries.query(null, null, null, entity, entityId, null), page, size));
+    }
+
+    @GetMapping("/store/users")
+    public ResponseEntity<StoreUsersDto> users(HttpServletRequest request) {
+        return ResponseEntity.ok(orUnavailable(storeFeeds.users(requireStore(request))));
+    }
+
+    @GetMapping("/store/usage")
+    public ResponseEntity<StoreUsageDto> usage(HttpServletRequest request) {
+        return ResponseEntity.ok(orUnavailable(storeFeeds.usage(requireStore(request))));
+    }
+
+    private static <T> T orUnavailable(T value) {
+        if (value == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "No se pudo leer el estado de la tienda");
+        }
+        return value;
     }
 
     private static String requireStore(HttpServletRequest request) {

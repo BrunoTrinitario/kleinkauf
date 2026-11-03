@@ -18,7 +18,13 @@ public final class Traffic {
 
     // Lo que paso en una instancia entre dos lecturas
     public record Delta(double requests, double errors5xx, double errors4xx, double rateLimited,
-                        Map<Double, Double> buckets) {
+                        Map<Double, Double> buckets, Map<String, InstanceMetrics.TenantRequests> tenants) {
+    }
+
+    // Requests y errores por segundo de una tienda
+    public record TenantRates(double requestsPerSecond, double errors4xxPerSecond, double errors5xxPerSecond) {
+
+        public static final TenantRates ZERO = new TenantRates(0, 0, 0);
     }
 
     private Traffic() {
@@ -28,12 +34,32 @@ public final class Traffic {
         Map<Double, Double> buckets = new TreeMap<>();
         current.buckets().forEach((le, count) ->
                 buckets.put(le, increase(previous.buckets().getOrDefault(le, 0.0), count)));
+        Map<String, InstanceMetrics.TenantRequests> tenants = new TreeMap<>();
+        current.tenants().forEach((tenant, now) -> {
+            InstanceMetrics.TenantRequests before = previous.tenants().getOrDefault(tenant, InstanceMetrics.TenantRequests.ZERO);
+            tenants.put(tenant, new InstanceMetrics.TenantRequests(increase(before.requests(), now.requests()),
+                    increase(before.errors4xx(), now.errors4xx()), increase(before.errors5xx(), now.errors5xx())));
+        });
         return new Delta(
                 increase(previous.requests(), current.requests()),
                 increase(previous.errors5xx(), current.errors5xx()),
                 increase(previous.errors4xx(), current.errors4xx()),
                 increase(previous.rateLimited(), current.rateLimited()),
-                buckets);
+                buckets,
+                tenants);
+    }
+
+    // Por tienda, sumando las instancias. Las tiendas sin requests en el intervalo no aparecen (son 0)
+    public static Map<String, TenantRates> tenantRates(List<Delta> deltas, double seconds) {
+        Map<String, InstanceMetrics.TenantRequests> totals = new TreeMap<>();
+        for (Delta delta : deltas) {
+            delta.tenants().forEach((tenant, requests) -> totals.merge(tenant, requests, InstanceMetrics.TenantRequests::plus));
+        }
+        double s = seconds <= 0 ? 1 : seconds;
+        Map<String, TenantRates> rates = new TreeMap<>();
+        totals.forEach((tenant, t) -> rates.put(tenant,
+                new TenantRates(round(t.requests() / s), round(t.errors4xx() / s), round(t.errors5xx() / s))));
+        return rates;
     }
 
     public static Rates rates(List<Delta> deltas, double seconds) {
@@ -85,6 +111,10 @@ public final class Traffic {
             previousCount = count;
         }
         return previousLe;
+    }
+
+    private static double round(double value) {
+        return Math.round(value * 100) / 100.0;
     }
 
     private static double increase(double previous, double current) {

@@ -276,6 +276,9 @@ producto sin precio viene con `price: null` ("consultar"). Cada producto y combo
 carrito para armar el pedido. Las respuestas se cachean en Redis por tenant y se invalidan con cada cambio de
 productos, combos, stock o vendidos.
 
+products cuenta en Redis las visitas al listado (la primera página sin búsqueda) y las vistas del detalle de cada
+producto, por día, para el panel de la tienda (`store.usage`, ver [observabilidad.md](observabilidad.md)).
+
 ### Imágenes
 
 | Método | Ruta | Acceso | Descripción |
@@ -349,6 +352,8 @@ formato de la auditoría).
 | POST | `/api/v1/observability/ws-ticket` | ADMINISTRADOR | Ticket para el WS de la tienda |
 | GET | `/api/v1/observability/store/audit?from&to&userId&entity&action&page&size` | ADMINISTRADOR | Auditoría de la tienda, paginada |
 | GET | `/api/v1/observability/store/audit/{entity}/{entityId}?page&size` | ADMINISTRADOR | Auditoría de una cosa puntual (ej. `Product/12`) |
+| GET | `/api/v1/observability/store/users` | ADMINISTRADOR | Usuarios conectados de la tienda (lo mismo que `store.users`). Redis caído → 503 |
+| GET | `/api/v1/observability/store/usage` | ADMINISTRADOR | Visitas al catálogo y productos más vistos del día, y requests y errores por segundo (lo mismo que `store.usage`). Redis caído → 503 |
 
 ### WebSocket — `/ws`
 

@@ -24,6 +24,12 @@ public record DecorEvent(String type, String tenant, Instant at, Map<String, Obj
     public static final String TENANT_DISABLED = "tenant.disabled";
     public static final String TENANT_DELETED = "tenant.deleted";
 
+    // Actividad de una tienda (canal store.activity): pedidos y ventas del local (sales) y stock (products)
+    public static final String ORDER_CREATED = "order.created";
+    public static final String ORDER_RECEIPT_UPLOADED = "order.receipt-uploaded";
+    public static final String STOCK_MOVEMENT = "stock.movement";
+    public static final String STOCK_LOW = "stock.low";
+
     static final String FIELD_TYPE = "type";
     static final String FIELD_TENANT = "tenant";
     static final String FIELD_AT = "at";

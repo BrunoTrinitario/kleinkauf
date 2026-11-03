@@ -5,7 +5,7 @@ Endpoints de resumen para el **administrador de la tienda** y para el **administ
 
 > Estado: **backend implementado** en los dos paneles. El de la plataforma ya tiene frontend; el de la tienda
 > todavía no. Las ventas ([ventas.md](ventas.md), `/api/v1/sales/admin/reports/**`) y el tiempo real
-> ([observabilidad.md](observabilidad.md)) se suman a las mismas páginas.
+> ([observabilidad.md](observabilidad.md), canales `store.*`) se suman a las mismas páginas.
 
 ## Decisiones
 
@@ -20,7 +20,7 @@ Endpoints de resumen para el **administrador de la tienda** y para el **administ
 | `GET /api/v1/users/stats` | **Se borra**: lo reemplaza el panel de usuarios (el frontend se reescribe) |
 | Períodos | Parámetros **`from`, `to` y `groupBy=DAY\|WEEK\|MONTH`**. Por defecto, los últimos 30 días por día. Se devuelven **todos los períodos, también los que tienen 0** |
 | Uso por tenant | products expone **su propio endpoint de plataforma** (cuenta productos por schema); users da usuarios y última actividad por tenant |
-| Última actividad | El **último login** de los usuarios de la tienda. El gateway ya marca la última request (`activity:<tenant>:<userId>`, ver [observabilidad.md](observabilidad.md)); falta que este panel la use |
+| Última actividad | Lo más reciente entre el **último login** y la **última request** que marca el gateway (`activity:<tenant>:<userId>`, ver [observabilidad.md](observabilidad.md)): un usuario con la sesión abierta no vuelve a loguearse |
 | Orden del uso por tenant | **Elegible** (`sort`), descendente; por defecto, por productos |
 | Caché | **Solo el uso por tenant**, 5 minutos en Redis. Los paneles de la tienda siempre al día |
 | Valor del inventario | Los productos **sin costo o sin precio se excluyen y se cuentan** aparte |
@@ -256,9 +256,9 @@ Se arma en el frontend juntando dos listas por `schema`:
 
 - Ventas: los reportes ya existen (`/api/v1/sales/admin/reports/**`, ver [ventas.md](ventas.md)); falta sumarlos a
   la página del panel en el frontend.
-- Observabilidad: tráfico, errores, salud y tiempo real por WS. El backend ya está (ver
-  [observabilidad.md](observabilidad.md)); falta sumarlo a las páginas de los paneles.
+- Observabilidad: el backend ya está, también los canales de la tienda (`store.activity`, `store.usage`,
+  `store.users`, ver [observabilidad.md](observabilidad.md)); falta sumarlo a las páginas de los paneles.
 - "Activos" sigue siendo el último login en 30 días: un usuario que usa la app con una sesión abierta hace más de
-  30 días cuenta como inactivo. Las keys `activity:*` del gateway duran 5 minutos, así que no sirven para una
-  ventana de 30 días: haría falta guardar la última request en la base.
+  30 días cuenta como inactivo. La última actividad ya usa las requests (las keys `activity:*` duran 5 minutos, así
+  que no sirven para una ventana de 30 días: haría falta guardar la última request en la base).
 - "Tareas pendientes" (productos sin precio o sin imagen, combos que no se pueden armar) como lista accionable.

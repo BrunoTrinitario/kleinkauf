@@ -12,6 +12,7 @@ import com.decor.product.entities.StockMovementType;
 import com.decor.product.repositories.ProductRepository;
 import com.decor.product.repositories.StockMovementRepository;
 import com.decor.product.services.CatalogCacheService;
+import com.decor.product.services.StockEvents;
 import com.decor.product.services.StockService;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -47,6 +49,9 @@ class StockServiceTest {
 
 	@Mock
 	private CatalogCacheService catalogCache;
+
+	@Mock
+	private StockEvents stockEvents;
 
 	@InjectMocks
 	private StockService stockService;
@@ -68,6 +73,9 @@ class StockServiceTest {
 		assertEquals(15, result.stockAfter());
 		assertEquals("Compra", result.reason());
 		verify(productRepository).save(product);
+		// Panel en vivo: el movimiento y el chequeo de stock bajo con el stock de antes
+		verify(stockEvents).movement(eq(product), any());
+		verify(stockEvents).lowIfCrossed(product, 10);
 	}
 
 	@Test

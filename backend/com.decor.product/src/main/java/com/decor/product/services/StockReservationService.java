@@ -67,6 +67,9 @@ public class StockReservationService {
     private StockMovementRepository stockMovementRepository;
 
     @Autowired
+    private StockEvents stockEvents;
+
+    @Autowired
     private StockReservationRepository reservationRepository;
 
     @Autowired
@@ -121,6 +124,7 @@ public class StockReservationService {
         String reason = "Pedido " + reference;
         for (Map.Entry<Long, Integer> e : needed.entrySet()) {
             Product product = products.get(e.getKey());
+            int stockBefore = product.getStock();
             int stock = Math.max(product.getStock(), 0);
             if (stock < e.getValue()) {
                 // Venta del local sin stock suficiente: se ajusta a lo vendido y despues sale todo
@@ -128,6 +132,7 @@ public class StockReservationService {
                         "Ajuste automatico pedido " + reference + ": faltaba stock", reference);
             }
             move(product, StockMovementType.SALIDA, -e.getValue(), reason, reference);
+            stockEvents.lowIfCrossed(product, stockBefore);
         }
 
         if (!missing.isEmpty()) {

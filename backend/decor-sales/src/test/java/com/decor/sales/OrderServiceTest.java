@@ -23,6 +23,7 @@ import com.decor.sales.entities.PaymentReceipt;
 import com.decor.sales.entities.SalesChannel;
 import com.decor.sales.entities.SalesSettings;
 import com.decor.sales.repositories.OrderRepository;
+import com.decor.sales.services.OrderEvents;
 import com.decor.sales.services.OrderNumberGenerator;
 import com.decor.sales.services.OrderService;
 import com.decor.sales.services.OrderStatusService;
@@ -91,6 +92,9 @@ class OrderServiceTest {
 	@Mock
 	private ReceiptStorage receiptStorage;
 
+	@Mock
+	private OrderEvents orderEvents;
+
 	@InjectMocks
 	private OrderService service;
 
@@ -134,6 +138,8 @@ class OrderServiceTest {
 		// Ya no se muestran los datos para transferir
 		assertNull(dto.payment());
 		assertEquals("image/png", order.getReceipts().get(0).getContentType());
+		// Panel en vivo de la tienda
+		verify(orderEvents).receiptUploaded(order);
 	}
 
 	@Test
@@ -233,6 +239,7 @@ class OrderServiceTest {
 		assertEquals(1, order.getHistory().size());
 		assertTrue(order.getExpiresAt().isAfter(order.getCreatedAt().plusHours(47)));
 		verify(productsClient, never()).release(anyString());
+		verify(orderEvents).created(order);
 	}
 
 	@Test

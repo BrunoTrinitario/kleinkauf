@@ -18,6 +18,7 @@ import com.decor.product.repositories.ProductRepository;
 import com.decor.product.repositories.StockMovementRepository;
 import com.decor.product.repositories.StockReservationRepository;
 import com.decor.product.services.CatalogCacheService;
+import com.decor.product.services.StockEvents;
 import com.decor.product.services.StockReservationService;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -72,6 +73,9 @@ class StockReservationServiceTest {
 
 	@MockitoBean
 	private CatalogCacheService catalogCache;
+
+	@MockitoBean
+	private StockEvents stockEvents;
 
 	@Autowired
 	private DataSource dataSource;

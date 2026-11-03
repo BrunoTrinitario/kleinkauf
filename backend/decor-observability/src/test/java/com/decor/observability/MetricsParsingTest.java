@@ -115,6 +115,39 @@ class MetricsParsingTest {
 
     static InstanceMetrics metrics(double requests, double errors5xx, Map<Double, Double> buckets) {
         return new InstanceMetrics(requests, errors5xx, 0, 0, new TreeMap<>(buckets),
-                null, null, null, null, null, null, List.of());
+                null, null, null, null, null, null, List.of(), Map.of());
+    }
+
+    static InstanceMetrics tenantMetrics(Map<String, InstanceMetrics.TenantRequests> tenants) {
+        return new InstanceMetrics(0, 0, 0, 0, new TreeMap<>(),
+                null, null, null, null, null, null, List.of(), tenants);
+    }
+
+    @Test
+    void cuentaRequestsYErroresPorTienda_sinNoneNiInvalid() {
+        InstanceMetrics metrics = InstanceMetrics.from(PrometheusText.parse(METRICS + """
+                http_server_requests_seconds_count{method="GET",status="404",tenant="demo",uri="/x"} 6
+                http_server_requests_seconds_count{method="GET",status="200",tenant="invalid",uri="/x"} 9
+                """));
+
+        // demo: 100 ok + 4 de 500 + 6 de 404; "none" (login y /metrics) e "invalid" no son tiendas
+        assertThat(metrics.tenants()).containsOnlyKeys("demo");
+        assertThat(metrics.tenants().get("demo")).isEqualTo(new InstanceMetrics.TenantRequests(110, 6, 4));
+    }
+
+    @Test
+    void tasasPorTienda_sumanLasInstanciasYUnReinicioNoDaNegativo() {
+        InstanceMetrics before = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(100, 10, 0)));
+        InstanceMetrics after = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(150, 20, 0),
+                "otra", new InstanceMetrics.TenantRequests(30, 0, 3)));
+        // Otra instancia que se reinicio: el contador bajo, se toma la lectura nueva entera
+        InstanceMetrics restartedBefore = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(500, 0, 0)));
+        InstanceMetrics restartedAfter = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(50, 0, 0)));
+
+        Map<String, Traffic.TenantRates> rates = Traffic.tenantRates(
+                List.of(Traffic.delta(before, after), Traffic.delta(restartedBefore, restartedAfter)), 10);
+
+        assertThat(rates.get("demo")).isEqualTo(new Traffic.TenantRates(10.0, 1.0, 0.0));
+        assertThat(rates.get("otra")).isEqualTo(new Traffic.TenantRates(3.0, 0.0, 0.3));
     }
 }

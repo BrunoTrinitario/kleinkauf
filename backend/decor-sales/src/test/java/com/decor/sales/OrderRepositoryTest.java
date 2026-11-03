@@ -13,6 +13,7 @@ import com.decor.sales.entities.PaymentMethod;
 import com.decor.sales.entities.PaymentReceipt;
 import com.decor.sales.entities.SalesChannel;
 import com.decor.sales.repositories.OrderRepository;
+import com.decor.sales.services.OrderEvents;
 import com.decor.sales.services.AdminOrderService;
 import com.decor.sales.services.OrderService;
 import com.decor.sales.services.OrderStatusService;
@@ -53,6 +54,9 @@ class OrderRepositoryTest {
 
 	@Autowired
 	private AdminOrderService adminOrderService;
+
+	@MockitoBean
+	private OrderEvents orderEvents;
 
 	@MockitoBean
 	private OrderService orderService;

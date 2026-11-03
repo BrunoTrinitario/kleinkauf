@@ -1,5 +1,6 @@
 package com.decor.observability.collector;
 
+import com.decor.common.observability.TenantTag;
 import com.decor.observability.collector.PrometheusText.Sample;
 
 import java.util.ArrayList;
@@ -28,8 +29,19 @@ public record InstanceMetrics(
         Double threads,
         Double dbConnectionsActive,
         Double dbConnectionsMax,
-        List<String> openCircuitBreakers
+        List<String> openCircuitBreakers,
+        // Requests y errores por tienda (etiqueta tenant), acumulados como los de arriba. Sin "none" ni "invalid"
+        Map<String, TenantRequests> tenants
 ) {
+
+    public record TenantRequests(double requests, double errors4xx, double errors5xx) {
+
+        static final TenantRequests ZERO = new TenantRequests(0, 0, 0);
+
+        TenantRequests plus(TenantRequests other) {
+            return new TenantRequests(requests + other.requests, errors4xx + other.errors4xx, errors5xx + other.errors5xx);
+        }
+    }
 
     static final String REQUESTS_COUNT = "http_server_requests_seconds_count";
     static final String REQUESTS_BUCKET = "http_server_requests_seconds_bucket";
@@ -49,6 +61,7 @@ public record InstanceMetrics(
         Double dbActive = null;
         Double dbMax = null;
         List<String> openCircuitBreakers = new ArrayList<>();
+        Map<String, TenantRequests> tenants = new TreeMap<>();
 
         for (Sample sample : samples) {
             switch (sample.name()) {
@@ -59,6 +72,13 @@ public record InstanceMetrics(
                     if (status != null && status.startsWith("5")) errors5xx += sample.value();
                     if (status != null && status.startsWith("4")) errors4xx += sample.value();
                     if ("429".equals(status)) rateLimited += sample.value();
+                    String tenant = sample.label(TenantTag.KEY);
+                    if (tenant != null && !TenantTag.NONE.equals(tenant) && !TenantTag.INVALID.equals(tenant)) {
+                        boolean is5xx = status != null && status.startsWith("5");
+                        boolean is4xx = status != null && status.startsWith("4");
+                        tenants.merge(tenant, new TenantRequests(sample.value(), is4xx ? sample.value() : 0,
+                                is5xx ? sample.value() : 0), TenantRequests::plus);
+                    }
                 }
                 case REQUESTS_BUCKET -> {
                     if (ignored(sample)) continue;
@@ -86,7 +106,7 @@ public record InstanceMetrics(
             }
         }
         return new InstanceMetrics(requests, errors5xx, errors4xx, rateLimited, buckets,
-                heapUsed, heapMax, cpu, threads, dbActive, dbMax, List.copyOf(openCircuitBreakers));
+                heapUsed, heapMax, cpu, threads, dbActive, dbMax, List.copyOf(openCircuitBreakers), Map.copyOf(tenants));
     }
 
     private static boolean ignored(Sample sample) {

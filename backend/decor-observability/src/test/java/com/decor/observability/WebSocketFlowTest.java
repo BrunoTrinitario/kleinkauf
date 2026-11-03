@@ -4,7 +4,9 @@ import com.decor.common.constants.Headers;
 import com.decor.common.dto.RoleDto;
 import com.decor.observability.audit.AuditStore;
 import com.decor.observability.dto.PageDto;
+import com.decor.observability.dto.StoreUsersDto;
 import com.decor.observability.security.UsersClient;
+import com.decor.observability.store.StoreFeeds;
 import com.decor.observability.ws.AccessRevalidator;
 import com.decor.observability.ws.Channels;
 import com.decor.observability.ws.SessionRegistry;
@@ -88,6 +90,9 @@ class WebSocketFlowTest {
 
     @MockitoBean
     AuditStore auditStore;
+
+    @MockitoBean
+    StoreFeeds storeFeeds;
 
     private final BlockingQueue<String> received = new LinkedBlockingQueue<>();
     private final CompletableFuture<CloseStatus> closed = new CompletableFuture<>();
@@ -218,6 +223,39 @@ class WebSocketFlowTest {
         sessions.publishToTenant(Channels.STORE_AUDIT, "mi_tienda", Map.of("entity", "Product"));
         JsonNode event = next();
         assertThat(event.path("data").path("entity").asText()).isEqualTo("Product");
+    }
+
+    @Test
+    void elAdministradorSeSuscribeALaActividadElUsoYLosConectadosDeSuTienda() throws Exception {
+        when(tickets.redeem("tienda")).thenReturn(Optional.of(new WsTicket(10L, "mi_tienda")));
+        connect("tienda", "mi_tienda");
+
+        for (String channel : List.of(Channels.STORE_ACTIVITY, Channels.STORE_USAGE, Channels.STORE_USERS)) {
+            send(Map.of("type", "subscribe", "channel", channel));
+            assertThat(next().path("type").asText()).isEqualTo("subscribed");
+        }
+        assertThat(sessions.tenantsSubscribedTo(Channels.STORE_USERS)).containsExactly("mi_tienda");
+
+        sessions.publishToTenant(Channels.STORE_ACTIVITY, "otra_tienda", Map.of("type", "order.created"));
+        sessions.publishToTenant(Channels.STORE_ACTIVITY, "mi_tienda", Map.of("type", "stock.low"));
+        JsonNode event = next();
+        assertThat(event.path("channel").asText()).isEqualTo(Channels.STORE_ACTIVITY);
+        assertThat(event.path("data").path("type").asText()).isEqualTo("stock.low");
+    }
+
+    @Test
+    void elAdministradorPideLosConectadosYElUsoDeSuTienda() {
+        when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
+        when(usersClient.getUserRoles(eq(13L), any())).thenReturn(List.of(new RoleDto("EMPLEADO", 0)));
+        when(storeFeeds.users("mi_tienda")).thenReturn(new StoreUsersDto(0, List.of()));
+        when(storeFeeds.usage("mi_tienda")).thenReturn(null);
+
+        assertThat(get("/api/v1/observability/store/users", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Redis caido
+        assertThat(get("/api/v1/observability/store/usage", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(get("/api/v1/observability/store/users", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        // Sin tienda (desde la plataforma) no hay panel de tienda
+        assertThat(get("/api/v1/observability/store/users", "12", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test

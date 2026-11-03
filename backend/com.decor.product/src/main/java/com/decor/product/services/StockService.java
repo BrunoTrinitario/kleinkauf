@@ -36,6 +36,9 @@ public class StockService {
     @Autowired
     private CatalogCacheService catalogCache;
 
+    @Autowired
+    private StockEvents stockEvents;
+
     @Transactional
     public StockMovementDto registerMovement(Long productId, NewStockMovementDto dto) throws ApiException {
         validate(dto);
@@ -48,7 +51,8 @@ public class StockService {
             case SALIDA -> -dto.quantity();
             case AJUSTE -> dto.quantity() - product.getStock();
         };
-        int newStock = product.getStock() + delta;
+        int stockBefore = product.getStock();
+        int newStock = stockBefore + delta;
         if (newStock < 0) {
             throw new ApiException(ErrorMessages.INSUFFICIENT_STOCK, HttpStatus.CONFLICT);
         }
@@ -56,10 +60,13 @@ public class StockService {
         product.setStock(newStock);
         productRepository.save(product);
 
-        StockMovementDto movement = toDto(save(product, dto.type(), delta, dto.reason()));
+        StockMovement saved = save(product, dto.type(), delta, dto.reason());
         // La disponibilidad del catalogo cambia con el stock (se aplica despues del commit)
         catalogCache.invalidate();
-        return movement;
+        // Panel en vivo de la tienda (tambien despues del commit)
+        stockEvents.movement(product, saved);
+        stockEvents.lowIfCrossed(product, stockBefore);
+        return toDto(saved);
     }
 
     // Lo usa ProductService al crear un producto con stock

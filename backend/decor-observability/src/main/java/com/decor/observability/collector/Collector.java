@@ -8,6 +8,7 @@ import com.decor.observability.dto.PlatformOverviewDto;
 import com.decor.observability.dto.ServiceHealthDto;
 import com.decor.observability.dto.ServiceTrafficDto;
 import com.decor.observability.dto.TrafficUpdateDto;
+import com.decor.observability.store.StoreFeeds;
 import com.decor.observability.ws.Channels;
 import com.decor.observability.ws.SessionRegistry;
 import jakarta.annotation.PreDestroy;
@@ -39,6 +40,8 @@ Recolector (lo llama Schedules cada observability.poll.interval):
 2. Arma la salud y el trafico por servicio. Las tasas salen de la lectura anterior de cada instancia.
 3. Guarda la lectura (PlatformState) y la manda por el WS: platform.health solo si cambio algun estado,
    platform.traffic siempre.
+4. Con el trafico del gateway por tienda (etiqueta tenant) actualiza los canales de las tiendas (StoreFeeds).
+   Se usa solo el gateway: cada request de una tienda pasa una vez por ahi (en los servicios se contaria de nuevo).
  */
 @Slf4j
 @Component
@@ -52,8 +55,10 @@ public class Collector {
     private final ConnectedUsers connectedUsers;
     private final PlatformState state;
     private final SessionRegistry sessions;
+    private final StoreFeeds storeFeeds;
     private final Clock clock;
     private final Duration timeout;
+    private final String gatewayService;
 
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
     // Ultima lectura de cada instancia (por id): de aca salen las tasas
@@ -61,15 +66,18 @@ public class Collector {
     private String lastHealthSignature;
 
     public Collector(TargetDiscovery discovery, InstanceProbe probe, ConnectedUsers connectedUsers,
-                     PlatformState state, SessionRegistry sessions, Clock clock,
-                     @Value("${observability.poll.timeout:2s}") Duration timeout) {
+                     PlatformState state, SessionRegistry sessions, StoreFeeds storeFeeds, Clock clock,
+                     @Value("${observability.poll.timeout:2s}") Duration timeout,
+                     @Value("${observability.gateway-service:gateway-microservice}") String gatewayService) {
         this.discovery = discovery;
         this.probe = probe;
         this.connectedUsers = connectedUsers;
         this.state = state;
         this.sessions = sessions;
+        this.storeFeeds = storeFeeds;
         this.clock = clock;
         this.timeout = timeout;
+        this.gatewayService = gatewayService;
     }
 
     // synchronized: si una vuelta se demora no se pisa con la siguiente
@@ -86,6 +94,7 @@ public class Collector {
             health.add(health(service, results));
             traffic.add(traffic(service, results, now));
         }
+        Map<String, Traffic.TenantRates> tenantRates = tenantRates(byService.getOrDefault(gatewayService, List.of()), now);
         remember(targets, byService.values(), now);
 
         ConnectedUsersDto connected = connectedUsers.count();
@@ -98,6 +107,12 @@ public class Collector {
             sessions.publish(Channels.PLATFORM_HEALTH, health);
         }
         sessions.publish(Channels.PLATFORM_TRAFFIC, new TrafficUpdateDto(now, traffic, connected));
+        try {
+            storeFeeds.update(tenantRates);
+        } catch (RuntimeException e) {
+            // Los canales de las tiendas no frenan el panel de la plataforma
+            log.warn("No se pudieron actualizar los canales de las tiendas: {}", e.toString());
+        }
         return overview;
     }
 
@@ -136,17 +151,8 @@ public class Collector {
     private ServiceTrafficDto traffic(String service, List<Result> results, Instant now) {
         List<InstanceMetrics> metrics = results.stream().map(Result::metrics).filter(Objects::nonNull).toList();
 
-        List<Traffic.Delta> deltas = new ArrayList<>();
-        double seconds = 0;
-        for (Result result : results) {
-            Reading before = previous.get(result.target().instanceId());
-            if (result.metrics() == null || before == null) {
-                continue;
-            }
-            deltas.add(Traffic.delta(before.metrics(), result.metrics()));
-            seconds += Duration.between(before.at(), now).toMillis() / 1000.0;
-        }
-        Traffic.Rates rates = deltas.isEmpty() ? null : Traffic.rates(deltas, seconds / deltas.size());
+        Deltas deltas = deltas(results, now);
+        Traffic.Rates rates = deltas.list().isEmpty() ? null : Traffic.rates(deltas.list(), deltas.seconds());
 
         return new ServiceTrafficDto(
                 service,
@@ -164,6 +170,30 @@ public class Collector {
                 sum(metrics, InstanceMetrics::threads),
                 sum(metrics, InstanceMetrics::dbConnectionsActive),
                 sum(metrics, InstanceMetrics::dbConnectionsMax));
+    }
+
+    // Trafico por tienda del gateway; null si todavia no hay dos lecturas de ninguna de sus instancias
+    private Map<String, Traffic.TenantRates> tenantRates(List<Result> gateway, Instant now) {
+        Deltas deltas = deltas(gateway, now);
+        return deltas.list().isEmpty() ? null : Traffic.tenantRates(deltas.list(), deltas.seconds());
+    }
+
+    // Lo que paso en cada instancia desde su lectura anterior; seconds es el promedio de los intervalos
+    private record Deltas(List<Traffic.Delta> list, double seconds) {
+    }
+
+    private Deltas deltas(List<Result> results, Instant now) {
+        List<Traffic.Delta> deltas = new ArrayList<>();
+        double seconds = 0;
+        for (Result result : results) {
+            Reading before = previous.get(result.target().instanceId());
+            if (result.metrics() == null || before == null) {
+                continue;
+            }
+            deltas.add(Traffic.delta(before.metrics(), result.metrics()));
+            seconds += Duration.between(before.at(), now).toMillis() / 1000.0;
+        }
+        return new Deltas(deltas, deltas.isEmpty() ? 0 : seconds / deltas.size());
     }
 
     // Se olvidan las instancias que ya no estan; las que no respondieron /metrics quedan como estaban
