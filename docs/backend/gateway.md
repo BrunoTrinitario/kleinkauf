@@ -27,12 +27,12 @@ Los filtros corren en este orden. Cada uno puede cortar la request; lo que respo
 | # | Filtro | Qué hace | Si corta |
 |---|---|---|---|
 | 1 | `ClientHeadersFilter` | Borra `X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name` y `X-Client-Ip` que mande el cliente. Pone `X-Client-Ip` con la IP de la conexión | — |
-| 2 | `RequestFilter` | Rate limit por tipo de ruta, IP y origen (ver abajo) | **429**, cuerpo vacío |
-| 3 | `MsFilter` | `/api/internal/**`: valida el token interno (`X-Internal-Token`) | **401**, cuerpo vacío |
-| 4 | `TenantGatewayFilter` | Busca la tienda por el `Origin` y agrega `X-Forwarded-Host: <schema>`. Se saltea en `/api/v1/platform/**`, `/products/images/**` y el `/ws` del frontend de la plataforma | **404** `The tenant was not found.` (no existe o está borrada) · **403** `The tenant is disabled.` · **503** `Error de respuesta` si users no responde |
-| 5 | `JwtFilter` | En las rutas con login valida el `Authorization: Bearer`, que el claim `tenant` del token sea el schema de la request (`public` en `/api/v1/platform/**`) y agrega `X-User-Id`. En las públicas agrega `X-Open-Path: true`; en las de login opcional, si viene token lo valida igual | **401**, cuerpo vacío (sin token, vencido, inválido o de otra tienda) |
-| 6 | `ActivityFilter` | Marca `activity:<tenant>:<userId>` en Redis (TTL 5 min, como mucho cada 30 s por usuario). No frena la request | — |
-| 7 | `CorsConfig` | CORS: acepta el `Origin` si es la URL de una tienda o la del frontend de la plataforma (`platform.url`). Responde los preflight | Preflight rechazado (sin cabeceras CORS) |
+| 2 | `CorsConfig` | CORS (ver abajo). Va antes de los filtros que cortan, así sus 401, 404/403 y 429 salen con las cabeceras CORS y el navegador deja leer el código. Responde los preflight sin seguir | **403** sin cabeceras CORS si el origen no se acepta |
+| 3 | `RequestFilter` | Rate limit por tipo de ruta, IP y origen (ver abajo) | **429**, cuerpo vacío |
+| 4 | `MsFilter` | `/api/internal/**`: valida el token interno (`X-Internal-Token`) | **401**, cuerpo vacío |
+| 5 | `TenantGatewayFilter` | Busca la tienda por el `Origin` y agrega `X-Forwarded-Host: <schema>`. Se saltea en `/api/v1/platform/**`, `/products/images/**` y el `/ws` del frontend de la plataforma | **404** `The tenant was not found.` (no existe o está borrada) · **403** `The tenant is disabled.` · **503** `Error de respuesta` si users no responde |
+| 6 | `JwtFilter` | En las rutas con login valida el `Authorization: Bearer`, que el claim `tenant` del token sea el schema de la request (`public` en `/api/v1/platform/**`) y agrega `X-User-Id`. En las públicas agrega `X-Open-Path: true`; en las de login opcional, si viene token lo valida igual | **401**, cuerpo vacío (sin token, vencido, inválido o de otra tienda) |
+| 7 | `ActivityFilter` | Marca `activity:<tenant>:<userId>` en Redis (TTL 5 min, como mucho cada 30 s por usuario). No frena la request | — |
 | — | Ruteo | Manda la request al servicio | **503** si el servicio no está en Eureka |
 
 `OPTIONS` siempre pasa el filtro de JWT. Las requests del puerto de gestión (9000) se saltean todos los filtros.
@@ -96,8 +96,16 @@ Con el límite en 5 pasan 5 requests y la sexta recibe **429** con el cuerpo vac
 
 ## CORS
 
-- Se acepta un `Origin` si es la URL de una tienda que existe (aunque esté deshabilitada) o `platform.url` (el
-  frontend de la plataforma). Cualquier otro no recibe cabeceras CORS y el navegador corta la request.
+- Se acepta un `Origin` si es:
+  - la URL de una tienda que existe (aunque esté deshabilitada);
+  - `platform.url` (el frontend de la plataforma);
+  - un **subdominio de la plataforma** con forma de identificador (`<identificador>.<host de platform.url>`, mismo
+    esquema y puerto, ej. `http://mitienda.localhost:2999`), **aunque la tienda no exista o esté borrada**. Así el
+    404 de `TenantGatewayFilter` llega legible y el frontend muestra "esta tienda no existe". No consulta a users.
+
+  Cualquier otro recibe **403** sin cabeceras CORS y el navegador corta la request.
+- `CorsConfig` corre segundo (`@Order(-150)`), antes del rate limit, del tenant y del JWT: las respuestas que cortan
+  esos filtros ya llevan las cabeceras CORS. Los preflight se responden ahí y no cuentan para el rate limit.
 - Con origen aceptado: credenciales permitidas, todos los headers y métodos.
 - La consulta va a la caché local, después Redis y por último a users; solo se cachean los orígenes permitidos.
 - El CORS propio de Spring está apagado (`spring.webflux.cors.enabled=false`): lo hace `CorsConfig`.
@@ -130,9 +138,6 @@ Con el límite en 5 pasan 5 requests y la sexta recibe **429** con el cuerpo vac
 
 - Las respuestas que corta el gateway (401, 404/403 de la tienda, 429) tienen el cuerpo vacío o en texto: el
   frontend tiene que decidir por el código.
-- `CorsConfig` no tiene `@Order` y corre después de los filtros que cortan. **A verificar:** si las respuestas
-  401/404/429 salen sin cabeceras CORS, el navegador las ve como un error de red y el frontend no puede leer el
-  código.
 - El rate limit es por instancia (memoria) y usa `X-Forwarded-For` si viene, que el cliente puede inventar: detrás de
   un proxy habría que tomar la IP del proxy.
 - `X-Client-Ip` es la IP de la conexión: detrás de un proxy sería la del proxy.

@@ -85,6 +85,43 @@ class CorsConfigTest {
     }
 
     @Test
+    void subdominioDeLaPlataforma_sePermiteAunqueLaTiendaNoExista() {
+        // TenantGatewayFilter responde 404 despues: el navegador tiene que poder leerlo
+        ReflectionTestUtils.setField(filter, "platformUrl", "http://localhost:2999");
+        String origin = "http://no-existe.localhost:2999";
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/api/v1/catalog/products").header(HttpHeaders.ORIGIN, origin));
+
+        filter.filter(exchange, chain).block();
+
+        assertTrue(chainCalled.get());
+        assertEquals(origin, exchange.getResponse().getHeaders().getAccessControlAllowOrigin());
+        verifyNoInteractions(tenantService);
+    }
+
+    @Test
+    void otroPuertoOEsquemaOIdentificadorInvalido_noEsSubdominioDeLaPlataforma() {
+        ReflectionTestUtils.setField(filter, "platformUrl", "http://localhost:2999");
+        for (String origin : new String[]{
+                "http://tienda.localhost:3000",
+                "https://tienda.localhost:2999",
+                "http://a.localhost:2999",
+                "http://1tienda.localhost:2999",
+                "http://tienda.otro.localhost:2999",
+                "http://tienda.evil-localhost:2999"}) {
+            when(tenantService.isCorsAllowed(origin)).thenReturn(Mono.just(false));
+            chainCalled.set(false);
+            MockServerWebExchange exchange = MockServerWebExchange.from(
+                    MockServerHttpRequest.get("http://gateway/api/v1/catalog/products").header(HttpHeaders.ORIGIN, origin));
+
+            filter.filter(exchange, chain).block();
+
+            assertFalse(chainCalled.get(), origin);
+            assertEquals(HttpStatus.FORBIDDEN, exchange.getResponse().getStatusCode(), origin);
+        }
+    }
+
+    @Test
     void sinOrigin_noEsCorsYNoConsultaTenants() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/api/v1/products/all"));

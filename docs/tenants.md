@@ -38,18 +38,20 @@ Navegador (Origin: http://mi-tienda.localhost:2999)
 gateway
    1. ClientHeadersFilter   borra los headers internos que mande el cliente
                             (X-User-Id, X-Forwarded-Host, X-Open-Path, X-Tenant-Name)
-   2. RequestFilter         rate limit por IP y origen (ventanas de 1 minuto)
-   3. MsFilter              /api/internal/**: valida el token interno
-   4. TenantGatewayFilter   busca el tenant por el Origin:
+   2. CorsConfig            CORS: orígenes de tenants, subdominios de la plataforma y el
+                            frontend de la plataforma. Va antes de los filtros que cortan
+                            para que sus 401/404/403/429 salgan con las cabeceras CORS
+   3. RequestFilter         rate limit por IP y origen (ventanas de 1 minuto)
+   4. MsFilter              /api/internal/**: valida el token interno
+   5. TenantGatewayFilter   busca el tenant por el Origin:
                               caché local (1 min) → Redis tenant:url:<url> → users
                             no existe o borrado → 404 · deshabilitado → 403
                             agrega X-Forwarded-Host: <schema>
                             (las rutas /api/v1/platform/** no tienen tenant y se saltean)
-   5. JwtFilter             rutas no públicas: valida el JWT y que su claim "tenant" sea
+   6. JwtFilter             rutas no públicas: valida el JWT y que su claim "tenant" sea
                             el schema de la request (o "public" en /api/v1/platform/**);
                             agrega X-User-Id. En POST /api/v1/sales/orders el token es
                             opcional, pero si viene se valida igual
-   6. CorsConfig            CORS: solo orígenes de tenants y el frontend de la plataforma
    │
    ▼
 users / products / sales

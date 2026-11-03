@@ -207,6 +207,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-03 | Referencia del backend en `docs/backend/`, **un archivo por servicio** con fichas completas (curl, respuestas, errores literales); `endpoints.md` se borra y los docs por tema quedan | Que integrar el frontend o empezar en un servicio sea rápido |
 | 2026-11-03 | Las lecturas viejas con **stock exacto** (`GET /products/{id}`, `/featured`, `/search`, `/bundles/**`) piden un área del panel; los destacados públicos pasan a `GET /api/v1/catalog/featured` | El catálogo público no muestra el stock exacto |
 | 2026-11-03 | El mail de recupero lleva a `<URL de la tienda>/reset-password?token=` (antes, a la API del gateway) | Un link de mail hace GET: tiene que abrir una página del frontend |
+| 2026-11-03 | `CorsConfig` corre **antes** de los filtros que cortan (`@Order(-150)`) y acepta cualquier **subdominio de la plataforma** con forma de identificador, aunque la tienda no exista | Los 401, 404/403 y 429 del gateway salían sin cabeceras CORS: el navegador los veía como error de red y el frontend no podía leer el código |
 
 ### Detalle de la librería común
 
