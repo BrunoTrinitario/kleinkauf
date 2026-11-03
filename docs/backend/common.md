@@ -42,7 +42,9 @@ Convenciones comunes: [README](README.md).
 4. **Seguridad:** un `HeaderAuthFilter` propio que lea `X-User-Id`, pida los roles a users y arme
    `CustomUserDetails`; y un `SecurityConfig` con el `TenantFilter` antes. Copiar el de sales o products.
 5. **Errores:** tirar `ApiException(mensaje, HttpStatus)`; `GlobalExceptionHandler` responde el mensaje en texto
-   con ese código. Cualquier otra excepción responde 500 y se loguea con la traza (`Unhandled error`).
+   con ese código. Los errores del pedido responden su código: ruta inexistente 404 (`Not found`), método que la
+   ruta no tiene 405 (`Method not allowed`), parámetro con otro tipo 400 (`Invalid value for <parámetro>`) y cuerpo
+   que no es JSON 400. Cualquier otra excepción responde 500 y se loguea con la traza (`Unhandled error`).
 6. **Auditoría:** marcar las entidades con `@Audited` (y los campos que no se registran con `@AuditIgnore`). Para lo
    que no es un alta, cambio o baja, inyectar `AuditLog` y llamar a `record(...)` o `read(entidad, id)`. Se apaga con
    `decor.audit.enabled=false`.
