@@ -37,6 +37,12 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   rol"): el panel de productos abre con cualquier área del panel y crear, editar o borrar piden `PRODUCTOS`;
   usuarios pide `USUARIOS`; el panel de la tienda, `ADMINISTRADOR`. El menú usa los mismos criterios. Cerrar sesión
   lleva a la home (a `/login` en la plataforma).
+- **Panel de productos** (B3): movimientos de stock con historial (`STOCK`), tarjeta de stock bajo y contador en el
+  menú, destacados con estrella y diálogo para ordenarlos (`PRODUCTOS`), importar y exportar CSV con la tabla de
+  errores por fila (`PRODUCTOS` y `PRECIOS`) y página de combos en `/admin/bundles` (`COMBOS` para cambiar).
+- **Movimientos de stock sin motivo daban 500**: `DecorEvent` copiaba los datos con `Map.copyOf`, que no acepta
+  `null`, y el `NullPointerException` deshacía el movimiento. Ahora acepta `null`. Además, `GlobalExceptionHandler`
+  loguea con la traza cualquier 500 no previsto (antes no dejaba rastro).
 - **Sesión vencida** (B1): un 401 cierra la sesión y vuelve a `/login?next=<página>`; las páginas privadas también
   mandan al login con `next`, y el login vuelve ahí.
 - **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
@@ -100,17 +106,6 @@ esto ya está.
 - Destacados en la home con `GET /api/v1/catalog/featured`.
 - Combos: listado y detalle (`/catalog/bundles`), con el ahorro frente al precio de lista.
 - Compartir por WhatsApp y copiar el link (depende de A2).
-
-### B3. Panel de productos
-
-Ya están el alta y la edición, imágenes, metadatos y precios en el modal. Falta:
-
-1. Movimientos de stock: modal para entrada, salida o ajuste, historial por producto y el 409 por stock insuficiente.
-2. Stock bajo: listado y contador en el menú.
-3. Destacados: marcar y ordenar.
-4. Importar y exportar CSV: plantilla, subida y tabla de errores por fila.
-5. Combos: página propia con crear, habilitar, cambiar precio, agregar y quitar productos, y borrar. Ahora
-   `GET /bundles/**` pide un área del panel.
 
 ### B4. Usuarios y permisos
 
@@ -255,8 +250,8 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B3 y B4**: lo que el backend ya tiene listo y lo que más usa el dueño. La base del frontend (B0) ya está y B1
-   también, salvo el recupero de contraseña.
+1. **B4**: usuarios y permisos. Ya están la base del frontend (B0), la cuenta (B1, salvo el recupero de
+   contraseña) y el panel de productos (B3).
 2. **B5**: el panel de la tienda, que ya tiene todo el backend.
 3. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
 4. **B6 y B7**: compra online y panel de ventas.

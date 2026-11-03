@@ -4,7 +4,18 @@ import { useAuth } from "@/lib/auth-context"
 import { useQueryClient } from "@tanstack/react-query"
 import type { Product } from "@/lib/types"
 import { useCatalogCategories } from "@/api/catalog"
-import { invalidateProducts, useAdminProducts, useDeleteProduct } from "@/api/products"
+import {
+  invalidateProducts,
+  useAdminProducts,
+  useDeleteProduct,
+  useFeaturedProducts,
+  useLowStock,
+  useSetFeatured,
+} from "@/api/products"
+import { AdminStockDialog, type StockTarget } from "@/components/admin-stock-dialog"
+import { AdminLowStockCard } from "@/components/admin-low-stock-card"
+import { AdminFeaturedDialog } from "@/components/admin-featured-dialog"
+import { AdminCsvDialog } from "@/components/admin-csv-dialog"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { PaginationControls } from "@/components/pagination-controls"
 import { strings } from "@/lib/strings"
@@ -26,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Package } from "lucide-react"
+import { FileSpreadsheet, Plus, Package, Star } from "lucide-react"
 
 // Abre con cualquier area del panel (RequireArea en App.tsx); crear, editar y borrar piden PRODUCTOS
 export default function ProductsManagementPage() {
@@ -40,8 +51,17 @@ export default function ProductsManagementPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   // Producto a borrar: se pide confirmacion antes (borrar no se puede deshacer desde el panel)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [stockTarget, setStockTarget] = useState<StockTarget | null>(null)
+  const [isFeaturedOpen, setIsFeaturedOpen] = useState(false)
+  const [isCsvOpen, setIsCsvOpen] = useState(false)
 
   const canEditProducts = can("PRODUCTOS")
+  const canManageStock = can("STOCK")
+  // El CSV trae costos: pide PRODUCTOS y PRECIOS
+  const canUseCsv = canEditProducts && can("PRECIOS")
+  const lowStock = useLowStock(canManageStock).data ?? []
+  const featured = useFeaturedProducts(canEditProducts).data
+  const setFeatured = useSetFeatured()
 
   // Una busqueda o filtro nuevo arranca desde la primera pagina
   useEffect(() => {
@@ -87,6 +107,19 @@ export default function ProductsManagementPage() {
     }
   }
 
+  // Un destacado nuevo va al final de la home (su orden es la cantidad que ya hay)
+  const handleToggleFeatured = async (product: Product) => {
+    try {
+      await setFeatured.mutateAsync(
+        product.featured ? { id: product.id, featured: false } : { id: product.id, featured: true, order: featured?.length }
+      )
+    } catch (err) {
+      notifyError(err, strings.adminFeatured.toggleError)
+    }
+  }
+
+  const openStock = (target: { id: string | number; name: string; stock: number }) =>
+    setStockTarget({ id: String(target.id), name: target.name, stock: target.stock })
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,13 +133,27 @@ export default function ProductsManagementPage() {
           backTo={activeRole === "ADMINISTRADOR" ? "/admin" : "/"}
           action={
             canEditProducts ? (
-              <Button onClick={openCreateForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                {strings.adminProducts.createButton}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setIsFeaturedOpen(true)}>
+                  <Star className="h-4 w-4 mr-2" />
+                  {strings.adminFeatured.button}
+                </Button>
+                {canUseCsv ? (
+                  <Button variant="outline" onClick={() => setIsCsvOpen(true)}>
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    {strings.adminCsv.button}
+                  </Button>
+                ) : null}
+                <Button onClick={openCreateForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {strings.adminProducts.createButton}
+                </Button>
+              </div>
             ) : undefined
           }
         />
+
+        {canManageStock ? <AdminLowStockCard products={lowStock} onRegister={openStock} /> : null}
 
         <div className="mb-6">
           <ListToolbar>
@@ -154,6 +201,8 @@ export default function ProductsManagementPage() {
                     product={product}
                     onEdit={canEditProducts ? handleEditProduct : undefined}
                     onDelete={canEditProducts ? setProductToDelete : undefined}
+                    onStock={canManageStock ? openStock : undefined}
+                    onToggleFeatured={canEditProducts ? handleToggleFeatured : undefined}
                   />
                 ))}
               </div>
@@ -205,6 +254,14 @@ export default function ProductsManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminStockDialog
+        product={stockTarget}
+        open={stockTarget !== null}
+        onOpenChange={(open) => !open && setStockTarget(null)}
+      />
+      <AdminFeaturedDialog open={isFeaturedOpen} onOpenChange={setIsFeaturedOpen} />
+      <AdminCsvDialog open={isCsvOpen} onOpenChange={setIsCsvOpen} />
     </div>
   )
 }

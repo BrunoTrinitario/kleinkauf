@@ -1,22 +1,30 @@
 import type { Product } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { productImageUrl } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash2 } from "lucide-react"
+import { PackagePlus, Pencil, Star, Trash2 } from "lucide-react"
 
+// Cada accion es opcional: sin el handler (falta el permiso del area) el boton no se muestra o queda deshabilitado
 interface AdminProductCardProps {
   product: Product
   onEdit?: (product: Product) => void
   onDelete?: (product: Product) => void
+  // STOCK: movimientos e historial
+  onStock?: (product: Product) => void
+  // PRODUCTOS: marcar o desmarcar como destacado
+  onToggleFeatured?: (product: Product) => void
 }
 
 export function AdminProductCard({
   product,
   onEdit,
   onDelete,
+  onStock,
+  onToggleFeatured,
 }: AdminProductCardProps) {
-  // Mismo criterio que "Pocas unidades" en el catalogo: stock igual o menor al minimo
-  const isLowStock = product.stock <= (product.minStock ?? 0)
+  // Mismo criterio que el backend: hay alerta solo si el producto tiene minimo
+  const isLowStock = (product.minStock ?? 0) > 0 && product.stock <= product.minStock
 
   // En mobile: imagen mas chica y categoria y stock en su propia linea, para que el nombre tenga lugar
   return (
@@ -35,12 +43,39 @@ export function AdminProductCard({
         <h3 className="font-medium truncate">{product.name}</h3>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
           <span className="truncate">{product.category}</span>
-          <span className={`whitespace-nowrap ${isLowStock ? "font-medium text-foreground" : ""}`}>
+          <span className={cn("whitespace-nowrap", isLowStock && "font-medium text-destructive")}>
             {product.stock} {strings.adminProductCard.inStock}
+            {isLowStock ? ` · ${strings.adminProductCard.lowStock}` : null}
           </span>
+          {product.featured ? (
+            <span className="whitespace-nowrap text-cyan-edge">{strings.adminProductCard.featured}</span>
+          ) : null}
         </div>
       </div>
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {onToggleFeatured ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onToggleFeatured(product)}
+            aria-pressed={!!product.featured}
+            aria-label={
+              product.featured ? strings.adminProductCard.unfeatureAria : strings.adminProductCard.featureAria
+            }
+          >
+            <Star className={cn("h-4 w-4", product.featured && "fill-current text-cyan-edge")} />
+          </Button>
+        ) : null}
+        {onStock ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onStock(product)}
+            aria-label={strings.adminProductCard.stockAria}
+          >
+            <PackagePlus className="h-4 w-4" />
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           size="icon"

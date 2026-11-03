@@ -10,6 +10,7 @@ import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
 import AdminPage from "@/pages/admin/AdminPage"
 import AdminProductsPage from "@/pages/admin/AdminProductsPage"
+import AdminBundlesPage from "@/pages/admin/AdminBundlesPage"
 import AdminUsersPage from "@/pages/admin/AdminUsersPage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import PlatformDashboardPage from "@/pages/platform/PlatformDashboardPage"
@@ -54,6 +55,7 @@ function StoreRoutes() {
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>
           <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/admin/bundles" element={<AdminBundlesPage />} />
         </Route>
         <Route element={<RequireArea anyOf={["USUARIOS"]} />}>
           <Route path="/admin/users" element={<AdminUsersPage />} />

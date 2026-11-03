@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context"
 import type { UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { PRODUCT_PANEL_AREAS } from "@/lib/permissions"
+import { useLowStock } from "@/api/products"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +18,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
-import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package } from "lucide-react"
+import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "CLIENTE", label: strings.roles.cliente, icon: User },
@@ -43,6 +44,8 @@ export function Header() {
   // Los mismos criterios que las rutas protegidas de App.tsx (areas del rol activo)
   const canManageProducts = PRODUCT_PANEL_AREAS.some((area) => can(area))
   const canManageUsers = can("USUARIOS")
+  // Contador de stock bajo junto a "Productos" (la misma consulta que la tarjeta del panel, en cache)
+  const lowStock = useLowStock(isAuthenticated && can("STOCK")).data?.length ?? 0
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-card">
@@ -59,8 +62,25 @@ export function Header() {
             {strings.nav.catalog}
           </Link>
           {isAuthenticated && canManageProducts && (
-            <Link to="/admin/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              to="/admin/products"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               {strings.nav.products}
+              {lowStock > 0 ? (
+                <span
+                  className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
+                  aria-label={strings.adminLowStock.navBadge(lowStock)}
+                  title={strings.adminLowStock.navBadge(lowStock)}
+                >
+                  {lowStock}
+                </span>
+              ) : null}
+            </Link>
+          )}
+          {isAuthenticated && canManageProducts && (
+            <Link to="/admin/bundles" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {strings.nav.bundles}
             </Link>
           )}
           {isAuthenticated && canManageUsers && (
@@ -144,6 +164,17 @@ export function Header() {
                         <Link to="/admin/products">
                           <Package className="mr-2 h-4 w-4" />
                           {strings.auth.manageProducts}
+                          {lowStock > 0 ? (
+                            <span className="ml-auto rounded-full bg-destructive px-1.5 text-[11px] font-medium leading-5 text-white">
+                              {lowStock}
+                            </span>
+                          ) : null}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/bundles">
+                          <Boxes className="mr-2 h-4 w-4" />
+                          {strings.auth.manageBundles}
                         </Link>
                       </DropdownMenuItem>
                     </>
