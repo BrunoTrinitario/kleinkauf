@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, PLATFORM_PATH } from "@/lib/api"
 import { strings } from "@/lib/strings"
+import type { PeriodRange } from "@/lib/periods"
 import type {
   NewTenantDto,
-  PeriodGroupBy,
   PlatformDashboard,
   PlatformTenant,
   Superadmin,
@@ -19,12 +19,6 @@ export const platformKeys = {
   productsUsage: () => [...platformKeys.all, "usage", "products"] as const,
   tenants: () => [...platformKeys.all, "tenants"] as const,
   superadmins: () => [...platformKeys.all, "superadmins"] as const,
-}
-
-export interface PeriodRange {
-  from: string
-  to: string
-  groupBy: PeriodGroupBy
 }
 
 export function usePlatformDashboard(range: PeriodRange, enabled: boolean) {

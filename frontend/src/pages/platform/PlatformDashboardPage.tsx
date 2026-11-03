@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react"
 import { usePlatformDashboard, usePlatformProductsUsage, usePlatformUsersUsage } from "@/api/platform"
 import { strings } from "@/lib/strings"
-import type { PeriodGroupBy, TenantUsersUsage } from "@/lib/types"
+import type { TenantUsersUsage } from "@/lib/types"
+import { rangeParams, type RangeKey } from "@/lib/periods"
 import { usePlatformSession } from "@/hooks/use-platform-session"
 import { PageHeader } from "@/components/page-header"
 import { FilterSelect } from "@/components/list-toolbar"
@@ -12,34 +13,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Ban, CircleCheck, Store, Trash2 } from "lucide-react"
 
-type RangeKey = "days" | "weeks" | "months"
 type UsageSort = "products" | "users" | "activeUsers" | "lastActivity" | "createdAt"
 
 // Fila de la tabla de uso: lo de users mas lo de products (null si products no respondio)
 interface UsageRow extends TenantUsersUsage {
   products: number | null
   bundles: number | null
-}
-
-const pad = (n: number) => String(n).padStart(2, "0")
-const isoDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-
-// Rangos fijos: periodos completos que terminan hoy (la semana empieza el lunes, como en el backend)
-function rangeParams(key: RangeKey): { from: string; to: string; groupBy: PeriodGroupBy } {
-  const today = new Date()
-  const from = new Date(today)
-  if (key === "days") {
-    from.setDate(today.getDate() - 29)
-    return { from: isoDate(from), to: isoDate(today), groupBy: "DAY" }
-  }
-  if (key === "weeks") {
-    const sinceMonday = (today.getDay() + 6) % 7
-    from.setDate(today.getDate() - sinceMonday - 7 * 11)
-    return { from: isoDate(from), to: isoDate(today), groupBy: "WEEK" }
-  }
-  from.setDate(1)
-  from.setMonth(today.getMonth() - 11)
-  return { from: isoDate(from), to: isoDate(today), groupBy: "MONTH" }
 }
 
 const dateTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" })

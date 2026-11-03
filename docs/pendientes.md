@@ -43,6 +43,10 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **Usuarios y permisos** (B4): los roles se dan y se sacan desde la edición de cada usuario, y la página de usuarios
   suma la matriz de permisos por rol (`EMPLEADO` y `CLIENTE` configurables, `ADMINISTRADOR` solo lectura,
   `USUARIOS` bloqueado, aviso de que tarda hasta 1 minuto).
+- **Resumen de la tienda** (B5): `/admin` muestra ventas (facturado, ventas, unidades, ganancia con el aviso de
+  unidades sin costo, gráfico por período, canal, medio de pago y más vendidos), productos, stock (valor del
+  inventario y últimos movimientos) y usuarios (activos, por rol y altas). Cada bloque carga por separado y si un
+  servicio falla el resto sigue. El tiempo real de la tienda queda para B8.
 - **Movimientos de stock sin motivo daban 500**: `DecorEvent` copiaba los datos con `Map.copyOf`, que no acepta
   `null`, y el `NullPointerException` deshacía el movimiento. Ahora acepta `null`. Además, `GlobalExceptionHandler`
   loguea con la traza cualquier 500 no previsto (antes no dejaba rastro).
@@ -109,16 +113,6 @@ esto ya está.
 - Destacados en la home con `GET /api/v1/catalog/featured`.
 - Combos: listado y detalle (`/catalog/bundles`), con el ahorro frente al precio de lista.
 - Compartir por WhatsApp y copiar el link (depende de A2).
-
-### B5. Resumen de la tienda
-
-Reemplaza `admin-dashboard.tsx`, que hoy solo cuenta productos y usuarios.
-
-1. Tres bloques que cargan por separado: productos y stock (`GET /products/dashboard`) y usuarios
-   (`GET /users/dashboard`, con `from`, `to` y `groupBy`). Si un servicio falla, el resto sigue.
-2. Gráficos que incluyen los períodos en cero, con el mismo estilo que el de altas de la plataforma.
-3. Ventas: sumar los reportes de `/api/v1/sales/admin/reports/**`.
-4. Tiempo real: actividad, uso y conectados (ver B8).
 
 ### B6. Compra online
 
@@ -242,15 +236,17 @@ preguntas antes de implementarla, como se hizo con ventas.
 - MVP.md menciona Next.js `generateMetadata` para Open Graph.
 - El README "sin Docker" no lista sales ni observability en el orden de arranque.
 - Archivo suelto `backend/eureka/nul`, sin trackear: es basura de una redirección en Windows y se puede borrar.
+- **`init.sql` solo corre con el volumen nuevo**: un volumen de Postgres creado antes de ventas u observabilidad no
+  tiene las bases `sales` ni `observability`, y sales queda reiniciándose. Contarlo en el README (crearlas a mano o
+  borrar el volumen) o crearlas al arrancar si no existen.
 
 ---
 
 ## Orden sugerido
 
-1. **B5**: el panel de la tienda, que ya tiene todo el backend. Ya están la base del frontend (B0), la cuenta (B1,
-   salvo el recupero de contraseña), el panel de productos (B3) y usuarios y permisos (B4).
-2. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
-3. **B6 y B7**: compra online y panel de ventas.
-4. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
-5. **Decidir y planificar C1**, la próxima etapa de ventas.
-6. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
+1. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3). Ya están la base del frontend (B0), la
+   cuenta (B1, salvo el recupero de contraseña), los paneles de productos (B3), usuarios (B4) y el resumen (B5).
+2. **B6 y B7**: compra online y panel de ventas.
+3. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
+4. **Decidir y planificar C1**, la próxima etapa de ventas.
+5. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
