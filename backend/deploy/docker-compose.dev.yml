@@ -67,7 +67,7 @@ services:
     <<: *service
     container_name: product-service
     volumes:
-      - ../com.kleinkauf.product:/app
+      - ../kleinkauf-product:/app
       - ../kleinkauf-common:/kleinkauf-common
       - product-gradle-cache:/home/gradle/.gradle
       - /app/build

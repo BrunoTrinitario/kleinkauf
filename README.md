@@ -46,7 +46,7 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 | **Frontend** (`frontend/`) | Interfaz web en Vite + React + TypeScript + Tailwind + shadcn/ui: login, registro, panel de administración y catálogo | 2999 |
 | **Gateway** (`backend/gateway`) | Único punto de entrada. Valida el JWT, resuelve el tenant, aplica CORS y rate limit. Spring Cloud Gateway (reactivo) | 3000 |
 | **kleinkaufusers** (`backend/kleinkaufusers`) | Autenticación (login, registro, refresh, recupero de contraseña), usuarios, roles, permisos y alta de tenants | 3001 |
-| **product** (`backend/com.kleinkauf.product`) | Productos con imágenes, combos, precios y costos, movimientos de stock, destacados, catálogo público e importación/exportación CSV | 3002 |
+| **product** (`backend/kleinkauf-product`) | Productos con imágenes, combos, precios y costos, movimientos de stock, destacados, catálogo público e importación/exportación CSV | 3002 |
 | **kleinkauf-sales** (`backend/kleinkauf-sales`) | Pedidos online y del local, pagos por transferencia y reportes | 3003 |
 | **kleinkauf-observability** (`backend/kleinkauf-observability`) | Salud y métricas de los servicios, auditoría y paneles en tiempo real por WebSocket | 3004 |
 | **kleinkauf-common** (`backend/kleinkauf-common`) | Librería compartida: DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros, configuración de observabilidad y captura de auditoría | — |
@@ -125,10 +125,10 @@ como build compuesto. Levantá primero la base y Redis (`docker compose -f backe
 y después los servicios **en este orden**, cada uno en su terminal:
 
 ```bash
-cd backend/eureka          && ./gradlew bootRun   # 1. descubrimiento  (8761)
-cd backend/kleinkaufusers      && ./gradlew bootRun   # 2. usuarios        (3001)
-cd backend/com.kleinkauf.product && ./gradlew bootRun # 3. productos       (3002)
-cd backend/gateway         && ./gradlew bootRun   # 4. gateway         (3000)
+cd backend/eureka            && ./gradlew bootRun   # 1. descubrimiento  (8761)
+cd backend/kleinkaufusers    && ./gradlew bootRun   # 2. usuarios        (3001)
+cd backend/kleinkauf-product && ./gradlew bootRun   # 3. productos       (3002)
+cd backend/gateway           && ./gradlew bootRun   # 4. gateway         (3000)
 ```
 
 (En Windows usá `gradlew.bat bootRun`.)
@@ -166,7 +166,7 @@ kleinkauf/
 ├── backend/                      Microservicios Java (cada carpeta es un proyecto Gradle)
 │   ├── gateway/                  API Gateway
 │   ├── kleinkaufusers/           Usuarios, auth, roles y tenants
-│   ├── com.kleinkauf.product/    Productos, stock y catálogo
+│   ├── kleinkauf-product/        Productos, stock y catálogo
 │   ├── kleinkauf-sales/          Ventas: pedidos, pagos y reportes
 │   ├── kleinkauf-observability/  Salud, métricas, auditoría y WebSocket
 │   ├── kleinkauf-common/         Librería común

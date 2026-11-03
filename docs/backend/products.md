@@ -710,7 +710,7 @@ Las imágenes están en disco en `image.path` (`uploads/products/images`), fuera
 | `http.client.connect-timeout` / `read-timeout` | `2s` / `3s` | Llamadas a users |
 | `resilience4j.*.instances.users.*` | | Circuit breaker y reintentos hacia users |
 
-Levantarlo solo: `cd backend/com.kleinkauf.product && ./gradlew bootRun`. Los logs de SQL y seguridad están en DEBUG en
+Levantarlo solo: `cd backend/kleinkauf-product && ./gradlew bootRun`. Los logs de SQL y seguridad están en DEBUG en
 desarrollo.
 
 ## Límites conocidos
