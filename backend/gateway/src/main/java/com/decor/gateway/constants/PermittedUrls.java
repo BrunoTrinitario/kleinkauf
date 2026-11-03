@@ -33,11 +33,9 @@ public class PermittedUrls {
                 "POST:/api/v1/auth/forgot-password/{any}",
                 "POST:/api/v1/platform/tenants",
                 "POST:/api/v1/platform/auth/login",
-                "GET:/api/v1/products/featured",
-                "GET:/api/v1/products/{id}",
                 "GET:/api/v1/products/{id}/metadata",
-                "GET:/api/v1/products/search",
                 "GET:/api/v1/catalog/products",
+                "GET:/api/v1/catalog/featured",
                 "GET:/api/v1/catalog/products/{any}",
                 "GET:/api/v1/catalog/categories",
                 "GET:/api/v1/catalog/bundles",
@@ -46,8 +44,6 @@ public class PermittedUrls {
                 "POST:/api/v1/sales/orders/lookup",
                 "POST:/api/v1/sales/orders/{code}/receipt",
                 "POST:/api/v1/sales/orders/{code}/cancel",
-                "GET:/api/v1/bundles/all",
-                "GET:/api/v1/bundles/{id}",
                 "/products/images/{any}",
                 "GET:/ws"
         );

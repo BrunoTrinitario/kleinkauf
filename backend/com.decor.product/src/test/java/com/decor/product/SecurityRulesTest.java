@@ -114,9 +114,19 @@ class SecurityRulesTest {
 		return request.contentType(MediaType.APPLICATION_JSON).content(body);
 	}
 
+	// Muestran el stock exacto (los combos, cuantos se pueden armar): piden un area del panel. El publico usa el catalogo
 	@Test
-	void catalogoPublico_sinLogin() throws Exception {
-		mockMvc.perform(as(null, get("/api/v1/bundles/all"))).andExpect(status().isOk());
+	void lecturasConStockExacto_pidenAreaDelPanel() throws Exception {
+		for (String path : List.of("/api/v1/products/5", "/api/v1/products/featured", "/api/v1/bundles/all", "/api/v1/bundles/3")) {
+			mockMvc.perform(as(null, get(path))).andExpect(status().isForbidden());
+			mockMvc.perform(as(CLIENTE, get(path))).andExpect(status().isForbidden());
+			mockMvc.perform(as(EMPLEADO, get(path))).andExpect(status().isOk());
+		}
+		mockMvc.perform(as(null, get("/api/v1/products/search").param("name", "Mesa"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/search").param("name", "Mesa"))).andExpect(status().isOk());
+		// Sin stock: siguen publicos
+		mockMvc.perform(as(null, get("/api/v1/products/5/metadata"))).andExpect(status().isOk());
+		mockMvc.perform(as(null, get("/api/v1/products/5/images"))).andExpect(status().isOk());
 	}
 
 	// Los listados del panel muestran el stock exacto: piden algun area del panel (el EMPLEADO por defecto tiene STOCK)
@@ -136,6 +146,7 @@ class SecurityRulesTest {
 				.andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/catalog/products/mesa-de-roble"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/catalog/categories"))).andExpect(status().isOk());
+		mockMvc.perform(as(null, get("/api/v1/catalog/featured"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/catalog/bundles"))).andExpect(status().isOk());
 	}
 
@@ -196,9 +207,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void destacados_listaPublicaYMarcarSoloAdministrador() throws Exception {
-		mockMvc.perform(as(null, get("/api/v1/products/featured"))).andExpect(status().isOk());
-
+	void destacados_marcarSoloAdministrador() throws Exception {
 		String body = "{\"featured\":true,\"order\":1}";
 		mockMvc.perform(as(null, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());

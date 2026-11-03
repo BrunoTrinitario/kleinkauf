@@ -16,10 +16,10 @@ import com.decor.users.constants.MailConstants;
 import com.decor.users.dtos.*;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.JwtUtil;
-import com.netflix.appinfo.InstanceInfo;
-import com.netflix.discovery.EurekaClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -59,8 +59,18 @@ public class UserService {
     private RolePermissionService rolePermissionService;
     @Autowired
     private MailService mailService;
+    // La tabla de tenants esta en public: JPA solo ve el schema de la tienda de la request
     @Autowired
-    private EurekaClient eurekaClient;
+    private JdbcTemplate jdbcTemplate;
+
+    @Value("${platform.scheme:http}")
+    private String platformScheme;
+
+    @Value("${platform.domain:localhost:3000}")
+    private String platformDomain;
+
+    // Pagina del frontend que pide la contrasena nueva y llama a POST /api/v1/auth/forgot-password/{token}
+    static final String RESET_PASSWORD_PATH = "/reset-password?token=";
 
 
     public ArrayList<FullUserDto> getAllUsers(){
@@ -284,12 +294,7 @@ public class UserService {
         User u = this.userRepository.findByEmail(userData.email()).orElse(null);
         if (u == null) return false;
         String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant());
-
-        InstanceInfo gateway = eurekaClient
-                .getNextServerFromEureka("gateway-microservice", false);
-        String url = gateway.getHomePageUrl()
-                + "/api/v1/auth/forgot-password/"
-                + jwt;
+        String url = resetPasswordLink(jwt);
 
         try{
             mailService.sendMail(
@@ -310,6 +315,14 @@ public class UserService {
             throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
         }
         return this.updateUser(id, null, newPassword);
+    }
+
+    // El link del mail va al frontend de la tienda (su URL); sin tienda, al de la plataforma
+    String resetPasswordLink(String jwt) {
+        List<String> urls = jdbcTemplate.queryForList(
+                "SELECT url FROM public.tenant WHERE schema = ? AND deleted_at IS NULL", String.class, currentTenant());
+        String base = urls.isEmpty() || urls.get(0) == null ? platformScheme + "://" + platformDomain : urls.get(0);
+        return base + RESET_PASSWORD_PATH + jwt;
     }
 
     private String currentTenant() {

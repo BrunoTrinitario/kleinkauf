@@ -11,12 +11,21 @@ class PermittedUrlsTest {
 
     @Test
     void catalogoPublico() {
-        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/featured"));
-        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/5"));
-        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/bundles/all"));
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/featured"));
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/5/metadata"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/products"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/products/mesa-de-roble"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/categories"));
+    }
+
+    // Muestran el stock exacto (y los combos cuantos se pueden armar): son del panel, el publico usa el catalogo
+    @Test
+    void lecturasConStockExacto_pidenLogin() {
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/featured"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/5"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/search"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/bundles/all"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/bundles/3"));
     }
 
     @Test

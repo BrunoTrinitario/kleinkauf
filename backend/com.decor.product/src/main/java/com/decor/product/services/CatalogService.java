@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /*
-Catalogo publico (sin login): productos paginados con busqueda, categoria y orden, detalle por slug,
-categorias y combos. No expone stock exacto ni costo. Las respuestas se cachean en Redis (CatalogCacheService).
+Catalogo publico (sin login): productos paginados con busqueda, categoria y orden, destacados, detalle por
+slug, categorias y combos. No expone stock exacto ni costo. Las respuestas se cachean en Redis (CatalogCacheService).
  */
 @Service
 public class CatalogService {
@@ -93,6 +93,16 @@ public class CatalogService {
             throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         return detail;
+    }
+
+    // Destacados para la home, en el orden que eligio el administrador (los sin orden al final, por nombre)
+    public List<CatalogProductDto> featured() {
+        return cache.get("featured",
+                objectMapper.getTypeFactory().constructCollectionType(List.class, CatalogProductDto.class),
+                () -> inTransaction(() -> productRepository.findFeatured()
+                        .stream()
+                        .map(CatalogService::toDto)
+                        .toList()));
     }
 
     public List<CategoryDto> categories() {

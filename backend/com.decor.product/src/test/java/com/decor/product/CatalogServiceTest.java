@@ -4,6 +4,7 @@ import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.dto.catalog.Availability;
 import com.decor.product.dto.catalog.CatalogPageDto;
 import com.decor.product.dto.catalog.CatalogProductDetailDto;
+import com.decor.product.dto.catalog.CatalogProductDto;
 import com.decor.product.dto.catalog.CatalogSort;
 import com.decor.product.entities.Product;
 import com.decor.product.entities.ProductImage;
@@ -119,6 +120,19 @@ class CatalogServiceTest {
 		ApiException ex = assertThrows(ApiException.class, () -> catalogService.getBySlug("nada"));
 
 		assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+	}
+
+	@Test
+	void destacados_enElOrdenDelAdministradorSinStockExacto() {
+		Product primero = product("Primero", "primero", "100", 0, 0);
+		Product segundo = product("Segundo", "segundo", "200", 8, 2);
+		when(productRepository.findFeatured()).thenReturn(List.of(primero, segundo));
+
+		List<CatalogProductDto> featured = catalogService.featured();
+
+		assertEquals(List.of("primero", "segundo"), featured.stream().map(CatalogProductDto::slug).toList());
+		assertEquals(Availability.AGOTADO, featured.get(0).availability());
+		assertEquals(Availability.DISPONIBLE, featured.get(1).availability());
 	}
 
 	private static Product product(String name, String slug, String price, int stock, int minStock) {

@@ -12,10 +12,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final String[] PANEL_AREAS = {
+            PermissionArea.PRODUCTOS.authority(), PermissionArea.PRECIOS.authority(),
+            PermissionArea.STOCK.authority(), PermissionArea.COMBOS.authority()};
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, TenantFilter tenantFilter,HeaderAuthFilter headerAuthFilter) throws Exception {
@@ -43,10 +48,13 @@ public class SecurityConfig {
                             .access(AuthorizationManagers.allOf(
                                     AuthorityAuthorizationManager.hasAuthority(PermissionArea.PRODUCTOS.authority()),
                                     AuthorityAuthorizationManager.hasAuthority(PermissionArea.PRECIOS.authority())))
-                        // Listado del panel con stock exacto: cualquier area del panel (el EMPLEADO por defecto solo tiene STOCK)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/all").hasAnyAuthority(
-                                PermissionArea.PRODUCTOS.authority(), PermissionArea.PRECIOS.authority(),
-                                PermissionArea.STOCK.authority(), PermissionArea.COMBOS.authority())
+                        // Lecturas del panel con stock exacto: cualquier area del panel (el EMPLEADO por defecto solo
+                        // tiene STOCK). Incluye los combos, que dicen cuantos se pueden armar. El publico usa /api/v1/catalog/**
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/all",
+                                "/api/v1/products/featured", "/api/v1/products/search", "/api/v1/bundles/**")
+                            .hasAnyAuthority(PANEL_AREAS)
+                        .requestMatchers(RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/v1/products/\\d+$"))
+                            .hasAnyAuthority(PANEL_AREAS)
                         // Productos: alta, edicion, borrado, imagenes, metadatos y destacados
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())

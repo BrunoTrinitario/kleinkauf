@@ -4,6 +4,7 @@ import com.decor.common.servlet.exceptions.ApiException;
 import com.decor.product.dto.catalog.CatalogBundleDto;
 import com.decor.product.dto.catalog.CatalogPageDto;
 import com.decor.product.dto.catalog.CatalogProductDetailDto;
+import com.decor.product.dto.catalog.CatalogProductDto;
 import com.decor.product.dto.catalog.CategoryDto;
 import com.decor.product.services.CatalogService;
 import com.decor.product.services.CatalogUsage;
@@ -39,6 +40,12 @@ public class CatalogController {
             catalogUsage.visit();
         }
         return ResponseEntity.ok(result);
+    }
+
+    // Destacados para la home
+    @GetMapping("/featured")
+    public ResponseEntity<List<CatalogProductDto>> featured() {
+        return ResponseEntity.ok(catalogService.featured());
     }
 
     @GetMapping("/products/{slug}")
