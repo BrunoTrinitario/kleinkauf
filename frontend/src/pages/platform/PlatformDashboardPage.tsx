@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
-import axios from "axios"
+import { api, PLATFORM_PATH } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import type { PeriodGroupBy, PlatformDashboard, TenantProductsUsage, TenantUsersUsage } from "@/lib/types"
-import { PLATFORM_API, usePlatformSession } from "@/hooks/use-platform-session"
+import { usePlatformSession } from "@/hooks/use-platform-session"
 import { PageHeader } from "@/components/page-header"
 import { FilterSelect } from "@/components/list-toolbar"
 import { PlatformHeader } from "@/components/platform-header"
@@ -74,7 +74,7 @@ function compareUsage(sort: UsageSort) {
 }
 
 export default function PlatformDashboardPage() {
-  const { ready, headers, handleError } = usePlatformSession()
+  const { ready, handleError } = usePlatformSession()
   const [rangeKey, setRangeKey] = useState<RangeKey>("days")
   const [dashboard, setDashboard] = useState<PlatformDashboard | null>(null)
   const [usersUsage, setUsersUsage] = useState<TenantUsersUsage[] | null>(null)
@@ -85,22 +85,22 @@ export default function PlatformDashboardPage() {
   useEffect(() => {
     if (!ready) return
     let isMounted = true
-    axios
-      .get<PlatformDashboard>(`${PLATFORM_API}/admin/dashboard`, { headers, params: rangeParams(rangeKey) })
+    api
+      .get<PlatformDashboard>(`${PLATFORM_PATH}/admin/dashboard`, { params: rangeParams(rangeKey) })
       .then((response) => isMounted && setDashboard(response.data))
       .catch((err) => isMounted && handleError(err, strings.errors.loadDashboard))
     return () => {
       isMounted = false
     }
-  }, [ready, headers, rangeKey, handleError])
+  }, [ready, rangeKey, handleError])
 
   // Cada servicio arma su parte: si products falla, la tabla se muestra igual sin productos ni combos
   useEffect(() => {
     if (!ready) return
     let isMounted = true
     Promise.allSettled([
-      axios.get<TenantUsersUsage[]>(`${PLATFORM_API}/admin/usage`, { headers }),
-      axios.get<TenantProductsUsage[]>(`${PLATFORM_API}/products/usage`, { headers }),
+      api.get<TenantUsersUsage[]>(`${PLATFORM_PATH}/admin/usage`),
+      api.get<TenantProductsUsage[]>(`${PLATFORM_PATH}/products/usage`),
     ]).then(([users, products]) => {
       if (!isMounted) return
       if (users.status === "fulfilled") {
@@ -119,7 +119,7 @@ export default function PlatformDashboardPage() {
     return () => {
       isMounted = false
     }
-  }, [ready, headers, handleError])
+  }, [ready, handleError])
 
   const usageRows = useMemo<UsageRow[]>(() => {
     const bySchema = new Map((productsUsage ?? []).map((usage) => [usage.schema, usage]))

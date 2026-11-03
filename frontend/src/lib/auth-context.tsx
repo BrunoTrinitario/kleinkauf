@@ -1,9 +1,10 @@
-
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
-import axios from "axios"
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 import type { LoggedUser, LoginUserDto, User, UserRole } from "./types"
 import { strings } from "./strings"
 import { IS_PLATFORM } from "./platform"
+import { api, configureApiSession, PLATFORM_PATH } from "./api"
 
 interface AuthContextType {
   user: LoggedUser | null
@@ -18,12 +19,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
-
 const AUTH_TOKEN_COOKIE = "auth_token"
 
+// Segundos hasta que vence el JWT (claim exp); null si no se puede leer
+const secondsUntilExpiry = (token: string): number | null => {
+  try {
+    const payload = token.split(".")[1]
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    const exp = (JSON.parse(json) as { exp?: number }).exp
+    return typeof exp === "number" ? Math.floor(exp - Date.now() / 1000) : null
+  } catch {
+    return null
+  }
+}
+
+const isExpired = (token: string) => {
+  const seconds = secondsUntilExpiry(token)
+  return seconds !== null && seconds <= 0
+}
+
+// La cookie dura lo mismo que el token: vencido el token no tiene sentido guardarlo
 const setAuthCookie = (token: string) => {
-  const maxAge = 60 * 60 * 24 * 7
+  const maxAge = Math.max(secondsUntilExpiry(token) ?? 60 * 60, 0)
   document.cookie = `${AUTH_TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
 }
 
@@ -43,7 +60,7 @@ const clearAuthCookie = () => {
 }
 
 // La plataforma no tiene /auth/me (esa ruta es de las tiendas): el superadmin se guarda entero al loguearse.
-// Si el token vence, la primera llamada al panel devuelve 401 y la pagina cierra la sesion
+// Si el token vence, la primera llamada al panel devuelve 401 y se cierra la sesion
 const PLATFORM_USER_KEY = "platform_user"
 
 const savePlatformUser = (user: LoggedUser) => {
@@ -57,7 +74,8 @@ const savePlatformUser = (user: LoggedUser) => {
 const loadPlatformUser = (): LoggedUser | null => {
   try {
     const raw = localStorage.getItem(PLATFORM_USER_KEY)
-    return raw ? (JSON.parse(raw) as LoggedUser) : null
+    const user = raw ? (JSON.parse(raw) as LoggedUser) : null
+    return user && !isExpired(user.token) ? user : null
   } catch {
     return null
   }
@@ -71,25 +89,75 @@ const clearPlatformUser = () => {
   }
 }
 
-const LOGIN_PATH = IS_PLATFORM ? "/api/v1/platform/auth/login" : "/api/v1/auth/login"
+// Token guardado al arrancar: el de la cookie en una tienda, el del superadmin en la plataforma
+const storedToken = (): string | null => {
+  if (IS_PLATFORM) {
+    return loadPlatformUser()?.token ?? null
+  }
+  const token = getAuthCookie()
+  return token && !isExpired(token) ? token : null
+}
+
+const LOGIN_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/login` : "/auth/login"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate()
   const [user, setUser] = useState<LoggedUser | null>(null)
   const [activeRole, setActiveRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // El cliente HTTP lee el token de aca: se actualiza antes que el estado para que la proxima llamada ya lo use
+  const tokenRef = useRef<string | null>(storedToken())
+  // Pagina donde vencio la sesion: se navega al login desde un efecto de este provider
+  const [expiredAt, setExpiredAt] = useState<string | null>(null)
+
+  const logout = useCallback(() => {
+    tokenRef.current = null
+    clearAuthCookie()
+    clearPlatformUser()
+    setUser(null)
+    setActiveRole(null)
+  }, [])
+
+  // Un 401 de una llamada con token: se cierra la sesion y se vuelve al login, que despues trae de vuelta aca
+  useEffect(() => {
+    configureApiSession({
+      getToken: () => tokenRef.current,
+      onSessionExpired: () => {
+        if (!tokenRef.current) {
+          return
+        }
+        logout()
+        toast.error(strings.errors.sessionExpired, { id: "session-expired" })
+        setExpiredAt(window.location.pathname + window.location.search)
+      },
+    })
+  }, [logout])
+
+  // Los efectos del provider corren despues que los de la pagina: si la pagina tambien manda al login
+  // al quedarse sin usuario, esta navegacion (con la pagina de vuelta) es la que queda
+  useEffect(() => {
+    if (expiredAt === null) {
+      return
+    }
+    navigate(expiredAt.startsWith("/login") ? "/login" : `/login?next=${encodeURIComponent(expiredAt)}`)
+    setExpiredAt(null)
+  }, [expiredAt, navigate])
 
   useEffect(() => {
     if (IS_PLATFORM) {
       const stored = loadPlatformUser()
+      if (!stored) {
+        clearPlatformUser()
+      }
       setUser(stored)
       setActiveRole((stored?.roles?.[0]?.type as UserRole) ?? null)
       setIsLoading(false)
       return
     }
 
-    const apiBaseUrl = API_BASE_URL
-    const token = getAuthCookie()
+    const token = tokenRef.current
     if (!token) {
+      clearAuthCookie()
       setIsLoading(false)
       return
     }
@@ -98,16 +166,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const loadUser = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/api/v1/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        // Un token que ya no vale al arrancar solo borra la sesion: el visitante sigue en la pagina que abrio
+        const response = await api.get<User>("/auth/me", { skipSessionExpiry: true })
         if (!isMounted) {
           return
         }
 
-        const me = response.data as User
+        const me = response.data
         const hydratedUser: LoggedUser = {
           id: Number(me.id),
           name: me.name,
@@ -117,17 +182,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(hydratedUser)
         setActiveRole((me.roles?.[0]?.type as UserRole) ?? null)
-        setIsLoading(false)
       } catch (error) {
-        const status = axios.isAxiosError(error) ? error.response?.status : undefined
+        const status = (error as { response?: { status?: number } }).response?.status
         if (status === 401 || status === 403) {
+          tokenRef.current = null
           clearAuthCookie()
-          if (isMounted) {
-            setUser(null)
-            setActiveRole(null)
-          }
-          window.location.href = "/"
         }
+      } finally {
         if (isMounted) {
           setIsLoading(false)
         }
@@ -141,37 +202,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (credentials: LoginUserDto): Promise<LoggedUser> => {
-    const response = await axios.post<LoggedUser>(`${API_BASE_URL}${LOGIN_PATH}`, credentials)
+  const startSession = useCallback((loggedUser: LoggedUser) => {
+    tokenRef.current = loggedUser.token ?? null
     if (IS_PLATFORM) {
-      savePlatformUser(response.data)
-    } else if (response.data.token) {
-      setAuthCookie(response.data.token)
+      savePlatformUser(loggedUser)
+    } else if (loggedUser.token) {
+      setAuthCookie(loggedUser.token)
     }
-    setUser(response.data)
-    setActiveRole((response.data.roles?.[0]?.type as UserRole) ?? null)
-    return response.data
+    setUser(loggedUser)
+    setActiveRole((loggedUser.roles?.[0]?.type as UserRole) ?? null)
   }, [])
+
+  const login = useCallback(async (credentials: LoginUserDto): Promise<LoggedUser> => {
+    const response = await api.post<LoggedUser>(LOGIN_PATH, credentials)
+    startSession(response.data)
+    return response.data
+  }, [startSession])
 
   const register = useCallback(async (email: string, password: string, name: string): Promise<void> => {
-    const response = await axios.post<LoggedUser>(`${API_BASE_URL}/api/v1/auth/register`, {
-      name,
-      email,
-      password,
-    })
-    if (response.data.token) {
-      setAuthCookie(response.data.token)
-    }
-    setUser(response.data)
-    setActiveRole((response.data.roles?.[0]?.type as UserRole) ?? null)
-  }, [])
-
-  const logout = useCallback(() => {
-    clearAuthCookie()
-    clearPlatformUser()
-    setUser(null)
-    setActiveRole(null)
-  }, [])
+    const response = await api.post<LoggedUser>("/auth/register", { name, email, password })
+    startSession(response.data)
+  }, [startSession])
 
   const switchRole = useCallback((role: UserRole) => {
     if (!user) {

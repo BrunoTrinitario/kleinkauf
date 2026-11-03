@@ -1,6 +1,6 @@
 
-import axios from "axios"
 import { useEffect, useMemo, useState } from "react"
+import { api, productImageUrl } from "@/lib/api"
 import type { CatalogProduct, CatalogProductDetail, ProductMetadata } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
@@ -37,15 +37,9 @@ function ProductModalContent({
   open,
   onOpenChange,
 }: ProductModalProps & { product: CatalogProduct }) {
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
-
   const imageUrls = useMemo(
-    () =>
-      (product.images ?? []).map(
-        (imageName) => `${apiBasePublic}/products/images/${imageName}`
-      ),
-    [apiBasePublic, product.images]
+    () => (product.images ?? []).map((imageName) => productImageUrl(imageName)),
+    [product.images]
   )
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -93,12 +87,12 @@ function ProductModalContent({
       try {
         setMetadataError(null)
         // Los metadatos vienen en el detalle publico por slug; null = el producto no los tiene cargados
-        const cacheKey = `${apiBasePublic}/api/v1/catalog/products/${product.slug}`
+        const cacheKey = `/catalog/products/${product.slug}`
         if (metadataCache.has(cacheKey)) {
           if (isActive) setMetadata(metadataCache.get(cacheKey) ?? null)
           return
         }
-        const response = await axios.get<CatalogProductDetail>(cacheKey)
+        const response = await api.get<CatalogProductDetail>(cacheKey)
         if (isActive) {
           const resolved = response.data.metadata ?? null
           metadataCache.set(cacheKey, resolved)
@@ -116,7 +110,7 @@ function ProductModalContent({
     return () => {
       isActive = false
     }
-  }, [apiBasePublic, open, product.slug])
+  }, [open, product.slug])
 
   const metadataRows: [string, string][] = []
   if (metadata) {

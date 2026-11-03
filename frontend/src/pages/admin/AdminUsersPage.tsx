@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import axios from "axios"
+import { api } from "@/lib/api"
 
 export default function AdminUsersPage() {
   const navigate = useNavigate()
@@ -46,8 +46,6 @@ export default function AdminUsersPage() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [selectedDeleteUser, setSelectedDeleteUser] = useState<User | null>(null)
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
   useEffect(() => {
     if (isAuthLoading) {
@@ -77,10 +75,7 @@ export default function AdminUsersPage() {
     const loadUsers = async () => {
       setIsLoading(true)
       try {
-        const response = await axios.get<Page<User>>(`${apiBasePublic}/api/v1/users`, {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
+        const response = await api.get<Page<User>>(`/users`, {
           params: {
             q: searchQuery || undefined,
             role: roleFilter || undefined,
@@ -107,7 +102,7 @@ export default function AdminUsersPage() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, user?.token, searchQuery, roleFilter, page, reloadKey])
+  }, [user?.token, searchQuery, roleFilter, page, reloadKey])
 
   if (isAuthLoading || !isAuthenticated || activeRole !== "ADMINISTRADOR") {
     return null
@@ -158,23 +153,16 @@ export default function AdminUsersPage() {
     const rolesToAdd = Array.from(nextRoles).filter((role) => !previousRoles.has(role))
     const rolesToRemove = Array.from(previousRoles).filter((role) => !nextRoles.has(role))
 
-    const headers = { Authorization: `Bearer ${user.token}` }
-
     try {
       // El PATCH solo cambia nombre y contrasena: el email no se puede editar
       if (existingUser.name !== updatedUser.name) {
-        await axios.patch(
-          `${apiBasePublic}/api/v1/users/${updatedUser.id}`,
-          { name: updatedUser.name },
-          { headers }
-        )
+        await api.patch(`/users/${updatedUser.id}`, { name: updatedUser.name })
       }
 
       // roleName va como query param, no en el body
       await Promise.all(
         rolesToAdd.map((roleName) =>
-          axios.post(`${apiBasePublic}/api/v1/users/${updatedUser.id}/roles`, null, {
-            headers,
+          api.post(`/users/${updatedUser.id}/roles`, null, {
             params: { roleName },
           })
         )
@@ -182,23 +170,22 @@ export default function AdminUsersPage() {
 
       await Promise.all(
         rolesToRemove.map((roleName) =>
-          axios.delete(`${apiBasePublic}/api/v1/users/${updatedUser.id}/roles`, {
-            headers,
+          api.delete(`/users/${updatedUser.id}/roles`, {
             params: { roleName },
           })
         )
       )
 
       // Se usa el usuario que devuelve el backend: trae los roles con sus permisos reales
-      const response = await axios.get(`${apiBasePublic}/api/v1/users/${updatedUser.id}`, { headers })
+      const response = await api.get(`/users/${updatedUser.id}`)
       updateUserLocally(response.data as User)
       setIsEditOpen(false)
       setSelectedUser(null)
     } catch (err) {
       notifyError(err, strings.errors.saveUser)
       // Si algo fallo a mitad de camino, se recarga el usuario para no mostrar datos que no se guardaron
-      axios
-        .get(`${apiBasePublic}/api/v1/users/${updatedUser.id}`, { headers })
+      api
+        .get(`/users/${updatedUser.id}`)
         .then((response) => updateUserLocally(response.data as User))
         .catch(() => {})
     }
@@ -210,11 +197,7 @@ export default function AdminUsersPage() {
     }
 
     try {
-      await axios.delete(`${apiBasePublic}/api/v1/users/${target.id}`, {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      })
+      await api.delete(`/users/${target.id}`)
       // Si era el ultimo de la pagina se vuelve a la anterior; si no, se recarga la actual
       if (users.length === 1 && page > 0) {
         setPage(page - 1)
@@ -240,13 +223,10 @@ export default function AdminUsersPage() {
     setCreateError(null)
 
     try {
-      await axios.post(
-        `${apiBasePublic}/api/v1/users`,
+      await api.post(
+        `/users`,
         payload,
         {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
         }
       )
 

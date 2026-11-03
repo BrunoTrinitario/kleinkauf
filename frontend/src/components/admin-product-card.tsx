@@ -1,18 +1,17 @@
 import type { Product } from "@/lib/types"
 import { strings } from "@/lib/strings"
+import { productImageUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
 
 interface AdminProductCardProps {
   product: Product
-  apiBasePublic: string
   onEdit?: (product: Product) => void
   onDelete?: (product: Product) => void
 }
 
 export function AdminProductCard({
   product,
-  apiBasePublic,
   onEdit,
   onDelete,
 }: AdminProductCardProps) {
@@ -25,7 +24,7 @@ export function AdminProductCard({
       <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
         {product.images?.[0] ? (
           <img
-            src={`${apiBasePublic}/products/images/${product.images[0]}`}
+            src={productImageUrl(product.images[0])}
             alt={product.name}
             className="h-full w-full object-cover"
             loading="lazy"

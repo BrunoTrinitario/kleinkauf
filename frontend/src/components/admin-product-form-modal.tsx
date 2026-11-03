@@ -1,5 +1,5 @@
 
-import axios from "axios"
+import { api, productImageUrl } from "@/lib/api"
 import { useEffect, useMemo, useState } from "react"
 import type { Product, ProductMetadata } from "@/lib/types"
 import { defaultProductMetadata, normalizeMetadata } from "@/lib/types"
@@ -22,7 +22,6 @@ interface AdminProductFormModalProps {
   product: Product | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  token: string | null
   // Precio y costo piden el permiso PRECIOS: sin el, esos campos no se muestran
   canEditPrices: boolean
   onSaved: () => void
@@ -47,12 +46,9 @@ export function AdminProductFormModal({
   product,
   open,
   onOpenChange,
-  token,
   canEditPrices,
   onSaved,
 }: AdminProductFormModalProps) {
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
   const isEdit = product !== null
 
   const [name, setName] = useState("")
@@ -69,7 +65,6 @@ export function AdminProductFormModal({
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  const headers = { Authorization: `Bearer ${token}` }
 
   // Vista previa de las imagenes elegidas que todavia no se subieron (se liberan al cambiar)
   const previews = useMemo(() => pendingFiles.map((file) => URL.createObjectURL(file)), [pendingFiles])
@@ -95,27 +90,23 @@ export function AdminProductFormModal({
 
   // En edicion: metadatos, imagenes y (con PRECIOS) el costo, que no viene en el listado
   useEffect(() => {
-    if (!product || !open || !token) return
+    if (!product || !open) return
     let isActive = true
-    const auth = { headers: { Authorization: `Bearer ${token}` } }
 
-    axios
-      .get(`${apiBasePublic}/api/v1/products/${product.id}/metadata`, auth)
+    api
+      .get(`/products/${product.id}/metadata`)
       // Sin metadatos el backend responde vacio
       .then((response) => isActive && setMetadata(normalizeMetadata(response.data === "" ? null : response.data)))
       .catch(() => isActive && setMetadata(defaultProductMetadata))
 
-    axios
-      .get<ImageDto[]>(`${apiBasePublic}/api/v1/products/${product.id}/images`, auth)
+    api
+      .get<ImageDto[]>(`/products/${product.id}/images`)
       .then((response) => isActive && setImages(response.data ?? []))
       .catch((err) => isActive && notifyError(err, strings.errors.loadImages))
 
     if (canEditPrices) {
-      axios
-        .get<{ price: number | null; cost: number | null }>(
-          `${apiBasePublic}/api/v1/products/${product.id}/pricing`,
-          auth
-        )
+      api
+        .get<{ price: number | null; cost: number | null }>(`/products/${product.id}/pricing`)
         .then((response) => {
           if (!isActive) return
           const loaded = {
@@ -132,7 +123,7 @@ export function AdminProductFormModal({
     return () => {
       isActive = false
     }
-  }, [apiBasePublic, open, product, token, canEditPrices])
+  }, [open, product, canEditPrices])
 
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
@@ -147,18 +138,15 @@ export function AdminProductFormModal({
   }
 
   const refreshImages = async (productId: string) => {
-    const response = await axios.get<ImageDto[]>(
-      `${apiBasePublic}/api/v1/products/${productId}/images`,
-      { headers }
-    )
+    const response = await api.get<ImageDto[]>(`/products/${productId}/images`)
     setImages(response.data ?? [])
   }
 
   // Quitar una imagen ya guardada es inmediato (como antes en la edicion)
   const handleRemoveImage = async (image: ImageDto) => {
-    if (!token || !product) return
+    if (!product) return
     try {
-      await axios.delete(`${apiBasePublic}/api/v1/products/images/${image.id}`, { headers })
+      await api.delete(`/products/images/${image.id}`)
       await refreshImages(product.id)
     } catch (err) {
       notifyError(err, strings.errors.deleteImage)
@@ -176,7 +164,6 @@ export function AdminProductFormModal({
   }
 
   const handleSave = async () => {
-    if (!token) return
     const validationError = validate()
     if (validationError) {
       setError(validationError)
@@ -192,36 +179,28 @@ export function AdminProductFormModal({
       if (product) {
         productId = product.id
         // El stock no se edita aca: cambia con movimientos de stock
-        await axios.put(`${apiBasePublic}/api/v1/products/${productId}`, basic, { headers })
+        await api.put(`/products/${productId}`, basic)
         const pricingChanged = price !== initialPricing.price || cost !== initialPricing.cost
         if (canEditPrices && pricingChanged) {
-          await axios.put(
-            `${apiBasePublic}/api/v1/products/${productId}/pricing`,
-            { price: toAmount(price), cost: toAmount(cost) },
-            { headers }
-          )
+          await api.put(`/products/${productId}/pricing`, { price: toAmount(price), cost: toAmount(cost) })
         }
       } else {
         // El stock inicial queda registrado como movimiento de entrada
-        const response = await axios.post(
-          `${apiBasePublic}/api/v1/products`,
-          {
-            ...basic,
-            stock,
-            price: canEditPrices ? toAmount(price) : null,
-            cost: canEditPrices ? toAmount(cost) : null,
-          },
-          { headers }
-        )
+        const response = await api.post("/products", {
+          ...basic,
+          stock,
+          price: canEditPrices ? toAmount(price) : null,
+          cost: canEditPrices ? toAmount(cost) : null,
+        })
         productId = String(response.data.id)
       }
 
-      await axios.put(`${apiBasePublic}/api/v1/products/${productId}/metadata`, metadata, { headers })
+      await api.put(`/products/${productId}/metadata`, metadata)
 
       if (pendingFiles.length > 0) {
         const formData = new FormData()
         pendingFiles.forEach((file) => formData.append("files", file))
-        await axios.post(`${apiBasePublic}/api/v1/products/${productId}/images`, formData, { headers })
+        await api.post(`/products/${productId}/images`, formData)
       }
 
       onSaved()
@@ -282,7 +261,7 @@ export function AdminProductFormModal({
                 {images.map((image) => (
                   <div key={image.id} className="relative h-20 w-20 overflow-hidden rounded-md border border-border bg-muted">
                     <img
-                      src={`${apiBasePublic}/products/images/${image.path}`}
+                      src={productImageUrl(image.path)}
                       alt=""
                       className="h-full w-full object-cover"
                     />
@@ -398,7 +377,7 @@ export function AdminProductFormModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {strings.adminProductEdit.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={isSaving || !token}>
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving
               ? strings.adminProductEdit.saving
               : isEdit

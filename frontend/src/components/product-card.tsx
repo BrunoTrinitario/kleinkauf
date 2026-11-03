@@ -1,6 +1,7 @@
 import type { CatalogProduct } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { formatPrice } from "@/lib/utils"
+import { productImageUrl } from "@/lib/api"
 
 interface ProductCardProps {
   product: CatalogProduct
@@ -8,12 +9,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onClick }: ProductCardProps) {
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
   const primaryImage = product.images?.[0]
-  const imageUrl = primaryImage
-    ? `${apiBasePublic}/products/images/${primaryImage}`
-    : null
+  const imageUrl = primaryImage ? productImageUrl(primaryImage) : null
 
   return (
     <button

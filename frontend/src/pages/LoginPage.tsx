@@ -1,7 +1,6 @@
 
 import { useState } from "react"
-import { Link } from "react-router-dom"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@/lib/auth-context"
 import type { LoginUserDto } from "@/lib/types"
 import { strings } from "@/lib/strings"
@@ -12,8 +11,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, ArrowRight } from "lucide-react"
+// A donde volver despues del login (la sesion vencio en esa pagina). Solo rutas propias: nada de otro sitio
+const safeNext = (next: string | null) =>
+  next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/"
+
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +33,7 @@ export default function LoginPage() {
     try {
       const payload: LoginUserDto = { email, password }
       await login(payload)
-      navigate("/")
+      navigate(safeNext(searchParams.get("next")), { replace: true })
     } catch (err) {
       setError(
         getErrorMessage(err, strings.login.genericError, {

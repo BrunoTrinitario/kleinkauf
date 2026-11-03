@@ -76,8 +76,10 @@ esto ya está.
 
 Va primero porque todo lo demás depende de esto. Hoy cada componente arma su propio axios con `VITE_API_BASE_PUBLIC`.
 
-1. `lib/api.ts` con una instancia única, el interceptor de `Authorization` y el manejo central de 401, 403, 404 y
-   429. Las respuestas que corta el gateway tienen el cuerpo vacío o en texto: decidir por el código.
+1. ~~`lib/api.ts` con una instancia única, el interceptor de `Authorization` y el manejo central del 401~~
+   **Hecho**: todas las llamadas pasan por `api`; un 401 de una llamada con token cierra la sesión y vuelve a
+   `/login?next=<página>`; la cookie dura lo mismo que el token. Quedan para el paso 3 el 403/404 de tienda y el
+   429 como estado global (hoy se muestran como mensaje de error de cada pantalla).
 2. Instalar TanStack Query y migrar las páginas existentes.
 3. Páginas de "tienda inexistente" (404) y "tienda deshabilitada" (403), y el aviso de "demasiados intentos".
 4. Rutas protegidas por rol y área usando `hasPermission`.

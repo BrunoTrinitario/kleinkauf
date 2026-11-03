@@ -1,0 +1,68 @@
+import axios, { AxiosHeaders } from "axios"
+
+// Cliente unico para hablarle al gateway. El tenant lo reconoce el gateway por el Origin, que el navegador manda solo
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
+
+declare module "axios" {
+  interface AxiosRequestConfig {
+    // Un 401 de esta llamada no cierra la sesion ni manda al login (ej. la carga inicial de /auth/me)
+    skipSessionExpiry?: boolean
+  }
+}
+
+export const api = axios.create({
+  baseURL: `${API_BASE_URL}/api/v1`,
+  timeout: 15000,
+})
+
+// Panel de la plataforma (superadmin): mismas reglas, rutas bajo /api/v1/platform
+export const PLATFORM_PATH = "/platform"
+
+// Las imagenes se sirven sin tenant y fuera de /api/v1 (ver docs/backend/products.md)
+export const productImageUrl = (fileName: string) => `${API_BASE_URL}/products/images/${fileName}`
+
+interface ApiSession {
+  getToken: () => string | null
+  // Un 401 de una llamada que llevaba el token: el token vencio o ya no vale
+  onSessionExpired: () => void
+}
+
+let session: ApiSession = {
+  getToken: () => null,
+  onSessionExpired: () => {},
+}
+
+// Lo llama AuthProvider: el cliente no sabe de React, solo de donde sacar el token y a quien avisar
+export function configureApiSession(next: ApiSession) {
+  session = next
+}
+
+api.interceptors.request.use((config) => {
+  const token = session.getToken()
+  if (token) {
+    const headers = AxiosHeaders.from(config.headers)
+    if (!headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`)
+    }
+    config.headers = headers
+  }
+  return config
+})
+
+api.interceptors.response.use(undefined, (error) => {
+  if (isSessionExpired(error)) {
+    session.onSessionExpired()
+  }
+  return Promise.reject(error)
+})
+
+// true si el error es un 401 que cierra la sesion: la pantalla no tiene que mostrar nada mas.
+// Sin token es un 401 del propio pedido (ej. credenciales invalidas en el login) y lo maneja la pantalla
+export function isSessionExpired(error: unknown): boolean {
+  return (
+    axios.isAxiosError(error) &&
+    error.response?.status === 401 &&
+    !error.config?.skipSessionExpiry &&
+    AxiosHeaders.from(error.config?.headers).has("Authorization")
+  )
+}

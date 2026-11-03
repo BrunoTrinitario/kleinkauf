@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
-import axios from "axios"
+import { api, isSessionExpired, PLATFORM_PATH } from "@/lib/api"
 import { toast } from "sonner"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
 import type { NewTenantDto, PlatformTenant } from "@/lib/types"
-import { PLATFORM_API, usePlatformSession } from "@/hooks/use-platform-session"
+import { usePlatformSession } from "@/hooks/use-platform-session"
 import { PageHeader } from "@/components/page-header"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "@/components/list-toolbar"
 import { PlatformHeader } from "@/components/platform-header"
@@ -26,10 +26,10 @@ import { Plus } from "lucide-react"
 
 type StatusFilter = "" | "enabled" | "disabled"
 
-const TENANTS_URL = `${PLATFORM_API}/admin/tenants`
+const TENANTS_URL = `${PLATFORM_PATH}/admin/tenants`
 
 export default function PlatformTenantsPage() {
-  const { ready, headers, handleError } = usePlatformSession()
+  const { ready, handleError } = usePlatformSession()
   const [tenants, setTenants] = useState<PlatformTenant[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [searchInput, setSearchInput] = useState("")
@@ -52,7 +52,7 @@ export default function PlatformTenantsPage() {
     const loadTenants = async () => {
       setIsLoading(true)
       try {
-        const response = await axios.get<PlatformTenant[]>(TENANTS_URL, { headers })
+        const response = await api.get<PlatformTenant[]>(TENANTS_URL)
         if (isMounted) {
           setTenants(response.data)
         }
@@ -73,7 +73,7 @@ export default function PlatformTenantsPage() {
     return () => {
       isMounted = false
     }
-  }, [ready, headers, handleError])
+  }, [ready, handleError])
 
   // El backend devuelve todas las tiendas no borradas sin paginar: se filtra aca
   const visibleTenants = useMemo(() => {
@@ -101,7 +101,7 @@ export default function PlatformTenantsPage() {
   const handleToggleEnabled = async (target: PlatformTenant, enabled: boolean) => {
     setSavingId(target.id)
     try {
-      const response = await axios.put<PlatformTenant>(`${TENANTS_URL}/${target.id}/enabled`, { enabled }, { headers })
+      const response = await api.put<PlatformTenant>(`${TENANTS_URL}/${target.id}/enabled`, { enabled })
       replaceTenant(response.data)
       toast.success(
         enabled
@@ -117,7 +117,7 @@ export default function PlatformTenantsPage() {
 
   const handleDelete = async (target: PlatformTenant) => {
     try {
-      await axios.delete(`${TENANTS_URL}/${target.id}`, { headers })
+      await api.delete(`${TENANTS_URL}/${target.id}`)
       setTenants((prev) => prev?.filter((tenant) => tenant.id !== target.id) ?? prev)
     } catch (err) {
       handleError(err, strings.errors.deleteTenant)
@@ -128,15 +128,12 @@ export default function PlatformTenantsPage() {
     setIsCreating(true)
     setCreateError(null)
     try {
-      const response = await axios.post<PlatformTenant>(TENANTS_URL, payload, { headers })
+      const response = await api.post<PlatformTenant>(TENANTS_URL, payload)
       // La lista va de la mas nueva a la mas vieja, igual que la devuelve el backend
       setTenants((prev) => [response.data, ...(prev ?? [])])
       setIsCreateOpen(false)
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        handleError(err, strings.platformTenantCreate.createError)
-        return
-      }
+      if (isSessionExpired(err)) return
       setCreateError(getErrorMessage(err, strings.platformTenantCreate.createError))
     } finally {
       setIsCreating(false)

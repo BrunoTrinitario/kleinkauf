@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
+import { api, isSessionExpired, PLATFORM_PATH } from "@/lib/api"
 import { toast } from "sonner"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
 import type { Superadmin } from "@/lib/types"
-import { PLATFORM_API, usePlatformSession } from "@/hooks/use-platform-session"
+import { usePlatformSession } from "@/hooks/use-platform-session"
 import { PageHeader } from "@/components/page-header"
 import { PlatformHeader } from "@/components/platform-header"
 import { PlatformSuperadminCreateModal } from "@/components/platform-superadmin-create-modal"
@@ -18,7 +18,7 @@ const dateFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" })
 const dateTimeFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" })
 
 export default function PlatformSuperadminsPage() {
-  const { user, ready, headers, handleError } = usePlatformSession()
+  const { user, ready, handleError } = usePlatformSession()
   const [superadmins, setSuperadmins] = useState<Superadmin[] | null>(null)
   const [savingId, setSavingId] = useState<number | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -28,8 +28,8 @@ export default function PlatformSuperadminsPage() {
   useEffect(() => {
     if (!ready) return
     let isMounted = true
-    axios
-      .get<Superadmin[]>(`${PLATFORM_API}/admin/superadmins`, { headers })
+    api
+      .get<Superadmin[]>(`${PLATFORM_PATH}/admin/superadmins`)
       .then((response) => isMounted && setSuperadmins(response.data))
       .catch((err) => {
         if (isMounted) {
@@ -40,7 +40,7 @@ export default function PlatformSuperadminsPage() {
     return () => {
       isMounted = false
     }
-  }, [ready, headers, handleError])
+  }, [ready, handleError])
 
   if (!ready) {
     return null
@@ -49,11 +49,7 @@ export default function PlatformSuperadminsPage() {
   const handleToggle = async (target: Superadmin, active: boolean) => {
     setSavingId(target.id)
     try {
-      const response = await axios.put<Superadmin>(
-        `${PLATFORM_API}/admin/superadmins/${target.id}/active`,
-        { active },
-        { headers }
-      )
+      const response = await api.put<Superadmin>(`${PLATFORM_PATH}/admin/superadmins/${target.id}/active`, { active })
       setSuperadmins((prev) => prev?.map((item) => (item.id === target.id ? response.data : item)) ?? prev)
       toast.success(
         active
@@ -75,14 +71,11 @@ export default function PlatformSuperadminsPage() {
     setIsCreating(true)
     setCreateError(null)
     try {
-      const response = await axios.post<Superadmin>(`${PLATFORM_API}/admin/superadmins`, payload, { headers })
+      const response = await api.post<Superadmin>(`${PLATFORM_PATH}/admin/superadmins`, payload)
       setSuperadmins((prev) => [...(prev ?? []), response.data])
       setIsCreateOpen(false)
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        handleError(err, strings.platformSuperadminCreate.createError)
-        return
-      }
+      if (isSessionExpired(err)) return
       setCreateError(getErrorMessage(err, strings.platformSuperadminCreate.createError))
     } finally {
       setIsCreating(false)

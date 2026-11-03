@@ -1,6 +1,6 @@
 
-import axios from "axios"
 import { useEffect, useState } from "react"
+import { api } from "@/lib/api"
 import type { CatalogCategory, CatalogPage, CatalogProduct, CatalogSort } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { notifyError } from "@/lib/api-error"
@@ -11,8 +11,6 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "./list-toolbar"
 
 export function ProductCatalog() {
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
   const [catalog, setCatalog] = useState<CatalogPage | null>(null)
   const [categories, setCategories] = useState<CatalogCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -32,8 +30,8 @@ export function ProductCatalog() {
   useEffect(() => {
     let isMounted = true
 
-    axios
-      .get<CatalogCategory[]>(`${apiBasePublic}/api/v1/catalog/categories`)
+    api
+      .get<CatalogCategory[]>("/catalog/categories")
       .then((response) => {
         if (isMounted) {
           setCategories(response.data)
@@ -46,7 +44,7 @@ export function ProductCatalog() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic])
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -54,7 +52,7 @@ export function ProductCatalog() {
     const loadCatalog = async () => {
       setIsLoading(true)
       try {
-        const response = await axios.get<CatalogPage>(`${apiBasePublic}/api/v1/catalog/products`, {
+        const response = await api.get<CatalogPage>("/catalog/products", {
           params: {
             q: searchQuery || undefined,
             category: selectedCategory || undefined,
@@ -82,7 +80,7 @@ export function ProductCatalog() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, searchQuery, selectedCategory, sortBy, page])
+  }, [searchQuery, selectedCategory, sortBy, page])
 
   const products = catalog?.items ?? []
   const totalItems = catalog?.totalItems ?? 0

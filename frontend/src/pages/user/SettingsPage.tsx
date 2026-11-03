@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import axios from "axios"
+import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
@@ -24,8 +24,6 @@ export default function UserSettingsPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState<string | null>(null)
 
-	const apiBasePublic =
-		import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
 	useEffect(() => {
 		if (isAuthLoading) {
@@ -47,11 +45,7 @@ export default function UserSettingsPage() {
 		const loadProfile = async () => {
 			try {
 				setError(null)
-				const response = await axios.get(`${apiBasePublic}/api/v1/auth/me`, {
-					headers: {
-						Authorization: `Bearer ${user.token}`,
-					},
-				})
+				const response = await api.get(`/auth/me`)
 				if (!isMounted) {
 					return
 				}
@@ -79,7 +73,7 @@ export default function UserSettingsPage() {
 		return () => {
 			isMounted = false
 		}
-	}, [apiBasePublic, user?.token])
+	}, [user?.token])
 
 	const handleSave = async () => {
 		if (!profile || !user?.token) {
@@ -103,18 +97,10 @@ export default function UserSettingsPage() {
 
 		try {
 			// El email no se puede cambiar; la contrasena solo se manda si se escribio una nueva
-			await axios.put(
-				`${apiBasePublic}/api/v1/auth/update`,
-				{
-					name: profile.name.trim(),
-					password: profile.password === "" ? undefined : profile.password,
-				},
-				{
-					headers: {
-						Authorization: `Bearer ${user.token}`,
-					},
-				}
-			)
+			await api.put("/auth/update", {
+				name: profile.name.trim(),
+				password: profile.password === "" ? undefined : profile.password,
+			})
 				setSuccess(strings.userSettings.saveSuccess)
 		} catch (err) {
 				setError(getErrorMessage(err, strings.userSettings.saveError))

@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import axios from "axios"
+import { api } from "@/lib/api"
 import { Plus, Package } from "lucide-react"
 
 export default function ProductsManagementPage() {
@@ -44,8 +44,6 @@ export default function ProductsManagementPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   // Producto a borrar: se pide confirmacion antes (borrar no se puede deshacer desde el panel)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
   const canManageProducts = activeRole === "ADMINISTRADOR" || activeRole === "EMPLEADO"
 
@@ -69,11 +67,11 @@ export default function ProductsManagementPage() {
 
   // Categorias para el filtro (las mismas que el catalogo, con su cantidad de productos)
   useEffect(() => {
-    axios
-      .get<CatalogCategory[]>(`${apiBasePublic}/api/v1/catalog/categories`)
+    api
+      .get<CatalogCategory[]>(`/catalog/categories`)
       .then((response) => setCategories(response.data))
       .catch(() => {})
-  }, [apiBasePublic, reloadKey])
+  }, [reloadKey])
 
   useEffect(() => {
     if (!canManageProducts || !user?.token) {
@@ -85,10 +83,7 @@ export default function ProductsManagementPage() {
     const loadProducts = async () => {
       setIsLoading(true)
       try {
-        const response = await axios.get<Page<Product>>(`${apiBasePublic}/api/v1/products`, {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
+        const response = await api.get<Page<Product>>(`/products`, {
           params: {
             q: searchQuery || undefined,
             category: categoryFilter || undefined,
@@ -115,7 +110,7 @@ export default function ProductsManagementPage() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, canManageProducts, user?.token, searchQuery, categoryFilter, page, reloadKey])
+  }, [canManageProducts, user?.token, searchQuery, categoryFilter, page, reloadKey])
 
   if (isAuthLoading || !isAuthenticated || !canManageProducts) {
     return null
@@ -147,11 +142,7 @@ export default function ProductsManagementPage() {
     }
 
     try {
-      await axios.delete(`${apiBasePublic}/api/v1/products/${product.id}`, {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      })
+      await api.delete(`/products/${product.id}`)
       // Si era el ultimo de la pagina se vuelve a la anterior; si no, se recarga la actual
       if (products.length === 1 && page > 0) {
         setPage(page - 1)
@@ -226,7 +217,6 @@ export default function ProductsManagementPage() {
                   <AdminProductCard
                     key={product.id}
                     product={product}
-                    apiBasePublic={apiBasePublic}
                     onEdit={handleEditProduct}
                     onDelete={setProductToDelete}
                   />
@@ -250,7 +240,6 @@ export default function ProductsManagementPage() {
           setIsFormOpen(open)
           if (!open) setSelectedProduct(null)
         }}
-        token={user?.token ?? null}
         canEditPrices={hasPermission(user?.roles, "PRECIOS")}
         onSaved={handleSaved}
       />

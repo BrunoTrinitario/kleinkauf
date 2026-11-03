@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
+import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import type { Page } from "@/lib/types"
 import { strings } from "@/lib/strings"
@@ -12,8 +12,6 @@ export function AdminDashboard() {
   const [totalProducts, setTotalProducts] = useState(0)
   const [totalUsers, setTotalUsers] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const apiBasePublic =
-    import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
   useEffect(() => {
     if (!user?.token) {
@@ -24,16 +22,11 @@ export function AdminDashboard() {
 
     // Solo hacen falta los totales: se pide una pagina de 1 y se lee totalItems
     const loadStats = async () => {
-      const options = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-        params: { size: 1 },
-      }
+      const options = { params: { size: 1 } }
       try {
         const [productsResponse, usersResponse] = await Promise.all([
-          axios.get<Page<unknown>>(`${apiBasePublic}/api/v1/products`, options),
-          axios.get<Page<unknown>>(`${apiBasePublic}/api/v1/users`, options),
+          api.get<Page<unknown>>("/products", options),
+          api.get<Page<unknown>>("/users", options),
         ])
 
         if (isMounted) {
@@ -58,7 +51,7 @@ export function AdminDashboard() {
     return () => {
       isMounted = false
     }
-  }, [apiBasePublic, user?.token])
+  }, [user?.token])
 
   return (
     <div className="space-y-8">
