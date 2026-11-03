@@ -6,6 +6,7 @@ import { useTenantStatus } from "@/lib/tenant-status"
 import { useCatalogCategories } from "@/api/catalog"
 import StoreUnavailablePage from "@/pages/StoreUnavailablePage"
 import HomePage from "@/pages/HomePage"
+import ProductPage from "@/pages/ProductPage"
 import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
 import AdminPage from "@/pages/admin/AdminPage"
@@ -47,6 +48,7 @@ function StoreRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/productos/:slug" element={<ProductPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/user/settings" element={<SettingsPage />} />
         {/* El panel de la tienda es solo del ADMINISTRADOR (docs/panel-admin.md); usuarios pide USUARIOS, que no se delega */}

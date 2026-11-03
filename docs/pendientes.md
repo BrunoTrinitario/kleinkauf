@@ -47,6 +47,10 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   unidades sin costo, gráfico por período, canal, medio de pago y más vendidos), productos, stock (valor del
   inventario y últimos movimientos) y usuarios (activos, por rol y altas). Cada bloque carga por separado y si un
   servicio falla el resto sigue. El tiempo real de la tienda queda para B8.
+- **Catálogo y compartir** (B2 y A2): la home muestra los destacados y los combos (con el ahorro), y cada producto
+  tiene su página en `/productos/{slug}`. Compartir por WhatsApp o copiando el link usa
+  `GET /share/{tienda}/products/{slug}`: la tienda va en la ruta (el crawler no manda `Origin`) y products responde
+  un HTML con Open Graph que redirige a esa página.
 - **Movimientos de stock sin motivo daban 500**: `DecorEvent` copiaba los datos con `Map.copyOf`, que no acepta
   `null`, y el `NullPointerException` deshacía el movimiento. Ahora acepta `null`. Además, `GlobalExceptionHandler`
   loguea con la traza cualquier 500 no previsto (antes no dejaba rastro).
@@ -73,15 +77,6 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   como inactivo. Las keys `activity:*` duran 5 minutos, así que haría falta guardar la última request en la base
   (por ejemplo, actualizarla como mucho una vez por hora).
 
-### A2. Vista previa al compartir (Open Graph)
-
-No está implementada. MVP.md todavía dice que la arma el frontend con Next.js `generateMetadata`, que ya no aplica.
-
-1. products: endpoint público `/share/products/{slug}` que devuelve un HTML mínimo con las etiquetas `og:*` y
-   redirige a la SPA.
-2. Agregarlo como ruta pública en el gateway y cachearlo con la versión del catálogo.
-3. El botón de compartir del frontend apunta a esa URL.
-
 ### A3. Limpiar endpoints
 
 Ya no exponen el stock al público, pero quedan endpoints sin uso o con reemplazo (secciones "Para limpiar" de
@@ -107,12 +102,6 @@ esto ya está.
 - Recupero de contraseña: pedir el mail con `POST /auth/forgot-password` y la página `/reset-password?token=`, que
   es a donde lleva el mail, con el `POST /auth/forgot-password/{token}`. El token vale 15 minutos. **Para más
   adelante.**
-
-### B2. Catálogo público
-
-- Destacados en la home con `GET /api/v1/catalog/featured`.
-- Combos: listado y detalle (`/catalog/bundles`), con el ahorro frente al precio de lista.
-- Compartir por WhatsApp y copiar el link (depende de A2).
 
 ### B6. Compra online
 
@@ -233,7 +222,6 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 - `TODO` todavía dice que ventas "no entra".
 - [frontend.md](frontend.md) tiene todo sin tildar y habla del "frontend actual (Next.js)".
-- MVP.md menciona Next.js `generateMetadata` para Open Graph.
 - El README "sin Docker" no lista sales ni observability en el orden de arranque.
 - Archivo suelto `backend/eureka/nul`, sin trackear: es basura de una redirección en Windows y se puede borrar.
 - **`init.sql` solo corre con el volumen nuevo**: un volumen de Postgres creado antes de ventas u observabilidad no
@@ -244,8 +232,8 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3). Ya están la base del frontend (B0), la
-   cuenta (B1, salvo el recupero de contraseña), los paneles de productos (B3), usuarios (B4) y el resumen (B5).
+1. **A3**: la limpieza de endpoints, ahora que el frontend usa solo el catálogo nuevo. Ya están B0 a B5 y A2 (falta
+   solo el recupero de contraseña de B1).
 2. **B6 y B7**: compra online y panel de ventas.
 3. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
 4. **Decidir y planificar C1**, la próxima etapa de ventas.

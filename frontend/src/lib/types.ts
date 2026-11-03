@@ -146,6 +146,18 @@ export interface Page<T> {
 
 export type CatalogPage = Page<CatalogProduct>
 
+// Combo del catalogo publico (/catalog/bundles): listPrice es la suma de sus productos (para mostrar el ahorro),
+// null si alguno no tiene precio. image: la primera imagen del primer producto que tenga
+export interface CatalogBundle {
+  id: number
+  name: string
+  price: number
+  listPrice: number | null
+  availability: Availability
+  image: string | null
+  products: { slug: string; name: string; quantity: number }[]
+}
+
 export interface CatalogCategory {
   name: string
   products: number

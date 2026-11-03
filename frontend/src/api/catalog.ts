@@ -1,7 +1,14 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { strings } from "@/lib/strings"
-import type { CatalogCategory, CatalogPage, CatalogProductDetail, CatalogSort } from "@/lib/types"
+import type {
+  CatalogBundle,
+  CatalogCategory,
+  CatalogPage,
+  CatalogProduct,
+  CatalogProductDetail,
+  CatalogSort,
+} from "@/lib/types"
 
 // Catalogo publico (/api/v1/catalog): sin login. Cualquier cambio de productos invalida "catalog"
 export const catalogKeys = {
@@ -42,7 +49,23 @@ export function useCatalogProducts(params: CatalogParams) {
   })
 }
 
-// Detalle por slug (metadatos e imagenes en orden): lo pide el modal del producto al abrirse
+// Destacados de la home, en el orden que eligio la tienda
+export function useCatalogFeatured() {
+  return useQuery({
+    queryKey: [...catalogKeys.all, "featured"],
+    queryFn: () => api.get<CatalogProduct[]>("/catalog/featured").then((response) => response.data),
+  })
+}
+
+// Combos que se pueden comprar (habilitados, con precio y productos vigentes)
+export function useCatalogBundles() {
+  return useQuery({
+    queryKey: [...catalogKeys.all, "bundles"],
+    queryFn: () => api.get<CatalogBundle[]>("/catalog/bundles").then((response) => response.data),
+  })
+}
+
+// Detalle por slug (metadatos e imagenes en orden): lo piden el modal y la pagina del producto
 export function useCatalogProduct(slug: string, enabled: boolean) {
   return useQuery({
     queryKey: catalogKeys.product(slug),

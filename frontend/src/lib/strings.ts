@@ -35,6 +35,29 @@ export const strings = {
   },
   home: {
     loadingProducts: "Cargando productos...",
+    featuredTitle: "Destacados",
+    bundlesTitle: "Combos",
+    bundlesDescription: "Productos que se llevan juntos, a mejor precio.",
+    catalogTitle: "Catálogo",
+  },
+  bundleCard: {
+    listPrice: (amount: string) => `Por separado ${amount}`,
+    saving: (amount: string) => `Ahorras ${amount}`,
+    includes: "Incluye",
+  },
+  share: {
+    title: "Compartir",
+    whatsapp: "WhatsApp",
+    copy: "Copiar link",
+    copied: "Link copiado.",
+    copyError: "No se pudo copiar el link.",
+    message: (name: string) => `Mira ${name}:`,
+  },
+  productPage: {
+    back: "Volver al catálogo",
+    notFound: "Este producto no existe o ya no está en el catálogo.",
+    loading: "Cargando producto...",
+    viewPage: "Ver página del producto",
   },
   errors: {
     network: "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
