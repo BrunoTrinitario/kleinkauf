@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/lib/auth-context"
+import { loginUrl, useAuth } from "@/lib/auth-context"
 import { isSessionExpired } from "@/lib/api"
 import { notifyError, type ErrorOverrides } from "@/lib/api-error"
 import { SUPERADMIN_ROLE } from "@/lib/platform"
@@ -18,7 +18,7 @@ export function usePlatformSession() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isSuperadmin)) {
-      navigate("/login")
+      navigate(loginUrl())
     }
   }, [isAuthenticated, isLoading, isSuperadmin, navigate])
 

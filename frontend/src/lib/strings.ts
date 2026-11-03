@@ -274,6 +274,7 @@ export const strings = {
     deleteCancel: "Cancelar",
   },
   adminUsers: {
+    lastAdmin: "La tienda necesita al menos un administrador: el último no se puede eliminar ni perder el rol.",
     title: "Usuarios",
     subtitle: "Listado de usuarios",
     usersTitle: "Usuarios",
@@ -410,5 +411,15 @@ export const strings = {
     passwordPlaceholder: "Déjala vacía para no cambiarla",
     saving: "Guardando...",
     save: "Guardar cambios",
+    deleteTitle: "Eliminar cuenta",
+    deleteDescription: "Se borra tu cuenta de esta tienda y se cierra la sesión. No se puede deshacer.",
+    deleteButton: "Eliminar mi cuenta",
+    deleteQuestion: "¿Eliminar tu cuenta?",
+    deleteCancel: "Cancelar",
+    deleteConfirm: "Eliminar",
+    deleting: "Eliminando...",
+    deleteError: "No se pudo eliminar la cuenta.",
+    lastAdmin: "Eres el único administrador de la tienda. Asigna el rol a otra persona antes de eliminar tu cuenta.",
+    deletedToast: "Tu cuenta fue eliminada.",
   },
 } as const

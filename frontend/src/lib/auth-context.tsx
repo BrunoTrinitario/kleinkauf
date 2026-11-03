@@ -100,6 +100,11 @@ const storedToken = (): string | null => {
 
 const LOGIN_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/login` : "/auth/login"
 
+// Login que despues vuelve a la pagina indicada (por defecto, la actual)
+export function loginUrl(next: string = window.location.pathname + window.location.search): string {
+  return next === "/" || next.startsWith("/login") ? "/login" : `/login?next=${encodeURIComponent(next)}`
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [user, setUser] = useState<LoggedUser | null>(null)
@@ -139,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (expiredAt === null) {
       return
     }
-    navigate(expiredAt.startsWith("/login") ? "/login" : `/login?next=${encodeURIComponent(expiredAt)}`)
+    navigate(loginUrl(expiredAt))
     setExpiredAt(null)
   }, [expiredAt, navigate])
 

@@ -25,6 +25,12 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **CORS en las respuestas que corta el gateway** (paso 0 de B0): `CorsConfig` corre antes del rate limit, del
   tenant y del JWT, y acepta los subdominios de la plataforma aunque la tienda no exista. Los 401, 404/403 y 429
   salen con las cabeceras CORS.
+- **Cliente HTTP único** (paso 1 de B0): todas las llamadas pasan por `lib/api.ts`.
+- **Sesión vencida** (B1): un 401 cierra la sesión y vuelve a `/login?next=<página>`; las páginas privadas también
+  mandan al login con `next`, y el login vuelve ahí.
+- **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
+- **La tienda no se queda sin administrador**: users responde 409 si se quiere borrar o sacarle el rol al último
+  `ADMINISTRADOR` (a sí mismo o desde el panel de usuarios).
 
 ---
 
@@ -60,7 +66,7 @@ Ya no exponen el stock al público, pero quedan endpoints sin uso o con reemplaz
 - products: `GET /products/all` (usar el paginado), `/search?name=` (usar `?q=`), `/products/featured` (filtrar en el
   listado) y `PUT /bundles/{id}`, que alterna sin decir a qué estado (pasar a `PUT /bundles/{id}/enabled`).
 - users: `GET /users/all`, `/api/internal/tenants/all` y `/api/internal/users/all` sin uso; `PUT /auth/update` recibe
-  `email` y lo ignora (pasar a `PATCH /auth/me`); `DELETE /auth/delete` deja borrarse al dueño (ver D).
+  `email` y lo ignora (pasar a `PATCH /auth/me`); `DELETE /auth/delete` podría pasar a `DELETE /auth/me`.
 
 Flujo: confirmar con un grep en `frontend/src` que no se usan, borrar, sacar las rutas del gateway y actualizar
 `docs/backend/`. Los que usa el frontend (`/auth/update`) se cambian junto con la página.
@@ -74,22 +80,19 @@ esto ya está.
 
 ### B0. Base técnica
 
-Va primero porque todo lo demás depende de esto. Hoy cada componente arma su propio axios con `VITE_API_BASE_PUBLIC`.
+Va primero porque todo lo demás depende de esto. El cliente HTTP único ya está (`lib/api.ts`).
 
-1. ~~`lib/api.ts` con una instancia única, el interceptor de `Authorization` y el manejo central del 401~~
-   **Hecho**: todas las llamadas pasan por `api`; un 401 de una llamada con token cierra la sesión y vuelve a
-   `/login?next=<página>`; la cookie dura lo mismo que el token. Quedan para el paso 3 el 403/404 de tienda y el
-   429 como estado global (hoy se muestran como mensaje de error de cada pantalla).
-2. Instalar TanStack Query y migrar las páginas existentes.
-3. Páginas de "tienda inexistente" (404) y "tienda deshabilitada" (403), y el aviso de "demasiados intentos".
-4. Rutas protegidas por rol y área usando `hasPermission`.
+1. Instalar TanStack Query y migrar las páginas existentes.
+2. Páginas de "tienda inexistente" (404) y "tienda deshabilitada" (403), y el aviso de "demasiados intentos" como
+   estado global (hoy el 429 se muestra como mensaje de error de cada pantalla).
+3. Rutas protegidas por rol y área usando `hasPermission`, en lugar del guard de cada página (que hoy ya manda al
+   login con `next`).
 
 ### B1. Cuenta
 
 - Recupero de contraseña: pedir el mail con `POST /auth/forgot-password` y la página `/reset-password?token=`, que
-  es a donde lleva el mail, con el `POST /auth/forgot-password/{token}`. El token vale 15 minutos.
-- Borrar la propia cuenta con confirmación (`DELETE /auth/delete`), después de resolver lo del dueño (ver D).
-- Sesión vencida: volver al login y después a la página de destino. No hay refresh: el token dura una hora.
+  es a donde lleva el mail, con el `POST /auth/forgot-password/{token}`. El token vale 15 minutos. **Para más
+  adelante.**
 
 ### B2. Catálogo público
 
@@ -206,8 +209,6 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 **Errores y reglas**
 
-- **El dueño se puede borrar a sí mismo** (`DELETE /auth/delete`) o sacarse el rol y dejar la tienda sin
-  administrador. No permitirlo al último `ADMINISTRADOR`, como ya se hace con el último superadmin.
 - **500 en vez de 4xx en products**: crear un producto con el nombre de uno borrado o renombrar con un nombre usado;
   agregar a un combo un producto inexistente. Y `GET`/`PUT`/`DELETE /bundles/{id}` responden 200 aunque no exista.
 - **`PUT /products/{id}` reemplaza los cuatro campos**: mandar solo uno borra los otros. Pasar a `PATCH` o documentar
@@ -252,12 +253,11 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B0 y B1**: la base del frontend, así lo demás no se repite. El paso 0 (CORS del gateway) ya está.
+1. **B0**: el resto de la base del frontend, así lo demás no se repite. B1 ya está salvo el recupero de contraseña.
 2. **B3 y B4**: lo que el backend ya tiene listo y lo que más usa el dueño.
 3. **B5**: el panel de la tienda, que ya tiene todo el backend.
 4. **B2 y A2**: catálogo y compartir. Después, la limpieza de endpoints (A3).
 5. **B6 y B7**: compra online y panel de ventas.
 6. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
 7. **Decidir y planificar C1**, la próxima etapa de ventas.
-8. La deuda técnica (D) se intercala. Lo más barato y útil: el dueño que se borra a sí mismo, los tests y la
-   migración de users.
+8. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.

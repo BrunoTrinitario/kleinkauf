@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/lib/auth-context"
+import { loginUrl, useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { PageHeader } from "@/components/page-header"
@@ -52,7 +52,7 @@ export default function AdminUsersPage() {
       return
     }
     if (!isAuthenticated) {
-      navigate("/login")
+      navigate(loginUrl())
       return
     }
     if (activeRole !== "ADMINISTRADOR") {
@@ -182,7 +182,8 @@ export default function AdminUsersPage() {
       setIsEditOpen(false)
       setSelectedUser(null)
     } catch (err) {
-      notifyError(err, strings.errors.saveUser)
+      // 409: era el ultimo ADMINISTRADOR de la tienda y se le queria sacar el rol
+      notifyError(err, strings.errors.saveUser, { conflict: strings.adminUsers.lastAdmin })
       // Si algo fallo a mitad de camino, se recarga el usuario para no mostrar datos que no se guardaron
       api
         .get(`/users/${updatedUser.id}`)
@@ -205,7 +206,7 @@ export default function AdminUsersPage() {
         setReloadKey((prev) => prev + 1)
       }
     } catch (err) {
-      notifyError(err, strings.errors.deleteUser)
+      notifyError(err, strings.errors.deleteUser, { conflict: strings.adminUsers.lastAdmin })
     }
   }
 

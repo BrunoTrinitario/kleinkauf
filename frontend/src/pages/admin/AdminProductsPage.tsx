@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/lib/auth-context"
+import { loginUrl, useAuth } from "@/lib/auth-context"
 import type { CatalogCategory, Page, Product } from "@/lib/types"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { PaginationControls } from "@/components/pagination-controls"
@@ -52,7 +52,7 @@ export default function ProductsManagementPage() {
       return
     }
     if (!isAuthenticated) {
-      navigate("/login")
+      navigate(loginUrl())
       return
     }
     if (!canManageProducts) {

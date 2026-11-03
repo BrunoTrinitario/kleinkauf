@@ -1,10 +1,21 @@
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 import { api } from "@/lib/api"
-import { useAuth } from "@/lib/auth-context"
+import { loginUrl, useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import type { ProfileFormState } from "@/lib/types"
@@ -17,20 +28,25 @@ import { Input } from "@/components/ui/input"
 
 export default function UserSettingsPage() {
 	const navigate = useNavigate()
-	const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth()
+	const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth()
 	const [profile, setProfile] = useState<ProfileFormState | null>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [isSaving, setIsSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState<string | null>(null)
+	const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+	const [isDeleting, setIsDeleting] = useState(false)
+	const [deleteError, setDeleteError] = useState<string | null>(null)
+	// Despues de borrar la cuenta se va a la home, no al login (el guard de abajo lo haria al quedar sin sesion)
+	const accountDeleted = useRef(false)
 
 
 	useEffect(() => {
-		if (isAuthLoading) {
+		if (isAuthLoading || accountDeleted.current) {
 			return
 		}
 		if (!isAuthenticated) {
-			navigate("/login")
+			navigate(loginUrl())
 			return
 		}
 	}, [isAuthenticated, isAuthLoading, navigate])
@@ -109,6 +125,24 @@ export default function UserSettingsPage() {
 		}
 	}
 
+	// 409: es el unico ADMINISTRADOR de la tienda (el backend no la deja sin administrador)
+	const handleDeleteAccount = async () => {
+		setIsDeleting(true)
+		setDeleteError(null)
+		try {
+			await api.delete("/auth/delete")
+			accountDeleted.current = true
+			setIsDeleteOpen(false)
+			toast.success(strings.userSettings.deletedToast)
+			navigate("/", { replace: true })
+			logout()
+		} catch (err) {
+			setDeleteError(getErrorMessage(err, strings.userSettings.deleteError, { conflict: strings.userSettings.lastAdmin }))
+		} finally {
+			setIsDeleting(false)
+		}
+	}
+
 	if (isAuthLoading || !isAuthenticated) {
 		return null
 	}
@@ -181,6 +215,45 @@ export default function UserSettingsPage() {
 						)}
 					</CardContent>
 				</Card>
+
+				<Card className="max-w-2xl mt-6">
+					<CardHeader>
+						<CardTitle>{strings.userSettings.deleteTitle}</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<p className="text-sm text-muted-foreground">{strings.userSettings.deleteDescription}</p>
+						{deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
+						<Button
+							variant="outline"
+							className="text-destructive hover:text-destructive"
+							onClick={() => setIsDeleteOpen(true)}
+							disabled={isDeleting}
+						>
+							{isDeleting ? strings.userSettings.deleting : strings.userSettings.deleteButton}
+						</Button>
+					</CardContent>
+				</Card>
+
+				<AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>{strings.userSettings.deleteQuestion}</AlertDialogTitle>
+							<AlertDialogDescription>{strings.userSettings.deleteDescription}</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>{strings.userSettings.deleteCancel}</AlertDialogCancel>
+							<AlertDialogAction
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() => {
+									setIsDeleteOpen(false)
+									handleDeleteAccount()
+								}}
+							>
+								{strings.userSettings.deleteConfirm}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			</main>
 		</div>
 	)

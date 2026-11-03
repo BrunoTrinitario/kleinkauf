@@ -1,7 +1,7 @@
 
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/lib/auth-context"
+import { loginUrl, useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
@@ -16,7 +16,7 @@ export default function AdminPage() {
       return
     }
     if (!isAuthenticated) {
-      navigate("/login")
+      navigate(loginUrl())
       return
     }
     if (activeRole !== "ADMINISTRADOR") {
