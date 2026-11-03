@@ -42,7 +42,7 @@ Convenciones comunes: [README](README.md).
 4. **Seguridad:** un `HeaderAuthFilter` propio que lea `X-User-Id`, pida los roles a users y arme
    `CustomUserDetails`; y un `SecurityConfig` con el `TenantFilter` antes. Copiar el de sales o products.
 5. **Errores:** tirar `ApiException(mensaje, HttpStatus)`; `GlobalExceptionHandler` responde el mensaje en texto
-   con ese código.
+   con ese código. Cualquier otra excepción responde 500 y se loguea con la traza (`Unhandled error`).
 6. **Auditoría:** marcar las entidades con `@Audited` (y los campos que no se registran con `@AuditIgnore`). Para lo
    que no es un alta, cambio o baja, inyectar `AuditLog` y llamar a `record(...)` o `read(entidad, id)`. Se apaga con
    `decor.audit.enabled=false`.
@@ -106,6 +106,8 @@ unión de las máscaras: en `SecurityConfig` se usa `hasRole("ADMINISTRADOR")` o
 | `order.created`, `order.receipt-uploaded` | sales | La tienda | `number`, `channel`, `status`, `total`, `buyerName` |
 | `stock.movement` | products | La tienda | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
 | `stock.low` | products | La tienda | `productId`, `productName`, `stock`, `minStock` |
+
+Un dato puede ser `null` (ej. el `reason` de un movimiento sin motivo): va como `null` en el JSON.
 
 Son para el panel en vivo: si Redis falla se pierden. La auditoría, que no se puede perder, va por la tabla
 `public.outbox_events` de cada base y un publicador que la vacía hacia `decor:audit` (cada 2 s,

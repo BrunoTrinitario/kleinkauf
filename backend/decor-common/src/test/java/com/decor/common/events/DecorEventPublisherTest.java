@@ -58,6 +58,20 @@ class DecorEventPublisherTest {
     }
 
     @Test
+    void unDatoNull_seMandaComoNullYNoFrenaLaOperacion() {
+        // Un movimiento de stock sin motivo: antes Map.copyOf tiraba NullPointerException y el movimiento fallaba
+        Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("productId", 12);
+        data.put("reason", null);
+
+        assertThatCode(() -> publisher.publish(DecorEvent.STOCK_MOVEMENT, "mi_tienda", data)).doesNotThrowAnyException();
+
+        DecorEvent event = new DecorEvent(DecorEvent.STOCK_MOVEMENT, "mi_tienda", NOW, data);
+        assertThat(event.toFields(mapper).get("data")).isEqualTo("{\"productId\":12,\"reason\":null}");
+        assertThat(DecorEvent.fromFields(event.toFields(mapper), mapper)).isEqualTo(event);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void publicaEnElStreamConRecorte() {
         publisher.publish(DecorEvent.TENANT_CREATED, "public", Map.of("schema", "mi_tienda"));

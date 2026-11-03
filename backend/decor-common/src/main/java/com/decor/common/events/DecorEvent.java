@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -38,8 +39,10 @@ public record DecorEvent(String type, String tenant, Instant at, Map<String, Obj
     private static final TypeReference<Map<String, Object>> DATA_TYPE = new TypeReference<>() {
     };
 
+    // Los datos pueden tener valores null (ej. un movimiento de stock sin motivo): Map.copyOf no los acepta y el
+    // NullPointerException tiraba abajo la operacion que publicaba el evento
     public DecorEvent {
-        data = data == null ? Map.of() : Map.copyOf(data);
+        data = data == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(data));
     }
 
     public Map<String, String> toFields(ObjectMapper mapper) {
