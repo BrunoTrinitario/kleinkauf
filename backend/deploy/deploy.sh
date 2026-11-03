@@ -16,8 +16,8 @@ compose() { docker compose --env-file "$ENV_FILE" -f backend/deploy/docker-compo
 case "$PART" in
   backend)
     BUILD="eureka user-service product-service sales-service observability-service gateway-service"
-    #Postgres y Redis entran como dependencias; no se compilan
-    UP="$BUILD"
+    #Postgres y Redis entran como dependencias; no se compilan. Caddy (la entrada HTTPS) va con el backend
+    UP="$BUILD caddy"
     UP_FLAGS=""
     ;;
   frontend)
@@ -43,6 +43,11 @@ done
 #--wait espera a que los servicios queden healthy: si alguno no arranca, el deploy falla
 echo "== up $UP"
 compose up -d $UP_FLAGS --wait --wait-timeout 600 $UP
+
+#Si solo cambio el Caddyfile, up no recrea el contenedor: se recarga la config
+if [ "$PART" = backend ]; then
+  compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+fi
 
 #Las imagenes viejas quedan sin tag despues de cada build
 docker image prune -f >/dev/null

@@ -1,0 +1,38 @@
+#Proxy de entrada del server: HTTPS automatico con Let's Encrypt y ruteo por host.
+#  {$PLATFORM_DOMAIN}            frontend de la plataforma (alta de tiendas y panel del superadmin)
+#  api.{$PLATFORM_DOMAIN}        gateway
+#  <tienda>.{$PLATFORM_DOMAIN}   frontend de cada tienda: el certificado se saca la primera vez que alguien entra
+#Solo corre en el server (profile server de docker-compose.prod.yml). Variable: PLATFORM_DOMAIN.
+#Se monta la carpeta (no el archivo) para que un git checkout se vea adentro; deploy.sh hace caddy reload.
+{
+	#Antes de sacar el certificado de una tienda, Caddy le pregunta a /check (abajo) si el host es valido
+	on_demand_tls {
+		ask http://localhost:5555/check
+	}
+}
+
+{$PLATFORM_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy frontend:80
+}
+
+api.{$PLATFORM_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy gateway-service:3000
+}
+
+*.{$PLATFORM_DOMAIN} {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	reverse_proxy frontend:80
+}
+
+#Permiso del on-demand: solo <identificador>.{$PLATFORM_DOMAIN}, con el formato de identificador de las tiendas
+#(TenantService.IDENTIFIER). No verifica que la tienda exista. Escucha solo dentro del contenedor
+http://localhost:5555 {
+	@tienda expression `{query.domain}.endsWith(".{$PLATFORM_DOMAIN}") && {query.domain}.matches("^[a-z][a-z0-9-]{1,28}[a-z0-9][.]")`
+	respond @tienda 200
+	respond 403
+}

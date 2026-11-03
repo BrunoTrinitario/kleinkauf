@@ -6,7 +6,8 @@
 #  docker compose -f backend/deploy/docker-compose.prod.yml up -d
 #Seed de la tienda demo (opcional, solo para probar):
 #  docker compose -f backend/deploy/docker-compose.prod.yml --profile seed up seed
-#Hacia afuera se publican solo el frontend y el gateway. Postgres, Redis, Eureka y los puertos de gestion son internos
+#Frontend y gateway se publican solo en 127.0.0.1 (para probar en local). En el server la entrada es Caddy (80/443,
+#HTTPS) con el profile server; lo levanta deploy.sh. Postgres, Redis, Eureka y los puertos de gestion son internos
 name: kleinkauf
 
 #Imagen de un servicio del backend: mismo Dockerfile, cambia la carpeta
@@ -183,8 +184,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
       #Frontend de la plataforma (sin tienda): se permite por CORS
       PLATFORM_URL: ${PLATFORM_URL}
+      #Detras de Caddy: la IP del cliente sale de X-Forwarded-For (lo pone Caddy; el gateway no se publica afuera)
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
     ports:
-      - "${GATEWAY_PORT:-3000}:3000"
+      - "127.0.0.1:${GATEWAY_PORT:-3000}:3000"
     depends_on: *depends
     healthcheck:
       <<: *healthcheck
@@ -199,7 +202,25 @@ services:
         VITE_API_BASE_PUBLIC: ${PUBLIC_API_URL}
         VITE_PLATFORM_HOSTNAME: ${PLATFORM_HOSTNAME}
     ports:
-      - "${FRONTEND_PORT:-2999}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-2999}:80"
+
+  #Entrada del server: HTTPS y ruteo por host (caddy/Caddyfile). Solo en el server: deploy.sh lo nombra
+  caddy:
+    image: caddy:2.10-alpine
+    profiles: [server]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      #Certificados: si se pierden hay que volver a pedirlos y Let's Encrypt limita cuantos se emiten por semana
+      - caddy-data:/data
+      - caddy-config:/config
+    #Sin depends_on: el frontend lo despliega su rama (deploy/frontend); hasta que este, Caddy responde 502
 
   #Seed de la tienda demo: solo con --profile seed. Es para probar, no para el server real
   seed:
@@ -231,3 +252,5 @@ volumes:
   redis-data:
   product-uploads:
   sales-uploads:
+  caddy-data:
+  caddy-config:
