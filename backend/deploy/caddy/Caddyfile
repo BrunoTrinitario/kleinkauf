@@ -21,7 +21,9 @@ api.{$PLATFORM_DOMAIN} {
 	reverse_proxy gateway-service:3000
 }
 
-*.{$PLATFORM_DOMAIN} {
+#Las tiendas: cualquier otro host. No va como *.{$PLATFORM_DOMAIN} porque ese comodin tapa a api. y Caddy no le
+#saca certificado propio; el /check de abajo es el que limita los hosts a <tienda>.{$PLATFORM_DOMAIN}
+https:// {
 	tls {
 		on_demand
 	}
