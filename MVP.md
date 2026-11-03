@@ -204,6 +204,9 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-03 | `store.activity`: `stock.movement` **solo de los movimientos manuales**; `stock.low` **al cruzar** el mínimo con cualquier movimiento | Un pedido de varios productos no llena el feed: ya llega `order.created` |
 | 2026-11-03 | Tráfico por tienda **solo del gateway**; uso del catálogo con **contadores por día en Redis** escritos por products (8 días) | Cada request pasa una vez por el gateway; el detalle por producto no está en las métricas |
 | 2026-11-03 | Última actividad del uso por tienda = lo más reciente entre el **último login** y las keys `activity:*` | Un usuario con la sesión abierta no vuelve a loguearse |
+| 2026-11-03 | Referencia del backend en `docs/backend/`, **un archivo por servicio** con fichas completas (curl, respuestas, errores literales); `endpoints.md` se borra y los docs por tema quedan | Que integrar el frontend o empezar en un servicio sea rápido |
+| 2026-11-03 | Las lecturas viejas con **stock exacto** (`GET /products/{id}`, `/featured`, `/search`, `/bundles/**`) piden un área del panel; los destacados públicos pasan a `GET /api/v1/catalog/featured` | El catálogo público no muestra el stock exacto |
+| 2026-11-03 | El mail de recupero lleva a `<URL de la tienda>/reset-password?token=` (antes, a la API del gateway) | Un link de mail hace GET: tiene que abrir una página del frontend |
 
 ### Detalle de la librería común
 
@@ -264,7 +267,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | `GET /api/v1/products/{id}/stock/movements` | Administrador, empleado | Historial de movimientos, del más nuevo al más viejo |
 | `GET /api/v1/products/stock/low` | Administrador, empleado | Productos con stock menor o igual a su mínimo |
 | `PUT /api/v1/bundles/{id}/price` | Administrador | Cambia el precio del combo |
-| `GET /api/v1/products/featured` | Público | Destacados: primero por `featuredOrder`, los que no tienen orden al final por nombre |
+| `GET /api/v1/products/featured` | Público (desde 2026-11-03: área del panel; el público usa `GET /api/v1/catalog/featured`) | Destacados: primero por `featuredOrder`, los que no tienen orden al final por nombre |
 | `PUT /api/v1/products/{id}/featured` | Administrador | Marca o desmarca como destacado: `{"featured": true, "order": 1}` |
 
 - **Cambios de API:** `POST /products` recibe además `minStock`, `price` y `cost` (el stock inicial queda como movimiento de

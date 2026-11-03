@@ -108,7 +108,8 @@ Content-Type: application/json
 | `GET /api/v1/products/export`, `GET /api/v1/products/import/template`, `POST /api/v1/products/import` | PRODUCTOS **y** PRECIOS (el archivo trae precio y costo) |
 | `POST` / `GET /api/v1/products/{id}/stock/movements`, `GET /api/v1/products/stock/low` | STOCK |
 | `POST`, `PUT`, `DELETE /api/v1/bundles/**` (incluye `PUT /{id}/price`) | COMBOS |
-| `GET /api/v1/catalog/**` | Ninguno: es público |
+| `GET /api/v1/products`, `/all`, `/{id}`, `/featured`, `/search` y `GET /api/v1/bundles/**` (muestran el stock exacto) | Cualquier área del panel (PRODUCTOS, PRECIOS, STOCK o COMBOS) |
+| `GET /api/v1/catalog/**`, `GET /api/v1/products/{id}/images`, `GET /api/v1/products/{id}/metadata` | Ninguno: es público |
 | `/api/internal/products/**` (reservas de stock y vendidos) | Token interno de los microservicios (rol `INTERNAL`); ningún usuario |
 
 ### sales

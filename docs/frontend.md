@@ -1,7 +1,7 @@
 # Frontend (plan)
 
 Decisión de stack y checklist de lo que tiene que cubrir el frontend nuevo, armada a partir de la documentación del
-backend ([endpoints](endpoints.md), [tenants](tenants.md), [permisos](permisos.md), [ventas](ventas.md),
+backend ([referencia por servicio](backend/README.md), [tenants](tenants.md), [permisos](permisos.md), [ventas](ventas.md),
 [panel-admin](panel-admin.md), [auditoría](auditoria.md), [observabilidad](observabilidad.md)) y del frontend actual.
 
 Leyenda: **[listo]** el backend ya lo expone · **[plan]** está planificado y todavía no existe en el backend ·
@@ -90,13 +90,13 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 
 ### 2. Cuenta y sesión en la tienda **[listo]**
 - [ ] Login ☑ y registro como `CLIENTE` ☑
-- [ ] Recupero de contraseña: pedir el mail y pantalla `/reset/:token` (el token vale 15 min)
+- [ ] Recupero de contraseña: pedir el mail y pantalla `/reset-password?token=` (el link del mail lleva ahí; el token vale 15 min y se manda a `POST /api/v1/auth/forgot-password/{token}`)
 - [ ] Perfil: cambiar nombre y contraseña ☑, borrar la propia cuenta con confirmación
 - [ ] Sesión vencida: volver al login conservando la página de destino
 - [ ] Menú de usuario con los roles y logout
 
 ### 3. Catálogo público **[listo]**
-- [ ] Home con **productos destacados** (`/products/featured`, en su orden)
+- [ ] Home con **productos destacados** (`/catalog/featured`, en su orden)
 - [ ] Listado paginado (24 por página) con búsqueda `q`, filtro por categoría, orden (nombre / precio ↑ / precio ↓)
 - [ ] Categorías con su cantidad de productos
 - [ ] Detalle por **slug** (URL compartible), con imágenes, metadatos (material, color, estilo, medidas) ☑

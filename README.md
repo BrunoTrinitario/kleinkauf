@@ -178,7 +178,7 @@ decor/
 │   ├── src/lib/ src/hooks/   Contexto de auth, tipos, textos y hooks
 │   └── public/               Recursos estáticos
 ├── docs/                     Documentación y planes por módulo
-│   ├── endpoints.md          Endpoints de la API
+│   ├── backend/              Referencia del backend: un archivo por servicio, con todos los endpoints
 │   ├── tenants.md            Cómo funcionan los tenants
 │   ├── permisos.md           Permisos por área y rol
 │   ├── ventas.md             Módulo de ventas
@@ -200,7 +200,8 @@ decor/
 ## Documentación
 
 - [MVP.md](MVP.md): análisis del proyecto y hoja de ruta.
-- [docs/endpoints.md](docs/endpoints.md): referencia de la API.
+- [docs/backend/](docs/backend/README.md): referencia del backend, un archivo por servicio con todos los
+  endpoints, ejemplos, errores y cómo se comunican.
 - [docs/tenants.md](docs/tenants.md) y [docs/permisos.md](docs/permisos.md): multi-tenant y permisos.
 - [docs/ventas.md](docs/ventas.md) y [docs/panel-admin.md](docs/panel-admin.md): ventas y paneles de administración.
 - [docs/observabilidad.md](docs/observabilidad.md) y [docs/auditoria.md](docs/auditoria.md): salud, métricas, trazas,
