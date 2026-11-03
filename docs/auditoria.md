@@ -15,7 +15,7 @@ Se apoya en el servicio de [observabilidad](observabilidad.md).
 | Cómo se captura | **Listener de Hibernate** para las entidades `@Audited`; a mano con `AuditLog` para lo demás |
 | Cómo llega | **Outbox**: la fila se guarda en la misma transacción que el cambio y después se publica en Redis Streams. **No se pierde** aunque observability o Redis estén caídos |
 | Outbox | **Una sola tabla por servicio**, `public.outbox_events`, con columna `tenant` (no una por schema): se escribe con la misma conexión que el cambio y el publicador lee una sola tabla |
-| Dónde se guarda | En **`decor-observability`**, base `observability`: `<schema>.audit_events`, un schema por tienda y `public` para la plataforma |
+| Dónde se guarda | En **`kleinkauf-observability`**, base `observability`: `<schema>.audit_events`, un schema por tienda y `public` para la plataforma |
 | Retención | **Para siempre**. Nadie la edita ni la borra |
 | Quién la ve | **Cada uno lo suyo**: el administrador ve la de su tienda y el superadmin la de la plataforma. El superadmin **no** ve la de las tiendas |
 | Nombres | Observability busca el nombre del usuario en users **al guardar** y lo deja guardado: si después lo borran, su auditoría sigue diciendo quién era |
@@ -99,17 +99,17 @@ Leer el panel de la plataforma (resumen, uso por tienda, lista de superadmins) *
 ## Cómo funciona
 
 ```
-products / users / sales                                 decor-observability
-────────────────────────                                 ───────────────────
+products / users / sales                                 kleinkauf-observability
+────────────────────────                                 ───────────────────────
 cambio + fila en public.outbox_events  (misma transacción)
         │
         ▼
 OutboxPublisher (cada 2 s) ──► Redis Streams ──► AuditConsumer ──► <schema>.audit_events
-   marca la fila como enviada    decor:audit     (grupo observability-audit)      │
+   marca la fila como enviada    kleinkauf:audit     (grupo observability-audit)  │
                                                                                    └──► WS store.audit / platform.audit
 ```
 
-1. **Captura** (`decor-common`, `com.decor.common.audit`): `AuditHibernateListener` escucha `PostInsert`,
+1. **Captura** (`kleinkauf-common`, `com.kleinkauf.common.audit`): `AuditHibernateListener` escucha `PostInsert`,
    `PostUpdate` y `PostDelete`. El "antes" sale del estado que Hibernate tenía cargado, y los campos que cambiaron,
    de los que Hibernate marcó como sucios. Inserta la fila con la conexión de la misma sesión: si el cambio se
    deshace, la auditoría también. `AuditLog` hace lo mismo a mano con `JdbcTemplate` (dentro de una transacción se
@@ -117,7 +117,7 @@ OutboxPublisher (cada 2 s) ──► Redis Streams ──► AuditConsumer ─�
 2. **Outbox**: `public.outbox_events` se crea al arrancar el servicio. Los enviados se borran a la semana: la
    auditoría vive en observability, acá es solo de paso.
 3. **Publicador** (`OutboxPublisher`): toma los pendientes con `FOR UPDATE SKIP LOCKED` (con varias instancias cada
-   una toma filas distintas), los manda al stream `decor:audit` y los marca. Si Redis falla, no marca nada y reintenta.
+   una toma filas distintas), los manda al stream `kleinkauf:audit` y los marca. Si Redis falla, no marca nada y reintenta.
 4. **Consumidor** (`AuditConsumer` en observability): grupo de consumidores `observability-audit`, así con varias
    instancias cada evento lo guarda una sola. Lo guarda **una sola vez** aunque llegue repetido (por `id`) y recién
    después lo confirma (`XACK`): si la base falla, queda pendiente y se reintenta. Los pendientes de una instancia que
@@ -125,7 +125,7 @@ OutboxPublisher (cada 2 s) ──► Redis Streams ──► AuditConsumer ─�
 
 La importación del CSV apaga la captura automática mientras corre (`AuditSuppression`) y deja la entrada del resumen.
 
-`decor.audit.enabled=false` apaga la auditoría de un servicio; `decor.audit.publisher.enabled=false`, solo el envío.
+`kleinkauf.audit.enabled=false` apaga la auditoría de un servicio; `kleinkauf.audit.publisher.enabled=false`, solo el envío.
 
 ## Consultas
 
@@ -145,7 +145,7 @@ La importación del CSV apaga la captura automática mientras corre (`AuditSuppr
 - Las acciones registradas a mano fuera de una transacción (el cambio de estado de un pedido, la desactivación de
   un superadmin) se escriben justo después del cambio, no en la misma transacción: si el servicio se cae entre
   las dos, se pierde esa entrada.
-- El stream `decor:audit` se recorta a unos 100.000 eventos: si observability estuviera caída mucho tiempo con
+- El stream `kleinkauf:audit` se recorta a unos 100.000 eventos: si observability estuviera caída mucho tiempo con
   mucho movimiento, se perderían los más viejos (la outbox ya los marcó como enviados).
 - Los cambios hechos con SQL directo que no pasan por `AuditLog` no quedan registrados.
 

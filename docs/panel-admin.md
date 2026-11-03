@@ -121,10 +121,10 @@ products, `/api/v1/platform/products/**`. Si una request llega con tenant, los d
 - products **no pide la lista de tenants a users**: cuenta los schemas de su propia base que tienen la tabla
   `product` (menos `public`). Un tenant que nunca abrió su tienda no tiene schema en products y no aparece; el
   frontend lo cuenta como 0. Así no depende de que users responda ni de la lista de tenants en Redis.
-- La utilidad de períodos quedó en users (`util/Periods.java`), no en decor-common: sales ya tiene la suya
+- La utilidad de períodos quedó en users (`util/Periods.java`), no en kleinkauf-common: sales ya tiene la suya
   (`ReportService`, con los días en la zona de la tienda) y no se tocó. Errores: `groupBy` o fechas inválidas, o
   `from > to`, o más de 1.000 períodos → 400.
-- products no necesitó `decor.tenant.optional-paths`: el `TenantFilter` ya tenía `decor.tenant.public-paths`, y se
+- products no necesitó `kleinkauf.tenant.optional-paths`: el `TenantFilter` ya tenía `kleinkauf.tenant.public-paths`, y se
   agregó `/api/v1/platform/` ahí.
 - Parámetros inválidos de `sort` → 400.
 - Las fechas de las respuestas de plataforma (`createdAt`, `lastActivity`, `lastLogin`, también en
@@ -199,9 +199,9 @@ Se arma en el frontend juntando dos listas por `schema`:
 
 ## Cambios por servicio
 
-### decor-common
+### kleinkauf-common
 
-- `TenantFilter`: lista de **rutas sin tenant** (`decor.tenant.optional-paths`), para que products acepte
+- `TenantFilter`: lista de **rutas sin tenant** (`kleinkauf.tenant.optional-paths`), para que products acepte
   `/api/v1/platform/**` sin `X-Forwarded-Host` aunque en el resto el tenant sea obligatorio.
 - Utilidad de **períodos** (`GroupBy` `DAY`/`WEEK`/`MONTH`, `PeriodCountDto`, armado de la serie con ceros; la
   semana empieza el lunes). Va en la librería porque los reportes de [ventas](ventas.md) la van a usar igual.
@@ -220,7 +220,7 @@ Se arma en el frontend juntando dos listas por `schema`:
 
 - `GET /api/v1/products/dashboard` (`ADMINISTRADOR`) y `GET /api/v1/platform/products/usage` (`SUPERADMIN`, sin
   tenant: si llega con tenant responde 404, igual que users).
-- `decor.tenant.optional-paths=/api/v1/platform/` en `application.properties`.
+- `kleinkauf.tenant.optional-paths=/api/v1/platform/` en `application.properties`.
 - `UsersClient.getUserRoles`: no mandar `X-Forwarded-Host` cuando no hay tenant (hoy haría `headers.set(..., null)`),
   así users busca los roles del superadmin en `public`.
 - Consultas nuevas en `ProductRepository` y `StockMovementRepository`.
@@ -235,7 +235,7 @@ Se arma en el frontend juntando dos listas por `schema`:
 ## Para verificar al implementar
 
 - **Nombres de columnas en las consultas nativas.** Los schemas los crea Hibernate con `hbm2ddl` desde un
-  `EntityManagerFactory` propio (`TenantDataSource` en users y la autoconfiguración de `decor-common`), **sin** la
+  `EntityManagerFactory` propio (`TenantDataSource` en users y la autoconfiguración de `kleinkauf-common`), **sin** la
   estrategia de nombres de Spring Boot. Los campos sin `@Column` (`lastLogin`, `userId` de `roles`) podrían haber
   quedado como `lastlogin` / `userid` en vez de `last_login` / `user_id`. Revisarlo en la base antes de escribir el
   SQL.

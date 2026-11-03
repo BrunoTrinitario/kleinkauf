@@ -1,4 +1,4 @@
-# Backend de decor
+# Backend de kleinkauf
 
 Referencia del backend para integrar el frontend o empezar a trabajar en un servicio: qué hace cada microservicio,
 todos sus endpoints con ejemplos y cómo se comunican. Un archivo por servicio:
@@ -10,7 +10,7 @@ todos sus endpoints con ejemplos y cómo se comunican. Un archivo por servicio:
 | products | [products.md](products.md) | 3002 | Productos, stock, combos, CSV, catálogo público y panel de la tienda |
 | sales | [sales.md](sales.md) | 3003 | Pedidos online, pagos por transferencia, ventas del local y reportes |
 | observability | [observability.md](observability.md) | 3004 | Salud, métricas, auditoría y WebSocket de los paneles en tiempo real |
-| decor-common | [common.md](common.md) | — | Librería compartida (no es un servicio) |
+| kleinkauf-common | [common.md](common.md) | — | Librería compartida (no es un servicio) |
 | eureka | [eureka.md](eureka.md) | 8761 | Registro de servicios |
 
 Los docs por tema explican cómo funciona algo que cruza varios servicios; desde acá se enlazan cuando hace falta:
@@ -32,7 +32,8 @@ proyecto](../../README.md#cómo-correrlo).
           ┌─────────────────────────────┼─────────────────────────────┐
           ▼                             ▼                             ▼
 ┌──────────────────┐  tokens  ┌──────────────────┐  tokens  ┌───────────────────┐
-│ decorusers :3001 │ ◄─────── │ products  :3002  │ ◄─────── │ decor-sales :3003 │
+│ kleinkaufusers   │ ◄─────── │ products         │ ◄─────── │ kleinkauf-sales   │
+│ :3001            │          │ :3002            │          │ :3003             │
 └────────┬─────────┘ internos └────────┬─────────┘ internos └─────────┬─────────┘
          │  ▲        (Resilience4j)    │      (stock y vendidos)      │
          │  └─────────────────── roles y tenants ─────────────────────┤
@@ -40,9 +41,9 @@ proyecto](../../README.md#cómo-correrlo).
  Postgres "users"     Redis    Postgres "products"            Postgres "sales"
  (schema por tenant + public)  (schema por tenant)            (schema por tenant)
 
-          decor-observability :3004  ─  salud, métricas, eventos, auditoría y WS (Postgres "observability")
+          kleinkauf-observability :3004  ─  salud, métricas, eventos, auditoría y WS (Postgres "observability")
           eureka :8761  ─  registro de servicios
-          decor-common  ─  librería compartida (no es un servicio)
+          kleinkauf-common  ─  librería compartida (no es un servicio)
 ```
 
 - **Multi-tenant:** cada tienda (tenant) tiene su propio schema de Postgres en cada base. El gateway reconoce la

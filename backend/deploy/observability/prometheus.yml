@@ -5,8 +5,8 @@ global:
 
 scrape_configs:
   #Los servicios registrados en eureka. Cada instancia publica su puerto de gestion en la metadata
-  #(management.port, lo pone decor-common): se lee /metrics en <ip>:<puerto de gestion>
-  - job_name: decor
+  #(management.port, lo pone kleinkauf-common): se lee /metrics en <ip>:<puerto de gestion>
+  - job_name: kleinkauf
     metrics_path: /metrics
     eureka_sd_configs:
       - server: http://eureka:8761/eureka

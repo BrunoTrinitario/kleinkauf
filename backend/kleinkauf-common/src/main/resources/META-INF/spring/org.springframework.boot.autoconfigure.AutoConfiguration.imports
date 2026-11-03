@@ -1,0 +1,4 @@
+com.kleinkauf.common.autoconfigure.KleinKaufCoreAutoConfiguration
+com.kleinkauf.common.servlet.autoconfigure.KleinKaufServletAutoConfiguration
+com.kleinkauf.common.audit.KleinKaufAuditAutoConfiguration
+com.kleinkauf.common.observability.servlet.KleinKaufObservabilityServletAutoConfiguration

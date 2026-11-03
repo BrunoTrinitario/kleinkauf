@@ -55,13 +55,13 @@ gateway
    │
    ▼
 users / products / sales
-   TenantFilter (decor-common)   lee X-Forwarded-Host y lo deja en TenantContext
+   TenantFilter (kleinkauf-common)   lee X-Forwarded-Host y lo deja en TenantContext
    Hibernate multi-tenant        TenantIdentifierResolver → schema del TenantContext
                                  DatabaseMultiTenantConnectionProvider → conexión con ese schema
 ```
 
 - En **products** y **sales** el tenant es obligatorio (sin `X-Forwarded-Host` responde 404). En **users** es
-  opcional (`decor.tenant.required=false`): sin tenant trabaja sobre `public` (plataforma y endpoints internos).
+  opcional (`kleinkauf.tenant.required=false`): sin tenant trabaja sobre `public` (plataforma y endpoints internos).
 - Cuando sales llama a products (reservar stock, vendidos) le pasa el mismo `X-Forwarded-Host`: la reserva se hace en
   el schema de la tienda del pedido.
 - Los microservicios **confían** en `X-Forwarded-Host` y `X-User-Id` porque solo los pone el gateway: por eso el
@@ -78,7 +78,7 @@ distintas). Por eso:
 
 ## Alta de un tenant
 
-Toda la lógica está en **decorusers** (`/api/v1/platform`).
+Toda la lógica está en **kleinkaufusers** (`/api/v1/platform`).
 
 ### Autoservicio (público)
 
@@ -193,7 +193,7 @@ estaban esperando el pago igual vencen y devuelven su stock.
 | users | `platform.scheme` | Esquema de la URL de los tenants | `http` |
 | users | `platform.domain` | Dominio base de los subdominios | `localhost:2999` |
 | users | `platform.superadmin.email` / `.password` | Primer superadmin (`SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD`) | vacío (no se crea) |
-| users | `decor.tenant.required` | Tenant opcional en users | `false` |
+| users | `kleinkauf.tenant.required` | Tenant opcional en users | `false` |
 | gateway | `platform.url` | Frontend de la plataforma (alta de tenants, panel), permitido por CORS | `http://localhost:2999` |
 | gateway | `limit.signup` | Altas de tenants por minuto por IP | `3` |
 

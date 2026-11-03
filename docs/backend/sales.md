@@ -1,4 +1,4 @@
-# sales (decor-sales)
+# sales (kleinkauf-sales)
 
 Spring Boot (servlet) en el puerto **3003**, registrado en Eureka como `sales-microservice`. Base Postgres `sales`,
 un schema por tienda (se crea con la primera request de la tienda). Los comprobantes de pago van a disco.
@@ -116,7 +116,7 @@ Respuesta **200**:
 ```json
 {
   "paymentConfigured": true,
-  "payment": { "alias": "tienda.decor", "cbu": null, "holder": "Decor SRL", "bank": "Galicia" },
+  "payment": { "alias": "tienda.kleinkauf", "cbu": null, "holder": "KleinKauf SRL", "bank": "Galicia" },
   "expirationHours": 48,
   "deliveryTypes": [ "RETIRO", "ENVIO" ],
   "maxLines": 30,
@@ -162,7 +162,7 @@ Respuesta **201**:
   "status": "PENDIENTE_PAGO",
   "total": 72000.00,
   "expiresAt": "2026-11-05T13:30:00",
-  "payment": { "alias": "tienda.decor", "cbu": null, "holder": "Decor SRL", "bank": "Galicia" }
+  "payment": { "alias": "tienda.kleinkauf", "cbu": null, "holder": "KleinKauf SRL", "bank": "Galicia" }
 }
 ```
 
@@ -215,7 +215,7 @@ Respuesta **200** (`OrderDto`):
   "items": [ { "type": "PRODUCT", "id": 5, "name": "Mesa", "quantity": 2, "unitPrice": 15000.00, "subtotal": 30000.00 } ],
   "discount": 0,
   "total": 72000.00,
-  "payment": { "alias": "tienda.decor", "cbu": null, "holder": "Decor SRL", "bank": "Galicia" },
+  "payment": { "alias": "tienda.kleinkauf", "cbu": null, "holder": "KleinKauf SRL", "bank": "Galicia" },
   "history": [
     { "status": "PENDIENTE_PAGO", "createdAt": "2026-11-03T13:30:00", "reason": null, "userId": null },
     { "status": "PAGO_EN_REVISION", "createdAt": "2026-11-03T14:00:00", "reason": null, "userId": null },
@@ -411,7 +411,7 @@ Respuesta **201**: `AdminOrderDto` con canal `LOCAL`, sin vencimiento.
 ### GET /api/v1/sales/admin/settings
 
 ```json
-{ "alias": "tienda.decor", "cbu": null, "holder": "Decor SRL", "bank": "Galicia", "expirationHours": 48 }
+{ "alias": "tienda.kleinkauf", "cbu": null, "holder": "KleinKauf SRL", "bank": "Galicia", "expirationHours": 48 }
 ```
 
 Sin configurar, todo `null` salvo `expirationHours` (48).
@@ -518,7 +518,7 @@ ExpirationJob (cada 1 h, empieza al minuto) ── por cada tienda: vence pedido
   por número de pedido: reintentar no aplica nada dos veces. Detalle en
   [ventas.md](../ventas.md#crear-un-pedido-paso-a-paso).
 - **Control optimista:** el pedido tiene `@Version`; si dos cambian lo mismo, el segundo recibe 409.
-- **Eventos** (`decor:events`, panel en vivo `store.activity`): `order.created` (online y local) y
+- **Eventos** (`kleinkauf:events`, panel en vivo `store.activity`): `order.created` (online y local) y
   `order.receipt-uploaded`, con `{ number, channel, status, total, buyerName }`, después del commit.
 - **Auditoría:** `SalesSettings` es `@Audited`; los cambios de estado del administrador (`STATUS_CHANGE`) y la
   descarga de comprobantes (`READ`) se registran a mano. Ver [auditoria.md](../auditoria.md).
@@ -559,7 +559,7 @@ Los comprobantes están en disco en `receipts.path/<schema>/<número>/`.
 | `http.client.connect-timeout` / `read-timeout` | `2s` / `3s` | Llamadas a products y users |
 | `resilience4j.*.instances.products.*` | | Circuit breaker y reintentos hacia products |
 
-Levantarlo solo: `cd backend/decor-sales && ./gradlew bootRun` (con products y users arriba para vender).
+Levantarlo solo: `cd backend/kleinkauf-sales && ./gradlew bootRun` (con products y users arriba para vender).
 
 ## Límites conocidos
 

@@ -33,8 +33,8 @@ discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
 
-// Solo los servicios de decor; la etiqueta "service" es el nombre del contenedor
-discovery.relabel "decor" {
+// Solo los servicios de kleinkauf; la etiqueta "service" es el nombre del contenedor
+discovery.relabel "kleinkauf" {
   targets = []
 
   rule {
@@ -50,17 +50,17 @@ discovery.relabel "decor" {
   }
 }
 
-loki.source.docker "decor" {
+loki.source.docker "kleinkauf" {
   host          = "unix:///var/run/docker.sock"
   targets       = discovery.docker.containers.targets
-  relabel_rules = discovery.relabel.decor.rules
-  forward_to    = [loki.process.decor.receiver]
+  relabel_rules = discovery.relabel.kleinkauf.rules
+  forward_to    = [loki.process.kleinkauf.receiver]
 }
 
 // Los logs salen en JSON (logstash). El nivel es etiqueta; traceId, tenant y userId van como
 // structured metadata para filtrar sin crear una serie por valor. Las lineas que no son JSON
 // (la salida de gradle) pasan igual
-loki.process "decor" {
+loki.process "kleinkauf" {
   stage.json {
     expressions = {
       level   = "level",

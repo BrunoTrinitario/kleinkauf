@@ -1,4 +1,0 @@
-com.decor.common.autoconfigure.DecorCoreAutoConfiguration
-com.decor.common.servlet.autoconfigure.DecorServletAutoConfiguration
-com.decor.common.audit.DecorAuditAutoConfiguration
-com.decor.common.observability.servlet.DecorObservabilityServletAutoConfiguration

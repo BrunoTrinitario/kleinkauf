@@ -1,4 +1,4 @@
-# Decor
+# KleinKauf
 
 Software libre de administración para pequeños emprendimientos (tiendas de muebles y decoración, por ejemplo):
 catálogo de productos, usuarios y roles, y —en camino— ventas, caja y gestión del local físico.
@@ -27,10 +27,10 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
                          │   3000)    │
                          └──┬──────┬──┘
               lb://users    │      │    lb://products
-                  ┌─────────▼┐    ┌▼───────────┐
-                  │ decorusers│◀──▶│  product   │   comunicación interna
-                  │   :3001   │    │   :3002    │   (/api/internal/**, token firmado)
-                  └─────┬─────┘    └─────┬──────┘
+            ┌───────────────▼┐    ┌▼───────────┐
+            │ kleinkaufusers │◀──▶│  product   │   comunicación interna
+            │     :3001      │    │   :3002    │   (/api/internal/**, token firmado)
+            └───────────┬────┘    └─────┬──────┘
                         │                │
                   ┌─────▼────────────────▼─────┐        ┌──────────────┐
                   │         PostgreSQL         │        │    Eureka    │
@@ -45,11 +45,11 @@ Cada negocio es un **tenant**: tiene su propia tienda, sus usuarios, sus product
 |---|---|---|
 | **Frontend** (`frontend/`) | Interfaz web en Vite + React + TypeScript + Tailwind + shadcn/ui: login, registro, panel de administración y catálogo | 2999 |
 | **Gateway** (`backend/gateway`) | Único punto de entrada. Valida el JWT, resuelve el tenant, aplica CORS y rate limit. Spring Cloud Gateway (reactivo) | 3000 |
-| **decorusers** (`backend/decorusers`) | Autenticación (login, registro, refresh, recupero de contraseña), usuarios, roles, permisos y alta de tenants | 3001 |
-| **product** (`backend/com.decor.product`) | Productos con imágenes, combos, precios y costos, movimientos de stock, destacados, catálogo público e importación/exportación CSV | 3002 |
-| **decor-sales** (`backend/decor-sales`) | Pedidos online y del local, pagos por transferencia y reportes | 3003 |
-| **decor-observability** (`backend/decor-observability`) | Salud y métricas de los servicios, auditoría y paneles en tiempo real por WebSocket | 3004 |
-| **decor-common** (`backend/decor-common`) | Librería compartida: DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros, configuración de observabilidad y captura de auditoría | — |
+| **kleinkaufusers** (`backend/kleinkaufusers`) | Autenticación (login, registro, refresh, recupero de contraseña), usuarios, roles, permisos y alta de tenants | 3001 |
+| **product** (`backend/com.kleinkauf.product`) | Productos con imágenes, combos, precios y costos, movimientos de stock, destacados, catálogo público e importación/exportación CSV | 3002 |
+| **kleinkauf-sales** (`backend/kleinkauf-sales`) | Pedidos online y del local, pagos por transferencia y reportes | 3003 |
+| **kleinkauf-observability** (`backend/kleinkauf-observability`) | Salud y métricas de los servicios, auditoría y paneles en tiempo real por WebSocket | 3004 |
+| **kleinkauf-common** (`backend/kleinkauf-common`) | Librería compartida: DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros, configuración de observabilidad y captura de auditoría | — |
 | **Eureka** (`backend/eureka`) | Registro y descubrimiento de servicios | 8761 |
 
 ### Decisiones de diseño
@@ -111,23 +111,23 @@ flujos que usa la app, y termina:
 Se puede correr las veces que haga falta: lo que ya existe (la tienda, un producto con el mismo nombre, un usuario con
 el mismo email) se saltea. Para volver a correrlo: `docker compose -f backend/deploy/docker-compose.dev.yml up seed`.
 Los datos están en `seed/data.json`; las imágenes en `seed/images/` se generan con
-`node backend/deploy/seed/generate-images.mjs` (ya están commiteadas). Además `decorusers` crea un superadmin al
+`node backend/deploy/seed/generate-images.mjs` (ya están commiteadas). Además `kleinkaufusers` crea un superadmin al
 arrancar. Usuarios de prueba (solo para desarrollo):
 
 | Usuario | Email | Contraseña | Dónde |
 |---|---|---|---|
 | Dueño de la tienda demo | `admin@demo.local` | `demo1234` | `http://demo.localhost:2999` |
 | Empleados y clientes de la tienda demo | `nombre.apellido@demo.local` (ej. `valentina.rios@demo.local`) | `cliente123` | `http://demo.localhost:2999` |
-| Superadmin de la plataforma | `superadmin@decor.local` | `superadmin123` | `http://localhost:2999` |
+| Superadmin de la plataforma | `superadmin@kleinkauf.local` | `superadmin123` | `http://localhost:2999` |
 
-**Sin Docker:** cada servicio es un proyecto Gradle independiente (con su propio `gradlew`) que consume `decor-common`
+**Sin Docker:** cada servicio es un proyecto Gradle independiente (con su propio `gradlew`) que consume `kleinkauf-common`
 como build compuesto. Levantá primero la base y Redis (`docker compose -f backend/deploy/docker-compose.bd.yml up -d`)
 y después los servicios **en este orden**, cada uno en su terminal:
 
 ```bash
 cd backend/eureka          && ./gradlew bootRun   # 1. descubrimiento  (8761)
-cd backend/decorusers      && ./gradlew bootRun   # 2. usuarios        (3001)
-cd backend/com.decor.product && ./gradlew bootRun # 3. productos       (3002)
+cd backend/kleinkaufusers      && ./gradlew bootRun   # 2. usuarios        (3001)
+cd backend/com.kleinkauf.product && ./gradlew bootRun # 3. productos       (3002)
 cd backend/gateway         && ./gradlew bootRun   # 4. gateway         (3000)
 ```
 
@@ -137,7 +137,7 @@ La configuración está en `src/main/resources/application.properties` de cada s
 cambiá los secretos (`jwt.secret`, `api.internal.key`, contraseñas de base de datos y del mailer).
 
 Para crear el primer superadmin de la plataforma, definí las variables de entorno `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`
-(ver `platform.superadmin.*` en `decorusers`) antes de arrancar `decorusers`.
+(ver `platform.superadmin.*` en `kleinkaufusers`) antes de arrancar `kleinkaufusers`.
 
 ### 3. Frontend
 
@@ -150,7 +150,7 @@ npm run dev        # abre http://demo.localhost:2999 (la tienda demo del seed)
 El frontend le habla al gateway según `VITE_API_BASE_PUBLIC` en `frontend/.env` (por defecto `http://localhost:3000`).
 
 El gateway reconoce la tienda por el `Origin` del navegador, así que la URL del tenant tiene que coincidir con la del frontend
-(`http://<tienda>.localhost:2999`). Por eso `platform.domain` en `decorusers` y `platform.url` en el gateway usan el puerto 2999.
+(`http://<tienda>.localhost:2999`). Por eso `platform.domain` en `kleinkaufusers` y `platform.url` en el gateway usan el puerto 2999.
 
 ### Tenants en desarrollo
 
@@ -162,33 +162,33 @@ así que una tienda llamada `mitienda` se ve en `http://mitienda.localhost:2999`
 ## Cómo está organizado
 
 ```
-decor/
-├── backend/                  Microservicios Java (cada carpeta es un proyecto Gradle)
-│   ├── gateway/              API Gateway
-│   ├── decorusers/           Usuarios, auth, roles y tenants
-│   ├── com.decor.product/    Productos, stock y catálogo
-│   ├── decor-sales/          Ventas: pedidos, pagos y reportes
-│   ├── decor-observability/  Salud, métricas, auditoría y WebSocket
-│   ├── decor-common/         Librería común
-│   ├── eureka/               Servidor de descubrimiento
-│   └── deploy/               Docker Compose (base, servicios y stack de observabilidad) e init.sql
-├── frontend/                 Aplicación web (Vite + React)
-│   ├── src/pages/            Páginas: catálogo, login, registro, ajustes y panel de administración
-│   ├── src/components/       Componentes de la aplicación y de UI (shadcn/ui)
-│   ├── src/lib/ src/hooks/   Contexto de auth, tipos, textos y hooks
-│   └── public/               Recursos estáticos
-├── docs/                     Documentación y planes por módulo
-│   ├── backend/              Referencia del backend: un archivo por servicio, con todos los endpoints
-│   ├── tenants.md            Cómo funcionan los tenants
-│   ├── permisos.md           Permisos por área y rol
-│   ├── ventas.md             Módulo de ventas
-│   ├── panel-admin.md        Panel de administración
-│   ├── auditoria.md          Auditoría
-│   ├── observabilidad.md     Observabilidad: salud, métricas, trazas, logs y WebSocket
-│   └── pendientes.md         Lo que queda por hacer, con el flujo de cada tarea
-├── MVP.md                    Estado actual y propuesta de funcionalidades
-├── TODO                      Pendientes y cosas a tener en cuenta
-└── .gitignore                Reglas de ignore comunes a todo el repo
+kleinkauf/
+├── backend/                      Microservicios Java (cada carpeta es un proyecto Gradle)
+│   ├── gateway/                  API Gateway
+│   ├── kleinkaufusers/           Usuarios, auth, roles y tenants
+│   ├── com.kleinkauf.product/    Productos, stock y catálogo
+│   ├── kleinkauf-sales/          Ventas: pedidos, pagos y reportes
+│   ├── kleinkauf-observability/  Salud, métricas, auditoría y WebSocket
+│   ├── kleinkauf-common/         Librería común
+│   ├── eureka/                   Servidor de descubrimiento
+│   └── deploy/                   Docker Compose (base, servicios y stack de observabilidad) e init.sql
+├── frontend/                     Aplicación web (Vite + React)
+│   ├── src/pages/                Páginas: catálogo, login, registro, ajustes y panel de administración
+│   ├── src/components/           Componentes de la aplicación y de UI (shadcn/ui)
+│   ├── src/lib/ src/hooks/       Contexto de auth, tipos, textos y hooks
+│   └── public/                   Recursos estáticos
+├── docs/                         Documentación y planes por módulo
+│   ├── backend/                  Referencia del backend: un archivo por servicio, con todos los endpoints
+│   ├── tenants.md                Cómo funcionan los tenants
+│   ├── permisos.md               Permisos por área y rol
+│   ├── ventas.md                 Módulo de ventas
+│   ├── panel-admin.md            Panel de administración
+│   ├── auditoria.md              Auditoría
+│   ├── observabilidad.md         Observabilidad: salud, métricas, trazas, logs y WebSocket
+│   └── pendientes.md             Lo que queda por hacer, con el flujo de cada tarea
+├── MVP.md                        Estado actual y propuesta de funcionalidades
+├── TODO                          Pendientes y cosas a tener en cuenta
+└── .gitignore                    Reglas de ignore comunes a todo el repo
 ```
 
 ### Ramas

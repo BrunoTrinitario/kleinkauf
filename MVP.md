@@ -1,4 +1,4 @@
-# Decor — Análisis y propuesta de MVP
+# KleinKauf — Análisis y propuesta de MVP
 
 _Última actualización: 2026-11-03_
 
@@ -14,14 +14,14 @@ Objetivos del proyecto:
 
 ### Arquitectura
 - **Gateway** (Spring Cloud Gateway): punto de entrada. Valida JWT, tenant, CORS y rate limit.
-- **decorusers**: auth (login, registro, refresh, recupero de contraseña), usuarios, roles
+- **kleinkaufusers**: auth (login, registro, refresh, recupero de contraseña), usuarios, roles
   (`ADMINISTRADOR` / `EMPLEADO` / `CLIENTE`) y estadísticas de usuarios.
 - **product**: productos con imágenes y metadatos (material, color, medidas), combos (bundles), búsqueda,
   **precio y costo**, **movimientos de stock** con alerta de stock bajo, **productos destacados** y catálogo público
   (con combos y orden por más vendidos).
-- **decor-sales**: ventas online y del local. Pedidos con reserva de stock, pago por transferencia con comprobante,
+- **kleinkauf-sales**: ventas online y del local. Pedidos con reserva de stock, pago por transferencia con comprobante,
   estados con historial, vencimiento automático y reportes. Ver [docs/ventas.md](docs/ventas.md).
-- **decor-common**: librería común (DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros).
+- **kleinkauf-common**: librería común (DTOs, headers, Redis, tokens internos, multi-tenant de Hibernate, filtros).
 - **Multi-tenant por schema** en Postgres.
 - **Caché en dos niveles**: Caffeine (local) + Redis (distribuido).
 - **Comunicación entre servicios** con token interno firmado aparte (`/api/internal/**`), protegida con
@@ -53,13 +53,13 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 
 > **Sobre ventas:** el `TODO` marcaba "MS ventas y logística" como **no entra**, pero se decidió incluir ventas
 > (punto 3): sin ventas el sistema queda como un catálogo, y es lo que mejor muestra el valor de los microservicios.
-> Está hecho en `decor-sales`. La logística quedó afuera.
+> Está hecho en `kleinkauf-sales`. La logística quedó afuera.
 
 ---
 
 ## 3. Gestión presencial
 
-La idea es que decor sirva también como **app de gestión del negocio físico**, no solo como tienda online: que
+La idea es que kleinkauf sirva también como **app de gestión del negocio físico**, no solo como tienda online: que
 el local y lo online compartan stock, clientes, ventas y caja. Lo de abajo es lo que falta para eso, además de lo
 que ya está o está planificado (stock único con movimientos, precio y costo, combos, permisos, ventas online y del
 local en el mismo historial, reportes por canal y medio de pago, auditoría).
@@ -112,9 +112,9 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | Mejora | Para qué | Decisión |
 |---|---|---|
 | **Resilience4j** (circuit breaker + reintentos) | Proteger las llamadas de productos a usuarios, que hoy usan `RestTemplate` sin protección | ☑ Sí — **hecho** |
-| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **backend hecho** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator en un puerto de gestión, OpenTelemetry, logs JSON, Prometheus, Grafana, Tempo, Loki y Alloy en Docker, y el MS `decor-observability` con salud, tráfico y auditoría en tiempo real por WS. También los canales de la tienda: actividad (pedidos y stock), uso (catálogo y tráfico) y conectados. Falta el frontend de los paneles |
+| **Observabilidad**: Micrometer + OpenTelemetry + Grafana / Tempo | Seguir una request a través de los servicios | ☑ Sí — **backend hecho** ([docs/observabilidad.md](docs/observabilidad.md)): Actuator en un puerto de gestión, OpenTelemetry, logs JSON, Prometheus, Grafana, Tempo, Loki y Alloy en Docker, y el MS `kleinkauf-observability` con salud, tráfico y auditoría en tiempo real por WS. También los canales de la tienda: actividad (pedidos y stock), uso (catálogo y tráfico) y conectados. Falta el frontend de los paneles |
 | **Testcontainers** | Tests de integración con Postgres y Redis reales | ☐ Sí ☐ No ☐ Después |
-| **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`decor-common`) |
+| **Librería común** | Centralizar lo repetido en los tres servicios: `JwtUtil`, `CacheUtil`, filtros, DTOs de tenant y rol | ☑ Sí — **hecho** (`kleinkauf-common`) |
 | **Definir el uso de `permission`** en roles | Permisos más finos que el rol (por ejemplo, un empleado que puede ver pero no editar precios) | ☑ Sí — **hecho** (permisos por área y por rol) |
 
 ---
@@ -139,8 +139,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | Fecha | Decisión | Motivo |
 |---|---|---|
 | 2026-11-01 | Antes de sumar funcionalidades: **librería común** y **Resilience4j** | Ordenar la base antes de agregar servicios nuevos (ventas, etc.) |
-| 2026-11-01 | Librería como **build compuesto de Gradle** (`decor-common`, con `includeBuild`) en vez de un build multi-proyecto en la raíz | Cada servicio sigue siendo un proyecto Gradle independiente; no hay que publicar nada |
-| 2026-11-01 | `decor-common` es **un solo proyecto**: lo común en `com.decor.common` y lo servlet en `com.decor.common.servlet` | Más simple de manejar en Eclipse. Las dependencias de Spring son `compileOnly` y la parte servlet no se activa en el gateway (reactivo) |
+| 2026-11-01 | Librería como **build compuesto de Gradle** (`kleinkauf-common`, con `includeBuild`) en vez de un build multi-proyecto en la raíz | Cada servicio sigue siendo un proyecto Gradle independiente; no hay que publicar nada |
+| 2026-11-01 | `kleinkauf-common` es **un solo proyecto**: lo común en `com.kleinkauf.common` y lo servlet en `com.kleinkauf.common.servlet` | Más simple de manejar en Eclipse. Las dependencias de Spring son `compileOnly` y la parte servlet no se activa en el gateway (reactivo) |
 | 2026-11-01 | La librería se configura sola con **autoconfiguración de Spring Boot** | Los servicios solo agregan la dependencia; cada bean se puede reemplazar |
 | 2026-11-01 | Resilience4j en products → users y gateway → users (circuit breaker + retry + timeouts). Los 4xx no cuentan como falla | Si users se cae, el resto responde rápido con caché o con un error claro, sin quedarse colgado |
 | 2026-11-01 | Precio y costo en `BigDecimal`. El **precio es público**; el **costo y el margen solo los ve el administrador** (`/products/{id}/pricing`) | Evitar errores de redondeo con plata y no exponer el costo en el catálogo |
@@ -148,7 +148,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-01 | Los movimientos los registran administrador y empleado; bloqueo de fila (`PESSIMISTIC_WRITE`) por producto | El empleado es quien recibe mercadería; el bloqueo evita que dos movimientos simultáneos se pisen |
 | 2026-11-01 | El combo tiene su propio precio; muestra además el precio de lista (suma de productos) y cuántos se pueden armar con el stock | El combo no tiene stock propio: depende del de sus productos |
 | 2026-11-01 | **Productos destacados**: `featured` + `featuredOrder` opcional. La lista es pública; marcar/desmarcar es solo del administrador | Mostrar productos elegidos en la home del catálogo, en el orden que quiera el negocio |
-| 2026-11-01 | **Alta de tenants** por autoservicio público y por un **superadmin**; toda la lógica en decorusers | Que un emprendimiento pueda registrarse solo y que la plataforma pueda administrar los tenants |
+| 2026-11-01 | **Alta de tenants** por autoservicio público y por un **superadmin**; toda la lógica en kleinkaufusers | Que un emprendimiento pueda registrarse solo y que la plataforma pueda administrar los tenants |
 | 2026-11-01 | URL del tenant = **subdominio automático** `<identificador>.<platform.domain>` (dev: `http://mitienda.localhost:3000`). El identificador lo elige el usuario: 3–30 caracteres, empieza con letra, `a-z 0-9 -`, único y no reservado; el schema usa `_` | El gateway reconoce al tenant por la URL; la validación estricta evita inyección SQL en `CREATE SCHEMA` |
 | 2026-11-01 | El alta crea al **dueño como ADMINISTRADOR y EMPLEADO**; el tenant queda **activo al instante**; devuelve los datos y la URL (sin token) | Sin dueño nadie podría administrar el tenant; el token queda atado al tenant y se loguea en su subdominio |
 | 2026-11-01 | `configId` = UUID generado en el alta | Referencia a la configuración propia de cada tenant (próximamente) |
@@ -175,13 +175,13 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-01 | Por defecto igual que antes: EMPLEADO = STOCK, CLIENTE = nada | No cambiar nada hasta que el administrador lo configure |
 | 2026-11-01 | Importar/exportar CSV pide PRODUCTOS **y** PRECIOS. Crear un producto sin PRECIOS **ignora** precio y costo | El archivo trae costo; el alta no debe saltear el permiso de precios |
 | 2026-11-01 | Propagación: al cambiar permisos se borran de Redis los roles cacheados de la tienda y products cachea roles 1 minuto | El cambio se aplica en menos de 1 minuto |
-| 2026-11-01 | **Ventas en un MS nuevo `decor-sales`**, comprador invitado o registrado, carrito en el frontend, productos y combos | Desacoplar ventas de productos y practicar comunicación entre servicios |
+| 2026-11-01 | **Ventas en un MS nuevo `kleinkauf-sales`**, comprador invitado o registrado, carrito en el frontend, productos y combos | Desacoplar ventas de productos y practicar comunicación entre servicios |
 | 2026-11-01 | Pago por **transferencia con comprobante** que valida **solo el administrador**; Mercado Pago después | Lo más simple que sirve hoy a un emprendimiento chico |
 | 2026-11-01 | El pedido **reserva stock al crearse** (llamada síncrona e idempotente a products) y lo devuelve si se cancela o **vence a las 48 h** sin comprobante. Eventos después | No vender dos veces lo mismo mientras se espera la transferencia |
 | 2026-11-01 | Cuenta como venta **al validar el pago**. Reportes por período, por producto, ganancia (costo guardado al vender) y contador `vendidos` solo en el panel | Medir lo vendido y lo generado sin contar pedidos que no se pagan |
 | 2026-11-01 | El invitado sigue su pedido con **email + número aleatorio** (`K7QM-4X2P`) | Un número correlativo se podría recorrer y exponer datos de otros compradores |
 | 2026-11-01 | **Ventas del local**: el administrador carga pedidos ya pagos (canal `LOCAL`, `PAGADO` o `ENTREGADO`), con medio de pago, comprador opcional, precio cambiado o descuento; sin stock se vende igual con `AJUSTE` automático y queda para revisar | Registrar todas las ventas, no solo las online. Los reportes se separan por canal y medio de pago |
-| 2026-11-01 | **Observabilidad**: Actuator con `/health`, `/ready` y `/metrics` en un puerto de gestión interno; OpenTelemetry + Prometheus + Grafana + Tempo + Loki; MS nuevo `decor-observability` con panel de plataforma y de tienda en tiempo real por **WebSocket puro** con ticket corto | Saber cómo está la plataforma y cada tienda en vivo, sin exponer métricas afuera |
+| 2026-11-01 | **Observabilidad**: Actuator con `/health`, `/ready` y `/metrics` en un puerto de gestión interno; OpenTelemetry + Prometheus + Grafana + Tempo + Loki; MS nuevo `kleinkauf-observability` con panel de plataforma y de tienda en tiempo real por **WebSocket puro** con ticket corto | Saber cómo está la plataforma y cada tienda en vivo, sin exponer métricas afuera |
 | 2026-11-01 | **Auditoría** de cambios de datos, acciones de plataforma y lecturas sensibles, con antes/después de los campos cambiados, por **outbox** hacia observability; se guarda **para siempre** y cada uno ve lo suyo (admin su tienda, superadmin la plataforma) | Control sobre lo que hace cada usuario sin perder eventos ni mezclar datos de tiendas |
 | 2026-11-01 | **Panel de administración** con los datos de hoy y **cada servicio arma su resumen** (products: productos y stock; users: usuarios, tenants, uso por tenant y superadmins). Panel de la tienda solo para `ADMINISTRADOR`; `/users/stats` se reemplaza | Si un servicio se cae el resto del panel funciona; ventas y observabilidad se enchufan después con el mismo formato |
 | 2026-11-01 | Períodos con `from`, `to` y `groupBy` (día/semana/mes) con ceros; activo = login en 30 días; uso por tenant cacheado 5 min; superadmins con contraseña temporal y desactivación por `deletedAt` | Series listas para graficar; recorrer todos los schemas es caro; reutilizar el borrado lógico existente |
@@ -192,7 +192,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-02 | Si el precio cambió entre el carrito y el pedido, **409 con los precios nuevos** y el pedido no se crea | Que el comprador no pague otro precio sin enterarse |
 | 2026-11-02 | Observabilidad: **puerto de gestión = puerto del servicio + 6000**; `/health` es liveness y `/ready` no depende de los otros microservicios; el envío de trazas y los logs JSON se prenden solo con el stack de Docker | Que un servicio caído no tire a los demás y que sin el stack no haya errores de conexión |
 | 2026-11-02 | Stack de desarrollo como **overlay** del compose (`docker-compose.observability.yml`) con **Alloy** como colector de trazas y logs; Prometheus encuentra las instancias en Eureka | Un solo comando y sin listas de servicios a mano |
-| 2026-11-02 | WS: **acceso revocado** = cada minuto se revisan los roles de los conectados y se cierra el WS de quien ya no los tiene. Eventos en vivo por `decor:events` sin grupo (cada instancia ve todo) | El mismo minuto en que se corta el REST, sin eventos extra entre users y observability |
+| 2026-11-02 | WS: **acceso revocado** = cada minuto se revisan los roles de los conectados y se cierra el WS de quien ya no los tiene. Eventos en vivo por `kleinkauf:events` sin grupo (cada instancia ve todo) | El mismo minuto en que se corta el REST, sin eventos extra entre users y observability |
 | 2026-11-02 | Auditoría: **listener de Hibernate** para el antes/después, **una outbox por servicio** (`public.outbox_events`, con columna `tenant`), solo lo que hace una persona (no llamadas internas ni tareas de fondo), el nombre del usuario se guarda al recibir el evento y la importación CSV es **una** entrada con el resumen | Atómico con el cambio sin recorrer schemas, sin ruido y sin perder quién fue si se borra el usuario |
 | 2026-11-02 | **Login opcional** al crear un pedido: el gateway pasa el usuario si el token es válido y responde 401 si es inválido | Asociar el pedido a "mis pedidos" sin obligar a registrarse |
 | 2026-11-02 | **Combos en el catálogo público** (habilitados, con precio y productos vigentes) e `id` en los productos del catálogo | El carrito necesita el id para armar el pedido; antes los combos no se podían comprar |
@@ -215,20 +215,20 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 
 ### Detalle de la librería común
 
-- **`com.decor.common`** (todos los servicios): `TenantDto`, `RoleDto`, `Headers`, `RedisTemplate`, caché Caffeine e
+- **`com.kleinkauf.common`** (todos los servicios): `TenantDto`, `RoleDto`, `Headers`, `RedisTemplate`, caché Caffeine e
   `InternalTokenService` (tokens entre servicios).
-- **`com.decor.common.dto.stock`** (products, sales): DTOs de las reservas de stock y del contador de vendidos.
-- **`com.decor.common.servlet`** (users, products, sales): Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
+- **`com.kleinkauf.common.dto.stock`** (products, sales): DTOs de las reservas de stock y del contador de vendidos.
+- **`com.kleinkauf.common.servlet`** (users, products, sales): Hibernate multi-tenant por schema, `TenantFilter`, `TenantContext`,
   `CustomUserDetails`, `ApiException` y `GlobalExceptionHandler`.
 - Cada servicio implementa `TenantSchemaManager` en su `TenantDataSource`.
-- En users el tenant es opcional: `decor.tenant.required=false`.
+- En users el tenant es opcional: `kleinkauf.tenant.required=false`.
 
 ### Pendientes detectados en el camino
 
 - ~~**CORS del gateway bloquea el event loop**~~ **Resuelto:** `CorsConfig` ahora es un `WebFilter` reactivo
   (caché local → Redis reactivo → users), sin `.block()`.
 - ~~**`getTenant` del gateway lee Redis de forma bloqueante**~~ **Resuelto:** `CacheUtil.getTenantByUrl`
-  usa un `ReactiveRedisTemplate` con los mismos serializers que el `redisTemplate` de `decor-common`.
+  usa un `ReactiveRedisTemplate` con los mismos serializers que el `redisTemplate` de `kleinkauf-common`.
 - **users migra el schema en cada conexión:** su `TenantDataSource.prepareSchema` corre `runMigration`
   (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
   si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
@@ -281,7 +281,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 - **Datos existentes:** los productos actuales quedan sin precio ni costo, con `minStock = 0` y no destacados; su stock
   actual no tiene movimientos previos en el historial.
 
-### Detalle del alta de tenants (decorusers, `/api/v1/platform`)
+### Detalle del alta de tenants (kleinkaufusers, `/api/v1/platform`)
 
 | Endpoint | Quién | Qué hace |
 |---|---|---|
@@ -331,7 +331,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
   `GET /share/{tienda}/products/{slug}` (por el gateway), que redirige a `/productos/{slug}` en la tienda. Ver
   [docs/backend/products.md](docs/backend/products.md#link-para-compartir).
 
-### Detalle de permisos (decorusers, solo ADMINISTRADOR)
+### Detalle de permisos (kleinkaufusers, solo ADMINISTRADOR)
 
 | Endpoint | Qué hace |
 |---|---|

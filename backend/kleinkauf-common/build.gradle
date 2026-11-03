@@ -1,0 +1,67 @@
+/*
+Libreria comun de los microservicios de kleinkauf.
+- com.kleinkauf.common: lo que usan todos (gateway incluido): DTOs, headers, Redis, Caffeine y tokens internos.
+- com.kleinkauf.common.servlet: lo que usan los servicios servlet (users, products, sales): multi-tenant de Hibernate,
+  filtro de tenant, excepciones y usuario autenticado. En el gateway (reactivo) no se activa.
+- com.kleinkauf.common.observability: Actuator igual en todos (puerto de gestion, /health, /ready, /metrics),
+  etiqueta tenant en las metricas HTTP y tenant / usuario en los logs.
+Las dependencias de Spring son compileOnly: cada servicio ya trae las suyas y cada autoconfiguracion
+se activa solo si encuentra las clases que necesita.
+Los servicios la consumen como build compuesto: includeBuild('../kleinkauf-common') en su settings.gradle.
+ */
+plugins {
+	id 'java-library'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.kleinkauf'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencyManagement {
+	imports {
+		mavenBom 'org.springframework.boot:spring-boot-dependencies:3.5.14'
+	}
+}
+
+dependencies {
+	api 'org.springframework.boot:spring-boot-autoconfigure'
+	api 'io.jsonwebtoken:jjwt-api:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+	// Opcionales: cada bean se crea solo si el servicio tiene la dependencia
+	compileOnly 'org.springframework.boot:spring-boot-starter-data-redis'
+	compileOnly 'com.github.ben-manes.caffeine:caffeine'
+	compileOnly 'org.springframework.boot:spring-boot-starter-web'
+	compileOnly 'org.springframework.boot:spring-boot-starter-data-jpa'
+	compileOnly 'org.springframework.boot:spring-boot-starter-security'
+	compileOnly 'org.springframework.boot:spring-boot-starter-actuator'
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	testImplementation 'com.github.ben-manes.caffeine:caffeine'
+	testImplementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security'
+	testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
+	testRuntimeOnly 'com.h2database:h2'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

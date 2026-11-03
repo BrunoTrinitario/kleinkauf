@@ -1,0 +1,3 @@
+rootProject.name = 'kleinkauf-sales'
+
+includeBuild('../kleinkauf-common')

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-// Mismo formato que valida decorusers (TenantService.IDENTIFIER). Los reservados los rechaza el backend
+// Mismo formato que valida kleinkaufusers (TenantService.IDENTIFIER). Los reservados los rechaza el backend
 const IDENTIFIER_PATTERN = /^[a-z][a-z0-9-]{1,28}[a-z0-9]$/
 
 const isValidIdentifier = (identifier: string) => IDENTIFIER_PATTERN.test(identifier)

@@ -46,13 +46,13 @@ services:
     container_name: eureka-service
     volumes:
       - ../eureka:/app
-      - ../decor-common:/decor-common
+      - ../kleinkauf-common:/kleinkauf-common
       - gradle-cache:/home/gradle/.gradle
       #build y .gradle propios del contenedor para no pisar los del host
       - /app/build
       - /app/.gradle
-      - /decor-common/build
-      - /decor-common/.gradle
+      - /kleinkauf-common/build
+      - /kleinkauf-common/.gradle
     environment:
       #Solo en desarrollo: responder con el registro al dia en vez de una copia que se refresca cada 30s
       EUREKA_SERVER_USEREADONLYRESPONSECACHE: "false"
@@ -62,18 +62,18 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9761/health"]
 
-  #Cada servicio compila decor-common en su propio build/ para no chocar con los otros
+  #Cada servicio compila kleinkauf-common en su propio build/ para no chocar con los otros
   product-service:
     <<: *service
     container_name: product-service
     volumes:
-      - ../com.decor.product:/app
-      - ../decor-common:/decor-common
+      - ../com.kleinkauf.product:/app
+      - ../kleinkauf-common:/kleinkauf-common
       - product-gradle-cache:/home/gradle/.gradle
       - /app/build
       - /app/.gradle
-      - /decor-common/build
-      - /decor-common/.gradle
+      - /kleinkauf-common/build
+      - /kleinkauf-common/.gradle
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/products
@@ -88,13 +88,13 @@ services:
     <<: *service
     container_name: sales-service
     volumes:
-      - ../decor-sales:/app
-      - ../decor-common:/decor-common
+      - ../kleinkauf-sales:/app
+      - ../kleinkauf-common:/kleinkauf-common
       - sales-gradle-cache:/home/gradle/.gradle
       - /app/build
       - /app/.gradle
-      - /decor-common/build
-      - /decor-common/.gradle
+      - /kleinkauf-common/build
+      - /kleinkauf-common/.gradle
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sales
@@ -109,18 +109,18 @@ services:
     <<: *service
     container_name: user-service
     volumes:
-      - ../decorusers:/app
-      - ../decor-common:/decor-common
+      - ../kleinkaufusers:/app
+      - ../kleinkauf-common:/kleinkauf-common
       - user-gradle-cache:/home/gradle/.gradle
       - /app/build
       - /app/.gradle
-      - /decor-common/build
-      - /decor-common/.gradle
+      - /kleinkauf-common/build
+      - /kleinkauf-common/.gradle
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users
       #Superadmin de desarrollo, se crea al arrancar si no existe
-      SUPERADMIN_EMAIL: superadmin@decor.local
+      SUPERADMIN_EMAIL: superadmin@kleinkauf.local
       SUPERADMIN_PASSWORD: superadmin123
     ports:
       - "3001:3001"
@@ -136,13 +136,13 @@ services:
     <<: *service
     container_name: observability-service
     volumes:
-      - ../decor-observability:/app
-      - ../decor-common:/decor-common
+      - ../kleinkauf-observability:/app
+      - ../kleinkauf-common:/kleinkauf-common
       - observability-gradle-cache:/home/gradle/.gradle
       - /app/build
       - /app/.gradle
-      - /decor-common/build
-      - /decor-common/.gradle
+      - /kleinkauf-common/build
+      - /kleinkauf-common/.gradle
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/observability
@@ -160,12 +160,12 @@ services:
     container_name: gateway-service
     volumes:
       - ../gateway:/app
-      - ../decor-common:/decor-common
+      - ../kleinkauf-common:/kleinkauf-common
       - gateway-gradle-cache:/home/gradle/.gradle
       - /app/build
       - /app/.gradle
-      - /decor-common/build
-      - /decor-common/.gradle
+      - /kleinkauf-common/build
+      - /kleinkauf-common/.gradle
     environment:
       <<: *service-env
       #Solo en desarrollo: la lista de instancias del load balancer dura 5s (por defecto 35s)

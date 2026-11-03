@@ -1,5 +1,5 @@
 // Reglas de los datos de un usuario. Son las mismas que valida el backend
-// (decorusers, util/UserValidator.java); si cambian, cambiar las dos.
+// (kleinkaufusers, util/UserValidator.java); si cambian, cambiar las dos.
 
 export const NAME_MAX_LENGTH = 100
 export const EMAIL_MAX_LENGTH = 254

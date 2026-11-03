@@ -1,7 +1,7 @@
-# decor-common
+# kleinkauf-common
 
 Librería compartida, **no es un servicio**. Es un build compuesto de Gradle: cada servicio la incluye con
-`includeBuild('../decor-common')` en su `settings.gradle` y la usa como dependencia, sin publicarla. Casi todo se
+`includeBuild('../kleinkauf-common')` en su `settings.gradle` y la usa como dependencia, sin publicarla. Casi todo se
 autoconfigura: el servicio la agrega y los beans aparecen solos (cada uno se puede reemplazar definiendo el propio).
 
 Convenciones comunes: [README](README.md).
@@ -16,15 +16,15 @@ Convenciones comunes: [README](README.md).
 | `servlet.tenant` | `TenantFilter`, `TenantContext`, Hibernate multi-tenant por schema (`TenantIdentifierResolver`, `DatabaseMultiTenantConnectionProvider`), `TenantSchemaManager` | | ✓ | ✓ | ✓ | |
 | `servlet.security` | `CustomUserDetails`: authorities `ROLE_<rol>` y `PERM_<área>` | | ✓ | ✓ | ✓ | ✓ |
 | `servlet.exceptions` | `ApiException` (mensaje + código) y `GlobalExceptionHandler` | | ✓ | ✓ | ✓ | |
-| `events` | `DecorEvent` y `DecorEventPublisher` (Redis Streams `decor:events`) | | ✓ | ✓ | ✓ | ✓ (lee) |
+| `events` | `KleinKaufEvent` y `KleinKaufEventPublisher` (Redis Streams `kleinkauf:events`) | | ✓ | ✓ | ✓ | ✓ (lee) |
 | `audit` | `@Audited`, `@AuditIgnore`, `AuditLog`, outbox y `AuditEvent` | | ✓ | ✓ | ✓ | ✓ (lee) |
 | `observability` | Actuator en el puerto de gestión, trazas, logs con `tenant` y `userId`, etiqueta `tenant` (`TenantTag`) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `autoconfigure` | `RedisTemplate<String,Object>` (JSON), caché Caffeine (`caffeineCache`, 10 min) | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Cómo usarla en un servicio nuevo
 
-1. **Gradle:** `includeBuild('../decor-common')` en `settings.gradle` y la dependencia en `build.gradle` (copiar de
-   `decor-sales`). Sumarlo también al `backend/settings.gradle` para importarlo con el resto.
+1. **Gradle:** `includeBuild('../kleinkauf-common')` en `settings.gradle` y la dependencia en `build.gradle` (copiar de
+   `kleinkauf-sales`). Sumarlo también al `backend/settings.gradle` para importarlo con el resto.
 2. **Propiedades mínimas:**
 
 | Propiedad | Para qué |
@@ -33,11 +33,11 @@ Convenciones comunes: [README](README.md).
 | `server.port` | El puerto de gestión queda en este + 6000 si no se fija `management.server.port` |
 | `api.internal.key` | Crea el `InternalTokenService` (la misma clave en todos los servicios) |
 | `spring.data.redis.*` | Activa `RedisTemplate`, eventos y el publicador de la auditoría |
-| `decor.tenant.required` | `true` por defecto: sin `X-Forwarded-Host` responde 404. `false` = sin tienda trabaja en `public` |
-| `decor.tenant.public-paths` | Prefijos que pasan sin tienda (ej. `/products/images/,/api/v1/platform/`) |
+| `kleinkauf.tenant.required` | `true` por defecto: sin `X-Forwarded-Host` responde 404. `false` = sin tienda trabaja en `public` |
+| `kleinkauf.tenant.public-paths` | Prefijos que pasan sin tienda (ej. `/products/images/,/api/v1/platform/`) |
 
 3. **Multi-tenant:** implementar un bean `TenantSchemaManager` (ver `TenantDataSource` de products o sales) que cree y
-   migre el schema de una tienda la primera vez que se usa. Con eso `DecorServletAutoConfiguration` arma el
+   migre el schema de una tienda la primera vez que se usa. Con eso `KleinKaufServletAutoConfiguration` arma el
    `EntityManagerFactory` multi-tenant: cada request usa el schema de `TenantContext`.
 4. **Seguridad:** un `HeaderAuthFilter` propio que lea `X-User-Id`, pida los roles a users y arme
    `CustomUserDetails`; y un `SecurityConfig` con el `TenantFilter` antes. Copiar el de sales o products.
@@ -47,9 +47,9 @@ Convenciones comunes: [README](README.md).
    que no es JSON 400. Cualquier otra excepción responde 500 y se loguea con la traza (`Unhandled error`).
 6. **Auditoría:** marcar las entidades con `@Audited` (y los campos que no se registran con `@AuditIgnore`). Para lo
    que no es un alta, cambio o baja, inyectar `AuditLog` y llamar a `record(...)` o `read(entidad, id)`. Se apaga con
-   `decor.audit.enabled=false`.
-7. **Eventos para el panel en vivo:** inyectar `DecorEventPublisher` y `publish(tipo, tenant, datos)`. Dentro de una
-   transacción sale después del commit; si Redis falla se loguea y sigue. Sumar el tipo a `DecorEvent` y su ruteo en
+   `kleinkauf.audit.enabled=false`.
+7. **Eventos para el panel en vivo:** inyectar `KleinKaufEventPublisher` y `publish(tipo, tenant, datos)`. Dentro de una
+   transacción sale después del commit; si Redis falla se loguea y sigue. Sumar el tipo a `KleinKaufEvent` y su ruteo en
    el `EventStreamListener` de observability.
 8. **Gateway:** la ruta en `GatewayRoutes` y, si hay rutas públicas, en `PermittedUrls`.
 
@@ -97,10 +97,10 @@ unión de las máscaras: en `SecurityConfig` se usa `hasRole("ADMINISTRADOR")` o
 | `gateway:cors:<url>` | users | gateway | Origen permitido |
 | `activity:<schema>:<userId>` | gateway | users, observability | Hora de la última request en ms (5 min). `ActivityKeys` |
 | `usage:<schema>:<yyyy-MM-dd>` (hash) | products | observability | Visitas al catálogo y vistas por producto (8 días). `UsageKeys` |
-| `decor:events` (stream) | users, products, sales | observability | `DecorEvent`: `type`, `tenant`, `at` (UTC), `data` (JSON). Recortado a ~10.000 |
-| `decor:audit` (stream) | outbox de users, products, sales | observability | `AuditEvent` |
+| `kleinkauf:events` (stream) | users, products, sales | observability | `KleinKaufEvent`: `type`, `tenant`, `at` (UTC), `data` (JSON). Recortado a ~10.000 |
+| `kleinkauf:audit` (stream) | outbox de users, products, sales | observability | `AuditEvent` |
 
-### Eventos (`DecorEvent`)
+### Eventos (`KleinKaufEvent`)
 
 | Tipo | Publica | `tenant` | `data` |
 |---|---|---|---|
@@ -112,8 +112,8 @@ unión de las máscaras: en `SecurityConfig` se usa `hasRole("ADMINISTRADOR")` o
 Un dato puede ser `null` (ej. el `reason` de un movimiento sin motivo): va como `null` en el JSON.
 
 Son para el panel en vivo: si Redis falla se pierden. La auditoría, que no se puede perder, va por la tabla
-`public.outbox_events` de cada base y un publicador que la vacía hacia `decor:audit` (cada 2 s,
-`decor.audit.publish-interval`). Formato en [observability.md](observability.md#formato-de-la-auditoría).
+`public.outbox_events` de cada base y un publicador que la vacía hacia `kleinkauf:audit` (cada 2 s,
+`kleinkauf.audit.publish-interval`). Formato en [observability.md](observability.md#formato-de-la-auditoría).
 
 ### Observabilidad
 

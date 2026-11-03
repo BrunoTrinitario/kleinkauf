@@ -669,7 +669,7 @@ Sin el token interno: 403 `Token invalido` (JSON con `status`, `error`, `message
 | `usage:<schema>:<yyyy-MM-dd>` (hash) | Visitas al catálogo (`visits`) y vistas por producto (`product:<slug>`), por día de Buenos Aires | 8 días |
 
   Si Redis falla, el catálogo se lee de la base y los contadores se pierden; nada se corta.
-- **Eventos** (`decor:events`, para el panel en vivo `store.activity`), después del commit:
+- **Eventos** (`kleinkauf:events`, para el panel en vivo `store.activity`), después del commit:
   - `stock.movement`: movimiento cargado a mano (`productId`, `productName`, `movementType`, `quantity`,
     `stockAfter`, `reason`, `userId`).
   - `stock.low`: un producto cruza a stock bajo con cualquier movimiento, también los de pedidos (`productId`,
@@ -705,12 +705,12 @@ Las imágenes están en disco en `image.path` (`uploads/products/images`), fuera
 | `users.url` | `http://users-microservice/` | Roles (por Eureka) |
 | `api.internal.key` | — | Token interno. **Cambiarlo fuera de desarrollo** |
 | `image.path` | `uploads/products/images` | Carpeta de las imágenes |
-| `decor.tenant.public-paths` | `/products/images/,/api/v1/platform/` | Rutas sin tienda |
+| `kleinkauf.tenant.public-paths` | `/products/images/,/api/v1/platform/` | Rutas sin tienda |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `5MB` / `10MB` | Subidas (las imágenes además tienen 1 MB cada una) |
 | `http.client.connect-timeout` / `read-timeout` | `2s` / `3s` | Llamadas a users |
 | `resilience4j.*.instances.users.*` | | Circuit breaker y reintentos hacia users |
 
-Levantarlo solo: `cd backend/com.decor.product && ./gradlew bootRun`. Los logs de SQL y seguridad están en DEBUG en
+Levantarlo solo: `cd backend/com.kleinkauf.product && ./gradlew bootRun`. Los logs de SQL y seguridad están en DEBUG en
 desarrollo.
 
 ## Límites conocidos

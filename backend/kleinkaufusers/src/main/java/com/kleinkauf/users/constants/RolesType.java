@@ -1,0 +1,18 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Enum.java to edit this template
+ */
+
+package com.kleinkauf.users.constants;
+
+/**
+ *
+ * @author bruno.trinitario
+ */
+public enum RolesType {
+    ADMINISTRADOR,
+    EMPLEADO,
+    CLIENTE,
+    // Administrador de la plataforma: solo existe en el schema public, no se asigna desde una tienda
+    SUPERADMIN
+}

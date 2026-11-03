@@ -1,11 +1,11 @@
 // Agrupa todos los proyectos del backend para poder importarlos juntos (Eclipse, IntelliJ).
 // Cada proyecto sigue siendo un build independiente y se puede compilar por separado.
-rootProject.name = 'decor-backend'
+rootProject.name = 'kleinkauf-backend'
 
-includeBuild('decor-common')
+includeBuild('kleinkauf-common')
 includeBuild('eureka')
 includeBuild('gateway')
-includeBuild('decorusers')
-includeBuild('com.decor.product')
-includeBuild('decor-sales')
-includeBuild('decor-observability')
+includeBuild('kleinkaufusers')
+includeBuild('com.kleinkauf.product')
+includeBuild('kleinkauf-sales')
+includeBuild('kleinkauf-observability')

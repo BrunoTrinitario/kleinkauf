@@ -56,7 +56,7 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   edita y se borra con `PATCH` y `DELETE /auth/me`. `/products/featured` y `/api/internal/tenants/all` quedan porque
   se usan. Además, en users, products y sales una ruta inexistente responde 404, un método que la ruta no tiene 405
   y un parámetro o cuerpo inválido 400 (antes, 500).
-- **Movimientos de stock sin motivo daban 500**: `DecorEvent` copiaba los datos con `Map.copyOf`, que no acepta
+- **Movimientos de stock sin motivo daban 500**: `KleinKaufEvent` copiaba los datos con `Map.copyOf`, que no acepta
   `null`, y el `NullPointerException` deshacía el movimiento. Ahora acepta `null`. Además, `GlobalExceptionHandler`
   loguea con la traza cualquier 500 no previsto (antes no dejaba rastro).
 - **Sesión vencida** (B1): un 401 cierra la sesión y vuelve a `/login?next=<página>`; las páginas privadas también

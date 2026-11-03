@@ -4,7 +4,7 @@ Cómo saber en todo momento cómo está la plataforma y cada tienda: salud de lo
 un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y a nivel **tienda**
 (administrador). La auditoría usa la misma base y está en [auditoria.md](auditoria.md).
 
-> Estado: **backend hecho** en las tres etapas de código (base técnica, servicio `decor-observability` con su WS y
+> Estado: **backend hecho** en las tres etapas de código (base técnica, servicio `kleinkauf-observability` con su WS y
 > auditoría), también los canales de la tienda (`store.activity`, `store.usage` y `store.users`). Falta el
 > **frontend** de los paneles: ver [Pendiente](#pendiente).
 
@@ -12,10 +12,10 @@ un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y
 
 | Tema | Decisión |
 |---|---|
-| Salud y métricas | **Spring Boot Actuator** en todos los servicios, configurado en `decor-common`: `/health`, `/ready` y `/metrics` |
+| Salud y métricas | **Spring Boot Actuator** en todos los servicios, configurado en `kleinkauf-common`: `/health`, `/ready` y `/metrics` |
 | Acceso | **Puerto de gestión interno** por servicio, que el gateway no expone. Lo leen Docker, Prometheus y observability |
 | Visualización | **Panel propio** en la app (tiempo real por WS) **+ Prometheus y Grafana** en Docker para lo técnico |
-| Servicio | **MS `decor-observability`**: junta salud, métricas y eventos, guarda la auditoría y empuja todo por WS |
+| Servicio | **MS `kleinkauf-observability`**: junta salud, métricas y eventos, guarda la auditoría y empuja todo por WS |
 | Trazas y logs | **OpenTelemetry + Tempo + Loki**: cada request lleva un `traceId` de punta a punta y los logs salen en JSON con `traceId` y `tenant`. **Grafana Alloy** hace de colector (trazas por OTLP y logs de los contenedores) |
 | Recolección | **Eventos + consulta periódica**: los servicios publican eventos en Redis Streams; la salud y las métricas técnicas se consultan cada 10 s |
 | Protocolo | **WebSocket puro** con mensajes JSON propios (sin STOMP) |
@@ -35,9 +35,9 @@ un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y
 
 - Se sirven en el **puerto de gestión**: el del servicio + 6000 → users 9001, products 9002, sales 9003,
   observability 9004, gateway 9000, eureka 9761. Cada servicio lo fija en su `application.properties`; si no,
-  `decor-common` lo calcula. El puerto se publica en la metadata de Eureka (`management.port`) y así lo encuentran
+  `kleinkauf-common` lo calcula. El puerto se publica en la metadata de Eureka (`management.port`) y así lo encuentran
   Prometheus y observability.
-- La configuración común está en `decor-common` (`ObservabilityEnvironmentPostProcessor`): son valores por defecto y
+- La configuración común está en `kleinkauf-common` (`ObservabilityEnvironmentPostProcessor`): son valores por defecto y
   lo que defina un servicio gana. `/health` incluye solo `livenessState` y `ping`; `/ready` incluye todos los
   indicadores del servicio (base, Redis, Eureka) menos `livenessState`.
 - `/ready` **no** mira a los otros microservicios: si users se cae, products sigue listo (sus llamadas tienen circuit
@@ -75,7 +75,7 @@ el tiempo real.
 
 #### Actividad de la tienda (`store.activity`)
 
-Eventos de `decor:events` de esa tienda, reenviados tal cual: `{ "type", "at", ...datos }`.
+Eventos de `kleinkauf:events` de esa tienda, reenviados tal cual: `{ "type", "at", ...datos }`.
 
 | `type` | Lo publica | Cuándo | Datos |
 |---|---|---|---|
@@ -84,7 +84,7 @@ Eventos de `decor:events` de esa tienda, reenviados tal cual: `{ "type", "at", .
 | `stock.movement` | products | Movimiento cargado a mano desde el panel (los de los pedidos no: ya llega el pedido) | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
 | `stock.low` | products | Un producto con mínimo **cruza** a stock bajo con cualquier movimiento, también los de los pedidos (no se repite mientras siga bajo) | `productId`, `productName`, `stock`, `minStock` |
 
-Se publican después del commit (`DecorEventPublisher`); si Redis falla no hay evento y la operación sigue. Son en
+Se publican después del commit (`KleinKaufEventPublisher`); si Redis falla no hay evento y la operación sigue. Son en
 vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
 
 #### Uso y conectados (`store.usage` y `store.users`)
@@ -94,7 +94,7 @@ vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
   `tenant` (cada request de una tienda pasa una vez por ahí; en los servicios se contaría de nuevo). El servicio
   sale de `observability.gateway-service`. Hasta la segunda lectura del gateway `traffic` es `null`.
 - **Catálogo**: products cuenta en Redis, por tienda y por día (`usage:<tenant>:<yyyy-MM-dd>`, `UsageKeys` en
-  `decor-common`), las **visitas** (la primera página del listado sin búsqueda) y las **vistas** del detalle de cada
+  `kleinkauf-common`), las **visitas** (la primera página del listado sin búsqueda) y las **vistas** del detalle de cada
   producto (por slug). Se mandan los 5 más vistos. Vencen a los 8 días. El día es el de Buenos Aires para todas las
   tiendas.
 - **Conectados**: `SCAN` de `activity:<tenant>:*` con la hora de la última request y el nombre (de users, con caché).
@@ -111,7 +111,7 @@ vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
 
 ## Componentes
 
-### decor-common
+### kleinkauf-common
 
 - Configuración de Actuator (rutas, puerto de gestión, grupos de salud).
 - Micrometer Tracing con OpenTelemetry y propagación del `traceId` en `RestTemplate` / `WebClient`. El envío de
@@ -120,21 +120,21 @@ vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
 - Logs con `traceId`, `spanId`, `tenant` y `userId` (MDC desde el `TenantContext`): en texto por defecto y en JSON
   (logstash) con `LOGGING_STRUCTURED_FORMAT_CONSOLE=logstash`.
 - Etiqueta `tenant` en las métricas HTTP (`TenantTag`: solo valores con forma de schema; lo demás va como `invalid`).
-- `DecorEventPublisher`: publica eventos en el stream `decor:events` de Redis (`type`, `tenant`, `at` en UTC y
+- `KleinKaufEventPublisher`: publica eventos en el stream `kleinkauf:events` de Redis (`type`, `tenant`, `at` en UTC y
   `data` en JSON), recortado a unos 10.000. Dentro de una transacción publica después del commit. Si Redis falla
   se loguea y la operación sigue: estos eventos son solo para el panel en vivo. La auditoría, que no se puede
-  perder, va aparte con una tabla **outbox** (`com.decor.common.audit`, ver [auditoria.md](auditoria.md)).
+  perder, va aparte con una tabla **outbox** (`com.kleinkauf.common.audit`, ver [auditoria.md](auditoria.md)).
 - Eventos que se publican hoy: users, al crear, habilitar, deshabilitar o borrar una tienda (`tenant.created`,
   `tenant.enabled`, `tenant.disabled`, `tenant.deleted`); sales, los pedidos (`order.created`,
   `order.receipt-uploaded`); products, el stock (`stock.movement`, `stock.low`).
 - `UsageKeys`: el formato de los contadores de uso del catálogo, que escribe products y lee observability.
 - `ActivityKeys`: el formato de las keys de última actividad, que escribe el gateway y lee observability.
 
-### decor-observability
+### kleinkauf-observability
 
-- Proyecto Gradle propio con `decor-common`, registrado en Eureka, puerto 3004 (gestión 9004). Base `observability`
+- Proyecto Gradle propio con `kleinkauf-common`, registrado en Eureka, puerto 3004 (gestión 9004). Base `observability`
   para la auditoría, con JDBC y sin Hibernate: así no se activan el multi-tenant ni la captura de auditoría de
-  `decor-common`, que son para los servicios que la mandan.
+  `kleinkauf-common`, que son para los servicios que la mandan.
 - **Recolector** (`collector/`): cada 10 s (`observability.poll.interval`) lee `/ready` y `/metrics` de cada
   instancia de Eureka que publica `management.port`, todas a la vez, con 2 s de timeout cada una. Eureka se lee
   aparte (`observability.static-targets`). De `/metrics` toma requests, 5xx, 4xx, 429 y el histograma de latencias
@@ -143,12 +143,12 @@ vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
   - Un servicio está `UP` si todas sus instancias están listas, `DEGRADED` si algunas y `DOWN` si ninguna. Los de
     `observability.services` que no tienen instancias en Eureka figuran `DOWN`.
   - Usuarios conectados: recorre las keys `activity:*` con `SCAN`.
-- **Eventos** (`events/`): lee el stream `decor:events` **sin grupo de consumidores**, porque cada instancia tiene
+- **Eventos** (`events/`): lee el stream `kleinkauf:events` **sin grupo de consumidores**, porque cada instancia tiene
   sus propios WS y tiene que ver todos los eventos. Empieza por los que llegan desde que arrancó. `tenant.*` va a
   `platform.business`; `order.*` y `stock.*` a `store.activity` de esa tienda.
 - **Tienda** (`store/`): arma `store.usage` y `store.users` en cada lectura del recolector (`StoreFeeds`) y responde
   sus GET.
-- **Auditoría** (`audit/`): consume el stream `decor:audit` con un grupo de consumidores, la guarda y la manda por
+- **Auditoría** (`audit/`): consume el stream `kleinkauf:audit` con un grupo de consumidores, la guarda y la manda por
   el WS. Detalle en [auditoria.md](auditoria.md).
 - **WebSocket** (`ws/`) en `/ws`, y REST para lo que había antes de abrir el panel. El WS manda solo lo nuevo.
 
@@ -233,7 +233,7 @@ Alloy. Con el primero solo, todo anda igual pero sin ese stack.
 
 | Qué | Dónde |
 |---|---|
-| Grafana (sin login en desarrollo) | http://localhost:3300 → carpeta **Decor**, dashboard **Decor - Servicios** |
+| Grafana (sin login en desarrollo) | http://localhost:3300 → carpeta **KleinKauf**, dashboard **KleinKauf - Servicios** |
 | Prometheus | http://localhost:9090 (Status → Targets muestra cada instancia) |
 | Trazas | Grafana → Explore → Tempo |
 | Logs | Grafana → Explore → Loki, por ejemplo `{service="product-service", level="ERROR"}` o `{service=~".+"} \| tenant="demo"` |
@@ -248,7 +248,7 @@ Alloy. Con el primero solo, todo anda igual pero sin ese stack.
   los servicios. En Loki el nivel es etiqueta; `traceId`, `tenant` y `userId` van como *structured metadata* (no
   crean una serie por valor).
 - Logs y trazas están enlazados en Grafana: desde un log se abre su traza ("Ver traza") y desde una traza, sus logs.
-- El dashboard **Decor - Servicios** muestra servicios arriba o abajo, requests por segundo, latencia p95, errores 5xx
+- El dashboard **KleinKauf - Servicios** muestra servicios arriba o abajo, requests por segundo, latencia p95, errores 5xx
   y 4xx (el 429 es el rate limit), requests por tienda en el gateway, los endpoints más lentos, heap, CPU y conexiones
   a la base. No cuenta las requests del puerto de gestión.
 - Los healthchecks del compose de desarrollo usan `/health` del puerto de gestión.
@@ -271,7 +271,7 @@ docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"
 | # | Rama | Qué incluye | Estado |
 |---|---|---|---|
 | 1 | `feature/obs-base` | Actuator (`/health`, `/ready`, `/metrics`) en todos los servicios con puerto de gestión, trazas OpenTelemetry, logs JSON con `traceId` y `tenant`, etiqueta `tenant`, Docker con Prometheus, Grafana, Tempo, Loki y Alloy | **Hecha** |
-| 2 | `feature/obs-servicio` | MS `decor-observability`, recolector, Redis Streams, ticket y WS, panel de plataforma, última actividad | **Backend hecho** |
+| 2 | `feature/obs-servicio` | MS `kleinkauf-observability`, recolector, Redis Streams, ticket y WS, panel de plataforma, última actividad | **Backend hecho** |
 | 3 | `feature/auditoria` | Auditoría con outbox ([auditoria.md](auditoria.md)), feed en vivo y panel de tienda | **Backend de la auditoría hecho** |
 | 4 | `docs/observabilidad` | Documentación final y `MVP.md` | **Hecha** |
 
@@ -303,7 +303,7 @@ Cada rama sale de la anterior.
   No hay historial de uso más allá de 8 días (ver "Para decidir").
 - El estado del recolector está en memoria: con varias instancias de observability cada una tiene el suyo (leen lo
   mismo, así que solo difieren por unos segundos).
-- Los eventos de `decor:events` (no la auditoría) se pierden si Redis está caído al publicarlos. Solo afecta al
+- Los eventos de `kleinkauf:events` (no la auditoría) se pierden si Redis está caído al publicarlos. Solo afecta al
   panel en vivo.
 - Los logs del gateway llevan `traceId` pero no `tenant` ni `userId` (es reactivo y el MDC no se arma por request);
   el tenant del gateway sí está en las métricas.

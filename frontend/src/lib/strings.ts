@@ -3,7 +3,7 @@ export const strings = {
     title: "Tienda online",
     description: "plataforma de comercio electrónico con control de acceso basado en roles",
     generator: "",
-    name: "Decor",
+    name: "KleinKauf",
   },
   nav: {
     catalog: "Catálogo",
@@ -124,7 +124,7 @@ export const strings = {
     cardDescription: "Ingresa con tu cuenta de superadmin",
   },
   platform: {
-    name: "Decor · Plataforma",
+    name: "KleinKauf · Plataforma",
     dashboard: "Resumen",
     tenants: "Tiendas",
     superadmins: "Superadmins",

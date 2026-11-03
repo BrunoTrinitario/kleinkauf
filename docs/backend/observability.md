@@ -1,4 +1,4 @@
-# observability (decor-observability)
+# observability (kleinkauf-observability)
 
 Spring Boot (servlet) en el puerto **3004**, registrado en Eureka como `observability-microservice`. Base Postgres
 `observability` (un schema por tienda y `public`) con JDBC, sin Hibernate.
@@ -309,8 +309,8 @@ pierde aunque observability o Redis estén caídos.
 | `ws-ticket:<id>` | Tickets del WS (30 s, se leen y borran con `GETDEL`) |
 | `activity:<tenant>:<userId>` | Última request de cada usuario (la escribe el gateway). Usuarios conectados |
 | `usage:<tenant>:<día>` | Uso del catálogo (lo escribe products) |
-| `decor:events` | Eventos de los servicios (tiendas, pedidos, stock). Se leen sin grupo de consumidores: cada instancia los ve todos |
-| `decor:audit` | Auditoría. Se consume con un grupo: cada evento se guarda una vez y se confirma |
+| `kleinkauf:events` | Eventos de los servicios (tiendas, pedidos, stock). Se leen sin grupo de consumidores: cada instancia los ve todos |
+| `kleinkauf:audit` | Auditoría. Se consume con un grupo: cada evento se guarda una vez y se confirma |
 
 - **users:** roles actuales para los tickets y la revisión de cada minuto, y nombres para la auditoría (caché de
   10 minutos). Con circuit breaker y reintentos. Si users no responde, no se desconecta a nadie.
@@ -326,7 +326,7 @@ El segundo archivo suma Prometheus, Grafana, Tempo, Loki y Alloy; sin él todo a
 
 | Qué | Dónde |
 |---|---|
-| Grafana (sin login en desarrollo) | http://localhost:3300 → carpeta **Decor**, dashboard **Decor - Servicios** |
+| Grafana (sin login en desarrollo) | http://localhost:3300 → carpeta **KleinKauf**, dashboard **KleinKauf - Servicios** |
 | Prometheus | http://localhost:9090 (Status → Targets) |
 | Trazas | Grafana → Explore → Tempo |
 | Logs | Grafana → Explore → Loki, por ejemplo `{service="product-service", level="ERROR"}` |

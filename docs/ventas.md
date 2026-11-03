@@ -1,4 +1,4 @@
-# Ventas (decor-sales)
+# Ventas (kleinkauf-sales)
 
 Microservicio de ventas: el comprador arma el carrito en la tienda, crea el pedido (que reserva el stock en products),
 paga por transferencia y sube el comprobante. El administrador valida el pago, sigue la preparación y la entrega,
@@ -11,7 +11,7 @@ carga las ventas del local, mira los reportes y configura los datos para cobrar.
 
 | | |
 |---|---|
-| Proyecto | `backend/decor-sales` (Gradle, `includeBuild('../decor-common')`) |
+| Proyecto | `backend/kleinkauf-sales` (Gradle, `includeBuild('../kleinkauf-common')`) |
 | Servicio | `sales-microservice`, puerto **3003**, registrado en Eureka |
 | Base | Postgres `sales`, **un schema por tenant** (se crea y migra solo, igual que products) |
 | Archivos | Comprobantes en disco: `receipts.path` (`uploads/sales/receipts`), una carpeta por tienda y pedido |
@@ -76,7 +76,7 @@ POST /api/v1/sales/orders
   "status": "PENDIENTE_PAGO",
   "total": 72000.00,
   "expiresAt": "2026-11-04T15:30:00",
-  "payment": { "alias": "tienda.decor", "cbu": null, "holder": "Decor SRL", "bank": "Galicia" }
+  "payment": { "alias": "tienda.kleinkauf", "cbu": null, "holder": "KleinKauf SRL", "bank": "Galicia" }
 }
 ```
 
@@ -292,7 +292,7 @@ gateway :3000
    - agrega X-Forwarded-Host (schema del tenant)
    │
    ▼
-decor-sales :3003
+kleinkauf-sales :3003
    TenantFilter      X-Forwarded-Host → schema
    HeaderAuthFilter  X-User-Id → roles de users (caché 1 min → Redis → users)
    │

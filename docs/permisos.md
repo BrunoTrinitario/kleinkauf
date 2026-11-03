@@ -35,7 +35,7 @@ La máscara es la suma de los bits de las áreas habilitadas:
 | `15` | Todas las delegables (PRODUCTOS + PRECIOS + STOCK + COMBOS) |
 | `31` | Todas (solo `ADMINISTRADOR`) |
 
-Las áreas están definidas en `decor-common` (`com.decor.common.security.PermissionArea`).
+Las áreas están definidas en `kleinkauf-common` (`com.kleinkauf.common.security.PermissionArea`).
 
 ## Permisos de cada rol
 
@@ -136,12 +136,12 @@ users                                   products y sales
 role_permissions (por schema)
   │ RolePermissionService.maskFor(rol)
   ▼
-RoleDto { type, permissions }  ──►  Redis  user:<id>:<tenant>  ──►  caché local (1 minuto)
-  │                                                                   │
-  ▼                                                                   ▼
-HeaderAuthFilter                                              HeaderAuthFilter
-  │                                                                   │
-  └─► CustomUserDetails (decor-common): ROLE_<rol> + PERM_<área> ◄──┘
+RoleDto { type, permissions }  ──►  Redis  user:<id>:<tenant>  ──►      caché local (1 minuto)
+  │                                                                       │
+  ▼                                                                       ▼
+HeaderAuthFilter                                                  HeaderAuthFilter
+  │                                                                       │
+  └─► CustomUserDetails (kleinkauf-common): ROLE_<rol> + PERM_<área> ◄──┘
                      │
                      ▼
               SecurityConfig: hasRole(...) / hasAuthority("PERM_STOCK")
@@ -152,7 +152,7 @@ HeaderAuthFilter                                              HeaderAuthFilter
 2. **Quién la calcula:** users (`RolePermissionService.maskFor`). `ADMINISTRADOR` devuelve siempre 31.
 3. **Cómo viaja:** en `RoleDto.permissions`, junto con el tipo de rol. Lo devuelven el login, `GET /api/v1/auth/me`,
    los endpoints de roles y el endpoint interno que usan products y sales (`/api/internal/users/roles/{id}`).
-4. **Cómo se aplica:** `CustomUserDetails` (en `decor-common`) convierte los roles en authorities `ROLE_<rol>` y la
+4. **Cómo se aplica:** `CustomUserDetails` (en `kleinkauf-common`) convierte los roles en authorities `ROLE_<rol>` y la
    unión de las máscaras en `PERM_<área>`. Los `SecurityConfig` de cada servicio piden esas authorities.
 5. **Casos que no se pueden resolver solo con la URL:** el alta de producto revisa en el servicio si el usuario tiene
    PRECIOS (`SecurityUtil.hasPermission`) para decidir si usa o ignora el precio y el costo.

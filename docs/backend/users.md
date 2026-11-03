@@ -1,4 +1,4 @@
-# users (decorusers)
+# users (kleinkaufusers)
 
 Spring Boot (servlet) en el puerto **3001**, registrado en Eureka como `users-microservice`. Base Postgres `users`:
 un schema por tienda y `public` para la plataforma.
@@ -571,7 +571,7 @@ Error: 400 `Invalid sort: use users, activeUsers, lastActivity or createdAt.`
 Todos los superadmins, también los desactivados, por fecha de alta.
 
 ```json
-[ { "id": 1, "name": "Superadmin", "email": "superadmin@decor.local", "active": true,
+[ { "id": 1, "name": "Superadmin", "email": "superadmin@kleinkauf.local", "active": true,
     "createdAt": "2026-10-01T10:00:00Z", "lastLogin": "2026-11-03T12:00:00Z" } ]
 ```
 
@@ -582,7 +582,7 @@ Todos los superadmins, también los desactivados, por fecha de alta.
 Crea un superadmin con contraseña temporal (no se le pide cambiarla).
 
 ```json
-{ "name": "Lucía", "email": "lucia@decor.local", "password": "temporal123" }
+{ "name": "Lucía", "email": "lucia@kleinkauf.local", "password": "temporal123" }
 ```
 
 Respuesta **201**: `SuperadminDto`.
@@ -643,7 +643,7 @@ el gateway solo pasa `/api/internal/tenants/**`; el resto lo llaman los servicio
 | `platform:usage:users` | Uso por tienda del panel de la plataforma | 5 minutos | — |
 | `activity:<schema>:<id>` | Última request (la escribe el gateway; users solo la lee) | 5 minutos | — |
 
-- **Eventos** (Redis Streams `decor:events`): `tenant.created`, `tenant.enabled`, `tenant.disabled`,
+- **Eventos** (Redis Streams `kleinkauf:events`): `tenant.created`, `tenant.enabled`, `tenant.disabled`,
   `tenant.deleted`, con `{ id, identifier, schema }`.
 - **Auditoría:** `User`, `Role`, `RolePermission` y `Tenant` son `@Audited` (altas, cambios y bajas van al outbox;
   el último login no cuenta). Desactivar y reactivar superadmins se registra a mano. Lo de tiendas y superadmins
@@ -676,12 +676,12 @@ en `usuarios` y `roles` con el rol `SUPERADMIN`. Ver [tenants.md](../tenants.md#
 | `spring.data.redis.*` | `localhost:6379` | Caché y eventos |
 | `jwt.secret` | — | Firma los JWT. Tiene que ser el mismo que el del gateway. **Cambiarlo fuera de desarrollo** |
 | `api.internal.key` | — | Token interno. **Cambiarlo fuera de desarrollo** |
-| `decor.tenant.required` | `false` | Sin tienda trabaja en `public` (plataforma e internos) |
+| `kleinkauf.tenant.required` | `false` | Sin tienda trabaja en `public` (plataforma e internos) |
 | `platform.scheme`, `platform.domain` | `http`, `localhost:2999` | Arman la URL de cada tienda nueva y el link del recupero |
 | `platform.superadmin.email` / `.password` | `${SUPERADMIN_EMAIL}` / `${SUPERADMIN_PASSWORD}` | Primer superadmin, al arrancar |
 | `spring.mail.*` | Gmail de ejemplo | Mail del recupero |
 
-Levantarlo solo: `cd backend/decorusers && ./gradlew bootRun` (con Postgres, Redis y Eureka arriba). Ver el
+Levantarlo solo: `cd backend/kleinkaufusers && ./gradlew bootRun` (con Postgres, Redis y Eureka arriba). Ver el
 [README del proyecto](../../README.md#cómo-correrlo).
 
 ## Límites conocidos
