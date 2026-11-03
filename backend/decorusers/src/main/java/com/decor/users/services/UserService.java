@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.decor.users.constants.ErrorMessages;
+import com.decor.users.constants.RolesType;
 import com.decor.users.entities.Role;
 import com.decor.users.entities.User;
 import com.decor.common.servlet.exceptions.ApiException;
@@ -134,10 +135,21 @@ public class UserService {
         }
     }
 
+    // Una tienda sin ADMINISTRADOR no la puede administrar nadie (ni reasignar el rol): el ultimo no se borra
+    // ni pierde el rol, lo haga el mismo o otro administrador. 409, como el ultimo superadmin
+    private void ensureNotLastAdministrator(Long userId) throws ApiException {
+        String admin = RolesType.ADMINISTRADOR.name();
+        boolean isAdmin = this.roleRepository.findByUser_Id(userId).stream().anyMatch(r -> admin.equals(r.getType()));
+        if (isAdmin && this.roleRepository.countActiveUsersWithType(admin) <= 1) {
+            throw new ApiException(ErrorMessages.LAST_ADMINISTRATOR, HttpStatus.CONFLICT);
+        }
+    }
+
     @Transactional
     public boolean deleteUserById(Long id) throws ApiException {
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null){
+            ensureNotLastAdministrator(id);
             for (Role r: rawUser.getRoles()){
                 this.roleRepository.delete(r);
             }
@@ -229,6 +241,9 @@ public class UserService {
         }
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null && userHasRole(id, role)){
+            if (RolesType.ADMINISTRADOR.name().equals(role)) {
+                ensureNotLastAdministrator(id);
+            }
             Role roleToDelete = this.roleRepository.findByUser_IdAndType(id, role).orElse(null);
             if (roleToDelete != null){
                 rawUser.getRoles().remove(roleToDelete);

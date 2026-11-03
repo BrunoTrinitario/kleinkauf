@@ -210,6 +210,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-03 | Las lecturas viejas con **stock exacto** (`GET /products/{id}`, `/featured`, `/search`, `/bundles/**`) piden un área del panel; los destacados públicos pasan a `GET /api/v1/catalog/featured` | El catálogo público no muestra el stock exacto |
 | 2026-11-03 | El mail de recupero lleva a `<URL de la tienda>/reset-password?token=` (antes, a la API del gateway) | Un link de mail hace GET: tiene que abrir una página del frontend |
 | 2026-11-03 | `CorsConfig` corre **antes** de los filtros que cortan (`@Order(-150)`) y acepta cualquier **subdominio de la plataforma** con forma de identificador, aunque la tienda no exista | Los 401, 404/403 y 429 del gateway salían sin cabeceras CORS: el navegador los veía como error de red y el frontend no podía leer el código |
+| 2026-11-03 | El **último `ADMINISTRADOR`** de una tienda no se puede borrar (ni a sí mismo ni desde el panel) ni perder el rol: **409**, como el último superadmin | Sin administrador nadie puede administrar la tienda ni devolverle el rol a alguien |
 
 ### Detalle de la librería común
 

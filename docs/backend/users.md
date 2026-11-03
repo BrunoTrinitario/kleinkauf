@@ -188,10 +188,13 @@ Respuesta **200**: `FullUserDto`. Errores: 400 por [validación](#reglas-de-vali
 
 **Acceso:** Login · **Legado** (ver [Para limpiar](#para-limpiar))
 
-El usuario se borra a sí mismo (borrado lógico, con sus roles). Respuesta **200** con el texto
-`The user has been deleted`. Error: 404 `The user was not found.`
+El usuario se borra a sí mismo (borrado lógico, con sus roles). Lo usa la página de ajustes ("Eliminar mi
+cuenta"). Respuesta **200** con el texto `The user has been deleted`.
 
-Ojo: un administrador puede borrarse y dejar la tienda sin dueño.
+| Código | Cuándo | Mensaje |
+|---|---|---|
+| 404 | Usuario inexistente | `The user was not found.` |
+| 409 | Es el último `ADMINISTRADOR` de la tienda | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
 
 ### POST /api/v1/auth/forgot-password
 
@@ -315,7 +318,8 @@ Respuesta **200**: `FullUserDto`. Errores: 400 por [validación](#reglas-de-vali
 **Acceso:** ADMINISTRADOR
 
 Borra (lógico) el usuario y sus roles, y saca sus roles de Redis. Respuesta **200** con el texto
-`The user has been deleted`. Error: 404 `The user was not found.`
+`The user has been deleted`. Errores: 404 `The user was not found.` · 409 si es el último `ADMINISTRADOR` de la
+tienda (mismo mensaje que `DELETE /auth/delete`).
 
 ### GET /api/v1/users/{id}/roles
 
@@ -352,6 +356,7 @@ Le saca un rol. Respuesta **200**: `FullUserDto`.
 |---|---|---|
 | 404 | Rol inexistente | `The role provided is invalid.` |
 | 404 | Usuario inexistente o sin ese rol | `The user was not found.` |
+| 409 | Se le saca `ADMINISTRADOR` al último administrador de la tienda | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
 
 ### GET /api/v1/users/dashboard
 
@@ -694,7 +699,6 @@ Levantarlo solo: `cd backend/decorusers && ./gradlew bootRun` (con Postgres, Red
 - Un email repetido responde 400 en las tiendas y 409 en los superadmins.
 - Un rol inexistente responde 400 en el listado y 404 al dar o sacar roles.
 - Si el mail del recupero falla, se pierde sin aviso.
-- Un administrador puede borrarse a sí mismo (`DELETE /auth/delete`) o sacarse el rol y dejar la tienda sin dueño.
 
 ## Para limpiar
 
@@ -704,6 +708,6 @@ Endpoints que no usa el frontend ni ningún servicio, o que tienen un reemplazo:
 |---|---|---|
 | `GET /api/v1/users/all` | Sin paginar | `GET /api/v1/users` |
 | `PUT /api/v1/auth/update` | Recibe `email` y lo ignora. Lo usa la página de ajustes: si se cambia, cambiar las dos | Un `PATCH /api/v1/auth/me` |
-| `DELETE /api/v1/auth/delete` | Deja borrarse al dueño | Revisar si hace falta; si sí, `DELETE /api/v1/auth/me` sin permitirlo al último administrador |
+| `DELETE /api/v1/auth/delete` | El nombre: lo usa la página de ajustes (ya no deja borrarse al último administrador) | Un `DELETE /api/v1/auth/me`; si se cambia, cambiar las dos |
 | `GET /api/internal/tenants/all` | No lo usa nadie | — |
 | `GET /api/internal/users/all` | No lo usa nadie | — |

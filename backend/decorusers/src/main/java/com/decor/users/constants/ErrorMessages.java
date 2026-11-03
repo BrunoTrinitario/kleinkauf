@@ -33,5 +33,6 @@ public class ErrorMessages {
     public static String SUPERADMIN_NOT_FOUND = "The superadmin was not found.";
     public static String CANNOT_DEACTIVATE_SELF = "You cannot deactivate yourself.";
     public static String LAST_ACTIVE_SUPERADMIN = "The last active superadmin cannot be deactivated.";
+    public static String LAST_ADMINISTRATOR = "The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.";
     public static String INVALID_PERMISSIONS ="Invalid permissions: use PRODUCTOS=1, PRECIOS=2, STOCK=4 and COMBOS=8 (USUARIOS cannot be delegated).";
 }

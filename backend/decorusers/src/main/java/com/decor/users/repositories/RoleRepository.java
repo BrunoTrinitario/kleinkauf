@@ -32,4 +32,8 @@ public interface RoleRepository extends JpaRepository<Role, Long>{
     // [tipo, usuarios] de los usuarios no borrados (panel de la tienda). Un usuario con varios roles cuenta en cada uno
     @Query("SELECT r.type, COUNT(DISTINCT u.id) FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL GROUP BY r.type")
     List<Object[]> countUsersByType();
+
+    // Usuarios no borrados con ese rol (ej. que la tienda no se quede sin ADMINISTRADOR)
+    @Query("SELECT COUNT(DISTINCT u.id) FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL AND r.type = :type")
+    long countActiveUsersWithType(@Param("type") String type);
 }
