@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.decor.users.entities.User;
@@ -29,6 +31,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
    Optional<User> findByName(String name);
    Optional<User> findByEmail(String email);
    boolean existsByEmail(String email);
-   List<User> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+   // Panel de la tienda (UserDashboardService)
+   long countByLastLoginGreaterThanEqual(LocalDateTime since);
+
+   @Query("SELECT u.createdAt FROM User u WHERE u.createdAt >= :from AND u.createdAt < :to")
+   List<LocalDateTime> findCreatedAtBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
 }

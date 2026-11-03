@@ -163,7 +163,7 @@ archivo más grande que el límite de subida responde 413.
 | GET | `/api/v1/users/{id}/roles` | ADMINISTRADOR | Roles del usuario |
 | POST | `/api/v1/users/{id}/roles?roleName=EMPLEADO` | ADMINISTRADOR | Le asigna un rol (`SUPERADMIN` no se puede asignar) |
 | DELETE | `/api/v1/users/{id}/roles?roleName=EMPLEADO` | ADMINISTRADOR | Le quita un rol |
-| GET | `/api/v1/users/stats?startDate&endDate` | ADMINISTRADOR | Estadísticas: total, activos y registros por período |
+| GET | `/api/v1/users/dashboard?from&to&groupBy` | ADMINISTRADOR | Panel de la tienda: total, activos (login en 30 días), usuarios por rol y altas por período (`DAY`/`WEEK`/`MONTH`). Ver [panel-admin.md](panel-admin.md) |
 
 ### Permisos por rol — `/api/v1/users/roles`
 
@@ -230,6 +230,12 @@ archivo más grande que el límite de subida responde 413.
 | POST | `/api/v1/products/{id}/stock/movements` | `STOCK` | Registra un movimiento. Body `{type, quantity, reason}`: `ENTRADA`/`SALIDA` con la cantidad, `AJUSTE` con el stock contado (motivo obligatorio). Sin stock suficiente → 409 |
 | GET | `/api/v1/products/{id}/stock/movements` | `STOCK` | Historial, del más nuevo al más viejo |
 | GET | `/api/v1/products/stock/low` | `STOCK` | Productos con stock menor o igual a su mínimo |
+
+### Panel de la tienda — `/api/v1/products`
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/v1/products/dashboard` | ADMINISTRADOR | Productos (por categoría, sin precio, sin imagen, destacados) y stock (bajo, agotados, valor del inventario a costo y a precio, últimos 10 movimientos). Ver [panel-admin.md](panel-admin.md) |
 
 ### Importar y exportar — `/api/v1/products`
 

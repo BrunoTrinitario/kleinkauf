@@ -1,10 +1,11 @@
-# Panel de administración (plan)
+# Panel de administración
 
-Plan de los endpoints de resumen para el **administrador de la tienda** y para el **administrador de la plataforma**
-(superadmin). El frontend se va a reescribir: acá se define solo lo que exponen los servicios.
+Endpoints de resumen para el **administrador de la tienda** y para el **administrador de la plataforma**
+(superadmin). Acá se define solo lo que exponen los servicios; el frontend está en [frontend.md](frontend.md).
 
-> Estado: el **panel de la plataforma (SUPERADMIN) está implementado** (backend; el frontend todavía no lo muestra).
-> El **panel de la tienda** sigue siendo **plan**. Cuando se implemente, este archivo pasa a ser la documentación.
+> Estado: **backend implementado** en los dos paneles. El de la plataforma ya tiene frontend; el de la tienda
+> todavía no. Las ventas ([ventas.md](ventas.md), `/api/v1/sales/admin/reports/**`) y el tiempo real
+> ([observabilidad.md](observabilidad.md)) se suman a las mismas páginas.
 
 ## Decisiones
 
@@ -26,7 +27,21 @@ Plan de los endpoints de resumen para el **administrador de la tienda** y para e
 | Alta de superadmins | Otro superadmin lo crea con **contraseña temporal**; **no** tiene que cambiarla en el primer login |
 | Desactivar superadmins | Con **`deletedAt`** (borrado lógico); reactivar = limpiar `deletedAt`. No puede desactivarse a sí mismo ni al último activo |
 
-## Panel de la tienda (ADMINISTRADOR)
+## Panel de la tienda (ADMINISTRADOR) — implementado
+
+**Diferencias con el plan:**
+
+- products: `recentMovements` trae también `id`, `stockAfter` y `reference` (el número de pedido en los movimientos
+  de ventas), y el nombre del producto aunque esté borrado. Los importes van como números (como el resto de la API),
+  siempre con 2 decimales y en `0.00` si no hay nada que sumar. En `byCategory` los empates van por nombre y "sin
+  categoría" al final.
+- users: `byRole` trae siempre `ADMINISTRADOR`, `EMPLEADO` y `CLIENTE` (en 0 si no hay). `registrations` cuenta las
+  altas de los usuarios **que siguen en la tienda** (a diferencia de la plataforma, que incluye las tiendas borradas):
+  `@SQLRestriction` oculta los borrados y para el dueño importa la base de clientes actual. Usa la misma utilidad de
+  períodos que la plataforma (`util/Periods.java`) y los mismos errores (400).
+- `/users/stats` se borró junto con `UserStatsDto`, `UserService.getServiceStats` y
+  `UserRepository.findByCreatedAtBetween`.
+- Cada servicio arma su panel con consultas de conteo y suma: no se cargan los productos ni los usuarios.
 
 ### products — `GET /api/v1/products/dashboard`
 
@@ -239,7 +254,11 @@ Se arma en el frontend juntando dos listas por `schema`:
 
 ## Para después
 
-- Ventas: recaudación, pedidos del día y del mes, más vendidos (cuando exista [ventas](ventas.md)).
+- Ventas: los reportes ya existen (`/api/v1/sales/admin/reports/**`, ver [ventas.md](ventas.md)); falta sumarlos a
+  la página del panel en el frontend.
 - Observabilidad: tráfico, errores, salud y tiempo real por WS. El backend ya está (ver
   [observabilidad.md](observabilidad.md)); falta sumarlo a las páginas de los paneles.
+- "Activos" sigue siendo el último login en 30 días: un usuario que usa la app con una sesión abierta hace más de
+  30 días cuenta como inactivo. Las keys `activity:*` del gateway duran 5 minutos, así que no sirven para una
+  ventana de 30 días: haría falta guardar la última request en la base.
 - "Tareas pendientes" (productos sin precio o sin imagen, combos que no se pueden armar) como lista accionable.

@@ -7,6 +7,7 @@ import com.decor.common.security.InternalTokenService;
 import com.decor.common.servlet.tenant.TenantFilter;
 import com.decor.product.controllers.BundleController;
 import com.decor.product.controllers.CatalogController;
+import com.decor.product.controllers.DashboardController;
 import com.decor.product.controllers.InternalStockController;
 import com.decor.product.controllers.ProductCsvController;
 import com.decor.product.controllers.ProductController;
@@ -15,6 +16,7 @@ import com.decor.product.dto.csv.ImportResultDto;
 import com.decor.product.security.SecurityConfig;
 import com.decor.product.services.BundleService;
 import com.decor.product.services.CatalogService;
+import com.decor.product.services.DashboardService;
 import com.decor.product.services.ProductCsvService;
 import com.decor.product.services.ProductService;
 import com.decor.product.services.StockReservationService;
@@ -46,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class})
+@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class, DashboardController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -88,6 +90,9 @@ class SecurityRulesTest {
 
 	@MockitoBean
 	private StockReservationService stockReservationService;
+
+	@MockitoBean
+	private DashboardService dashboardService;
 
 	// Lo que users devuelve para EMPLEADO: por defecto solo STOCK; cada test puede configurarlo
 	private int empleadoPermissions = PermissionArea.STOCK.bit();
@@ -226,6 +231,17 @@ class SecurityRulesTest {
 		String body = "{\"price\":90000}";
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isOk());
+	}
+
+	// El panel es del administrador: un empleado no entra aunque tenga todas las areas
+	@Test
+	void panelDeLaTienda_soloAdministrador() throws Exception {
+		empleadoPermissions = PermissionArea.ALL;
+
+		mockMvc.perform(as(null, get("/api/v1/products/dashboard"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(CLIENTE, get("/api/v1/products/dashboard"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/dashboard"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, get("/api/v1/products/dashboard"))).andExpect(status().isOk());
 	}
 
 	// Permisos configurados por el administrador para EMPLEADO

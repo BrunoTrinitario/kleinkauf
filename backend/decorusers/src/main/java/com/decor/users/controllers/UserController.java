@@ -5,15 +5,12 @@
 
 package com.decor.users.controllers;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.decor.users.constants.SuccessMessages;
 import com.decor.users.dtos.RegisterUserDto;
 import com.decor.common.dto.RoleDto;
-import com.decor.users.dtos.stats.UserStatsDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,6 +27,8 @@ import com.decor.users.dtos.FullUserDto;
 import com.decor.users.dtos.PatchUserDto;
 import com.decor.users.dtos.UserPageDto;
 import com.decor.common.servlet.exceptions.ApiException;
+import com.decor.users.dtos.dashboard.UserDashboardDto;
+import com.decor.users.services.UserDashboardService;
 import com.decor.users.services.UserService;
 
 
@@ -42,6 +41,9 @@ import com.decor.users.services.UserService;
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserDashboardService userDashboardService;
 
     @GetMapping("/all")
     public ResponseEntity<ArrayList<FullUserDto>> getAllUsers() {
@@ -103,32 +105,14 @@ public class UserController {
         return new ResponseEntity<>(roles, org.springframework.http.HttpStatus.OK);
     }
 
-    @GetMapping("/stats")
-    public ResponseEntity<UserStatsDto> getUserStats(
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate
+    // Panel de la tienda: total, activos, por rol y altas por periodo (from y to yyyy-MM-dd, groupBy DAY/WEEK/MONTH)
+    @GetMapping("/dashboard")
+    public ResponseEntity<UserDashboardDto> dashboard(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String groupBy
     ) throws ApiException {
-
-        LocalDateTime startDateTime;
-        LocalDateTime endDateTime;
-
-        // Si no se envían, usar rango completo
-        if (startDate == null) {
-            startDateTime = LocalDateTime.of(1900, 1, 1, 0, 0, 0);
-        } else {
-            startDateTime = startDate.atStartOfDay();
-        }
-
-        if (endDate == null) {
-            endDateTime = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
-        } else {
-            endDateTime = endDate.atTime(23, 59, 59);
-        }
-
-        UserStatsDto stats =
-                userService.getServiceStats(startDateTime, endDateTime);
-
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(userDashboardService.dashboard(from, to, groupBy));
     }
 
 }

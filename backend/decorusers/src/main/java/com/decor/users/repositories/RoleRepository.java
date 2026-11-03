@@ -28,4 +28,8 @@ public interface RoleRepository extends JpaRepository<Role, Long>{
     // y aca hay que encontrar el rol aunque este borrado (soft delete) para reactivarlo
     @Query(value = "SELECT * FROM roles WHERE userid = :userId AND type = :type", nativeQuery = true)
     Optional<Role> existDeletedRole(@Param("userId") Long userId, @Param("type") String type);
+
+    // [tipo, usuarios] de los usuarios no borrados (panel de la tienda). Un usuario con varios roles cuenta en cada uno
+    @Query("SELECT r.type, COUNT(DISTINCT u.id) FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL GROUP BY r.type")
+    List<Object[]> countUsersByType();
 }

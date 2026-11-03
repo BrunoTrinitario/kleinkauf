@@ -139,7 +139,7 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] Asignar y quitar roles (`SUPERADMIN` no se ofrece)
 - [ ] **Matriz de permisos por rol**: casillas de `PRODUCTOS`, `PRECIOS`, `STOCK`, `COMBOS` para `EMPLEADO` y `CLIENTE`; `USUARIOS` bloqueado; `ADMINISTRADOR` solo lectura; aviso de que products tarda hasta 1 min en aplicarlo
 
-### 7. Panel de la tienda: resumen **[plan: panel-admin]**
+### 7. Panel de la tienda: resumen **[listo en el backend: panel-admin]** (`GET /products/dashboard` y `GET /users/dashboard`)
 - [ ] Dashboard de productos: total, por categoría, sin precio, sin imágenes, destacados
 - [ ] Dashboard de stock: stock bajo, agotados, valor del inventario a costo y a precio (con los excluidos), últimos 10 movimientos
 - [ ] Dashboard de usuarios: total, activos (30 días), por rol, altas por período (`from`, `to`, `groupBy`)

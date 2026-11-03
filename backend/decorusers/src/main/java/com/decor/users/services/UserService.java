@@ -8,16 +8,12 @@ package com.decor.users.services;
 import com.decor.common.constants.TenantConstants;
 import com.decor.common.dto.RoleDto;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import com.decor.common.servlet.tenant.TenantContext;
 import com.decor.users.constants.MailConstants;
 import com.decor.users.dtos.*;
-import com.decor.users.dtos.stats.UserStatsDto;
 import com.decor.users.util.CacheUtil;
 import com.decor.users.util.JwtUtil;
 import com.netflix.appinfo.InstanceInfo;
@@ -283,52 +279,6 @@ public class UserService {
         return list;
     }
 
-    public UserStatsDto getServiceStats(LocalDateTime startDate, LocalDateTime endDate){
-        /* TODO:
-            Usuarios registrados
-            Usuarios activos (DAU/MAU)
-            Nuevos usuarios por período
-         */
-        List<User> allUsers = userRepository.findByCreatedAtBetween(startDate, endDate);
-
-        LocalDateTime now = LocalDateTime.now();
-
-        int activeUsers = (int) allUsers.stream()
-                .map(User::getLastLogin)
-                .filter(Objects::nonNull)
-                .filter(lastLogin -> lastLogin.isAfter(now.minusHours(1)))
-                .count();
-
-        Map<String, Integer> periods = new LinkedHashMap<>();
-
-        if (!allUsers.isEmpty()) {
-
-            LocalDate oldestDate = allUsers.stream()
-                    .map(user -> user.getCreatedAt().toLocalDate())
-                    .min(LocalDate::compareTo)
-                    .orElse(startDate.toLocalDate());
-
-            periods = allUsers.stream()
-                    .collect(Collectors.groupingBy(
-                            user -> {
-                                long weeks = ChronoUnit.WEEKS.between(
-                                        oldestDate,
-                                        user.getCreatedAt().toLocalDate()
-                                );
-                                return "week_" + (weeks + 1);
-                            },
-                            LinkedHashMap::new,
-                            Collectors.summingInt(user -> 1)
-                    ));
-        }
-
-        UserStatsDto dto = new UserStatsDto();
-        dto.setUsersTotal(allUsers.size());
-        dto.setUsersActive(activeUsers);
-        dto.setPeriodRegistration(new HashMap<>(periods));
-
-        return dto;
-    }
 
     public boolean forgotPasswordRequest(EmailDto userData) throws ApiException {
         User u = this.userRepository.findByEmail(userData.email()).orElse(null);
