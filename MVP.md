@@ -247,10 +247,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
   a iniciar sesión una vez.
 - **Tenants creados a mano antes del alta:** siguen funcionando con la `url` que tengan cargada; su identificador en el
   panel del superadmin se deriva del schema.
-- **Frontend nuevo (se va a reescribir):** tiene que usar `/api/v1/catalog` para la parte pública y mandar el `Origin`
-  del tenant en cada llamada a la API (también si llama desde el servidor), porque el gateway reconoce el tenant por ese
-  header. Cuando esté, se pueden cerrar los endpoints públicos viejos (`/products/all`, `/{id}`, `/search`,
-  `/featured`), que muestran el stock exacto.
+- ~~**Endpoints públicos viejos con stock exacto**~~ **Resuelto:** el frontend usa `/api/v1/catalog`; `/products/{id}`
+  y `/featured` piden un área del panel, y `/products/all` y `/search` se borraron.
 - **Bugs corregidos en el camino:**
   - CORS del gateway: se cacheaban orígenes no permitidos, así que desde el segundo request pasaba cualquiera.
   - products pedía el tenant con `?schema=` a un endpoint que solo aceptaba `url` (400).

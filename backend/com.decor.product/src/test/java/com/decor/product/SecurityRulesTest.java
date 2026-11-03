@@ -127,8 +127,6 @@ class SecurityRulesTest {
 			mockMvc.perform(as(CLIENTE, get(path))).andExpect(status().isForbidden());
 			mockMvc.perform(as(EMPLEADO, get(path))).andExpect(status().isOk());
 		}
-		mockMvc.perform(as(null, get("/api/v1/products/search").param("name", "Mesa"))).andExpect(status().isForbidden());
-		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/search").param("name", "Mesa"))).andExpect(status().isOk());
 		// Sin stock: siguen publicos
 		mockMvc.perform(as(null, get("/api/v1/products/5/metadata"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/products/5/images"))).andExpect(status().isOk());
@@ -158,7 +156,7 @@ class SecurityRulesTest {
 	// Los listados del panel muestran el stock exacto: piden algun area del panel (el EMPLEADO por defecto tiene STOCK)
 	@Test
 	void listadoDelPanel_pideAreaDelPanel() throws Exception {
-		for (String path : List.of("/api/v1/products", "/api/v1/products/all")) {
+		for (String path : List.of("/api/v1/products")) {
 			mockMvc.perform(as(null, get(path))).andExpect(status().isForbidden());
 			mockMvc.perform(as(CLIENTE, get(path))).andExpect(status().isForbidden());
 			mockMvc.perform(as(EMPLEADO, get(path))).andExpect(status().isOk());
@@ -270,6 +268,14 @@ class SecurityRulesTest {
 		String body = "{\"price\":90000}";
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isOk());
+	}
+
+	// Habilitar un combo pide COMBOS, con el estado explicito
+	@Test
+	void habilitarCombo_pideCombos() throws Exception {
+		String body = "{\"enabled\":false}";
+		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/enabled"), body))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, json(put("/api/v1/bundles/1/enabled"), body))).andExpect(status().isOk());
 	}
 
 	// El panel es del administrador: un empleado no entra aunque tenga todas las areas

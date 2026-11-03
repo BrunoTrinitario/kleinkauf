@@ -45,12 +45,6 @@ public class UserController {
     @Autowired
     private UserDashboardService userDashboardService;
 
-    @GetMapping("/all")
-    public ResponseEntity<ArrayList<FullUserDto>> getAllUsers() {
-        ArrayList<FullUserDto> users = userService.getAllUsers();
-        return new ResponseEntity<>(users, org.springframework.http.HttpStatus.OK);
-    }
-
     // Listado paginado del panel: q busca en nombre y email, role filtra por rol. size: 20 por defecto, maximo 100
     @GetMapping()
     public ResponseEntity<UserPageDto> searchUsers(

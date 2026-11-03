@@ -17,11 +17,6 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-    @GetMapping("/all")
-    public ResponseEntity<ArrayList<LightProductDto>> getAllProducts() throws ApiException {
-        return ResponseEntity.ok(productService.getAllProducts());
-    }
-
     // Listado paginado del panel (stock exacto): q busca en nombre, descripcion y categoria.
     // size: 20 por defecto, maximo 100. Pide algun permiso del panel (ver SecurityConfig)
     @GetMapping
@@ -34,7 +29,8 @@ public class ProductController {
         return ResponseEntity.ok(productService.searchProducts(q, category, page, size));
     }
 
-    // Publico: destacados para la home del catalogo
+    // Destacados en el orden de la home, con stock exacto: lo usa el panel para ordenarlos (el publico usa
+    // /api/v1/catalog/featured). Pide algun area del panel (ver SecurityConfig)
     @GetMapping("/featured")
     public ResponseEntity<ArrayList<LightProductDto>> getFeaturedProducts() throws ApiException {
         return ResponseEntity.ok(productService.getFeaturedProducts());
@@ -49,11 +45,6 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<FullProductDto> getProductById(@PathVariable Long id) throws ApiException {
         return ResponseEntity.ok(productService.getProductById(id));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<FullProductDto> getProductByName(@RequestParam String name) throws ApiException {
-        return ResponseEntity.ok(productService.getProductByName(name));
     }
 
     @DeleteMapping("/{id}")

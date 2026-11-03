@@ -46,13 +46,15 @@ public class AuthController {
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/delete")
+    // Borrar la propia cuenta. 409 si es el ultimo ADMINISTRADOR de la tienda
+    @DeleteMapping("/me")
     public ResponseEntity<String> Delete(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
         userService.deleteUserById(userDetails.getId());
         return new ResponseEntity<>(SuccessMessages.USER_DELETED, org.springframework.http.HttpStatus.OK);
     }
 
-    @PutMapping("/update")
+    // Cambiar el nombre o la contrasena propios (los que vienen en null no cambian; el email no se edita)
+    @PatchMapping("/me")
     public ResponseEntity<FullUserDto> Update(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody PatchUserDto userData) throws ApiException {
         FullUserDto updatedUser = userService.updateUser(userDetails.getId(), userData.name(), userData.password());
         return new ResponseEntity<>(updatedUser, org.springframework.http.HttpStatus.OK);

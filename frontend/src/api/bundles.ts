@@ -56,8 +56,10 @@ function useBundleMutation<T>(mutationFn: (variables: T) => Promise<unknown>) {
 
 export const useCreateBundle = () => useBundleMutation((bundle: NewBundle) => api.post<Bundle>("/bundles", bundle))
 
-// El backend alterna (no recibe el estado): se manda solo si hay que cambiarlo
-export const useToggleBundle = () => useBundleMutation((id: number) => api.put(`/bundles/${id}`))
+export const useSetBundleEnabled = () =>
+  useBundleMutation(({ id, enabled }: { id: number; enabled: boolean }) =>
+    api.put<Bundle>(`/bundles/${id}/enabled`, { enabled })
+  )
 
 export const useSetBundlePrice = () =>
   useBundleMutation(({ id, price }: { id: number; price: number | null }) => api.put(`/bundles/${id}/price`, { price }))

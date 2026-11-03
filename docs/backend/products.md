@@ -73,12 +73,6 @@ Respuesta **200**:
 
 Error: 400 `The page must be 0 or greater and the size between 1 and 100`.
 
-### GET /api/v1/products/all
-
-**Acceso:** cualquier área del panel · **Legado** (usar `GET /api/v1/products`)
-
-Todos los productos sin paginar (`LightProductDto`, el formato de `items` de arriba).
-
 ### GET /api/v1/products/{id}
 
 **Acceso:** cualquier área del panel
@@ -96,12 +90,6 @@ Un producto con metadatos e imágenes (`FullProductDto`). No trae costo ni stock
 ```
 
 `metadata` es `null` si nunca se cargó. Error: 404 `Product not found`.
-
-### GET /api/v1/products/search?name=
-
-**Acceso:** cualquier área del panel · **Legado**
-
-Busca por nombre **exacto**. Respuesta **200**: `FullProductDto`. Error: 404 `Product not found`.
 
 ### POST /api/v1/products
 
@@ -191,9 +179,10 @@ Respuesta **200**: `FullProductDto`. Errores: 400 `The featured order must be ze
 
 ### GET /api/v1/products/featured
 
-**Acceso:** cualquier área del panel · **Legado** (el público usa [`GET /api/v1/catalog/featured`](#get-apiv1catalogfeatured))
+**Acceso:** cualquier área del panel (el público usa [`GET /api/v1/catalog/featured`](#get-apiv1catalogfeatured))
 
-Destacados en orden, con stock exacto (`LightProductDto`).
+Destacados en orden, con stock exacto (`LightProductDto`). Lo usa el panel para ordenarlos: el listado no trae el
+orden guardado.
 
 ### GET /api/v1/products/{id}/metadata
 
@@ -451,11 +440,17 @@ Respuesta **200**: `BundleDto`, o **200 con el cuerpo vacío** si no existe.
 
 Respuesta **200** (no 201): `BundleDto` sin productos. Error: 400 `Price and cost must be zero or greater`.
 
-### PUT /api/v1/bundles/{id}
+### PUT /api/v1/bundles/{id}/enabled
 
 **Acceso:** `COMBOS`
 
-**Alterna** habilitado / deshabilitado (no recibe body). Respuesta **200**: `true` (también si no existe).
+Habilita o deshabilita el combo (deshabilitado no aparece en el catálogo).
+
+```json
+{ "enabled": false }
+```
+
+Respuesta **200**: `BundleDto`. Errores: 400 `The enabled field is required (true or false)`, 404 `Bundle not found`.
 
 ### PUT /api/v1/bundles/{id}/price
 
@@ -732,7 +727,4 @@ desarrollo.
 
 | Endpoint | Por qué | En su lugar |
 |---|---|---|
-| `GET /api/v1/products/all` | Sin paginar | `GET /api/v1/products` |
-| `GET /api/v1/products/search?name=` | Busca por nombre exacto; no lo usa nadie | `GET /api/v1/products?q=` |
-| `GET /api/v1/products/featured` | Con stock exacto; el público tiene `GET /api/v1/catalog/featured` | Filtrar `featured` en `GET /api/v1/products` |
-| `PUT /api/v1/bundles/{id}` | Alterna sin decir a qué estado | Un `PUT /api/v1/bundles/{id}/enabled` con `{ "enabled": true }` |
+| — | Nada por ahora: `/all`, `/search` y el toggle de combos se borraron (2026-11-03). `GET /products/featured` queda: lo usa el panel para ordenar los destacados (el listado no trae el orden) | — |

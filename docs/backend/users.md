@@ -168,14 +168,15 @@ Respuesta **200** (`FullUserDto`, el mismo formato que los usuarios del panel):
 |---|---|---|
 | 404 | El usuario se borró después de loguearse | `The user was not found.` |
 
-### PUT /api/v1/auth/update
+### PATCH /api/v1/auth/me
 
 **Acceso:** Login
 
-Cambia el nombre o la contraseña propios (lo usa la página de ajustes del frontend). Los campos en `null` no se cambian; `email` se ignora.
+Cambia el nombre o la contraseña propios (lo usa la página de ajustes del frontend). Los campos en `null` no se
+cambian; el email no se edita.
 
 ```bash
-curl -X PUT http://localhost:3000/api/v1/auth/update \
+curl -X PATCH http://localhost:3000/api/v1/auth/me \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{"name":"Ana P.","password":null}'
@@ -184,9 +185,9 @@ curl -X PUT http://localhost:3000/api/v1/auth/update \
 Respuesta **200**: `FullUserDto`. Errores: 400 por [validación](#reglas-de-validación), 404
 `The user was not found.`
 
-### DELETE /api/v1/auth/delete
+### DELETE /api/v1/auth/me
 
-**Acceso:** Login · **Legado** (ver [Para limpiar](#para-limpiar))
+**Acceso:** Login
 
 El usuario se borra a sí mismo (borrado lógico, con sus roles). Lo usa la página de ajustes ("Eliminar mi
 cuenta"). Respuesta **200** con el texto `The user has been deleted`.
@@ -268,12 +269,6 @@ Respuesta **200**:
 | 400 | `page` < 0 o `size` fuera de 1–100 | `Invalid page: page must be 0 or more and size between 1 and 100.` |
 | 400 | Rol inexistente | `The role provided is invalid.` |
 
-### GET /api/v1/users/all
-
-**Acceso:** ADMINISTRADOR · **Legado** (usar `GET /api/v1/users`)
-
-Todos los usuarios de la tienda sin paginar. Respuesta **200**: lista de `FullUserDto`.
-
 ### POST /api/v1/users
 
 **Acceso:** ADMINISTRADOR
@@ -319,7 +314,7 @@ Respuesta **200**: `FullUserDto`. Errores: 400 por [validación](#reglas-de-vali
 
 Borra (lógico) el usuario y sus roles, y saca sus roles de Redis. Respuesta **200** con el texto
 `The user has been deleted`. Errores: 404 `The user was not found.` · 409 si es el último `ADMINISTRADOR` de la
-tienda (mismo mensaje que `DELETE /auth/delete`).
+tienda (mismo mensaje que `DELETE /auth/me`).
 
 ### GET /api/v1/users/{id}/roles
 
@@ -622,10 +617,9 @@ el gateway solo pasa `/api/internal/tenants/**`; el resto lo llaman los servicio
 | GET | `/api/internal/tenants/id?url=` | gateway | `TenantDto` de la tienda con esa URL, o vacío si no existe o está borrada |
 | GET | `/api/internal/tenants/id?schema=` | products, sales | `TenantDto` por schema. Sin `url` ni `schema`: 400 `Falta el parametro url o schema` |
 | GET | `/api/internal/tenants/cors?url=` | gateway | `true` si la URL es de una tienda no borrada (aunque esté deshabilitada) |
-| GET | `/api/internal/tenants/all` | — (**legado**) | Todas las tiendas no borradas |
+| GET | `/api/internal/tenants/all` | products y sales (migran los schemas al arrancar; sales también para el vencimiento) | Todas las tiendas no borradas |
 | GET | `/api/internal/users/{id}` | observability (nombres para la auditoría) | `FullUserDto`; 404 `The user was not found.` |
 | GET | `/api/internal/users/roles/{id}` | products, sales, observability | `[{ "type", "permissions" }]` del usuario en la tienda de `X-Forwarded-Host` (sin tienda: `public`) |
-| GET | `/api/internal/users/all` | — (**legado**) | Todos los usuarios de la tienda |
 
 `TenantDto`:
 
@@ -702,12 +696,5 @@ Levantarlo solo: `cd backend/decorusers && ./gradlew bootRun` (con Postgres, Red
 
 ## Para limpiar
 
-Endpoints que no usa el frontend ni ningún servicio, o que tienen un reemplazo:
-
-| Endpoint | Por qué | En su lugar |
-|---|---|---|
-| `GET /api/v1/users/all` | Sin paginar | `GET /api/v1/users` |
-| `PUT /api/v1/auth/update` | Recibe `email` y lo ignora. Lo usa la página de ajustes: si se cambia, cambiar las dos | Un `PATCH /api/v1/auth/me` |
-| `DELETE /api/v1/auth/delete` | El nombre: lo usa la página de ajustes (ya no deja borrarse al último administrador) | Un `DELETE /api/v1/auth/me`; si se cambia, cambiar las dos |
-| `GET /api/internal/tenants/all` | No lo usa nadie | — |
-| `GET /api/internal/users/all` | No lo usa nadie | — |
+Nada por ahora. El 2026-11-03 se borraron `GET /api/v1/users/all` y `GET /api/internal/users/all` (sin uso), y
+`PUT /auth/update` y `DELETE /auth/delete` pasaron a `PATCH /auth/me` y `DELETE /auth/me`.

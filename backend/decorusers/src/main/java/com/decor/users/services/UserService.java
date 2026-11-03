@@ -74,17 +74,6 @@ public class UserService {
     static final String RESET_PASSWORD_PATH = "/reset-password?token=";
 
 
-    public ArrayList<FullUserDto> getAllUsers(){
-        Collection<User> rawUsers = this.userRepository.findAll();
-        ArrayList<FullUserDto> userList = new ArrayList<>();
-        rawUsers.forEach(u -> {
-            userList.add(
-                Parser.fromUserEntityToFullDto(u,this.getUserRoles(u.getId()))
-            );
-        });
-        return userList;
-    }
-
     public static final int DEFAULT_PAGE_SIZE = 20;
     public static final int MAX_PAGE_SIZE = 100;
 

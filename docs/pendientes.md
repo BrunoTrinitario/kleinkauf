@@ -51,6 +51,11 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   tiene su página en `/productos/{slug}`. Compartir por WhatsApp o copiando el link usa
   `GET /share/{tienda}/products/{slug}`: la tienda va en la ruta (el crawler no manda `Origin`) y products responde
   un HTML con Open Graph que redirige a esa página.
+- **Limpieza de endpoints** (A3): se borraron `GET /products/all`, `/products/search`, `GET /users/all` y
+  `/api/internal/users/all` (sin uso); el combo se habilita con `PUT /bundles/{id}/enabled` y la cuenta propia se
+  edita y se borra con `PATCH` y `DELETE /auth/me`. `/products/featured` y `/api/internal/tenants/all` quedan porque
+  se usan. Además, en users, products y sales una ruta inexistente responde 404, un método que la ruta no tiene 405
+  y un parámetro o cuerpo inválido 400 (antes, 500).
 - **Movimientos de stock sin motivo daban 500**: `DecorEvent` copiaba los datos con `Map.copyOf`, que no acepta
   `null`, y el `NullPointerException` deshacía el movimiento. Ahora acepta `null`. Además, `GlobalExceptionHandler`
   loguea con la traza cualquier 500 no previsto (antes no dejaba rastro).
@@ -76,19 +81,6 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **"Activos" sigue siendo el último login en 30 días**: un usuario con la sesión abierta hace más de 30 días cuenta
   como inactivo. Las keys `activity:*` duran 5 minutos, así que haría falta guardar la última request en la base
   (por ejemplo, actualizarla como mucho una vez por hora).
-
-### A3. Limpiar endpoints
-
-Ya no exponen el stock al público, pero quedan endpoints sin uso o con reemplazo (secciones "Para limpiar" de
-[backend/products.md](backend/products.md) y [backend/users.md](backend/users.md)):
-
-- products: `GET /products/all` (usar el paginado), `/search?name=` (usar `?q=`), `/products/featured` (filtrar en el
-  listado) y `PUT /bundles/{id}`, que alterna sin decir a qué estado (pasar a `PUT /bundles/{id}/enabled`).
-- users: `GET /users/all`, `/api/internal/tenants/all` y `/api/internal/users/all` sin uso; `PUT /auth/update` recibe
-  `email` y lo ignora (pasar a `PATCH /auth/me`); `DELETE /auth/delete` podría pasar a `DELETE /auth/me`.
-
-Flujo: confirmar con un grep en `frontend/src` que no se usan, borrar, sacar las rutas del gateway y actualizar
-`docs/backend/`. Los que usa el frontend (`/auth/update`) se cambian junto con la página.
 
 ---
 
@@ -191,8 +183,7 @@ preguntas antes de implementarla, como se hizo con ventas.
   que van todos.
 - **Imágenes**: se guardan siempre como `.png` y no se valida que sean imágenes (solo el tamaño).
 - **Respuestas inconsistentes**: las altas responden 200 en vez de 201; un email repetido da 400 en las tiendas y 409
-  en los superadmins; un rol inexistente da 400 o 404 según el endpoint; en users, un método que la ruta no tiene
-  (ej. `PUT /api/v1/platform/admin/tenants/{id}`) responde 500 en vez de 405.
+  en los superadmins; un rol inexistente da 400 o 404 según el endpoint.
 - **El mail del recupero puede fallar sin aviso.**
 
 **Seguridad**
@@ -232,9 +223,8 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **A3**: la limpieza de endpoints, ahora que el frontend usa solo el catálogo nuevo. Ya están B0 a B5 y A2 (falta
-   solo el recupero de contraseña de B1).
-2. **B6 y B7**: compra online y panel de ventas.
-3. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
-4. **Decidir y planificar C1**, la próxima etapa de ventas.
-5. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
+1. **B6 y B7**: compra online y panel de ventas. Ya están B0 a B5, A2 y A3 (falta solo el recupero de contraseña de
+   B1).
+2. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
+3. **Decidir y planificar C1**, la próxima etapa de ventas.
+4. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.

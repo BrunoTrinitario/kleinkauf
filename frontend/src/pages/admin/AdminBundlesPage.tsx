@@ -12,7 +12,7 @@ import {
   useRemoveBundleProduct,
   useSetBundlePrice,
   useSetBundleProduct,
-  useToggleBundle,
+  useSetBundleEnabled,
   type Bundle,
   type BundleProduct,
 } from "@/api/bundles"
@@ -135,7 +135,7 @@ export default function AdminBundlesPage() {
 }
 
 function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: boolean; onDelete: () => void }) {
-  const toggle = useToggleBundle()
+  const toggle = useSetBundleEnabled()
   const setPrice = useSetBundlePrice()
   const [priceInput, setPriceInput] = useState(bundle.price != null ? String(bundle.price) : "")
   const [priceError, setPriceError] = useState<string | null>(null)
@@ -150,9 +150,9 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
       : null
   const priceChanged = priceInput !== (bundle.price != null ? String(bundle.price) : "")
 
-  const handleToggle = async () => {
+  const handleToggle = async (enabled: boolean) => {
     try {
-      await toggle.mutateAsync(bundle.id)
+      await toggle.mutateAsync({ id: bundle.id, enabled })
     } catch (err) {
       notifyError(err, strings.adminBundles.saveError)
     }

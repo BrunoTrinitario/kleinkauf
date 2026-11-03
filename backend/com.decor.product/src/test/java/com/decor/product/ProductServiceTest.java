@@ -188,28 +188,6 @@ class ProductServiceTest {
 		assertEquals(1, remainingImages.get(1).getImageOrder());
 	}
 
-	@Test
-	void getProductByName_existingProduct_returnsFullProductDto() throws ApiException {
-		Product product = product(20L, "Espejo", "decoracion", "Espejo redondo", 3);
-		FullProductDto fullProductDto = fullProductDto(20L);
-
-		when(productRepository.findByName("Espejo")).thenReturn(Optional.of(product));
-		when(productFactory.getFullProductInfo(product)).thenReturn(fullProductDto);
-
-		FullProductDto result = productService.getProductByName("Espejo");
-
-		assertSame(fullProductDto, result);
-	}
-
-	@Test
-	void getProductByName_missingProduct_throwsApiException() {
-		when(productRepository.findByName("Espejo")).thenReturn(Optional.empty());
-
-		ApiException exception = assertThrows(ApiException.class, () -> productService.getProductByName("Espejo"));
-
-		assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-		assertEquals("Product not found", exception.getMessage());
-	}
 
 
 

@@ -19,7 +19,7 @@ export function useMe(enabled: boolean) {
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { name: string; password?: string }) => api.put("/auth/update", payload),
+    mutationFn: (payload: { name: string; password?: string }) => api.patch("/auth/me", payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.me }),
   })
 }
@@ -27,6 +27,6 @@ export function useUpdateProfile() {
 // 409 si es el ultimo ADMINISTRADOR de la tienda
 export function useDeleteAccount() {
   return useMutation({
-    mutationFn: () => api.delete("/auth/delete"),
+    mutationFn: () => api.delete("/auth/me"),
   })
 }

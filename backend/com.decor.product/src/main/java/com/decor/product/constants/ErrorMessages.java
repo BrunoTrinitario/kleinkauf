@@ -15,6 +15,7 @@ public class ErrorMessages {
     public static String PRODUCT_NAME_IN_USE = "The Product name is already in use";
     public static String TENANT_NOT_FOUND = "Tenant not found";
     public static String BUNDLE_NOT_FOUND = "Bundle not found";
+    public static String BUNDLE_ENABLED_REQUIRED = "The enabled field is required (true or false)";
     public static String INVALID_PRICE = "Price and cost must be zero or greater";
     public static String INVALID_STOCK_MOVEMENT_TYPE = "The movement type is required (ENTRADA, SALIDA or AJUSTE)";
     public static String INVALID_STOCK_QUANTITY = "The quantity must be greater than zero (zero or greater for AJUSTE)";

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /*
-La tienda no se puede quedar sin ADMINISTRADOR: el ultimo no se borra (ni a si mismo con /auth/delete ni desde
+La tienda no se puede quedar sin ADMINISTRADOR: el ultimo no se borra (ni a si mismo con DELETE /auth/me ni desde
 el panel) ni pierde el rol. Contra una base real (H2) para que los borrados logicos no cuenten como administradores.
  */
 @DataJpaTest(properties = {

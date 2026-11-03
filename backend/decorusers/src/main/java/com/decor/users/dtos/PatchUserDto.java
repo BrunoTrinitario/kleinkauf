@@ -1,18 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Record.java to edit this template
- */
-
 package com.decor.users.dtos;
 
-/**
- *
- * @author bruno.trinitario
- */
+// Cambio de nombre o contrasena (PATCH /auth/me y PATCH /users/{id}): null = no se cambia. El email no se edita
 public record PatchUserDto(
     String name,
-    String email,
     String password
 ) {
-
 }

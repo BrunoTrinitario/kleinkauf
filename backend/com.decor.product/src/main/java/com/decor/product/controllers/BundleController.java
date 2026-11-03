@@ -1,6 +1,7 @@
 package com.decor.product.controllers;
 
 import com.decor.product.dto.bundles.BundleDto;
+import com.decor.product.dto.bundles.BundleEnabledDto;
 import com.decor.product.dto.bundles.NewBundleDto;
 import com.decor.product.dto.bundles.NewBundleProductDto;
 import com.decor.product.dto.bundles.UpdateBundlePriceDto;
@@ -38,9 +39,9 @@ public class BundleController {
         return ResponseEntity.ok(bundleService.deleteBundleById(id));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Boolean> changeBundleStatus(@PathVariable Long id) throws ApiException {
-        return ResponseEntity.ok(bundleService.changeBundleStatus(id));
+    @PutMapping("/{id}/enabled")
+    public ResponseEntity<BundleDto> setEnabled(@PathVariable Long id, @RequestBody BundleEnabledDto dto) throws ApiException {
+        return ResponseEntity.ok(bundleService.setEnabled(id, dto.enabled()));
     }
 
     @PutMapping("/{id}/price")

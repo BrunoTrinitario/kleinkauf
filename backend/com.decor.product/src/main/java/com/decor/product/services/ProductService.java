@@ -64,10 +64,6 @@ public class ProductService {
     @Autowired
     private CatalogCacheService catalogCache;
 
-    public ArrayList<LightProductDto> getAllProducts() throws ApiException {
-        return toLightProducts(productRepository.findAll());
-    }
-
     public static final int DEFAULT_PAGE_SIZE = 20;
     public static final int MAX_PAGE_SIZE = 100;
 
@@ -193,12 +189,6 @@ public class ProductService {
 
     public void deleteImagePhyscally(String path){
         fileManager.deleteImage(path);
-    }
-
-    public FullProductDto getProductByName(String name) throws ApiException {
-        Product product = productRepository.findByName(name).orElse(null);
-        if (product == null) throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
-        return productFactory.getFullProductInfo(product);
     }
 
     public FullProductDto updateProduct(Long id, BasicUpdateDto updatedData) throws ApiException{

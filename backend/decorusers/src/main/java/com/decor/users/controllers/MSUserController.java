@@ -25,12 +25,6 @@ public class MSUserController {
     @Autowired
     CacheUtil cacheUtil;
 
-    @GetMapping("/all")
-    public ResponseEntity<ArrayList<FullUserDto>> getAllUsers() {
-        ArrayList<FullUserDto> users = userService.getAllUsers();
-        return new ResponseEntity<>(users, org.springframework.http.HttpStatus.OK);
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<FullUserDto> getUserById(@PathVariable Long id) throws ApiException {
         FullUserDto user = userService.getUserById(id);

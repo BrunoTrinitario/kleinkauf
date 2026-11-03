@@ -65,11 +65,11 @@ segmento y `{any}` cualquier cosa.
 | `/api/v1/auth/login`, `/api/v1/auth/register` |
 | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/forgot-password/{any}` |
 | `POST /api/v1/platform/tenants`, `POST /api/v1/platform/auth/login` |
-| `GET /api/v1/products/featured`, `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/metadata`, `GET /api/v1/products/search` |
-| `GET /api/v1/catalog/products`, `GET /api/v1/catalog/products/{any}`, `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/bundles` |
-| `GET /api/v1/bundles/all`, `GET /api/v1/bundles/{id}` |
+| `GET /api/v1/products/{id}/metadata` |
+| `GET /api/v1/catalog/products`, `GET /api/v1/catalog/featured`, `GET /api/v1/catalog/products/{any}`, `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/bundles` |
 | `GET /api/v1/sales/checkout`, `POST /api/v1/sales/orders`, `POST /api/v1/sales/orders/lookup`, `POST /api/v1/sales/orders/{code}/receipt`, `POST /api/v1/sales/orders/{code}/cancel` |
 | `/products/images/{any}` |
+| `GET /share/{code}/products/{code}` (link para compartir, ver [products.md](products.md#link-para-compartir)) |
 | `GET /ws` (entra con un ticket, ver [observability.md](observability.md#websocket)) |
 
 Que una ruta sea pública en el gateway no quiere decir que el servicio la deje pasar sin login: el servicio

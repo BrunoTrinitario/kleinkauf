@@ -85,14 +85,17 @@ public class BundleService {
         return true;
     }
 
-    public Boolean changeBundleStatus(Long id){
-        Bundle b = this.bundleRepository.findById(id).orElse(null);
-        if (b != null){
-            b.setEnabled(!b.isEnabled());
-            this.bundleRepository.save(b);
-            catalogCache.invalidate();
+    // Un combo deshabilitado no aparece en el catalogo ni se puede comprar
+    public BundleDto setEnabled(Long id, Boolean enabled) throws ApiException {
+        if (enabled == null) {
+            throw new ApiException(ErrorMessages.BUNDLE_ENABLED_REQUIRED, HttpStatus.BAD_REQUEST);
         }
-        return true;
+        Bundle b = this.bundleRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorMessages.BUNDLE_NOT_FOUND, HttpStatus.NOT_FOUND));
+        b.setEnabled(enabled);
+        this.bundleRepository.save(b);
+        catalogCache.invalidate();
+        return BundleFactory.getBundle(b);
     }
 
     public BundleDto bulkUpdateBundle(Long bundleId, List<NewBundleProductDto> newBundleDtos) {
