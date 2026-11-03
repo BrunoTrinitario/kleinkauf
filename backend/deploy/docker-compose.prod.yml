@@ -7,7 +7,7 @@
 #Seed de la tienda demo (opcional, solo para probar):
 #  docker compose -f backend/deploy/docker-compose.prod.yml --profile seed up seed
 #Hacia afuera se publican solo el frontend y el gateway. Postgres, Redis, Eureka y los puertos de gestion son internos
-name: decor
+name: kleinkauf
 
 #Imagen de un servicio del backend: mismo Dockerfile, cambia la carpeta
 x-service: &service
@@ -25,7 +25,7 @@ x-service: &service
     LOGGING_LEVEL_ORG_HIBERNATE_SQL: INFO
     LOGGING_LEVEL_ORG_HIBERNATE_ORM_JDBC_BIND: INFO
     LOGGING_LEVEL_ORG_HIBERNATE_ENGINE_JDBC_CONNECTIONS: INFO
-    LOGGING_LEVEL_COM_DECOR_USERS_DECORUSERS: INFO
+    LOGGING_LEVEL_COM_KLEINKAUF_USERS_KLEINKAUFUSERS: INFO
     #Heap acotado: con 6 JVM en la misma maquina la memoria es lo que manda
     JAVA_TOOL_OPTIONS: ${JAVA_OPTS:--Xms64m -Xmx256m -XX:+UseSerialGC}
 
@@ -74,7 +74,7 @@ services:
 
   eureka:
     <<: *service
-    image: decor/eureka
+    image: kleinkauf/eureka
     build:
       context: ..
       dockerfile: deploy/Dockerfile.service
@@ -88,12 +88,12 @@ services:
 
   user-service:
     <<: *service
-    image: decor/users
+    image: kleinkauf/users
     build:
       context: ..
       dockerfile: deploy/Dockerfile.service
       args:
-        SERVICE: decorusers
+        SERVICE: kleinkaufusers
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/users
@@ -116,12 +116,12 @@ services:
 
   product-service:
     <<: *service
-    image: decor/products
+    image: kleinkauf/products
     build:
       context: ..
       dockerfile: deploy/Dockerfile.service
       args:
-        SERVICE: com.decor.product
+        SERVICE: com.kleinkauf.product
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/products
@@ -135,12 +135,12 @@ services:
 
   sales-service:
     <<: *service
-    image: decor/sales
+    image: kleinkauf/sales
     build:
       context: ..
       dockerfile: deploy/Dockerfile.service
       args:
-        SERVICE: decor-sales
+        SERVICE: kleinkauf-sales
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sales
@@ -154,12 +154,12 @@ services:
 
   observability-service:
     <<: *service
-    image: decor/observability
+    image: kleinkauf/observability
     build:
       context: ..
       dockerfile: deploy/Dockerfile.service
       args:
-        SERVICE: decor-observability
+        SERVICE: kleinkauf-observability
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/observability
@@ -172,7 +172,7 @@ services:
 
   gateway-service:
     <<: *service
-    image: decor/gateway
+    image: kleinkauf/gateway
     build:
       context: ..
       dockerfile: deploy/Dockerfile.service
@@ -191,7 +191,7 @@ services:
       test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9000/health"]
 
   frontend:
-    image: decor/frontend
+    image: kleinkauf/frontend
     restart: unless-stopped
     build:
       context: ../../frontend
