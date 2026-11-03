@@ -184,7 +184,8 @@ decor/
 │   ├── ventas.md             Módulo de ventas
 │   ├── panel-admin.md        Panel de administración
 │   ├── auditoria.md          Auditoría
-│   └── observabilidad.md     Observabilidad: salud, métricas, trazas, logs y WebSocket
+│   ├── observabilidad.md     Observabilidad: salud, métricas, trazas, logs y WebSocket
+│   └── pendientes.md         Lo que queda por hacer, con el flujo de cada tarea
 ├── MVP.md                    Estado actual y propuesta de funcionalidades
 ├── TODO                      Pendientes y cosas a tener en cuenta
 └── .gitignore                Reglas de ignore comunes a todo el repo
@@ -200,6 +201,7 @@ decor/
 ## Documentación
 
 - [MVP.md](MVP.md): análisis del proyecto y hoja de ruta.
+- [docs/pendientes.md](docs/pendientes.md): lista de pendientes y cómo encarar cada uno.
 - [docs/backend/](docs/backend/README.md): referencia del backend, un archivo por servicio con todos los
   endpoints, ejemplos, errores y cómo se comunican.
 - [docs/tenants.md](docs/tenants.md) y [docs/permisos.md](docs/permisos.md): multi-tenant y permisos.

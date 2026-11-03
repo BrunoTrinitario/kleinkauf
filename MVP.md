@@ -2,6 +2,8 @@
 
 _Última actualización: 2026-11-03_
 
+> La lista de lo que queda por hacer, con el flujo de cada tarea, está en [docs/pendientes.md](docs/pendientes.md).
+
 Objetivos del proyecto:
 - Probar tecnologías y arquitecturas modernas: microservicios, caché distribuida, multi-tenant.
 - Construir un software libre de administración para pequeños emprendimientos.
