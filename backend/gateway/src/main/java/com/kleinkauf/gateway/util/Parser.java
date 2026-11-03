@@ -34,8 +34,9 @@ public class Parser {
         String ip = exchange.getRequest()
                 .getHeaders()
                 .getFirst("X-Forwarded-For");
+        // getHostString y no getAddress: detras de un proxy (forward-headers-strategy) la direccion viene sin resolver
         if (ip == null || ip.isBlank())
-             ip = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+             ip = exchange.getRequest().getRemoteAddress().getHostString();
         String path = exchange.getRequest().getURI().getPath();
         String pathType = RequestTenantFactory.generatePathType(path);
         return "rate_limit:"+pathType+":"+tenantId+"_"+ip;

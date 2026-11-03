@@ -37,8 +37,9 @@ public class ClientHeadersFilter implements WebFilter {
                 .headers(headers -> {
                     INTERNAL_HEADERS.forEach(headers::remove);
                     InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
-                    if (remote != null && remote.getAddress() != null) {
-                        headers.set(Headers.CLIENT_IP, remote.getAddress().getHostAddress());
+                    // Detras de un proxy (forward-headers-strategy) la direccion viene sin resolver: getAddress() es null
+                    if (remote != null) {
+                        headers.set(Headers.CLIENT_IP, remote.getHostString());
                     }
                 })
                 .build();
