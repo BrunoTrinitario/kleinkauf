@@ -93,7 +93,7 @@ class ForgotPasswordLinkTest {
 		User user = new User();
 		user.setId(7L);
 		user.setEmail("ana@mail.com");
-		when(userRepository.findByEmail("ana@mail.com")).thenReturn(Optional.of(user));
+		when(userRepository.findByEmailIgnoreCase("ana@mail.com")).thenReturn(Optional.of(user));
 		when(jwtUtil.generatePasswordToken(eq(7L), eq("ana@mail.com"), anyString())).thenReturn("jwt-de-reset");
 	}
 
