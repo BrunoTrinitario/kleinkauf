@@ -66,7 +66,7 @@ class SuperadminServiceTest {
 	private SuperadminService service;
 
 	@Test
-	void alta_creaUsuarioYRolSuperadmin() throws ApiException {
+	void create_createsUserAndSuperadminRole() throws ApiException {
 		when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq("nuevo@kleinkauf.com"))).thenReturn(0L);
 		when(passwordEncoder.encode("clave123")).thenReturn("hash");
 		when(userRepository.save(any(User.class))).thenAnswer(inv -> {
@@ -88,7 +88,7 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void alta_datosInvalidos_respondeBadRequest() {
+	void create_invalidData_respondsBadRequest() {
 		assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ApiException.class,
 				() -> service.create(new NewSuperadminDto("Nuevo", "nuevo@kleinkauf.com", "corta"))).getStatus());
 		assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ApiException.class,
@@ -97,7 +97,7 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void alta_emailUsadoTambienPorUnBorrado_respondeConflict() {
+	void create_emailAlsoUsedByDeletedUser_respondsConflict() {
 		when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq("viejo@kleinkauf.com"))).thenReturn(1L);
 
 		ApiException ex = assertThrows(ApiException.class,
@@ -108,7 +108,7 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void desactivarseASiMismo_respondeBadRequest() {
+	void deactivatingYourself_respondsBadRequest() {
 		superadmins(superadmin(ME, true), superadmin(OTHER, true));
 
 		ApiException ex = assertThrows(ApiException.class, () -> service.setActive(ME, false, ME));
@@ -118,8 +118,8 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void desactivarAlUltimoActivo_respondeConflict() {
-		// Otro superadmin de un token viejo: el unico activo es OTHER
+	void deactivatingTheLastActive_respondsConflict() {
+		// Another superadmin from an old token: the only active one is OTHER
 		superadmins(superadmin(ME, false), superadmin(OTHER, true));
 		when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq("SUPERADMIN"))).thenReturn(1L);
 
@@ -129,7 +129,7 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void desactivar_borraUsuarioYRolYSusRolesCacheados() throws ApiException {
+	void deactivate_deletesUserAndRoleAndTheirCachedRoles() throws ApiException {
 		superadmins(superadmin(ME, true), superadmin(OTHER, true));
 		when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq("SUPERADMIN"))).thenReturn(2L);
 
@@ -139,13 +139,13 @@ class SuperadminServiceTest {
 		verify(jdbcTemplate).update(eq("UPDATE public.roles SET deleted_at = ? WHERE userid = ? AND type = ?"),
 				any(), eq(OTHER), eq("SUPERADMIN"));
 		verify(cacheUtil).deleteUserRoles(OTHER, null);
-		// Va con SQL directo: se registra a mano
+		// Goes with plain SQL: it is recorded manually
 		verify(auditLog).record(AuditEvent.DEACTIVATE, "Superadmin", OTHER,
 				Map.of("active", new AuditEvent.Change("true", "false")));
 	}
 
 	@Test
-	void reactivar_limpiaLosDeletedAt() throws ApiException {
+	void reactivate_clearsTheDeletedAt() throws ApiException {
 		superadmins(superadmin(ME, true), superadmin(OTHER, false));
 
 		service.setActive(OTHER, true, ME);
@@ -157,7 +157,7 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void sinCambio_noToca() throws ApiException {
+	void noChange_doesNotTouch() throws ApiException {
 		superadmins(superadmin(ME, true), superadmin(OTHER, true));
 
 		assertTrue(service.setActive(OTHER, true, ME).active());
@@ -165,7 +165,7 @@ class SuperadminServiceTest {
 	}
 
 	@Test
-	void idQueNoEsSuperadmin_respondeNotFound() {
+	void idThatIsNotSuperadmin_respondsNotFound() {
 		superadmins(superadmin(ME, true));
 
 		ApiException ex = assertThrows(ApiException.class, () -> service.setActive(99L, false, ME));
@@ -174,7 +174,7 @@ class SuperadminServiceTest {
 		assertFalse(ex.getMessage() == null);
 	}
 
-	// La lista sale de una consulta nativa: el mock devuelve las filas ya mapeadas
+	// The list comes from a native query: the mock returns the rows already mapped
 	@SuppressWarnings("unchecked")
 	private void superadmins(SuperadminDto... rows) {
 		when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq("SUPERADMIN"))).thenReturn(new ArrayList<>(List.of(rows)));

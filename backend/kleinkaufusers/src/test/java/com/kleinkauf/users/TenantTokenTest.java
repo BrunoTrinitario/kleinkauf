@@ -34,7 +34,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Tokens atados al tenant y roles que no se pueden asignar desde una tienda
+// Tokens bound to the tenant and roles that cannot be assigned from a store
 @ExtendWith(MockitoExtension.class)
 class TenantTokenTest {
 
@@ -44,7 +44,7 @@ class TenantTokenTest {
 	@Mock
 	private UserRepository userRepository;
 
-	// Para armar la sesion del refresh (roles y su cache)
+	// To build the refresh session (roles and their cache)
 	@Mock
 	private RoleRepository roleRepository;
 
@@ -60,7 +60,7 @@ class TenantTokenTest {
 	}
 
 	@Test
-	void losTokensLlevanElTenant() {
+	void tokensCarryTheTenant() {
 		JwtUtil jwtUtil = new JwtUtil();
 		ReflectionTestUtils.setField(jwtUtil, "secret", "MiSuperSecretoUltraSeguro123456789");
 		jwtUtil.init();
@@ -74,7 +74,7 @@ class TenantTokenTest {
 	}
 
 	@Test
-	void resetDeContrasenia_conTokenDeOtroTenant_respondeUnauthorized() {
+	void passwordReset_withTokenFromAnotherTenant_respondsUnauthorized() {
 		TenantContext.setCurrentTenant("tienda_b");
 		when(jwtUtilMock.getUserId("token")).thenReturn(1L);
 		when(jwtUtilMock.getTenant("token")).thenReturn("tienda_a");
@@ -84,9 +84,9 @@ class TenantTokenTest {
 		assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
 	}
 
-	// Un token de sesion no sirve para cambiar la contrasena sin saber la actual
+	// A session token does not work to change the password without knowing the current one
 	@Test
-	void resetDeContrasenia_conTokenDeSesion_respondeUnauthorized() {
+	void passwordReset_withSessionToken_respondsUnauthorized() {
 		JwtUtil jwtUtil = realJwtUtil();
 		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
 		TenantContext.setCurrentTenant("tienda_a");
@@ -98,9 +98,9 @@ class TenantTokenTest {
 		verify(userRepository, never()).save(any());
 	}
 
-	// El link del mail sirve una sola vez: cuando la contrasena cambia, el token deja de servir
+	// The email link works only once: when the password changes, the token stops working
 	@Test
-	void resetDeContrasenia_linkYaUsado_respondeUnauthorized() {
+	void passwordReset_linkAlreadyUsed_respondsUnauthorized() {
 		JwtUtil jwtUtil = realJwtUtil();
 		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
 		TenantContext.setCurrentTenant("tienda_a");
@@ -117,7 +117,7 @@ class TenantTokenTest {
 	}
 
 	@Test
-	void tokenDeRecuperacion_llevaSuTipo() {
+	void recoveryToken_carriesItsType() {
 		JwtUtil jwtUtil = realJwtUtil();
 
 		assertEquals(TokenConstants.PASSWORD_RESET, jwtUtil.getType(jwtUtil.generatePasswordToken(1L, "a@b.com", "t", "hash")));
@@ -126,9 +126,9 @@ class TenantTokenTest {
 				jwtUtil.getPasswordFingerprint(jwtUtil.generatePasswordToken(1L, "a@b.com", "t", "hash")));
 	}
 
-	// El refresh renueva la sesion con tokens nuevos
+	// The refresh token renews the session with new tokens
 	@Test
-	void refresh_valido_devuelveTokensNuevos() throws Exception {
+	void refresh_valid_returnsNewTokens() throws Exception {
 		JwtUtil jwtUtil = realJwtUtil();
 		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
 		TenantContext.setCurrentTenant("tienda_a");
@@ -147,16 +147,16 @@ class TenantTokenTest {
 		assertEquals(TokenConstants.ACCESS, jwtUtil.getType(session.token()));
 		assertEquals(TokenConstants.REFRESH, jwtUtil.getType(session.refreshToken()));
 		assertEquals("tienda_a", jwtUtil.getTenant(session.token()));
-		// Rota: el viejo queda unos segundos y el nuevo se guarda por 7 dias
+		// Rotation: the old one stays a few seconds and the new one is stored for 7 days
 		verify(cacheUtil).retireRefreshToken(eq("tienda_a"), eq(1L), eq(tokenId), any());
 		verify(cacheUtil).saveRefreshToken("tienda_a", 1L, jwtUtil.getTokenId(session.refreshToken()),
 				Duration.ofMillis(JwtUtil.REFRESH_TOKEN_MILLIS));
 		assertNotEquals(tokenId, jwtUtil.getTokenId(session.refreshToken()));
 	}
 
-	// Despues del logout (o de rotarlo y pasar la gracia) el refresh ya no esta en Redis
+	// After logout (or after rotating it and the grace period passing) the refresh token is no longer in Redis
 	@Test
-	void refresh_cortado_respondeUnauthorized() {
+	void refresh_revoked_respondsUnauthorized() {
 		JwtUtil jwtUtil = realJwtUtil();
 		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
 		TenantContext.setCurrentTenant("tienda_a");
@@ -169,14 +169,14 @@ class TenantTokenTest {
 	}
 
 	@Test
-	void logout_borraElRefreshDeEsaSesion() {
+	void logout_deletesThatSessionRefresh() {
 		JwtUtil jwtUtil = realJwtUtil();
 		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
 		TenantContext.setCurrentTenant("tienda_a");
 		String refresh = jwtUtil.generateRefreshToken(1L, "tienda_a", "hash");
 
 		userService.logout(refresh);
-		// Uno de otra tienda o un token de sesion no borran nada
+		// One from another store or a session token delete nothing
 		userService.logout(jwtUtil.generateRefreshToken(1L, "tienda_b", "hash"));
 		userService.logout(jwtUtil.generateAccessToken(1L, "ana@mail.com", "Ana", "tienda_a"));
 		userService.logout(null);
@@ -185,9 +185,9 @@ class TenantTokenTest {
 		verify(cacheUtil, times(1)).deleteRefreshToken(any(), any(), any());
 	}
 
-	// Ni un token de sesion, ni uno de otra tienda, ni uno de antes de cambiar la contrasena
+	// Neither a session token, nor one from another store, nor one from before the password change
 	@Test
-	void refresh_conTokenQueNoSirve_respondeUnauthorized() {
+	void refresh_withUnusableToken_respondsUnauthorized() {
 		JwtUtil jwtUtil = realJwtUtil();
 		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
 		TenantContext.setCurrentTenant("tienda_a");
@@ -214,7 +214,7 @@ class TenantTokenTest {
 	}
 
 	@Test
-	void resetDeContrasenia_conTokenInvalido_respondeUnauthorized() {
+	void passwordReset_withInvalidToken_respondsUnauthorized() {
 		TenantContext.setCurrentTenant("tienda_a");
 		when(jwtUtilMock.getUserId("basura")).thenReturn(null);
 
@@ -224,7 +224,7 @@ class TenantTokenTest {
 	}
 
 	@Test
-	void superadminNoSeAsignaDesdeUnaTienda() {
+	void superadminIsNotAssignedFromAStore() {
 		assertFalse(RoleUtility.existsRole("SUPERADMIN"));
 		assertTrue(RoleUtility.existsRole("ADMINISTRADOR"));
 		assertTrue(RoleUtility.existsRole("EMPLEADO"));

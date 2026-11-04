@@ -8,8 +8,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 /*
-Manda los mails (hoy, el del recupero de contrasena). Si el servidor de mail falla no corta la request: lo deja en el
-log como ERROR (con la causa, sin el contenido del mail) y devuelve false. No hay reintentos.
+Sends the emails (today, the password recovery one). If the mail server fails it does not break the request: it leaves it in the
+log as ERROR (with the cause, without the email content) and returns false. There are no retries.
  */
 @Slf4j
 @Service

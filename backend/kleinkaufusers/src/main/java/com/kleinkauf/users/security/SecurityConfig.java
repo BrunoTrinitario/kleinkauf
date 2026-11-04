@@ -24,11 +24,11 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/internal/**").permitAll()
                 .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
-                // Plataforma: alta por autoservicio y login del superadmin son publicos
+                // Platform: self-service sign-up and superadmin login are public
                 .requestMatchers(HttpMethod.POST, "/api/v1/platform/tenants", "/api/v1/platform/auth/login",
                         "/api/v1/platform/auth/refresh", "/api/v1/platform/auth/logout").permitAll()
                 .requestMatchers("/api/v1/platform/admin/**").hasRole("SUPERADMIN")
-                // Reportar un bug desde el footer de una tienda: con o sin sesion
+                // Reporting a bug from a store's footer: with or without a session
                 .requestMatchers(HttpMethod.POST, "/api/v1/bug-reports").permitAll()
                 .anyRequest().denyAll()
             ).csrf(csrf -> csrf.disable())

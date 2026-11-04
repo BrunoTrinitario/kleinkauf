@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /*
-"Reportar un bug" desde el footer de la tienda: publico, con o sin sesion. Con sesion, el gateway manda el
-usuario en X-User-Id (login opcional, como crear un pedido). Lo leen los superadmins en /api/v1/platform/admin/bug-reports
+"Report a bug" from the store footer: public, with or without a session. With a session, the gateway sends the
+user in X-User-Id (optional login, like creating an order). Superadmins read them at /api/v1/platform/admin/bug-reports
  */
 @RestController
 @RequestMapping("/api/v1/bug-reports")

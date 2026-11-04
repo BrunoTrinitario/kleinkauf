@@ -20,7 +20,7 @@ public class MSTenantController {
         return new ResponseEntity<>(tenant, org.springframework.http.HttpStatus.OK);
     }
 
-    // El gateway busca por url y products por schema
+    // The gateway looks up by url and products by schema
     @GetMapping("/id")
     public ResponseEntity<TenantDto> getTenant(@RequestParam(required = false) String url,
                                                @RequestParam(required = false) String schema) throws ApiException {

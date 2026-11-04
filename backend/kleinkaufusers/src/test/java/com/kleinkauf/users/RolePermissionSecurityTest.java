@@ -33,9 +33,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Configurar permisos es solo del ADMINISTRADOR (USUARIOS no se delega)
+// Configuring permissions is ADMINISTRADOR-only (USUARIOS is not delegable)
 @WebMvcTest(controllers = RolePermissionController.class)
-// GlobalExceptionHandler viene de la autoconfiguracion de kleinkauf-common, que no entra en @WebMvcTest
+// GlobalExceptionHandler comes from kleinkauf-common's auto-configuration, which is not included in @WebMvcTest
 @Import({SecurityConfig.class, RolePermissionSecurityTest.TenantConfig.class, GlobalExceptionHandler.class})
 class RolePermissionSecurityTest {
 
@@ -62,7 +62,7 @@ class RolePermissionSecurityTest {
 	@MockitoBean
 	private RolePermissionService rolePermissionService;
 
-	// Lo pide el CommandLineRunner de KleinKaufusersApplication
+	// Required by KleinKaufusersApplication's CommandLineRunner
 	@MockitoBean
 	private UserService userService;
 
@@ -74,7 +74,7 @@ class RolePermissionSecurityTest {
 	}
 
 	@Test
-	void verPermisos_soloAdministrador() throws Exception {
+	void viewPermissions_administratorOnly() throws Exception {
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/users/roles/permissions"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/users/roles/permissions")))
 				.andExpect(status().isOk())
@@ -82,7 +82,7 @@ class RolePermissionSecurityTest {
 	}
 
 	@Test
-	void configurarPermisos_soloAdministrador() throws Exception {
+	void configurePermissions_administratorOnly() throws Exception {
 		when(rolePermissionService.update(anyString(), anyInt())).thenReturn(new RolePermissionDto("EMPLEADO", 5));
 
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/users/roles/EMPLEADO/permissions"), "{\"permissions\":5}")))
@@ -93,7 +93,7 @@ class RolePermissionSecurityTest {
 	}
 
 	@Test
-	void sinMascara_respondeBadRequest() throws Exception {
+	void withoutMask_respondsBadRequest() throws Exception {
 		mockMvc.perform(as(ADMINISTRADOR, json(put("/api/v1/users/roles/EMPLEADO/permissions"), "{}")))
 				.andExpect(status().isBadRequest());
 	}

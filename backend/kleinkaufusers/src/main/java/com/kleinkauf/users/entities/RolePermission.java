@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /*
-Permisos de un rol en la tienda (una fila por rol, en el schema de cada tenant).
-permissions es una mascara de bits de PermissionArea. Si un rol no tiene fila usa los
-permisos por defecto (ver RolePermissionService).
+A role's permissions in the store (one row per role, in each tenant's schema).
+permissions is a PermissionArea bit mask. If a role has no row it uses the
+default permissions (see RolePermissionService).
  */
 @Entity
 @Audited

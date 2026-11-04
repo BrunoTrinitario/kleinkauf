@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Optional;
 
 /*
-Los tenants borrados (deleted_at) no existen para la app: las busquedas los excluyen.
-existsBySchema los incluye, porque su schema y sus datos siguen en la base y el
-identificador no se puede volver a usar.
+Deleted tenants (deleted_at) do not exist for the app: lookups exclude them.
+existsBySchema includes them, because their schema and data are still in the database and the
+identifier cannot be used again.
  */
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findBySchemaAndDeletedAtIsNull(String schema);

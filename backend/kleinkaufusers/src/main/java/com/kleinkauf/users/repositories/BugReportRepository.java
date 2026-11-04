@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-// Listado del panel de la plataforma, los mas nuevos primero
+// Platform dashboard listing, newest first
 public interface BugReportRepository extends JpaRepository<BugReport, Long> {
     Page<BugReport> findAllByOrderByCreatedAtDescIdDesc(Pageable pageable);
     Page<BugReport> findByResolvedAtIsNullOrderByCreatedAtDescIdDesc(Pageable pageable);

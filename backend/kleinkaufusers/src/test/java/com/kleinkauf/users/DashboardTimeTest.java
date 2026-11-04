@@ -9,21 +9,21 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-// Los dias de los paneles son en hora argentina aunque el servidor guarde en UTC
+// Dashboard days are in Argentine time even though the server stores in UTC
 class DashboardTimeTest {
 
 	private final DashboardTime time = new DashboardTime(ZoneId.of("America/Argentina/Buenos_Aires"), ZoneOffset.UTC);
 
 	@Test
-	void unaAltaALas22EnArgentinaEsDeEseDia() {
-		// 22:30 del 1 en Argentina = 01:30 del 2 en UTC
+	void signUpAt22InArgentinaBelongsToThatDay() {
+		// 22:30 on the 1st in Argentina = 01:30 on the 2nd in UTC
 		assertEquals(LocalDate.of(2026, 10, 1), time.dayOf(LocalDateTime.of(2026, 10, 2, 1, 30)));
 		assertEquals(LocalDate.of(2026, 10, 2), time.dayOf(LocalDateTime.of(2026, 10, 2, 3, 0)));
 	}
 
-	// El rango de la consulta: el dia argentino empieza a las 3 UTC
+	// The query range: the Argentine day starts at 3 UTC
 	@Test
-	void elDiaEmpiezaALas3UTC() {
+	void dayStartsAt3Utc() {
 		assertEquals(LocalDateTime.of(2026, 10, 1, 3, 0), time.startOfDay(LocalDate.of(2026, 10, 1)));
 	}
 }

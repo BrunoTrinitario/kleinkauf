@@ -3,8 +3,8 @@ package com.kleinkauf.users.dtos.platform;
 import java.time.OffsetDateTime;
 
 /*
-Uso de un tenant segun users (GET /api/v1/platform/admin/usage). products da los productos y combos por schema.
-activeUsers: entraron en los ultimos 30 dias. lastActivity: el ultimo login de un usuario de la tienda (null si nadie entro).
+A tenant's usage according to users (GET /api/v1/platform/admin/usage). products provides the products and bundles per schema.
+activeUsers: logged in within the last 30 days. lastActivity: the last login of a store user (null if nobody logged in).
  */
 public record TenantUsageDto(
         Long id,

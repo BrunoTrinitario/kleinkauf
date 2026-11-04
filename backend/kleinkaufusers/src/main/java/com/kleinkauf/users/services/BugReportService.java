@@ -26,9 +26,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /*
-"Reportar un bug" del footer de las tiendas (docs/backend/users.md):
-- Alta: publica, con o sin sesion. La tienda sale del tenant de la request; el usuario, del X-User-Id del gateway.
-- Panel de la plataforma: listado por estado (pending, resolved o all) y marcar como resuelto o pendiente.
+"Report a bug" from the store footers (docs/backend/users.md):
+- Create: public, with or without a session. The store comes from the request's tenant; the user, from the gateway's X-User-Id.
+- Platform dashboard: listing by status (pending, resolved or all) and marking as resolved or pending.
  */
 @Service
 public class BugReportService {
@@ -61,7 +61,7 @@ public class BugReportService {
         report.setDescription(description);
         report.setPageUrl(truncate(dto.pageUrl(), BugReport.PAGE_URL_MAX_LENGTH));
         report.setUserAgent(truncate(userAgent, BugReport.USER_AGENT_MAX_LENGTH));
-        // Con la sesion abierta: quien es y, si no escribio otro email, el de su cuenta
+        // With an open session: who it is and, if they did not write another email, their account's
         User user = userId == null ? null : userRepository.findById(userId).orElse(null);
         if (user != null) {
             report.setUserId(user.getId());
@@ -89,7 +89,7 @@ public class BugReportService {
             default -> throw new ApiException(String.format(ErrorMessages.INVALID_FILTER, "status"), HttpStatus.BAD_REQUEST);
         };
 
-        // URL de cada tienda: tambien las borradas, el reporte sigue diciendo de donde vino
+        // URL of each store: deleted ones too, the report still says where it came from
         Map<String, String> urls = new HashMap<>();
         for (Tenant tenant : tenantRepository.findAll()) {
             urls.put(tenant.getSchema(), tenant.getUrl());
@@ -106,7 +106,7 @@ public class BugReportService {
     public BugReportDto setResolved(Long id, boolean resolved) throws ApiException {
         BugReport report = bugReportRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.BUG_REPORT_NOT_FOUND, HttpStatus.NOT_FOUND));
-        // Marcarlo de nuevo como resuelto no cambia la fecha en que se resolvio
+        // Marking it as resolved again does not change the date it was resolved
         if (resolved && report.getResolvedAt() == null) {
             report.setResolvedAt(LocalDateTime.now());
         } else if (!resolved) {

@@ -46,7 +46,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void porDefecto_igualQueAntes() {
+	void byDefault_sameAsBefore() {
 		when(repository.findByType(anyString())).thenReturn(Optional.empty());
 
 		assertEquals(PermissionArea.STOCK.bit(), service.maskFor("EMPLEADO"));
@@ -54,7 +54,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void administradorSiempreTodo_superadminNada() {
+	void administratorAlwaysAll_superadminNothing() {
 		assertEquals(PermissionArea.ALL, service.maskFor("ADMINISTRADOR"));
 		assertEquals(0, service.maskFor("SUPERADMIN"));
 		assertEquals(0, service.maskFor("INVENTADO"));
@@ -62,14 +62,14 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void usaLaConfiguracionDeLaTienda() {
+	void usesTheStoreConfiguration() {
 		when(repository.findByType("EMPLEADO")).thenReturn(Optional.of(config("EMPLEADO", 7)));
 
 		assertEquals(7, service.maskFor("EMPLEADO"));
 	}
 
 	@Test
-	void listaLosTresRoles() {
+	void listsTheThreeRoles() {
 		when(repository.findByType(anyString())).thenReturn(Optional.empty());
 
 		assertEquals(List.of(
@@ -80,7 +80,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void configurarEmpleado_guardaYBorraLosRolesCacheadosDeLaTienda() throws ApiException {
+	void configureEmployee_savesAndDeletesTheStoreCachedRoles() throws ApiException {
 		TenantContext.setCurrentTenant("tienda_a");
 		when(repository.findByType("EMPLEADO")).thenReturn(Optional.empty());
 
@@ -95,7 +95,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void usuariosNoSeDelega() {
+	void usuariosIsNotDelegable() {
 		ApiException ex = assertThrows(ApiException.class, () -> service.update("EMPLEADO", PermissionArea.USUARIOS.bit()));
 
 		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
@@ -103,7 +103,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void bitsDesconocidosONegativos_sonError() {
+	void unknownOrNegativeBits_areAnError() {
 		for (int mask : List.of(32, 64, -1)) {
 			ApiException ex = assertThrows(ApiException.class, () -> service.update("CLIENTE", mask), String.valueOf(mask));
 			assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
@@ -111,7 +111,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void administradorYSuperadminNoSeConfiguran() {
+	void administratorAndSuperadminAreNotConfigurable() {
 		for (String role : List.of("ADMINISTRADOR", "SUPERADMIN")) {
 			ApiException ex = assertThrows(ApiException.class, () -> service.update(role, 0), role);
 			assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
@@ -119,7 +119,7 @@ class RolePermissionServiceTest {
 	}
 
 	@Test
-	void rolInexistente_respondeNotFound() {
+	void unknownRole_respondsNotFound() {
 		ApiException ex = assertThrows(ApiException.class, () -> service.update("VENDEDOR", 1));
 
 		assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());

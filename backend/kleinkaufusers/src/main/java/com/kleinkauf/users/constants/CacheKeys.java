@@ -5,14 +5,14 @@ public class CacheKeys {
     public static String CACHE_USER(Long userId, String tenantSchema){
         return "user:" + userId + ":" + tenantSchema;
     }
-    // Refresh tokens vigentes: uno por sesion abierta. Si no esta, el refresh no sirve (logout o ya rotado)
+    // Valid refresh tokens: one per open session. If it is not there, the refresh does not work (logout or already rotated)
     public static String REFRESH_TOKEN(String tenantSchema, Long userId, String tokenId){
         return "refresh:" + tenantSchema + ":" + userId + ":" + tokenId;
     }
     public static String CACHE_TENANT = "tenant:";
-    // El gateway busca el tenant por la URL del frontend (Origin)
+    // The gateway looks up the tenant by the frontend URL (Origin)
     public static String CACHE_TENANT_URL = "tenant:url:";
-    // Uso por tenant del panel de la plataforma (products guarda el suyo en platform:usage:products)
+    // Per-tenant usage for the platform dashboard (products stores its own in platform:usage:products)
     public static String PLATFORM_USAGE_USERS = "platform:usage:users";
 
 }

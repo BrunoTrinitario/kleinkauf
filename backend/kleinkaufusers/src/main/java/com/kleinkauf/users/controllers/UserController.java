@@ -45,7 +45,7 @@ public class UserController {
     @Autowired
     private UserDashboardService userDashboardService;
 
-    // Listado paginado del panel: q busca en nombre y email, role filtra por rol. size: 20 por defecto, maximo 100
+    // Paginated dashboard listing: q searches name and email, role filters by role. size: 20 by default, max 100
     @GetMapping()
     public ResponseEntity<UserPageDto> searchUsers(
             @RequestParam(required = false) String q,
@@ -99,7 +99,7 @@ public class UserController {
         return new ResponseEntity<>(roles, org.springframework.http.HttpStatus.OK);
     }
 
-    // Panel de la tienda: total, activos, por rol y altas por periodo (from y to yyyy-MM-dd, groupBy DAY/WEEK/MONTH)
+    // Store dashboard: total, active, by role and sign-ups per period (from and to yyyy-MM-dd, groupBy DAY/WEEK/MONTH)
     @GetMapping("/dashboard")
     public ResponseEntity<UserDashboardDto> dashboard(
             @RequestParam(required = false) String from,

@@ -59,7 +59,7 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Cambia en cada login y los logins no se auditan
+    // Changes on every login and logins are not audited
     @AuditIgnore
     private LocalDateTime lastLogin;
 

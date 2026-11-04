@@ -2,7 +2,7 @@ package com.kleinkauf.users.dtos.platform;
 
 import java.time.OffsetDateTime;
 
-// Reporte de bug en el panel de la plataforma. store y storeUrl: null si se mando sin tienda
+// Bug report in the platform dashboard. store and storeUrl: null if it was sent without a store
 public record BugReportDto(
         Long id,
         String store,
