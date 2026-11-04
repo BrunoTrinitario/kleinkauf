@@ -64,15 +64,6 @@ export default function HomePage() {
 
         <FeaturedStrip />
         <BundlesStrip />
-
-        <div className="flex justify-center">
-          <Button size="lg" variant="outline" asChild>
-            <Link to={CATALOG_PATH}>
-              {strings.home.viewCatalog}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
       </main>
 
       <Footer />
