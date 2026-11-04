@@ -20,6 +20,8 @@ public record LoggedUser(
     String email,
     String token,
     String refreshToken,
-    List<RoleDto> roles
+    List<RoleDto> roles,
+    // Profile photo: file under /users/avatars/, or null
+    String avatar
 ) {
 }

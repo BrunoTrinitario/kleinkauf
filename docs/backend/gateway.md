@@ -31,7 +31,7 @@ Los filtros corren en este orden. Cada uno puede cortar la request; lo que respo
 | — | `UnknownRouteFilter` | Si la ruta no es de ninguna de las [rutas](#rutas) del gateway, corta antes de Spring Security. Un endpoint inexistente dentro de un servicio sigue pidiendo login | **404**, cuerpo vacío |
 | 3 | `RequestFilter` | Rate limit por tipo de ruta, IP y origen (ver abajo) | **429**, cuerpo vacío |
 | 4 | `MsFilter` | `/api/internal/**`: valida el token interno (`X-Internal-Token`) | **401**, cuerpo vacío |
-| 5 | `TenantGatewayFilter` | Busca la tienda por el `Origin` y agrega `X-Forwarded-Host: <schema>`. Se saltea en `/api/v1/platform/**`, `/products/images/**` y el `/ws` del frontend de la plataforma | **404** `The tenant was not found.` (no existe o está borrada) · **403** `The tenant is disabled.` · **503** `Error de respuesta` si users no responde |
+| 5 | `TenantGatewayFilter` | Busca la tienda por el `Origin` y agrega `X-Forwarded-Host: <schema>`. Se saltea en `/api/v1/platform/**`, `/products/images/**`, `/users/avatars/**` y el `/ws` del frontend de la plataforma | **404** `The tenant was not found.` (no existe o está borrada) · **403** `The tenant is disabled.` · **503** `Error de respuesta` si users no responde |
 | 6 | `JwtFilter` | En las rutas con login valida el `Authorization: Bearer`, que sea un token de sesión (claim `type`: ni el de recuperación de contraseña ni el refresh), que el claim `tenant` del token sea el schema de la request (`public` en `/api/v1/platform/**`) y agrega `X-User-Id`. En las públicas agrega `X-Open-Path: true`; en las de login opcional, si viene token lo valida igual | **401**, cuerpo vacío (sin token, vencido, inválido o de otra tienda) |
 | 7 | `ActivityFilter` | Marca `activity:<tenant>:<userId>` en Redis (TTL 5 min, como mucho cada 30 s por usuario). No frena la request | — |
 | — | Ruteo | Manda la request al servicio | **503** si el servicio no está en Eureka |
@@ -44,6 +44,7 @@ Los filtros corren en este orden. Cada uno puede cortar la request; lo que respo
 |---|---|---|
 | `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**` | products | Sí |
 | `/products/images/**` | products | No |
+| `/users/avatars/**` | users | No |
 | `GET /share/{tienda}/products/{slug}` | products (`/share/products/{slug}`) | Sí, por la **ruta** y no por el `Origin` (lo abre un crawler). Sin login. Tienda inexistente 404, deshabilitada 403 |
 | `/api/v1/platform/products/**` | products | No |
 | `/api/v1/sales/**` | sales | Sí |
@@ -72,6 +73,7 @@ segmento y `{any}` cualquier cosa.
 | `GET /api/v1/sales/checkout`, `POST /api/v1/sales/orders`, `POST /api/v1/sales/orders/lookup`, `POST /api/v1/sales/orders/{code}/receipt`, `POST /api/v1/sales/orders/{code}/cancel` |
 | `POST /api/v1/bug-reports` |
 | `/products/images/{any}` |
+| `GET:/users/avatars/{any}` |
 | `GET /share/{code}/products/{code}` (link para compartir, ver [products.md](products.md#link-para-compartir)) |
 | `GET /ws` (entra con un ticket, ver [observability.md](observability.md#websocket)) |
 
@@ -97,7 +99,7 @@ instancia (Caffeine) y lo avisa en el log una vez por minuto: el límite sigue, 
 | lookup | `/api/v1/sales/orders/lookup`, `/api/v1/sales/orders/{code}/cancel` | 10 | `limit.lookup` |
 | receipt | `/api/v1/sales/orders/{code}/receipt` | 5 | `limit.receipt` |
 | global | Todo lo demás | 300 | `limit.global` |
-| image | `/products/images/**` | Sin límite | — |
+| image | `/products/images/**`, `/users/avatars/**` | Sin límite | — |
 
 Con el límite en 5 pasan 5 requests y la sexta recibe **429** con el cuerpo vacío.
 

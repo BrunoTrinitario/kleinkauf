@@ -16,7 +16,13 @@ import java.util.*;
 import com.kleinkauf.common.servlet.tenant.TenantContext;
 import com.kleinkauf.users.constants.MailConstants;
 import com.kleinkauf.users.dtos.*;
+import com.kleinkauf.common.files.ImageFiles;
+import com.kleinkauf.users.util.AvatarStorage;
 import com.kleinkauf.users.util.CacheUtil;
+import java.io.IOException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 import com.kleinkauf.users.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +57,8 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AvatarStorage avatarStorage;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -139,6 +147,68 @@ public class UserService {
         }
     }
 
+    public static final long MAX_AVATAR_BYTES = 1024 * 1024; // 1 MB
+
+    // Sets the user's own photo (the previous file is deleted). Up to 1 MB, PNG, JPG, WEBP or GIF by content
+    @Transactional
+    public FullUserDto setAvatar(Long userId, MultipartFile file) throws ApiException {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(ErrorMessages.AVATAR_REQUIRED, HttpStatus.BAD_REQUEST);
+        }
+        if (file.getSize() > MAX_AVATAR_BYTES) {
+            throw new ApiException(ErrorMessages.AVATAR_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE);
+        }
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new ApiException(ErrorMessages.INVALID_AVATAR, HttpStatus.BAD_REQUEST);
+        }
+        String extension = ImageFiles.extension(bytes);
+        if (extension == null) {
+            throw new ApiException(ErrorMessages.INVALID_AVATAR, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        }
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        String previous = user.getAvatar();
+        String saved = avatarStorage.save(bytes, extension);
+        user.setAvatar(saved);
+        this.userRepository.save(user);
+        deleteFilesAfterCompletion(previous, saved);
+        return Parser.fromUserEntityToFullDto(user, getUserRoles(userId));
+    }
+
+    @Transactional
+    public FullUserDto deleteAvatar(Long userId) throws ApiException {
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
+        String previous = user.getAvatar();
+        if (previous != null) {
+            user.setAvatar(null);
+            this.userRepository.save(user);
+            deleteFilesAfterCompletion(previous, null);
+        }
+        return Parser.fromUserEntityToFullDto(user, getUserRoles(userId));
+    }
+
+    /*
+    Files are only touched once the database change is final: on commit the replaced photo is deleted, on rollback
+    the one just saved (so neither an orphan file nor a user pointing to a missing file is left behind)
+     */
+    private void deleteFilesAfterCompletion(String onCommit, String onRollback) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            avatarStorage.delete(onCommit);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                avatarStorage.delete(status == STATUS_COMMITTED ? onCommit : onRollback);
+            }
+        });
+    }
+
     @Transactional
     public boolean deleteUserById(Long id) throws ApiException {
         User rawUser = this.userRepository.findById(id).orElse(null);
@@ -147,7 +217,11 @@ public class UserService {
             for (Role r: rawUser.getRoles()){
                 this.roleRepository.delete(r);
             }
+            // The photo is personal data: it goes with the account
+            String avatar = rawUser.getAvatar();
+            rawUser.setAvatar(null);
             this.userRepository.deleteById(id);
+            deleteFilesAfterCompletion(avatar, null);
             CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(), null);
             cacheUtil.deleteUser(cu);
             return true;
@@ -329,7 +403,7 @@ public class UserService {
         List<RoleDto> roleList = this.getUserRoles(user.getId());
         CachedUser cu = new CachedUser(user.getId(), TenantContext.getCurrentTenant(), roleList);
         cacheUtil.saveOrUpdateUserCache(cu);
-        return new LoggedUser(user.getName(), user.getId(), user.getEmail(), token, refreshToken, roleList);
+        return new LoggedUser(user.getName(), user.getId(), user.getEmail(), token, refreshToken, roleList, user.getAvatar());
     }
 
     public List<RoleDto> getUserRoles(Long id){

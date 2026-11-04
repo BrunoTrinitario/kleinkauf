@@ -106,6 +106,19 @@ class TenantGatewayFilterTest {
         verifyNoInteractions(tenantService);
     }
 
+    // Profile photos load from <img> too, without Origin
+    @Test
+    void userAvatars_withoutOrigin_doNotLookUpTenant() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/users/avatars/abc_123.png"));
+
+        run(exchange);
+
+        assertNotNull(forwarded.get());
+        assertNull(forwarded.get().getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST));
+        verifyNoInteractions(tenantService);
+    }
+
     @Test
     void losErroresDeLosServiciosNoSeConviertenEn503() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(true)));

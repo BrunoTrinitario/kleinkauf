@@ -63,6 +63,6 @@ class PlatformServiceTest {
 	}
 
 	private static LoggedUser user(String role) {
-		return new LoggedUser("Nombre", 1L, "mail", "token", "refresh", List.of(new RoleDto(role, 0)));
+		return new LoggedUser("Nombre", 1L, "mail", "token", "refresh", List.of(new RoleDto(role, 0)), null);
 	}
 }

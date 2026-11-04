@@ -23,7 +23,7 @@ public class RequestTenantFactory {
         else if (path.startsWith("/api/v1/platform/tenants") || path.equals("/api/v1/auth/register")
                 || path.startsWith("/api/v1/auth/forgot-password") || path.equals("/api/v1/bug-reports"))
             result = SIGNUP;
-        else if (path.startsWith("/products/images/"))
+        else if (path.startsWith("/products/images/") || path.startsWith("/users/avatars/"))
             result = IMAGE;
         else if (path.equals("/api/v1/sales/orders"))
             result = ORDER;

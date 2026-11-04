@@ -32,6 +32,11 @@ public class GatewayRoutes {
                         .path("/products/images/**")
                         .uri(productUrl))
 
+                // User profile photos: served by users
+                .route("user-avatars", r -> r
+                        .path("/users/avatars/**")
+                        .uri(userUrl))
+
                 // Link para compartir (Open Graph): la tienda va en la ruta y products no la necesita (ya la
                 // resolvio TenantGatewayFilter y llega como X-Forwarded-Host)
                 .route("share", r -> r

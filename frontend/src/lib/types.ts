@@ -25,7 +25,7 @@ export interface User {
   email: string
   name: string
   roles: RoleDto[]
-  avatar?: string
+  avatar?: string | null
 }
 
 export interface ProfileFormState {

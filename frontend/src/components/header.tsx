@@ -24,6 +24,8 @@ import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
 import { useStoreConfig } from "@/api/store"
+import { useMe } from "@/api/account"
+import { UserAvatar } from "@/components/user-avatar"
 import { productImageUrl } from "@/lib/api"
 import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Menu } from "lucide-react"
 
@@ -162,6 +164,8 @@ export function Header() {
   const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
   const availableRoles = user?.roles.map(role => role.type) ?? []
   const { units } = useCart()
+  // Profile photo (same cached query as the settings page)
+  const me = useMe(isAuthenticated).data
   // "Combos" de la tienda solo si hay alguno para comprar (la misma consulta que la home, en cache)
   const hasBundles = (useCatalogBundles().data?.length ?? 0) > 0
 
@@ -228,9 +232,7 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-2">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <UserAvatar name={user?.name} avatar={me?.avatar} />
                     <div className="hidden sm:flex flex-col items-start">
                       <span className="text-sm font-medium leading-none">{user?.name}</span>
                       <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded mt-1 ${getRoleBadgeColor()}`}>
