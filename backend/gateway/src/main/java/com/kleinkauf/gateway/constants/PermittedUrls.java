@@ -49,6 +49,7 @@ public class PermittedUrls {
                 "POST:/api/v1/sales/orders/lookup",
                 "POST:/api/v1/sales/orders/{code}/receipt",
                 "POST:/api/v1/sales/orders/{code}/cancel",
+                "POST:/api/v1/bug-reports",
                 "/products/images/{any}",
                 "GET:/share/{code}/products/{code}",
                 "GET:/ws"
@@ -61,7 +62,9 @@ public class PermittedUrls {
      */
     public static List<String> getOptionalAuthPaths() {
         return List.of(
-                "POST:/api/v1/sales/orders"
+                "POST:/api/v1/sales/orders",
+                // Reportar un bug: con la sesion abierta queda quien lo mando
+                "POST:/api/v1/bug-reports"
         );
     }
 

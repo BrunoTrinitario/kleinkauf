@@ -12,7 +12,6 @@
 - Dashboard del superadmin y dashboard del admin de la tienda
 - Disclaimers de uso de datos en el footer (privacidad y terminos)
 - SEO: checks de las paginas (meta tags, Open Graph, sitemap, robots, performance)
-- "Reportar un bug" en el footer: le llega a los superadmins y lo consultan desde el panel de la plataforma
 - Cambiar el favicon de la pagina
 
 ## Tenants

@@ -91,6 +91,36 @@ export interface Superadmin {
   lastLogin: string | null
 }
 
+// Reporte de bug que manda alguien desde el footer de una tienda (POST /api/v1/bug-reports)
+export interface NewBugReport {
+  description: string
+  email?: string
+  pageUrl: string
+}
+
+// Reporte en el panel de la plataforma. store/storeUrl: null si se mando sin tienda.
+// userId/reporterName: el usuario si tenia la sesion abierta. resolvedAt: null = pendiente
+export interface BugReport {
+  id: number
+  store: string | null
+  storeUrl: string | null
+  userId: number | null
+  reporterName: string | null
+  email: string | null
+  description: string
+  pageUrl: string | null
+  userAgent: string | null
+  createdAt: string
+  resolvedAt: string | null
+}
+
+export type BugReportStatus = "pending" | "resolved" | "all"
+
+// pending: cuantos quedan sin resolver en total, sea cual sea el filtro
+export interface BugReportPage extends Page<BugReport> {
+  pending: number
+}
+
 // Producto del panel (GET /api/v1/products): con stock exacto
 export interface Product {
   id: string

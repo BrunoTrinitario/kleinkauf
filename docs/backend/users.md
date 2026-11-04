@@ -75,7 +75,9 @@ URL de su tienda con el email y la contraseña que cargó.
 1. `POST /api/v1/auth/forgot-password` con el email, desde la tienda. Responde siempre `true` (no dice si el email
    existe).
 2. Si el usuario existe, users manda un mail con el link
-   `<URL de la tienda>/reset-password?token=<token>`. El token dura **15 minutos** y es de esa tienda.
+   `<URL de la tienda>/reset-password?token=<token>`. El token dura **15 minutos**, es de esa tienda y sirve **una
+   sola vez**: lleva una huella de la contraseña actual y deja de servir cuando la contraseña cambia. Es de tipo
+   `password` (claim `type`): no sirve para entrar, y uno de sesión no sirve para cambiar la contraseña.
 3. La página `/reset-password` **del frontend** lee el token, pide la contraseña nueva y llama a
    `POST /api/v1/auth/forgot-password/{token}` con `{ "newPassword": "..." }`.
 
@@ -227,7 +229,7 @@ Respuesta **200**: `FullUserDto` del usuario.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
-| 401 | Token inválido, vencido o de otra tienda | `The access token is invalid.` |
+| 401 | Token inválido, vencido, de otra tienda, de sesión o ya usado | `The access token is invalid.` |
 | 400 | Contraseña inválida | `The password must have 8 to 72 characters, with at least one letter and one number.` |
 
 ## Usuarios de la tienda
@@ -607,10 +609,59 @@ Respuesta **200**: `SuperadminDto`.
 | 409 | Es el último activo | `The last active superadmin cannot be deactivated.` |
 | 404 | No existe o no es superadmin | `The superadmin was not found.` |
 
+## Reportes de bugs
+
+"Reportar un problema" del footer de las tiendas. Se guardan en `public.bug_reports` y los leen los superadmins en el
+panel de la plataforma (`/bug-reports`).
+
+### POST /api/v1/bug-reports
+
+**Acceso:** Público, con login opcional (rate limit de 3 por minuto)
+
+La tienda sale del `Origin` (el gateway la resuelve como en cualquier ruta de tienda). Con la sesión abierta queda el
+usuario, y si no se manda `email` se usa el de su cuenta. `pageUrl` se recorta a 500 caracteres y el `User-Agent` a 300.
+
+```json
+{ "description": "El carrito no suma bien el envío", "email": "ana@mail.com", "pageUrl": "https://demo.kleinkauf.site/carrito" }
+```
+
+Respuesta **201** sin cuerpo.
+
+| Código | Cuándo | Mensaje |
+|---|---|---|
+| 400 | Descripción de menos de 10 o más de 2000 caracteres | `The description must have 10 to 2000 characters.` |
+| 400 | Email inválido | `The email is not valid.` |
+
+### GET /api/v1/platform/admin/bug-reports?status=&page=&size=
+
+**Acceso:** SUPERADMIN
+
+Los más nuevos primero. `status`: `pending` (por defecto), `resolved` o `all`. `size`: 20 por defecto, máximo 100.
+`pending` es cuántos quedan sin resolver en total, sea cual sea el filtro.
+
+```json
+{ "items": [ { "id": 4, "store": "demo", "storeUrl": "https://demo.kleinkauf.site", "userId": 7,
+    "reporterName": "Ana", "email": "ana@mail.com", "description": "El carrito no suma bien el envío",
+    "pageUrl": "https://demo.kleinkauf.site/carrito", "userAgent": "Mozilla/5.0 ...",
+    "createdAt": "2026-11-04T12:30:00Z", "resolvedAt": null } ],
+  "page": 0, "size": 20, "totalItems": 1, "totalPages": 1, "pending": 1 }
+```
+
+Errores: 400 `Invalid value for status.` y 400 `Invalid page: page must be 0 or more and size between 1 and 100.`
+
+### PUT /api/v1/platform/admin/bug-reports/{id}/resolved
+
+**Acceso:** SUPERADMIN
+
+Marca el reporte como resuelto (`{"resolved": true}`) o lo vuelve a pendiente (`false`). Marcar de nuevo uno resuelto
+no cambia la fecha en que se resolvió.
+
+Respuesta **200**: el reporte. **404** `The bug report was not found.`
+
 ## Internos
 
-No los llama el frontend. Van con `X-internal-request: true` y `X-Internal-Token` (ver [common.md](common.md)). Por
-el gateway solo pasa `/api/internal/tenants/**`; el resto lo llaman los servicios directo por Eureka.
+No los llama el frontend ni pasan por el gateway: los llaman los servicios directo por Eureka, con
+`X-Internal-Token` (ver [common.md](common.md)). users pide el token en todo `/api/internal/**`.
 
 | Método | Ruta | Quién lo usa | Qué devuelve |
 |---|---|---|---|
@@ -664,7 +715,8 @@ minúsculas sin guion bajo (`lastlogin`, `userid`).
 | `roles` | `id`, `type`, `userid`, `deleted_at` | Único (`userid`, `type`); borrado lógico |
 | `role_permissions` | `id`, `type` (único), `permissions` | Solo las filas que configuró el administrador; sin fila = permisos por defecto |
 
-**En `public`:** `tenant` (`id`, `schema`, `url`, `config_id`, `enable`, `created_at`, `deleted_at`) y los superadmins
+**En `public`:** `bug_reports` (`id`, `tenant_schema`, `user_id`, `reporter_name`, `email`, `description`,
+`page_url`, `user_agent`, `created_at`, `resolved_at`), `tenant` (`id`, `schema`, `url`, `config_id`, `enable`, `created_at`, `deleted_at`) y los superadmins
 en `usuarios` y `roles` con el rol `SUPERADMIN`. Ver [tenants.md](../tenants.md#datos-de-un-tenant-tabla-tenant-en-users-schema-public).
 
 ## Configuración
@@ -687,9 +739,6 @@ Levantarlo solo: `cd backend/kleinkaufusers && ./gradlew bootRun` (con Postgres,
 ## Límites conocidos
 
 - El token no se puede renovar (no hay refresh): a la hora hay que volver a loguearse.
-- `/api/internal/**` está abierto en el `SecurityConfig` de users y el `HeaderAuthFilter` solo valida el token
-  interno si viene `X-internal-request: true`: llamado directo al puerto 3001 sin ese header, no pide nada. Por el
-  gateway solo pasa `/api/internal/tenants/**` y ahí sí se valida. Depende de que 3001 no esté expuesto.
 - Un email repetido responde 400 en las tiendas y 409 en los superadmins.
 - Un rol inexistente responde 400 en el listado y 404 al dar o sacar roles.
 - Si el mail del recupero falla, se pierde sin aviso.
