@@ -9,12 +9,20 @@ implementarla.
 **Resumen:** el backend de los dos paneles, las ventas, la observabilidad (también los canales de la tienda) y la
 auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta (salvo el recupero de contraseña), el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
-y combos), usuarios y permisos, el resumen de la tienda, ajustes y el panel de la plataforma; falta el panel de ventas
-y el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
+y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el seguimiento de los
+pedidos; del panel de ventas faltan la venta del local y los reportes, y falta el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
 presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
 
+- **Seguimiento de pedidos** (B7, primera parte): "Ventas" en el menú del `ADMINISTRADOR`, con el contador de
+  comprobantes para revisar. Lista en `/admin/orders` (búsqueda, estado, canal y fechas en la URL), detalle en
+  `/admin/orders/{número}` (ítems con precio de lista, cobrado y costo, ganancia, comprador, entrega, historial y
+  comprobantes para ver o descargar) y los cambios de estado de [ventas.md](ventas.md) con confirmación y motivo.
+  "Datos de cobro" (alias, CBU, titular, banco y plazo) en un diálogo; la lista avisa si faltan, y el checkout le
+  ofrece al administrador cargarlos en vez de solo decir que la tienda no vende online.
+- **Descargar un comprobante daba 500**: la lectura corría en una transacción `readOnly` y el registro de auditoría
+  (insert en `outbox_events`) fallaba. Ahora la transacción admite escritura.
 - **Panel de la tienda** en el backend: `GET /api/v1/products/dashboard` y `GET /api/v1/users/dashboard`, solo
   `ADMINISTRADOR`. Se borró `/users/stats` y [panel-admin.md](panel-admin.md) pasó a documentación.
 - **Canales WS de la tienda**: `store.activity` (pedidos, comprobantes, movimientos y stock bajo), `store.usage`
@@ -86,6 +94,11 @@ presencial** todavía no tiene decisiones tomadas.
   y las tarjetas muestran miniaturas. En `/combos` cada combo lista sus productos con foto y precio, y tocar la foto
   abre la descripción de cada uno y la cuenta contra el precio del combo (el catálogo trae categoría, descripción,
   precio e imagen de cada producto del combo).
+- **Combos con descuento** (A4): el combo puede tener precio fijo, % de descuento o $ de descuento sobre la suma de
+  sus productos (`pricingType` y `discount` en `bundles`; los que ya existían quedaron en `FIXED`). Con descuento el
+  precio no se guarda: lo calcula `BundleFactory.price` y lo usan el panel, el catálogo y la reserva que le pasa el
+  precio a sales, así sigue al precio de los productos sin actualizar el combo. En `/admin/bundles` se elige el tipo
+  y se ve el precio final y el ahorro mientras se escribe.
 
 ---
 
@@ -104,31 +117,6 @@ presencial** todavía no tiene decisiones tomadas.
   como inactivo. Las keys `activity:*` duran 5 minutos, así que haría falta guardar la última request en la base
   (por ejemplo, actualizarla como mucho una vez por hora).
 
-### A4. Combos con descuento porcentual o fijo
-
-Hoy el combo tiene un precio fijo: si sube el precio de un producto, hay que acordarse de actualizar cada combo que
-lo incluye (y mientras tanto el "ahorro" puede quedar mal o hasta negativo). La idea es que el combo pueda guardar un
-**descuento** sobre la suma de sus productos, y que el precio se calcule solo.
-
-1. products: en `Bundle`, un tipo de precio (`pricingType`: `FIXED`, `PERCENT` o `AMOUNT`) y un `discount`
-   (porcentaje entre 0 y 100, o monto mayor o igual a 0). Migración: los combos actuales quedan en `FIXED` con su
-   `price`, así no cambia nada de lo que ya se vende.
-2. Precio final en un solo lugar (`BundleFactory`): `FIXED` → `price`; `PERCENT` → suma de los productos × (1 −
-   descuento / 100); `AMOUNT` → suma − descuento, sin bajar de 0. Redondear a 2 decimales (`HALF_UP`). Si algún
-   producto no tiene precio, el combo con descuento queda sin precio (no se vende online, como hoy).
-3. Usar ese precio en todo lo que hoy lee `bundle.getPrice()`: `BundleDto`, el catálogo (`CatalogService.toDto` e
-   `isSellable`) y la reserva de stock que le da el precio a sales (`StockReservationService`), para que el pedido
-   cobre lo mismo que muestra el catálogo.
-4. API: `POST /bundles` y `PUT /bundles/{id}/price` reciben `pricingType` y `discount` (o `price` para `FIXED`), con
-   400 si el descuento está fuera de rango. `BundleDto` devuelve el tipo, el descuento y el precio calculado.
-5. Caché: cambiar el precio de un producto ya invalida el catálogo; comprobar que con eso alcanza para que el combo
-   muestre el precio nuevo.
-6. Frontend, en `/admin/bundles` (crear y la tarjeta): elegir "Precio fijo", "% de descuento" o "Descuento en $", y
-   ver el precio resultante y el ahorro mientras se escribe. En `/combos` no cambia nada (sigue llegando `price` y
-   `listPrice`).
-7. Tests del cálculo (cada tipo, redondeo, producto sin precio, descuento mayor que la suma) y docs
-   ([products.md](backend/products.md) y [frontend.md](frontend.md)).
-
 ---
 
 ## B. Frontend
@@ -144,12 +132,13 @@ esto ya está.
 
 ### B7. Panel de ventas (solo `ADMINISTRADOR`)
 
-1. Lista de pedidos con filtros.
-2. Detalle con historial y comprobantes.
-3. Botones de transición según la máquina de estados de [ventas.md](ventas.md).
-4. Venta del local (mostrador).
-5. Configuración de ventas: alias, CBU y plazo.
-6. Reportes: período, ranking, ganancia, canal y medio de pago.
+Hecho: lista de pedidos con filtros (`/admin/orders`), detalle con historial y comprobantes, botones de transición
+según la máquina de estados de [ventas.md](ventas.md) y configuración de cobro (alias, CBU y plazo). Falta:
+
+1. Filtros por medio de pago y por "stock para revisar" en la lista.
+2. Venta del local (mostrador).
+3. Reportes: período, ranking, ganancia, canal y medio de pago.
+4. Mostrar el nombre del usuario en el historial (hoy muestra `Usuario #id`).
 
 ### B8. Observabilidad y auditoría
 
@@ -160,6 +149,17 @@ esto ya está.
 3. Tienda: feed de auditoría (`store.audit`), actividad en vivo (`store.activity`), uso del día (`GET /store/usage`
    más `store.usage`) y conectados (`GET /store/users` más `store.users`).
 4. El historial se carga por REST al abrir el panel y el WS solo trae lo nuevo.
+
+### B10. Faltantes chicos (de la revisión de [frontend.md](frontend.md))
+
+- **Margen en precios**: mostrar `margin` y `marginPercent` (ya vienen en `GET /products/{id}/pricing`) junto al
+  precio y el costo, solo con `PRECIOS`.
+- **Más vendidos**: mostrar `soldCount` en el panel y sumar el orden `best_sellers` al catálogo (el backend ya lo
+  acepta).
+- **Tema oscuro**: colores `.dark` en `index.css` y un selector.
+- **Estados vacíos y de carga comunes**: hoy cada página arma los suyos.
+- **Plataforma**: landing y alta pública de tienda (hoy `/` redirige a `/dashboard` y la tienda se crea desde el
+  panel del superadmin).
 
 ### B9. Calidad
 
@@ -268,7 +268,6 @@ preguntas antes de implementarla, como se hizo con ventas.
 ## Orden sugerido
 
 1. **B7**: panel de ventas. Ya están B0 a B6, A2 y A3 (falta solo el recupero de contraseña de B1).
-2. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. **A4** (combos con descuento) se puede
-   hacer en cualquier momento: es chico y no depende de nada.
+2. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
 3. **Decidir y planificar C1**, la próxima etapa de ventas.
 4. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.

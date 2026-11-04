@@ -2,6 +2,7 @@ package com.kleinkauf.product;
 
 import com.kleinkauf.product.dto.bundles.BundleDto;
 import com.kleinkauf.product.entities.Bundle;
+import com.kleinkauf.product.entities.BundlePricingType;
 import com.kleinkauf.product.entities.BundleProduct;
 import com.kleinkauf.product.entities.Product;
 import com.kleinkauf.product.entities.ProductImage;
@@ -70,6 +71,68 @@ class BundleFactoryTest {
 		assertEquals("mesa-1.png", dto.getProducts().get(0).image());
 		assertNull(dto.getProducts().get(1).price());
 		assertNull(dto.getProducts().get(1).image());
+	}
+
+	@Test
+	void descuentoPorcentual_sobreLaSumaRedondeado() {
+		// 1 mesa 50000 + 4 sillas 12000 = 98000; 15% menos = 83300
+		Bundle bundle = discounted(BundlePricingType.PERCENT, "15");
+		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
+		add(bundle, product(2L, "Silla", "12000.00", 10), 4);
+		assertEquals(new BigDecimal("83300.00"), BundleFactory.getBundle(bundle).getPrice());
+
+		// 33,33% de 98000 = 32663,40 menos: 65336,60
+		bundle.setDiscount(new BigDecimal("33.33"));
+		assertEquals(new BigDecimal("65336.60"), BundleFactory.price(bundle));
+	}
+
+	@Test
+	void descuentoPorcentual_sigueAlPrecioDelProducto() {
+		Bundle bundle = discounted(BundlePricingType.PERCENT, "10");
+		Product mesa = product(1L, "Mesa", "50000.00", 3);
+		add(bundle, mesa, 2);
+		assertEquals(new BigDecimal("90000.00"), BundleFactory.price(bundle));
+
+		mesa.setPrice(new BigDecimal("60000.00"));
+		assertEquals(new BigDecimal("108000.00"), BundleFactory.price(bundle));
+	}
+
+	@Test
+	void descuentoFijo_noBajaDeCero() {
+		Bundle bundle = discounted(BundlePricingType.AMOUNT, "8000");
+		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
+		assertEquals(new BigDecimal("42000.00"), BundleFactory.price(bundle));
+
+		bundle.setDiscount(new BigDecimal("60000"));
+		assertEquals(new BigDecimal("0.00"), BundleFactory.price(bundle));
+	}
+
+	@Test
+	void conDescuento_productoSinPrecioOComboVacio_sinPrecio() {
+		Bundle bundle = discounted(BundlePricingType.PERCENT, "10");
+		assertNull(BundleFactory.price(bundle));
+
+		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
+		add(bundle, product(2L, "Silla", null, 10), 4);
+		assertNull(BundleFactory.price(bundle));
+	}
+
+	@Test
+	void precioFijo_usaElGuardadoAunqueCambienLosProductos() {
+		Bundle bundle = bundle("90000.00");
+		bundle.setDiscount(new BigDecimal("50"));
+		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
+
+		BundleDto dto = BundleFactory.getBundle(bundle);
+		assertEquals(new BigDecimal("90000.00"), dto.getPrice());
+		assertEquals(BundlePricingType.FIXED, dto.getPricingType());
+	}
+
+	private static Bundle discounted(BundlePricingType type, String discount) {
+		Bundle bundle = bundle("1.00");
+		bundle.setPricingType(type);
+		bundle.setDiscount(new BigDecimal(discount));
+		return bundle;
 	}
 
 	private static ProductImage image(Product product, String path, int order) {

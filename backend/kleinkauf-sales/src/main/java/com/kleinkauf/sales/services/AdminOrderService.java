@@ -124,7 +124,8 @@ public class AdminOrderService {
                 SecurityUtil.currentUserId(), dto == null ? null : dto.reason()));
     }
 
-    @Transactional(readOnly = true)
+    // Sin readOnly: la lectura queda en la auditoria, que escribe en la outbox dentro de esta transaccion
+    @Transactional(rollbackFor = Exception.class)
     public ReceiptFile receipt(String number, Long id) throws ApiException {
         PaymentReceipt receipt = receiptRepository.findByIdAndOrder_Number(id, number.trim().toUpperCase(Locale.ROOT))
                 .orElseThrow(() -> new ApiException(ErrorMessages.RECEIPT_NOT_FOUND, HttpStatus.NOT_FOUND));

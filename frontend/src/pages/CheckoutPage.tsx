@@ -64,7 +64,7 @@ function conflictMessage(error: unknown): string | null {
 
 // Checkout (/checkout): datos del comprador y entrega. Invitado o con sesion (con sesion queda en "mis pedidos")
 export default function CheckoutPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, activeRole } = useAuth()
   const { items, total, clear, applyPriceChanges } = useCart()
   const navigate = useNavigate()
   const checkout = useCheckoutInfo()
@@ -159,8 +159,19 @@ export default function CheckoutPage() {
           <p className="text-destructive">{getErrorMessage(checkout.error, strings.checkout.loadError)}</p>
         ) : !info?.paymentConfigured ? (
           <Card className="max-w-2xl">
-            <CardContent>
+            <CardContent className="space-y-4">
               <p className="text-muted-foreground">{strings.checkout.notConfigured}</p>
+              {/* El administrador ve como resolverlo: los datos de cobro se cargan en el panel de ventas */}
+              {activeRole === "ADMINISTRADOR" ? (
+                <div className="space-y-3 border-t border-border pt-4">
+                  <p className="text-sm">{strings.checkout.notConfiguredAdmin}</p>
+                  <Button asChild>
+                    <Link to="/admin/orders" state={{ openSettings: true }}>
+                      {strings.adminOrders.paymentMissingAction}
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : (
