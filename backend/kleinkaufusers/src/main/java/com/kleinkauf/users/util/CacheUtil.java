@@ -108,6 +108,24 @@ public class CacheUtil {
         }
     }
 
+    // Refresh tokens: se guarda cada uno que se emite y vence con el (7 dias)
+    public void saveRefreshToken(String tenantSchema, Long userId, String tokenId, Duration ttl) {
+        redisTemplate.opsForValue().set(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId), "1", ttl);
+    }
+
+    public boolean isRefreshTokenActive(String tenantSchema, Long userId, String tokenId) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId)));
+    }
+
+    // Al rotarlo: sigue sirviendo un rato para que dos pestanas que renuevan a la vez no se corten la sesion
+    public void retireRefreshToken(String tenantSchema, Long userId, String tokenId, Duration grace) {
+        redisTemplate.expire(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId), grace);
+    }
+
+    public void deleteRefreshToken(String tenantSchema, Long userId, String tokenId) {
+        redisTemplate.delete(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId));
+    }
+
     // Al desactivar un superadmin: sus roles cacheados dejan de valer (user:<id>:null, sin tenant)
     public void deleteUserRoles(Long userId, String tenantSchema) {
         redisTemplate.delete(CacheKeys.CACHE_USER(userId, tenantSchema));

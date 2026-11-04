@@ -100,6 +100,13 @@ Auditoría de la plataforma (tiendas y superadmins), paginada, la más nueva pri
 Respuesta **200**: `{ "items": [AuditEvent], "page", "size", "totalItems", "totalPages" }` (ver
 [formato](#formato-de-la-auditoría)). Error: 400 si `from` o `to` no son fechas con zona.
 
+### GET /api/v1/platform/observability/audit/export
+
+**Acceso:** SUPERADMIN
+
+La misma auditoría en **CSV** (`auditoria-plataforma-<fecha>.csv`), con los mismos filtros sin `page` ni `size`.
+Formato en [auditoria.md](../auditoria.md#consultas). 400 si hay más de 50.000 eventos (hay que acotar las fechas).
+
 ## Panel de la tienda
 
 Solo `ADMINISTRADOR` de la tienda. Sin tienda (desde la plataforma) responden **404**; el superadmin no ve la
@@ -129,6 +136,18 @@ curl 'http://localhost:3000/api/v1/observability/store/audit?entity=Product&acti
 **Acceso:** ADMINISTRADOR
 
 Historial de una cosa (`/store/audit/Product/12`, `/store/audit/Order/K7QM-4X2P`). Paginado.
+
+### GET /api/v1/observability/store/audit/export
+
+**Acceso:** ADMINISTRADOR
+
+La auditoría de la tienda en **CSV** (`auditoria-<tienda>-<fecha>.csv`), con los mismos filtros que
+`/store/audit` sin `page` ni `size`. 400 si hay más de 50.000 eventos.
+
+```bash
+curl -o auditoria.csv 'http://localhost:3000/api/v1/observability/store/audit/export?from=2026-11-01T03:00:00Z' \
+  -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
+```
 
 ### GET /api/v1/observability/store/users
 
@@ -351,6 +370,7 @@ El segundo archivo suma Prometheus, Grafana, Tempo, Loki y Alloy; sin él todo a
 | `observability.ticket.ttl` | `30s` | Duración de los tickets |
 | `observability.ws.revalidate-interval` | `60s` | Revisión de los roles de los conectados |
 | `observability.scheduling.enabled`, `events.enabled`, `audit.enabled` | `true` | Los tests los apagan |
+| `audit.export.zone` | `America/Argentina/Buenos_Aires` | Hora de las fechas del CSV de auditoría |
 
 Sin Docker necesita Postgres (base `observability`; con un volumen viejo:
 `docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"`), Redis y Eureka.

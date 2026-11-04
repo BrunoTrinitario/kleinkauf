@@ -14,14 +14,18 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.kleinkauf.users.util.DashboardTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -53,8 +57,24 @@ class PlatformDashboardServiceTest {
 	@Mock
 	private RecentActivity recentActivity;
 
+	// Paneles en hora argentina, servidor en UTC (como en Docker)
+	@Spy
+	private DashboardTime dashboardTime = new DashboardTime(ZoneId.of("America/Argentina/Buenos_Aires"), ZoneOffset.UTC);
+
 	@InjectMocks
 	private PlatformDashboardService service;
+
+	// Creada el 2 a la 1:30 UTC: en Argentina todavia es el 1 a las 22:30
+	@Test
+	void altas_seCuentanEnElDiaDeArgentina() throws ApiException {
+		when(tenantRepository.findAll()).thenReturn(List.of(tenant(1L, "a", true, "2026-10-02T01:30", null)));
+
+		PlatformDashboardDto dashboard = service.dashboard("2026-10-01", "2026-10-02", "DAY");
+
+		assertEquals(List.of(
+				new PeriodCountDto(LocalDate.of(2026, 10, 1), 1),
+				new PeriodCountDto(LocalDate.of(2026, 10, 2), 0)), dashboard.registrations().periods());
+	}
 
 	@Test
 	void resumen_cuentaEstadosYAltasIncluidosLosBorrados() throws ApiException {

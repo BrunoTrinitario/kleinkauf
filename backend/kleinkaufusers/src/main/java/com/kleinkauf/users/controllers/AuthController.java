@@ -45,6 +45,13 @@ public class AuthController {
         return ResponseEntity.ok(userService.refresh(dto == null ? null : dto.refreshToken()));
     }
 
+    // Cierra la sesion: el refresh deja de servir. 204 aunque ya no sirviera
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody(required = false) RefreshTokenDto dto) {
+        userService.logout(dto == null ? null : dto.refreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/register")
     public ResponseEntity<LoggedUser> Register(@RequestBody NewUserDto userData) throws ApiException {
         userService.createUser(userData.name(), userData.email(), userData.password(), Set.of("CLIENTE"));

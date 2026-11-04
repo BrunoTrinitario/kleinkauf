@@ -1,6 +1,6 @@
 # Pendientes
 
-_Última actualización: 2026-11-04 (seguridad, reportes de problemas y deuda técnica)_
+_Última actualización: 2026-11-04 (deuda técnica cerrada: refresh revocable, rate limit en Redis, CI y auditoría; A1 cerrado)_
 
 Lista de lo que queda por hacer, armada comparando la documentación ([MVP.md](../MVP.md), `docs/` y la referencia
 por servicio en [docs/backend/](backend/README.md)) con el código. Cada tarea tiene el flujo previsto para
@@ -10,10 +10,23 @@ implementarla.
 auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta, el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
 y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el panel de ventas;
-falta el tiempo real. En el backend quedan los ajustes de plataforma (A1) y, de la deuda técnica, solo lo que hay que
-decidir. La **gestión presencial** todavía no tiene decisiones tomadas.
+falta el tiempo real. El backend del MVP está completo. La **gestión presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
+
+- **Auditoría**: `audit_events` está particionada por mes (las tablas de antes se pasan solas la primera vez) y el
+  historial se exporta en CSV (`/store/audit/export` y el de la plataforma), hasta 50.000 eventos, con la hora
+  argentina y protegido contra fórmulas de Excel. Ver [auditoria.md](auditoria.md#consultas). Falta el botón en el
+  frontend, que va con el feed de auditoría de B8.
+- **A1 cerrado**: las altas por período de los paneles van en hora argentina (`DashboardTime`,
+  `users.dashboard.zone`). Se decidió no sumar pedidos y facturación de todas las tiendas (el superadmin no ve los
+  datos de las tiendas) y dejar "activos" como el último login en 30 días.
+- **Deuda técnica (D) completa**, salvo lo que hay que decidir:
+  - **Refresh revocable**: cada refresh tiene un `jti` y se guarda en Redis. Se usa una vez (renovar da uno nuevo y el
+    viejo dura 30 segundos más, por las pestañas) y `POST /auth/logout` (y el de la plataforma) corta el de esa
+    sesión; el frontend lo llama al cerrar sesión.
+  - **Rate limit en Redis**: el contador lo comparten todos los gateways; si Redis falla, cuenta en memoria.
+  - **CI** (`.github/workflows/ci.yml`): tests de cada servicio y build del frontend en cada push y PR a `main`.
 
 - **Recupero de contraseña** (B1): "¿Olvidaste tu contraseña?" en el login de las tiendas lleva a `/recuperar`, que pide
   el mail; el link lleva a `/reset-password?token=`, que pide la nueva y vuelve al login. Si el link venció o ya se
@@ -154,16 +167,11 @@ decidir. La **gestión presencial** todavía no tiene decisiones tomadas.
 
 ### A1. Ajustes de plataforma
 
-- **Pedidos y facturación de toda la plataforma** en el panel del superadmin:
-  1. sales: endpoint de plataforma (`/api/v1/platform/sales/...`, sin tenant, solo `SUPERADMIN`) que recorre las
-     tiendas y suma pedidos y facturación por período.
-  2. Cachearlo como el uso por tienda (5 minutos en Redis), porque recorrer todos los schemas es caro.
-  3. Sumarlo al dashboard de la plataforma o a `/platform/observability/overview`.
-- **Períodos de altas en UTC**: una tienda creada después de las 21 (hora argentina) cae en el día siguiente.
-  Aplicar una zona configurable en `util/Periods.java`, como `SalesTime` en sales.
-- **"Activos" sigue siendo el último login en 30 días**: un usuario con la sesión abierta hace más de 30 días cuenta
-  como inactivo. Las keys `activity:*` duran 5 minutos, así que haría falta guardar la última request en la base
-  (por ejemplo, actualizarla como mucho una vez por hora).
+Resuelto: las altas por período de los paneles van en hora argentina (`DashboardTime`, `users.dashboard.zone`).
+Decidido no hacer:
+
+- **Pedidos y facturación de toda la plataforma**: el superadmin no ve los datos de las tiendas.
+- **"Activos" por última request**: sigue siendo el último login en 30 días.
 
 ---
 
@@ -181,6 +189,8 @@ esto ya está.
 3. Tienda: feed de auditoría (`store.audit`), actividad en vivo (`store.activity`), uso del día (`GET /store/usage`
    más `store.usage`) y conectados (`GET /store/users` más `store.users`).
 4. El historial se carga por REST al abrir el panel y el WS solo trae lo nuevo.
+5. Botón "Exportar CSV" en la auditoría de la tienda y de la plataforma (`/store/audit/export`, `/audit/export`),
+   con los filtros que estén puestos.
 
 ### B10. Faltantes chicos (de la revisión de [frontend.md](frontend.md))
 
@@ -243,24 +253,17 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## D. Deuda técnica y prolijidad
 
-Lo demás está resuelto (ver arriba). Queda:
+Está todo resuelto (ver arriba).
 
-- **Refresh tokens sin revocación individual**: uno robado sirve hasta que vence (7 días) o hasta que el usuario cambia
-  la contraseña. Si hace falta, guardar los refresh emitidos para poder cortarlos uno por uno.
-- **Rate limit por instancia**: con más de un gateway, cada uno cuenta lo suyo (habría que contarlo en Redis).
-- **Un CI** que corra los tests del backend y el build del frontend en cada push a `main`.
+**Decidido**
 
-**Para decidir**
-
-- Observabilidad: muestreo de trazas, alertas en Grafana, retención de métricas, trazas y logs, healthchecks con
-  `/ready` e historial de uso más allá de 8 días.
-- Auditoría: exportar el historial a CSV y particionar `audit_events`.
-- Eureka con una sola instancia, sin réplica.
+- Eureka: queda con una sola instancia; si hace falta, se suman más.
+- Observabilidad (muestreo de trazas, alertas en Grafana, retención, healthchecks con `/ready`, historial de uso más
+  allá de 8 días): queda como está, para más adelante.
 
 ---
 
 ## Orden sugerido
 
-1. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. Ya están B0 a B7, A2 y A3.
+1. **B8**: tiempo real en los paneles. Ya están B0 a B7 y A1 a A3.
 2. **Decidir y planificar C1**, la próxima etapa de ventas.
-3. De la deuda técnica (D) queda decidir observabilidad, auditoría y Eureka, y sumar un CI.

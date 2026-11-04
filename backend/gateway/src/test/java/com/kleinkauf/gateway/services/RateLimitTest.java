@@ -8,6 +8,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
@@ -17,18 +19,27 @@ import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+// Los limites por tipo de ruta. Redis aca esta caido, asi que cuenta en memoria (RateLimitCounterTest prueba Redis)
 class RateLimitTest {
 
     private final LocalCacheService localCacheService = new LocalCacheService();
     private final RequestFilter filter = new RequestFilter();
 
+    @SuppressWarnings("unchecked")
     RateLimitTest() {
         CaffeineConfig config = new CaffeineConfig();
         ReflectionTestUtils.setField(localCacheService, "rateLimitCache", config.rateLimitedCache());
         ReflectionTestUtils.setField(localCacheService, "tenantCache", config.tenantCache());
         localCacheService.setClock(Clock.fixed(Instant.parse("2026-11-01T10:00:10Z"), ZoneOffset.UTC));
-        ReflectionTestUtils.setField(filter, "localCacheService", localCacheService);
+        ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
+        ReactiveValueOperations<String, String> values = mock(ReactiveValueOperations.class);
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.increment(anyString())).thenReturn(Mono.error(new IllegalStateException("redis caido")));
+        ReflectionTestUtils.setField(filter, "rateLimitCounter", new RateLimitCounter(redis, localCacheService));
         ReflectionTestUtils.setField(filter, "loginLimit", 5);
         ReflectionTestUtils.setField(filter, "signupLimit", 3);
         ReflectionTestUtils.setField(filter, "globalLimit", 300);

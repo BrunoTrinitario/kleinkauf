@@ -49,6 +49,14 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/auth/refresh"));
     }
 
+    // Cerrar sesion: publico, solo lleva el refresh
+    @Test
+    void logout_esPublico() {
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/auth/logout"));
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/auth/logout"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/auth/logout"));
+    }
+
     // Reportar un bug: publico y con login opcional (con sesion queda quien lo mando)
     @Test
     void reportarUnBug_publicoConLoginOpcional() {

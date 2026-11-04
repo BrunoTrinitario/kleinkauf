@@ -114,6 +114,11 @@ async function main() {
   const refreshed = await call("POST", "/api/v1/auth/refresh", { json: { refreshToken } })
   check("renovar la sesion con el refresh", refreshed.status === 200 && !!refreshed.body?.token, refreshed)
   check("el token renovado sirve", (await call("GET", "/api/v1/auth/me", { token: refreshed.body?.token })).status === 200)
+  // Cerrar sesion corta el refresh de esa sesion (esta en Redis)
+  const toClose = (await call("POST", "/api/v1/auth/refresh", { json: { refreshToken: refreshed.body?.refreshToken } })).body?.refreshToken
+  const logout = await call("POST", "/api/v1/auth/logout", { json: { refreshToken: toClose } })
+  check("cerrar sesion corta el refresh", logout.status === 204
+    && (await call("POST", "/api/v1/auth/refresh", { json: { refreshToken: toClose } })).status === 401, logout)
   check("un token de sesion no cambia la contrasena",
     (await call("POST", `/api/v1/auth/forgot-password/${token}`, { json: { newPassword: "otraclave123" } })).status === 401)
 

@@ -39,6 +39,11 @@ public class PlatformService {
         return requireSuperadmin(userService.refresh(refreshToken), ErrorMessages.INVALID_TOKEN);
     }
 
+    public void logout(String refreshToken) throws ApiException {
+        requirePlatformContext();
+        userService.logout(refreshToken);
+    }
+
     private static LoggedUser requireSuperadmin(LoggedUser user, String error) throws ApiException {
         boolean isSuperadmin = user.roles().stream()
                 .map(RoleDto::getType)

@@ -126,6 +126,7 @@ const storedRefreshToken = (): string | null => {
 
 const LOGIN_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/login` : "/auth/login"
 const REFRESH_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/refresh` : "/auth/refresh"
+const LOGOUT_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/logout` : "/auth/logout"
 
 // Login que despues vuelve a la pagina indicada (por defecto, la actual)
 export function loginUrl(next: string = window.location.pathname + window.location.search): string {
@@ -158,6 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient])
 
   const logout = useCallback((to: string = IS_PLATFORM ? "/login" : "/") => {
+    // Corta el refresh en el backend (si no, sirve hasta que vence). No se espera: se sale igual si falla
+    const refreshToken = storedRefreshToken()
+    if (refreshToken) {
+      api.post(LOGOUT_PATH, { refreshToken }, { skipRefresh: true, skipSessionExpiry: true }).catch(() => {})
+    }
     clearSession()
     setSignedOutTo(to)
   }, [clearSession])
