@@ -55,15 +55,15 @@ class UserServiceTest {
 		TenantContext.clear();
 	}
 
-	// Los caches devuelven null cuando no tienen el dato (Mockito por defecto devuelve lista vacia)
-	private void sinRolesEnCache() {
+	// Caches return null when they do not have the value (Mockito returns an empty list by default)
+	private void withoutRolesInCache() {
 		when(localCacheService.getUserRoles(1L, TENANT)).thenReturn(null);
 		when(cache.getUserRoles(1L, TENANT)).thenReturn(null);
 	}
 
 	@Test
-	void getUserRolesById_usersCaido_devuelveListaVaciaYNoCachea() {
-		sinRolesEnCache();
+	void getUserRolesById_usersDown_returnsEmptyListAndDoesNotCache() {
+		withoutRolesInCache();
 		when(usersClient.getUserRoles(1L, TENANT)).thenReturn(null);
 
 		List<RoleDto> roles = userService.getUserRolesById(1L);
@@ -73,8 +73,8 @@ class UserServiceTest {
 	}
 
 	@Test
-	void getUserRolesById_rolesDeUsers_seCacheanLocal() {
-		sinRolesEnCache();
+	void getUserRolesById_rolesFromUsers_areCachedLocally() {
+		withoutRolesInCache();
 		List<RoleDto> remotos = List.of(new RoleDto("ADMINISTRADOR", 1));
 		when(usersClient.getUserRoles(1L, TENANT)).thenReturn(remotos);
 
@@ -85,16 +85,16 @@ class UserServiceTest {
 	}
 
 	@Test
-	void getUserRolesById_enCacheLocal_noLlamaAUsers() {
-		List<RoleDto> cacheados = List.of(new RoleDto("CLIENTE", 0));
-		when(localCacheService.getUserRoles(1L, TENANT)).thenReturn(cacheados);
+	void getUserRolesById_inLocalCache_doesNotCallUsers() {
+		List<RoleDto> cachedRoles = List.of(new RoleDto("CLIENTE", 0));
+		when(localCacheService.getUserRoles(1L, TENANT)).thenReturn(cachedRoles);
 
-		assertSame(cacheados, userService.getUserRolesById(1L));
+		assertSame(cachedRoles, userService.getUserRolesById(1L));
 		verifyNoInteractions(usersClient);
 	}
 
 	@Test
-	void getTenant_inexistente_devuelveNullYNoCachea() {
+	void getTenant_unknown_returnsNullAndDoesNotCache() {
 		when(usersClient.getTenant("nada")).thenReturn(null);
 
 		assertNull(userService.getTenant("nada"));
@@ -102,7 +102,7 @@ class UserServiceTest {
 	}
 
 	@Test
-	void getTenant_deUsers_seCacheaLocal() {
+	void getTenant_fromUsers_isCachedLocally() {
 		TenantDto tenant = new TenantDto(1L, "cfg", TENANT, true, null, null);
 		when(usersClient.getTenant(TENANT)).thenReturn(tenant);
 
@@ -111,7 +111,7 @@ class UserServiceTest {
 	}
 
 	@Test
-	void getTenants_redisVacio_consultaAUsers() {
+	void getTenants_emptyRedis_queriesUsers() {
 		List<TenantDto> remotos = List.of(new TenantDto(1L, "cfg", TENANT, true, null, null));
 		when(cache.getAllTenants()).thenReturn(List.of());
 		when(usersClient.getTenants()).thenReturn(remotos);

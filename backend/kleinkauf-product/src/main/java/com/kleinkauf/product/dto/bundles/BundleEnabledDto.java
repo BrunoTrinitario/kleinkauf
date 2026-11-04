@@ -1,6 +1,6 @@
 package com.kleinkauf.product.dto.bundles;
 
-// Habilita o deshabilita un combo: el estado va explicito (antes PUT /bundles/{id} alternaba sin decir a cual)
+// Enables or disables a bundle: the state is explicit (PUT /bundles/{id} used to toggle without saying which)
 public record BundleEnabledDto(
         Boolean enabled
 ) {

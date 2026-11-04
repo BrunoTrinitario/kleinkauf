@@ -19,13 +19,13 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /*
-Uso por tenant para el panel de la plataforma: productos no borrados y combos de cada schema.
-- Los schemas salen de la propia base (los que tienen la tabla product), no de users: products crea el schema en la
-  primera request de la tienda, asi que un tenant que nunca se abrio no aparece y el frontend lo cuenta como 0.
-  Tampoco depende de que users responda. Los tenants borrados pueden aparecer: el frontend se queda solo con los
-  que lista users.
-- SQL directo (sin Hibernate, que solo ve el schema del tenant actual). Los combos se borran de verdad: sin deleted_at.
-- Se guarda 5 minutos en Redis; si Redis falla se calcula igual.
+Per-tenant usage for the platform dashboard: non-deleted products and bundles of each schema.
+- Schemas come from the database itself (those that have the product table), not from users: products creates the schema on the
+  store's first request, so a tenant that was never opened does not appear and the frontend counts it as 0.
+  It does not depend on users answering either. Deleted tenants may appear: the frontend only keeps the
+  ones users lists.
+- Plain SQL (without Hibernate, which only sees the current tenant's schema). Bundles are hard-deleted: no deleted_at.
+- Kept for 5 minutes in Redis; if Redis fails it is computed anyway.
  */
 @Service
 public class PlatformUsageService {
@@ -40,7 +40,7 @@ public class PlatformUsageService {
     @Autowired
     private CacheUtil cacheUtil;
 
-    // sort: products (por defecto) o bundles; de mayor a menor
+    // sort: products (default) or bundles; highest to lowest
     public List<ProductUsageDto> usage(String sort) throws ApiException {
         UsageSort usageSort = parseSort(sort);
         List<ProductUsageDto> usage = cacheUtil.getPlatformUsage();
@@ -65,7 +65,7 @@ public class PlatformUsageService {
 
         List<ProductUsageDto> usage = new ArrayList<>();
         for (String schema : schemas) {
-            // public no es una tienda; el resto se valida antes de meterlo en el SQL
+            // public is not a store; the rest is validated before putting it in the SQL
             if (TenantConstants.PUBLIC.equals(schema) || !SCHEMA.matcher(schema).matches()) continue;
             long products = count("SELECT COUNT(*) FROM " + schema + ".product WHERE deleted_at IS NULL");
             long bundles = withBundles.contains(schema) ? count("SELECT COUNT(*) FROM " + schema + ".bundles") : 0;

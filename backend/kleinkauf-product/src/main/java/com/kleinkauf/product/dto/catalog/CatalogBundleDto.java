@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /*
-Combo en el catalogo publico. listPrice es la suma de los productos (para mostrar el ahorro);
-null si alguno no tiene precio. image es la primera imagen del primer producto que tenga.
+Bundle in the public catalog. listPrice is the sum of the products (to show the savings);
+null if any of them has no price. image is the first image of the first product that has one.
  */
 public record CatalogBundleDto(
         Long id,

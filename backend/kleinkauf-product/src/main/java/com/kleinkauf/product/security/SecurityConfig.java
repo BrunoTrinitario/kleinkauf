@@ -28,47 +28,47 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        // Llamadas de otros microservicios (reservas de stock de sales)
+                        // Calls from other microservices (stock reservations from sales)
                         .requestMatchers("/api/internal/**").hasRole("INTERNAL")
-                        // Panel de la plataforma (sin tenant): uso por tenant
+                        // Platform dashboard (no tenant): per-tenant usage
                         .requestMatchers("/api/v1/platform/**").hasRole("SUPERADMIN")
-                        // Catalogo publico
+                        // Public catalog
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
-                        // Panel de la tienda: solo el administrador (todo el panel, no por areas). Antes de las
-                        // reglas de /api/v1/products/**, que dejan los GET abiertos
+                        // Store dashboard: administrator only (the whole dashboard, not by areas). Before the
+                        // /api/v1/products/** rules, which leave GETs open
                         .requestMatchers("/api/v1/products/dashboard").hasRole("ADMINISTRADOR")
-                        // Permisos por area (PermissionArea). El ADMINISTRADOR tiene todas;
-                        // los de EMPLEADO y CLIENTE los configura el administrador en users
+                        // Permissions by area (PermissionArea). ADMINISTRADOR has all of them;
+                        // EMPLEADO's and CLIENTE's are configured by the administrator in users
                         .requestMatchers("/api/v1/products/*/stock/movements", "/api/v1/products/stock/low")
                             .hasAuthority(PermissionArea.STOCK.authority())
-                        // Ver costo y margen y editar precio y costo
+                        // See cost and margin and edit price and cost
                         .requestMatchers("/api/v1/products/*/pricing").hasAuthority(PermissionArea.PRECIOS.authority())
-                        // CSV: el archivo trae precio y costo
+                        // CSV: the file carries price and cost
                         .requestMatchers("/api/v1/products/export", "/api/v1/products/import/template", "/api/v1/products/import")
                             .access(AuthorizationManagers.allOf(
                                     AuthorityAuthorizationManager.hasAuthority(PermissionArea.PRODUCTOS.authority()),
                                     AuthorityAuthorizationManager.hasAuthority(PermissionArea.PRECIOS.authority())))
-                        // Lecturas del panel con stock exacto: cualquier area del panel (el EMPLEADO por defecto solo
-                        // tiene STOCK). Incluye los combos, que dicen cuantos se pueden armar. El publico usa /api/v1/catalog/**
+                        // Dashboard reads with exact stock: any dashboard area (EMPLEADO by default only
+                        // has STOCK). Includes bundles, which say how many can be put together. The public uses /api/v1/catalog/**
                         .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/featured",
                                 "/api/v1/bundles/**")
                             .hasAnyAuthority(PANEL_AREAS)
                         .requestMatchers(RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/v1/products/\\d+$"))
                             .hasAnyAuthority(PANEL_AREAS)
-                        // Productos: alta, edicion, borrado, imagenes, metadatos y destacados
+                        // Products: create, edit, delete, images, metadata and featured
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasAuthority(PermissionArea.PRODUCTOS.authority())
-                        // Combos, incluido su precio
+                        // Bundles, including their price
                         .requestMatchers(HttpMethod.POST, "/api/v1/bundles/**").hasAuthority(PermissionArea.COMBOS.authority())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/bundles/**").hasAuthority(PermissionArea.COMBOS.authority())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/bundles/**").hasAuthority(PermissionArea.COMBOS.authority())
-                        // Imagenes y metadatos de un producto: no muestran stock, son publicos
+                        // A product's images and metadata: they do not show stock, they are public
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/*/images", "/api/v1/products/*/metadata").permitAll()
-                        // Lo que no tiene regla arriba (otro metodo, un endpoint nuevo) no queda abierto por defecto
+                        // Whatever has no rule above (another method, a new endpoint) is not left open by default
                         .requestMatchers("/api/v1/products/**", "/api/v1/bundles/**").denyAll()
                         .requestMatchers("/products/images/**").permitAll()
-                        // Link para compartir (Open Graph): lo abre un crawler, sin login
+                        // Share link (Open Graph): opened by a crawler, without login
                         .requestMatchers(HttpMethod.GET, "/share/products/*").permitAll()
                         .anyRequest().authenticated()
                 )

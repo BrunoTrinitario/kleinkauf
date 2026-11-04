@@ -36,7 +36,7 @@ public class BundleService {
     private ProductRepository productRepository;
     @Autowired
     private BundleProductRepository bundleProductRepository;
-    // Los combos estan en el catalogo publico: cada cambio invalida su cache
+    // Bundles are in the public catalog: every change invalidates its cache
     @Autowired
     private CatalogCacheService catalogCache;
 
@@ -56,7 +56,7 @@ public class BundleService {
         return BundleFactory.getBundle(b);
     }
 
-    // Valida todo antes de guardar: el combo se crea completo o no se crea
+    // Validates everything before saving: the bundle is created complete or not at all
     @Transactional
     public BundleDto createBundle(NewBundleDto newBundleDto) throws ApiException {
         String name = newBundleDto.name() != null ? newBundleDto.name().trim() : "";
@@ -86,7 +86,7 @@ public class BundleService {
 
         Bundle b = new Bundle();
         b.setName(name);
-        // Sin el campo se crea habilitado, como en el panel
+        // Without the field it is created enabled, as in the dashboard
         b.setEnabled(!Boolean.FALSE.equals(newBundleDto.enabled()));
         applyPricing(b, pricingType, newBundleDto.price(), newBundleDto.discount());
         for (NewBundleProductDto item : items) {
@@ -96,7 +96,7 @@ public class BundleService {
             bp.setQuantity(item.quantity());
             b.getProducts().add(bp);
         }
-        // Los productos del combo se guardan en cascada con el combo
+        // The bundle's products are saved in cascade with the bundle
         b = this.bundleRepository.save(b);
         catalogCache.invalidate();
         return BundleFactory.getBundle(b);
@@ -108,7 +108,7 @@ public class BundleService {
         }
     }
 
-    // Precio fijo o descuento sobre la suma de los productos (sin pricingType, precio fijo como antes)
+    // Fixed price or discount over the sum of the products (without pricingType, fixed price as before)
     public BundleDto updatePrice(Long id, UpdateBundlePriceDto dto) throws ApiException {
         BundlePricingType pricingType = pricingTypeOf(dto.pricingType());
         validatePricing(pricingType, dto.price(), dto.discount());
@@ -124,7 +124,7 @@ public class BundleService {
         return type != null ? type : BundlePricingType.FIXED;
     }
 
-    // FIXED: precio null (sin precio) o >= 0. PERCENT: descuento entre 0 y 100. AMOUNT: descuento >= 0
+    // FIXED: price null (no price) or >= 0. PERCENT: discount between 0 and 100. AMOUNT: discount >= 0
     private void validatePricing(BundlePricingType type, BigDecimal price, BigDecimal discount) throws ApiException {
         if (type == BundlePricingType.FIXED) {
             if (price != null && price.signum() < 0) {
@@ -139,7 +139,7 @@ public class BundleService {
         }
     }
 
-    // Guarda solo lo que usa cada tipo: con descuento no queda un precio viejo guardado que pueda leerse por error
+    // Stores only what each type uses: with a discount no old price stays stored that could be read by mistake
     private static void applyPricing(Bundle b, BundlePricingType type, BigDecimal price, BigDecimal discount) {
         b.setPricingType(type);
         b.setPrice(type == BundlePricingType.FIXED ? price : null);
@@ -154,7 +154,7 @@ public class BundleService {
         return true;
     }
 
-    // Un combo deshabilitado no aparece en el catalogo ni se puede comprar
+    // A disabled bundle does not appear in the catalog and cannot be bought
     public BundleDto setEnabled(Long id, Boolean enabled) throws ApiException {
         if (enabled == null) {
             throw new ApiException(ErrorMessages.BUNDLE_ENABLED_REQUIRED, HttpStatus.BAD_REQUEST);
@@ -167,7 +167,7 @@ public class BundleService {
         return BundleFactory.getBundle(b);
     }
 
-    // Si uno falla no se aplica ninguno
+    // If one fails none is applied
     @Transactional(rollbackFor = ApiException.class)
     public BundleDto bulkUpdateBundle(Long bundleId, List<NewBundleProductDto> newBundleDtos) throws ApiException {
         BundleDto b = null;
@@ -177,7 +177,7 @@ public class BundleService {
         return b;
     }
 
-    // Agrega el producto o cambia su cantidad (si ya estaba no se suma otra vez a la lista)
+    // Adds the product or changes its quantity (if it was already there it is not added to the list again)
     public BundleDto addOrUpdateProductToBundle(Long bundleId, NewBundleProductDto bundleProduct) throws ApiException {
         validateItem(bundleProduct);
         Bundle b = this.bundleRepository.findById(bundleId)

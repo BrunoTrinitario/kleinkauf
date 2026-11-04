@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// Movimientos de stock y alerta de stock bajo: administrador y empleado (ver SecurityConfig)
+// Stock movements and low stock alert: administrator and employee (see SecurityConfig)
 @RestController
 @RequestMapping("/api/v1/products")
 public class StockController {

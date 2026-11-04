@@ -16,8 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class BundleFactoryTest {
 
 	@Test
-	void precioDeListaYCombosDisponibles() {
-		// Combo: 1 mesa + 4 sillas
+	void listPriceAndAvailableBundles() {
+		// Bundle: 1 table + 4 chairs
 		Bundle bundle = bundle("90000.00");
 		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
 		add(bundle, product(2L, "Silla", "12000.00", 10), 4);
@@ -26,12 +26,12 @@ class BundleFactoryTest {
 
 		assertEquals(new BigDecimal("90000.00"), dto.getPrice());
 		assertEquals(new BigDecimal("98000.00"), dto.getListPrice());
-		// Mesas alcanzan para 3, sillas para 2 (10 / 4)
+		// Tables are enough for 3, chairs for 2 (10 / 4)
 		assertEquals(2, dto.getAvailable());
 	}
 
 	@Test
-	void productoSinPrecio_noHayPrecioDeLista() {
+	void productWithoutPrice_noListPrice() {
 		Bundle bundle = bundle(null);
 		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
 		add(bundle, product(2L, "Silla", null, 10), 4);
@@ -40,7 +40,7 @@ class BundleFactoryTest {
 	}
 
 	@Test
-	void sinStockDeUnProducto_noHayCombosDisponibles() {
+	void withoutStockOfAProduct_noBundlesAvailable() {
 		Bundle bundle = bundle(null);
 		add(bundle, product(1L, "Mesa", "50000.00", 0), 1);
 		add(bundle, product(2L, "Silla", "12000.00", 10), 4);
@@ -49,7 +49,7 @@ class BundleFactoryTest {
 	}
 
 	@Test
-	void comboVacio_noHayCombosDisponibles() {
+	void emptyBundle_noBundlesAvailable() {
 		BundleDto dto = BundleFactory.getBundle(bundle(null));
 
 		assertEquals(0, dto.getAvailable());
@@ -57,12 +57,12 @@ class BundleFactoryTest {
 	}
 
 	@Test
-	void cadaProductoTraeSuPrecioYSuPrimeraImagen() {
+	void eachProductCarriesItsPriceAndFirstImage() {
 		Bundle bundle = bundle(null);
-		Product mesa = product(1L, "Mesa", "50000.00", 3);
-		mesa.getImages().add(image(mesa, "mesa-2.png", 1));
-		mesa.getImages().add(image(mesa, "mesa-1.png", 0));
-		add(bundle, mesa, 1);
+		Product table = product(1L, "Mesa", "50000.00", 3);
+		table.getImages().add(image(table, "mesa-2.png", 1));
+		table.getImages().add(image(table, "mesa-1.png", 0));
+		add(bundle, table, 1);
 		add(bundle, product(2L, "Silla", null, 10), 4);
 
 		BundleDto dto = BundleFactory.getBundle(bundle);
@@ -74,31 +74,31 @@ class BundleFactoryTest {
 	}
 
 	@Test
-	void descuentoPorcentual_sobreLaSumaRedondeado() {
-		// 1 mesa 50000 + 4 sillas 12000 = 98000; 15% menos = 83300
+	void percentDiscount_overTheRoundedSum() {
+		// 1 table 50000 + 4 chairs 12000 = 98000; 15% off = 83300
 		Bundle bundle = discounted(BundlePricingType.PERCENT, "15");
 		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
 		add(bundle, product(2L, "Silla", "12000.00", 10), 4);
 		assertEquals(new BigDecimal("83300.00"), BundleFactory.getBundle(bundle).getPrice());
 
-		// 33,33% de 98000 = 32663,40 menos: 65336,60
+		// 33.33% of 98000 = 32663.40 off: 65336.60
 		bundle.setDiscount(new BigDecimal("33.33"));
 		assertEquals(new BigDecimal("65336.60"), BundleFactory.price(bundle));
 	}
 
 	@Test
-	void descuentoPorcentual_sigueAlPrecioDelProducto() {
+	void percentDiscount_followsTheProductPrice() {
 		Bundle bundle = discounted(BundlePricingType.PERCENT, "10");
-		Product mesa = product(1L, "Mesa", "50000.00", 3);
-		add(bundle, mesa, 2);
+		Product table = product(1L, "Mesa", "50000.00", 3);
+		add(bundle, table, 2);
 		assertEquals(new BigDecimal("90000.00"), BundleFactory.price(bundle));
 
-		mesa.setPrice(new BigDecimal("60000.00"));
+		table.setPrice(new BigDecimal("60000.00"));
 		assertEquals(new BigDecimal("108000.00"), BundleFactory.price(bundle));
 	}
 
 	@Test
-	void descuentoFijo_noBajaDeCero() {
+	void fixedDiscount_doesNotGoBelowZero() {
 		Bundle bundle = discounted(BundlePricingType.AMOUNT, "8000");
 		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);
 		assertEquals(new BigDecimal("42000.00"), BundleFactory.price(bundle));
@@ -108,7 +108,7 @@ class BundleFactoryTest {
 	}
 
 	@Test
-	void conDescuento_productoSinPrecioOComboVacio_sinPrecio() {
+	void withDiscount_productWithoutPriceOrEmptyBundle_noPrice() {
 		Bundle bundle = discounted(BundlePricingType.PERCENT, "10");
 		assertNull(BundleFactory.price(bundle));
 
@@ -118,7 +118,7 @@ class BundleFactoryTest {
 	}
 
 	@Test
-	void precioFijo_usaElGuardadoAunqueCambienLosProductos() {
+	void fixedPrice_usesTheStoredOneEvenIfProductsChange() {
 		Bundle bundle = bundle("90000.00");
 		bundle.setDiscount(new BigDecimal("50"));
 		add(bundle, product(1L, "Mesa", "50000.00", 3), 1);

@@ -18,8 +18,8 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-    // Listado paginado del panel (stock exacto): q busca en nombre, descripcion y categoria.
-    // size: 20 por defecto, maximo 100. Pide algun permiso del panel (ver SecurityConfig)
+    // Paginated dashboard listing (exact stock): q searches name, description and category.
+    // size: 20 by default, max 100. Requires some dashboard permission (see SecurityConfig)
     @GetMapping
     public ResponseEntity<ProductPageDto> searchProducts(
             @RequestParam(required = false) String q,
@@ -30,14 +30,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.searchProducts(q, category, page, size));
     }
 
-    // Destacados en el orden de la home, con stock exacto: lo usa el panel para ordenarlos (el publico usa
-    // /api/v1/catalog/featured). Pide algun area del panel (ver SecurityConfig)
+    // Featured products in home page order, with exact stock: the dashboard uses it to sort them (the public uses
+    // /api/v1/catalog/featured). Requires some dashboard area (see SecurityConfig)
     @GetMapping("/featured")
     public ResponseEntity<ArrayList<LightProductDto>> getFeaturedProducts() throws ApiException {
         return ResponseEntity.ok(productService.getFeaturedProducts());
     }
 
-    // Solo administrador (PUT /api/v1/products/** en SecurityConfig)
+    // Administrator only (PUT /api/v1/products/** in SecurityConfig)
     @PutMapping("/{id}/featured")
     public ResponseEntity<FullProductDto> setFeatured(@PathVariable Long id, @RequestBody FeaturedDto dto) throws ApiException {
         return ResponseEntity.ok(productService.setFeatured(id, dto));
@@ -93,7 +93,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateMetadata(id, dto));
     }
 
-    // Precio, costo y margen: solo administrador (ver SecurityConfig)
+    // Price, cost and margin: administrator only (see SecurityConfig)
     @GetMapping("/{id}/pricing")
     public ResponseEntity<PricingDto> getPricing(@PathVariable Long id) throws ApiException {
         return ResponseEntity.ok(productService.getPricing(id));

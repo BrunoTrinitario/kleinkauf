@@ -38,36 +38,36 @@ public class Product {
 
     private String description;
 
-    // Para los links del catalogo publico ('mesa-de-roble'). Se genera al crear y no cambia con el nombre
+    // For the public catalog links ('mesa-de-roble'). Generated on creation and does not change with the name
     @Column(unique = true, length = 100)
     private String slug;
 
-    // Solo se modifica con movimientos de stock (StockService)
+    // Only modified with stock movements (StockService)
     private int stock;
 
-    // Debajo de este valor el producto aparece en la alerta de stock bajo (0 = sin alerta)
+    // Below this value the product shows up in the low stock alert (0 = no alert)
     @ColumnDefault("0")
     @Column(name = "min_stock", nullable = false)
     private int minStock;
 
-    // Precio de venta (publico)
+    // Sale price (public)
     @Column(precision = 12, scale = 2)
     private BigDecimal price;
 
-    // Costo (solo lo ve el administrador)
+    // Cost (only the administrator sees it)
     @Column(precision = 12, scale = 2)
     private BigDecimal cost;
 
-    // Destacado en el catalogo (home)
+    // Featured in the catalog (home page)
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean featured;
 
-    // Orden entre los destacados (menor primero); null = al final, por nombre
+    // Order among featured products (lower first); null = last, by name
     @Column(name = "featured_order")
     private Integer featuredOrder;
 
-    // Unidades vendidas (pedidos pagos de sales). Solo lo ve el administrador
+    // Units sold (paid sales orders). Only the administrator sees it
     @ColumnDefault("0")
     @Column(name = "sold_count", nullable = false)
     private int soldCount;

@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.TimeUnit;
 
 /*
-El cache general (caffeineCache, 10 minutos) viene de kleinkauf-common.
-Los roles de cada usuario traen sus permisos: TTL corto para que un cambio de permisos
-se aplique en menos de 1 minuto (users ademas borra los de Redis).
+The general cache (caffeineCache, 10 minutes) comes from kleinkauf-common.
+Each user's roles carry their permissions: short TTL so a permission change
+applies in less than 1 minute (users also deletes the ones in Redis).
  */
 @Configuration
 public class CaffeineConfig {

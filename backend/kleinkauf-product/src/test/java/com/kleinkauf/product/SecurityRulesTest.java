@@ -52,8 +52,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
-Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
-Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
+Permissions per role with the real SecurityConfig and HeaderAuthFilter.
+Roles come from UserService (mock) according to the X-User-Id header added by the gateway.
  */
 @WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class, DashboardController.class, ShareController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
@@ -104,12 +104,12 @@ class SecurityRulesTest {
 	@MockitoBean
 	private CatalogUsage catalogUsage;
 
-	// Lo que users devuelve para EMPLEADO: por defecto solo STOCK; cada test puede configurarlo
-	private int empleadoPermissions = PermissionArea.STOCK.bit();
+	// What users returns for EMPLEADO: STOCK only by default; each test can configure it
+	private int employeePermissions = PermissionArea.STOCK.bit();
 
 	private MockHttpServletRequestBuilder as(Long userId, MockHttpServletRequestBuilder request) {
 		when(userService.getUserRolesById(ADMIN)).thenReturn(List.of(new RoleDto("ADMINISTRADOR", PermissionArea.ALL)));
-		when(userService.getUserRolesById(EMPLEADO)).thenReturn(List.of(new RoleDto("EMPLEADO", empleadoPermissions)));
+		when(userService.getUserRolesById(EMPLEADO)).thenReturn(List.of(new RoleDto("EMPLEADO", employeePermissions)));
 		when(userService.getUserRolesById(CLIENTE)).thenReturn(List.of(new RoleDto("CLIENTE", 0)));
 		request.header(Headers.FORWARDED_HOST, "tienda1");
 		if (userId != null) request.header(Headers.USER_ID, userId);
@@ -120,30 +120,30 @@ class SecurityRulesTest {
 		return request.contentType(MediaType.APPLICATION_JSON).content(body);
 	}
 
-	// Muestran el stock exacto (los combos, cuantos se pueden armar): piden un area del panel. El publico usa el catalogo
+	// They show the exact stock (bundles, how many can be put together): they require a dashboard area. The public uses the catalog
 	@Test
-	void lecturasConStockExacto_pidenAreaDelPanel() throws Exception {
+	void readsWithExactStock_requireADashboardArea() throws Exception {
 		for (String path : List.of("/api/v1/products/5", "/api/v1/products/featured", "/api/v1/bundles/all", "/api/v1/bundles/3")) {
 			mockMvc.perform(as(null, get(path))).andExpect(status().isForbidden());
 			mockMvc.perform(as(CLIENTE, get(path))).andExpect(status().isForbidden());
 			mockMvc.perform(as(EMPLEADO, get(path))).andExpect(status().isOk());
 		}
-		// Sin stock: siguen publicos
+		// No stock: they stay public
 		mockMvc.perform(as(null, get("/api/v1/products/5/metadata"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/products/5/images"))).andExpect(status().isOk());
 	}
 
-	// Lo que no tiene regla propia no queda abierto, ni para el administrador
+	// Whatever has no rule of its own is not left open, not even for the administrator
 	@Test
-	void rutasSinRegla_seRechazan() throws Exception {
+	void routesWithoutRule_areRejected() throws Exception {
 		mockMvc.perform(as(ADMIN, patch("/api/v1/products/5"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, get("/api/v1/products/5/inventado"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, patch("/api/v1/bundles/3"))).andExpect(status().isForbidden());
 	}
 
-	// Link para compartir: lo abre un crawler sin login; HTML con Open Graph que redirige a la tienda
+	// Share link: opened by a crawler without login; HTML with Open Graph that redirects to the store
 	@Test
-	void linkParaCompartir_esPublicoYDevuelveHtml() throws Exception {
+	void shareLink_isPublicAndReturnsHtml() throws Exception {
 		when(catalogService.getBySlug("mesa-de-roble")).thenReturn(new CatalogProductDetailDto(5L, "mesa-de-roble",
 				"Mesa de roble", "Mesas", "Maciza", new java.math.BigDecimal("150000"), Availability.DISPONIBLE, false,
 				List.of("abc.png"), null));
@@ -162,9 +162,9 @@ class SecurityRulesTest {
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("url=http://tienda1.localhost:2999/")));
 	}
 
-	// Los listados del panel muestran el stock exacto: piden algun area del panel (el EMPLEADO por defecto tiene STOCK)
+	// Dashboard listings show the exact stock: they require some dashboard area (EMPLEADO has STOCK by default)
 	@Test
-	void listadoDelPanel_pideAreaDelPanel() throws Exception {
+	void dashboardListing_requiresADashboardArea() throws Exception {
 		for (String path : List.of("/api/v1/products")) {
 			mockMvc.perform(as(null, get(path))).andExpect(status().isForbidden());
 			mockMvc.perform(as(CLIENTE, get(path))).andExpect(status().isForbidden());
@@ -174,7 +174,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void catalogoNuevo_sinLogin() throws Exception {
+	void newCatalog_withoutLogin() throws Exception {
 		mockMvc.perform(as(null, get("/api/v1/catalog/products").param("q", "mesa").param("sort", "price_asc")))
 				.andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/catalog/products/mesa-de-roble"))).andExpect(status().isOk());
@@ -184,11 +184,11 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void reservasDeStock_soloConTokenInterno() throws Exception {
+	void stockReservations_onlyWithInternalToken() throws Exception {
 		String body = "{\"reference\":\"K7QM-4X2P\",\"items\":[{\"type\":\"PRODUCT\",\"id\":5,\"quantity\":1}]}";
 		when(internalTokenService.validateInternalToken("valido")).thenReturn(true);
 
-		// Sin token, ni siquiera el administrador
+		// Without a token, not even the administrator
 		mockMvc.perform(as(null, json(post("/api/internal/products/reservations"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, json(post("/api/internal/products/reservations"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(null, json(post("/api/internal/products/reservations"), body)
@@ -202,7 +202,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void crearProducto_soloAdministrador() throws Exception {
+	void createProduct_administratorOnly() throws Exception {
 		String body = "{\"name\":\"Silla\",\"stock\":1}";
 		mockMvc.perform(as(CLIENTE, json(post("/api/v1/products"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/products"), body))).andExpect(status().isForbidden());
@@ -210,7 +210,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void movimientosDeStock_administradorYEmpleado() throws Exception {
+	void stockMovements_administratorAndEmployee() throws Exception {
 		String body = "{\"type\":\"ENTRADA\",\"quantity\":3}";
 		mockMvc.perform(as(null, json(post("/api/v1/products/5/stock/movements"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(CLIENTE, json(post("/api/v1/products/5/stock/movements"), body))).andExpect(status().isForbidden());
@@ -222,14 +222,14 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void stockBajo_administradorYEmpleado() throws Exception {
+	void lowStock_administratorAndEmployee() throws Exception {
 		mockMvc.perform(as(null, get("/api/v1/products/stock/low"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(CLIENTE, get("/api/v1/products/stock/low"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/stock/low"))).andExpect(status().isOk());
 	}
 
 	@Test
-	void costoYMargen_soloAdministrador() throws Exception {
+	void costAndMargin_administratorOnly() throws Exception {
 		mockMvc.perform(as(null, get("/api/v1/products/5/pricing"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/5/pricing"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, get("/api/v1/products/5/pricing"))).andExpect(status().isOk());
@@ -240,7 +240,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void destacados_marcarSoloAdministrador() throws Exception {
+	void featured_markAdministratorOnly() throws Exception {
 		String body = "{\"featured\":true,\"order\":1}";
 		mockMvc.perform(as(null, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/featured"), body))).andExpect(status().isForbidden());
@@ -248,7 +248,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void importarYExportar_soloAdministrador() throws Exception {
+	void importAndExport_administratorOnly() throws Exception {
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/export"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, get("/api/v1/products/export"))).andExpect(status().isOk());
 
@@ -262,7 +262,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void importarConErrores_responde400ConLosErrores() throws Exception {
+	void importWithErrors_responds400WithTheErrors() throws Exception {
 		when(productCsvService.importCsv(any())).thenReturn(
 				new ImportResultDto(0, 0, List.of(new ImportResultDto.RowError(2, "The name is required"))));
 		MockMultipartFile file = new MockMultipartFile("file", "p.csv", "text/csv", "nombre\r\n;\r\n".getBytes());
@@ -273,24 +273,24 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void precioDelCombo_soloAdministrador() throws Exception {
+	void bundlePrice_administratorOnly() throws Exception {
 		String body = "{\"price\":90000}";
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, json(put("/api/v1/bundles/1/price"), body))).andExpect(status().isOk());
 	}
 
-	// Habilitar un combo pide COMBOS, con el estado explicito
+	// Enabling a bundle requires COMBOS, with the explicit state
 	@Test
-	void habilitarCombo_pideCombos() throws Exception {
+	void enableBundle_requiresCombos() throws Exception {
 		String body = "{\"enabled\":false}";
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/enabled"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, json(put("/api/v1/bundles/1/enabled"), body))).andExpect(status().isOk());
 	}
 
-	// El panel es del administrador: un empleado no entra aunque tenga todas las areas
+	// The dashboard belongs to the administrator: an employee cannot get in even with every area
 	@Test
-	void panelDeLaTienda_soloAdministrador() throws Exception {
-		empleadoPermissions = PermissionArea.ALL;
+	void storeDashboard_administratorOnly() throws Exception {
+		employeePermissions = PermissionArea.ALL;
 
 		mockMvc.perform(as(null, get("/api/v1/products/dashboard"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(CLIENTE, get("/api/v1/products/dashboard"))).andExpect(status().isForbidden());
@@ -298,22 +298,22 @@ class SecurityRulesTest {
 		mockMvc.perform(as(ADMIN, get("/api/v1/products/dashboard"))).andExpect(status().isOk());
 	}
 
-	// Permisos configurados por el administrador para EMPLEADO
+	// Permissions configured by the administrator for EMPLEADO
 
 	@Test
-	void empleadoConPrecios_veYEditaPreciosPeroNoProductos() throws Exception {
-		empleadoPermissions = PermissionArea.PRECIOS.bit();
+	void employeeWithPrecios_seesAndEditsPricesButNotProducts() throws Exception {
+		employeePermissions = PermissionArea.PRECIOS.bit();
 
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/5/pricing"))).andExpect(status().isOk());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/pricing"), "{\"price\":100}"))).andExpect(status().isOk());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5"), "{\"name\":\"x\"}"))).andExpect(status().isForbidden());
-		// Ya no tiene STOCK
+		// It no longer has STOCK
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/stock/low"))).andExpect(status().isForbidden());
 	}
 
 	@Test
-	void empleadoConProductos_editaProductosYDestacados() throws Exception {
-		empleadoPermissions = PermissionArea.PRODUCTOS.bit();
+	void employeeWithProductos_editsProductsAndFeatured() throws Exception {
+		employeePermissions = PermissionArea.PRODUCTOS.bit();
 
 		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/products"), "{\"name\":\"Silla\"}"))).andExpect(status().isCreated());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/featured"), "{\"featured\":true}"))).andExpect(status().isOk());
@@ -321,20 +321,20 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void csv_pideProductosYPrecios() throws Exception {
-		empleadoPermissions = PermissionArea.PRODUCTOS.bit();
+	void csv_requiresProductosAndPrecios() throws Exception {
+		employeePermissions = PermissionArea.PRODUCTOS.bit();
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/export"))).andExpect(status().isForbidden());
 
-		empleadoPermissions = PermissionArea.PRECIOS.bit();
+		employeePermissions = PermissionArea.PRECIOS.bit();
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/export"))).andExpect(status().isForbidden());
 
-		empleadoPermissions = PermissionArea.PRODUCTOS.bit() | PermissionArea.PRECIOS.bit();
+		employeePermissions = PermissionArea.PRODUCTOS.bit() | PermissionArea.PRECIOS.bit();
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/export"))).andExpect(status().isOk());
 	}
 
 	@Test
-	void empleadoConCombos_editaCombosYSuPrecio() throws Exception {
-		empleadoPermissions = PermissionArea.COMBOS.bit();
+	void employeeWithCombos_editsBundlesAndTheirPrice() throws Exception {
+		employeePermissions = PermissionArea.COMBOS.bit();
 
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/price"), "{\"price\":90000}"))).andExpect(status().isOk());
 		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/bundles"), "{\"name\":\"Combo\"}"))).andExpect(status().isCreated());
@@ -342,10 +342,10 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void clienteSinPermisos_noAccedeAlPanel() throws Exception {
+	void customerWithoutPermissions_cannotAccessTheDashboard() throws Exception {
 		mockMvc.perform(as(CLIENTE, get("/api/v1/products/stock/low"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(CLIENTE, json(post("/api/v1/bundles"), "{\"name\":\"Combo\"}"))).andExpect(status().isForbidden());
-		// El catalogo sigue siendo publico
+		// The catalog is still public
 		mockMvc.perform(as(CLIENTE, get("/api/v1/catalog/products"))).andExpect(status().isOk());
 	}
 }

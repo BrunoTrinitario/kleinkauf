@@ -37,7 +37,7 @@ public class ProductService {
 
     public static final long MAX_IMAGE_BYTES = 1024 * 1024; // 1 MB
 
-    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
     @Autowired
     private AuditLog auditLog;
 
@@ -69,8 +69,8 @@ public class ProductService {
     public static final int MAX_PAGE_SIZE = 100;
 
     /*
-    Listado paginado del panel (con stock exacto), ordenado por nombre. Usa la misma busqueda que el
-    catalogo (nombre, descripcion y categoria) y trae las imagenes de toda la pagina en una sola consulta.
+    Paginated dashboard listing (with exact stock), ordered by name. Uses the same search as the
+    catalog (name, description and category) and fetches the images of the whole page in a single query.
      */
     public ProductPageDto searchProducts(String query, String category, Integer page, Integer size) throws ApiException {
         int pageNumber = page == null ? 0 : page;
@@ -101,7 +101,7 @@ public class ProductService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    // Destacados ordenados por featuredOrder (sin orden al final) y despues por nombre
+    // Featured products ordered by featuredOrder (unordered last) and then by name
     public ArrayList<LightProductDto> getFeaturedProducts() throws ApiException {
         return toLightProducts(productRepository.findFeatured());
     }
@@ -192,7 +192,7 @@ public class ProductService {
         fileManager.deleteImage(path);
     }
 
-    // Los campos en null no cambian (BasicUpdateDto)
+    // Null fields do not change (BasicUpdateDto)
     public FullProductDto updateProduct(Long id, BasicUpdateDto updatedData) throws ApiException{
         if (updatedData.minStock() != null) validateMinStock(updatedData.minStock());
         Product product = productRepository.findById(id).orElse(null);
@@ -217,7 +217,7 @@ public class ProductService {
     public FullProductDto createProduct(NewProductDto updatedData) throws ApiException{
         String name = validateName(updatedData.name());
         validateNameAvailable(name);
-        // Sin el permiso PRECIOS el precio y el costo se ignoran (el producto se crea sin ellos)
+        // Without the PRECIOS permission price and cost are ignored (the product is created without them)
         boolean canSetPrices = SecurityUtil.hasPermission(PermissionArea.PRECIOS);
         BigDecimal price = canSetPrices ? updatedData.price() : null;
         BigDecimal cost = canSetPrices ? updatedData.cost() : null;
@@ -234,7 +234,7 @@ public class ProductService {
         product.setMinStock(updatedData.minStock());
         product.setPrice(price);
         product.setCost(cost);
-        // Slug fijo para el link del catalogo (no cambia si despues cambia el nombre)
+        // Fixed slug for the catalog link (does not change if the name changes later)
         product.setSlug(Slugs.unique(product.getName(), productRepository::existsBySlugIncludingDeleted));
         product = productRepository.save(product);
         stockService.registerInitialStock(product);
@@ -245,7 +245,7 @@ public class ProductService {
     public PricingDto getPricing(Long id) throws ApiException {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
-        // Lectura sensible: el costo y el margen
+        // Sensitive read: the cost and the margin
         auditLog.read("ProductPricing", id);
         return toPricing(product);
     }
@@ -289,8 +289,8 @@ public class ProductService {
         return name.trim();
     }
 
-    // El nombre es unico en la tabla, tambien contra los productos borrados (soft delete): sin esto, el insert
-    // o el update chocaban con la constraint y respondian 500
+    // The name is unique in the table, also against deleted products (soft delete): without this, the insert
+    // or the update hit the constraint and responded 500
     private void validateNameAvailable(String name) throws ApiException {
         if (productRepository.existsByName(name)) {
             throw new ApiException(ErrorMessages.PRODUCT_NAME_IN_USE, HttpStatus.CONFLICT);
@@ -329,9 +329,9 @@ public class ProductService {
     }
 
     public ArrayList<ImageDto> addProductImages(Long productId, List<String> imagePaths) throws ApiException {
-        ArrayList<ImageDto> actualImages = this.getProductImages(productId);
+        ArrayList<ImageDto> currentImages = this.getProductImages(productId);
         Product product = productRepository.findById(productId).orElse(null);
-        int cont = actualImages.size();
+        int cont = currentImages.size();
         for(String path : imagePaths) {
             ProductImage realImage = new ProductImage();
             realImage.setProduct(product);
@@ -349,8 +349,8 @@ public class ProductService {
         if (!productRepository.existsById(productId)) {
             throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-        // Se valida todo antes de guardar: si una falla no queda ninguna a medias. Primero el tamano de todas
-        // (el limite general de subida es 5 MB, por el CSV; las imagenes siguen en 1 MB) y despues el tipo
+        // Everything is validated before saving: if one fails none is left half done. First the size of all of them
+        // (the general upload limit is 5 MB, because of the CSV; images stay at 1 MB) and then the type
         for (MultipartFile file : files) {
             if (file.getSize() > MAX_IMAGE_BYTES) {
                 throw new ApiException(ErrorMessages.IMAGE_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE);

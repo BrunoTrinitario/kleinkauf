@@ -39,15 +39,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /*
-Reservas de stock de los pedidos de sales (endpoints internos).
-- Reservar: valida todos los items (existen, tienen precio y alcanza el stock) y registra una SALIDA
-  por producto. Todo o nada. Un combo descuenta cada producto que lo compone.
-  Venta del local: acepta items sin precio y, si falta stock, registra un AJUSTE por lo que falta
-  (el stock queda en 0) e informa los productos en shortages.
-- Devolver: registra una ENTRADA por cada SALIDA de la reserva (todo lo vendido, aunque haya habido AJUSTE).
-- Vendidos: suma o resta el contador de cada producto y combo del pedido.
-Todas son idempotentes por reference (numero de pedido), ver StockReservation.
-Las transacciones vuelven atras tambien con ApiException (checked).
+Stock reservations for sales orders (internal endpoints).
+- Reserve: validates all items (they exist, have a price and there is enough stock) and records a SALIDA
+  per product. All or nothing. A bundle deducts each product it is made of.
+  In-store sale: accepts items without a price and, if stock is short, records an AJUSTE for the missing amount
+  (stock ends at 0) and reports the products in shortages.
+- Release: records an ENTRADA for each SALIDA of the reservation (everything sold, even if there was an AJUSTE).
+- Sold: adds to or subtracts from the counter of each product and bundle in the order.
+All of them are idempotent by reference (order number), see StockReservation.
+Transactions also roll back with ApiException (checked).
  */
 @Service
 public class StockReservationService {
@@ -76,7 +76,7 @@ public class StockReservationService {
     @Autowired
     private CatalogCacheService catalogCache;
 
-    // Lo que hay que descontar de un item: productId -> unidades
+    // What has to be deducted for an item: productId -> units
     private record Line(ReservationItemDto item, Bundle bundle, Map<Long, Integer> components) {
     }
 
@@ -90,7 +90,7 @@ public class StockReservationService {
             if (existing.getStatus() == StockReservation.Status.RELEASED) {
                 throw new ApiException(ErrorMessages.RESERVATION_RELEASED, HttpStatus.CONFLICT);
             }
-            // Reintento de una reserva ya hecha: devuelve los datos sin volver a descontar
+            // Retry of a reservation already made: returns the data without deducting again
             List<Line> lines = resolve(request.items());
             Map<Long, Product> products = byId(productRepository.findAllById(productIds(lines)));
             return new ReservationDto(reference, describe(lines, products, request.local()), shortages(existing));
@@ -102,7 +102,7 @@ public class StockReservationService {
         try {
             reservationRepository.saveAndFlush(reservation);
         } catch (DataIntegrityViolationException e) {
-            // Otro pedido con la misma reference se esta procesando al mismo tiempo
+            // Another order with the same reference is being processed at the same time
             throw new ApiException(ErrorMessages.RESERVATION_IN_PROGRESS, HttpStatus.CONFLICT);
         }
 
@@ -128,7 +128,7 @@ public class StockReservationService {
             int stockBefore = product.getStock();
             int stock = Math.max(product.getStock(), 0);
             if (stock < e.getValue()) {
-                // Venta del local sin stock suficiente: se ajusta a lo vendido y despues sale todo
+                // In-store sale without enough stock: it is adjusted to what was sold and then everything goes out
                 move(product, StockMovementType.AJUSTE, e.getValue() - product.getStock(),
                         "Ajuste automatico pedido " + reference + ": faltaba stock", reference);
             }
@@ -150,7 +150,7 @@ public class StockReservationService {
 
         StockReservation reservation = reservationRepository.findByReferenceForUpdate(ref).orElse(null);
         if (reservation == null) {
-            // La reserva nunca llego (o todavia no): queda marcada para que no se aplique despues
+            // The reservation never arrived (or not yet): it is marked so it is not applied later
             reservation = new StockReservation();
             reservation.setReference(ref);
             reservation.setStatus(StockReservation.Status.RELEASED);
@@ -170,7 +170,7 @@ public class StockReservationService {
         for (Object[] row : stockMovementRepository.findQuantitiesByReference(ref, StockMovementType.SALIDA)) {
             reserved.merge((Long) row[0], -((Integer) row[1]), Integer::sum);
         }
-        // Los productos borrados no vuelven al stock: ya no se venden
+        // Deleted products do not go back to stock: they are no longer sold
         Map<Long, Product> products = reserved.isEmpty()
                 ? Map.of()
                 : byId(productRepository.findAllByIdForUpdate(reserved.keySet()));
@@ -186,7 +186,7 @@ public class StockReservationService {
         catalogCache.invalidate();
     }
 
-    // Suma el pedido al contador de vendidos (al validar el pago o al cargar una venta del local)
+    // Adds the order to the sold counter (when the payment is validated or an in-store sale is entered)
     @Transactional(rollbackFor = Exception.class)
     public void markSold(String reference, SoldItemsDto dto) throws ApiException {
         StockReservation reservation = soldReservation(reference, dto);
@@ -199,7 +199,7 @@ public class StockReservationService {
         reservationRepository.save(reservation);
     }
 
-    // Resta el pedido del contador (al cancelar un pedido que ya estaba pago)
+    // Subtracts the order from the counter (when cancelling an order that was already paid)
     @Transactional(rollbackFor = Exception.class)
     public void unmarkSold(String reference, SoldItemsDto dto) throws ApiException {
         StockReservation reservation = soldReservation(reference, dto);
@@ -219,8 +219,8 @@ public class StockReservationService {
                 .orElseThrow(() -> new ApiException(ErrorMessages.RESERVATION_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
-    // Los productos y combos borrados se saltean: el pedido conserva sus datos.
-    // Invalida el catalogo: el orden "mas vendidos" depende del contador
+    // Deleted products and bundles are skipped: the order keeps its data.
+    // Invalidates the catalog: the "best sellers" order depends on the counter
     private void addSold(SoldItemsDto dto, int sign) {
         catalogCache.invalidate();
         for (ReservationItemDto item : dto.items()) {
@@ -263,7 +263,7 @@ public class StockReservationService {
         return reference.trim();
     }
 
-    // Arma cada linea con los productos que descuenta. Los combos tienen que estar habilitados y con productos
+    // Builds each line with the products it deducts. Bundles must be enabled and have products
     private List<Line> resolve(List<ReservationItemDto> items) throws ApiException {
         List<Line> lines = new ArrayList<>();
         for (ReservationItemDto item : items) {
@@ -288,7 +288,7 @@ public class StockReservationService {
         return lines;
     }
 
-    // Nombre, precio y costo de cada linea. Falla si falta algun producto (borrado) o el precio (salvo en el local)
+    // Name, price and cost of each line. Fails if some product (deleted) or the price is missing (except in-store)
     private List<ReservedItemDto> describe(List<Line> lines, Map<Long, Product> products, boolean local) throws ApiException {
         List<ReservedItemDto> result = new ArrayList<>();
         for (Line line : lines) {
@@ -307,7 +307,7 @@ public class StockReservationService {
                         product.getPrice(), product.getCost()));
             } else {
                 Bundle bundle = line.bundle();
-                // El precio sale de BundleFactory: con descuento sigue al de los productos
+                // The price comes from BundleFactory: with a discount it follows the products' price
                 BigDecimal price = BundleFactory.price(bundle);
                 if (price == null && !local) {
                     throw new ApiException(ErrorMessages.ITEM_WITHOUT_PRICE + ": " + bundle.getName(), HttpStatus.CONFLICT);
@@ -319,14 +319,14 @@ public class StockReservationService {
         return result;
     }
 
-    // Costo de un combo: suma del costo de sus productos; null si alguno no tiene costo
+    // Cost of a bundle: sum of its products' cost; null if any has no cost
     private static BigDecimal bundleCost(Line line, Map<Long, Product> products) {
         BigDecimal total = BigDecimal.ZERO;
         int bundles = line.item().quantity();
         for (Map.Entry<Long, Integer> component : line.components().entrySet()) {
             BigDecimal cost = products.get(component.getKey()).getCost();
             if (cost == null) return null;
-            // components tiene las unidades de todos los combos de la linea: se divide por la cantidad
+            // components holds the units of all the line's bundles: divided by the quantity
             total = total.add(cost.multiply(BigDecimal.valueOf(component.getValue() / bundles)));
         }
         return total;

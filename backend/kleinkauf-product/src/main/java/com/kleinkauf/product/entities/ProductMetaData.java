@@ -30,7 +30,7 @@ public class ProductMetaData {
     private double weight;
 
     public ProductMetaData(){
-        // Sin dato = vacio (no un valor de relleno que despues se muestra o se exporta como si fuera real)
+        // No data = empty (not a filler value that is later shown or exported as if it were real)
         this.material = "";
         this.color = "";
         this.style = "";

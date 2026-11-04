@@ -7,9 +7,9 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 /*
-HTML minimo del link para compartir un producto (docs/backend/products.md): las etiquetas Open Graph para la vista
-previa de WhatsApp o Instagram (sus crawlers no ejecutan JavaScript) y una redireccion a la pagina del producto en
-la tienda, que es lo que ve una persona. Sin estado: se arma con lo que ya devuelve el catalogo (y su cache).
+Minimal HTML of the product share link (docs/backend/products.md): the Open Graph tags for the WhatsApp or
+Instagram preview (their crawlers do not run JavaScript) and a redirect to the product page in
+the store, which is what a person sees. Stateless: built from what the catalog already returns (and its cache).
  */
 public final class SharePage {
 
@@ -18,7 +18,7 @@ public final class SharePage {
     private SharePage() {
     }
 
-    // storeUrl: la tienda (http://mitienda.localhost:2999). publicUrl: el gateway, para la URL absoluta de la imagen
+    // storeUrl: the store (http://mitienda.localhost:2999). publicUrl: the gateway, for the image's absolute URL
     public static String product(CatalogProductDetailDto product, String storeUrl, String publicUrl) {
         String target = storeUrl + "/productos/" + product.slug();
         String image = product.images() == null || product.images().isEmpty()
@@ -27,7 +27,7 @@ public final class SharePage {
         return page(product.name(), description(product), image, target);
     }
 
-    // Producto que no existe o se borro: la vista previa es la de la tienda y se va a su home
+    // Product that does not exist or was deleted: the preview is the store's and it goes to its home page
     public static String store(String storeUrl) {
         return page(null, null, null, storeUrl + "/");
     }
@@ -75,7 +75,7 @@ public final class SharePage {
         html.append("<meta property=\"").append(property).append("\" content=\"").append(escape(content)).append("\">\n");
     }
 
-    // Los textos los carga el comercio: se escapan para que no puedan cerrar el atributo ni meter etiquetas
+    // The texts are entered by the merchant: they are escaped so they cannot close the attribute or inject tags
     static String escape(String value) {
         StringBuilder out = new StringBuilder(value.length());
         for (char c : value.toCharArray()) {

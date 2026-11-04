@@ -65,17 +65,17 @@ class CatalogServiceTest {
 	@BeforeEach
 	@SuppressWarnings("unchecked")
 	void setUp() {
-		// El cache no tiene nada: ejecuta el loader
+		// The cache has nothing: it runs the loader
 		when(cache.get(anyString(), any(), any())).thenAnswer(invocation -> ((Supplier<Object>) invocation.getArgument(2)).get());
 		when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
 	}
 
 	@Test
-	void paginaConTotalesYDisponibilidadSinStockExacto() throws ApiException {
-		Product mesa = product("Mesa", "mesa", "150000", 10, 2);
-		Product silla = product("Silla", "silla", null, 1, 2);
+	void pageWithTotalsAndAvailabilityWithoutExactStock() throws ApiException {
+		Product table = product("Mesa", "mesa", "150000", 10, 2);
+		Product chair = product("Silla", "silla", null, 1, 2);
 		when(catalogRepository.count(any())).thenReturn(30L);
-		when(catalogRepository.search(any(), eq(CatalogSort.PRICE_ASC), eq(1), eq(24))).thenReturn(List.of(mesa, silla));
+		when(catalogRepository.search(any(), eq(CatalogSort.PRICE_ASC), eq(1), eq(24))).thenReturn(List.of(table, chair));
 
 		CatalogPageDto page = catalogService.search(" mesa ", null, "price_asc", 1, null);
 
@@ -84,12 +84,12 @@ class CatalogServiceTest {
 		assertEquals(24, page.size());
 		assertEquals(Availability.DISPONIBLE, page.items().get(0).availability());
 		assertEquals(Availability.POCAS_UNIDADES, page.items().get(1).availability());
-		// Sin precio = 'consultar'
+		// No price = 'consultar'
 		assertNull(page.items().get(1).price());
 	}
 
 	@Test
-	void parametrosInvalidos_respondenBadRequest() {
+	void invalidParameters_respondBadRequest() {
 		for (Executable call : List.<Executable>of(
 				() -> catalogService.search(null, null, "barato", 0, 24),
 				() -> catalogService.search(null, null, null, -1, 24),
@@ -101,11 +101,11 @@ class CatalogServiceTest {
 	}
 
 	@Test
-	void detallePorSlug_conImagenesEnOrden() throws ApiException {
-		Product mesa = product("Mesa", "mesa", "150000", 0, 0);
-		mesa.getImages().add(image(mesa, "b.jpg", 1));
-		mesa.getImages().add(image(mesa, "a.jpg", 0));
-		when(productRepository.findBySlug("mesa")).thenReturn(Optional.of(mesa));
+	void detailBySlug_withImagesInOrder() throws ApiException {
+		Product table = product("Mesa", "mesa", "150000", 0, 0);
+		table.getImages().add(image(table, "b.jpg", 1));
+		table.getImages().add(image(table, "a.jpg", 0));
+		when(productRepository.findBySlug("mesa")).thenReturn(Optional.of(table));
 
 		CatalogProductDetailDto detail = catalogService.getBySlug("mesa");
 
@@ -114,7 +114,7 @@ class CatalogServiceTest {
 	}
 
 	@Test
-	void slugInexistente_respondeNotFound() {
+	void unknownSlug_respondsNotFound() {
 		when(productRepository.findBySlug("nada")).thenReturn(Optional.empty());
 
 		ApiException ex = assertThrows(ApiException.class, () -> catalogService.getBySlug("nada"));
@@ -123,10 +123,10 @@ class CatalogServiceTest {
 	}
 
 	@Test
-	void destacados_enElOrdenDelAdministradorSinStockExacto() {
-		Product primero = product("Primero", "primero", "100", 0, 0);
-		Product segundo = product("Segundo", "segundo", "200", 8, 2);
-		when(productRepository.findFeatured()).thenReturn(List.of(primero, segundo));
+	void featured_inTheAdministratorOrderWithoutExactStock() {
+		Product first = product("Primero", "primero", "100", 0, 0);
+		Product second = product("Segundo", "segundo", "200", 8, 2);
+		when(productRepository.findFeatured()).thenReturn(List.of(first, second));
 
 		List<CatalogProductDto> featured = catalogService.featured();
 

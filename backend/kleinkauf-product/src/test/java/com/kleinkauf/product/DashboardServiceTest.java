@@ -20,8 +20,8 @@ import org.springframework.context.annotation.Import;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /*
-Panel de la tienda contra una base real (H2 en modo PostgreSQL): los conteos y sumas son consultas
-JPQL que, si estan mal, solo fallan al arrancar o al pedir el panel.
+Store dashboard against a real database (H2 in PostgreSQL mode): the counts and sums are JPQL
+queries that, if wrong, only fail at startup or when the dashboard is requested.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:dashboard;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
@@ -37,7 +37,7 @@ class DashboardServiceTest {
 	private DashboardService dashboardService;
 
 	@Test
-	void sinProductos_todoEnCero() {
+	void withoutProducts_allZero() {
 		ProductDashboardDto dashboard = dashboardService.dashboard();
 
 		assertEquals(0, dashboard.products().total());
@@ -48,9 +48,9 @@ class DashboardServiceTest {
 	}
 
 	@Test
-	void cuentaProductosPorCategoriaSinPrecioSinImagenYDestacados() {
-		Product mesa = product("Mesa", "Mesas", 2, 0, "100", "60");
-		image(mesa);
+	void countsProductsByCategoryWithoutPriceWithoutImageAndFeatured() {
+		Product table = product("Mesa", "Mesas", 2, 0, "100", "60");
+		image(table);
 		product("Mesa ratona", "Mesas", 1, 0, null, null).setFeatured(true);
 		product("Silla", "Sillas", 1, 0, "50", null);
 		product("Suelto", null, 0, 0, "10", "5");
@@ -67,7 +67,7 @@ class DashboardServiceTest {
 	}
 
 	@Test
-	void stockBajoAgotadosYValorDelInventario() {
+	void lowStockOutOfStockAndInventoryValue() {
 		product("Con costo y precio", null, 3, 0, "100.50", "40");
 		product("Sin costo", null, 2, 5, "200", null);
 		product("Sin precio", null, 4, 0, null, "10");
@@ -77,34 +77,34 @@ class DashboardServiceTest {
 
 		ProductDashboardDto.Stock stock = dashboardService.dashboard().stock();
 
-		// "Sin costo" (2 <= 5) y "Agotado" (0 <= 1); "Agotado sin alerta" no tiene minimo
+		// "Sin costo" (2 <= 5) and "Agotado" (0 <= 1); "Agotado sin alerta" has no minimum
 		assertEquals(2, stock.low());
 		assertEquals(2, stock.outOfStock());
 		// 3 x 40 + 4 x 10
 		assertEquals(new BigDecimal("160.00"), stock.inventoryAtCost());
-		// 3 x 100.50 + 2 x 200; los agotados no suman
+		// 3 x 100.50 + 2 x 200; out-of-stock ones do not add up
 		assertEquals(new BigDecimal("701.50"), stock.inventoryAtPrice());
 		assertEquals(1, stock.excludedWithoutCost());
 		assertEquals(1, stock.excludedWithoutPrice());
 	}
 
 	@Test
-	void ultimosMovimientos_losDiezMasNuevosConElNombreAunqueElProductoEsteBorrado() {
-		Product lampara = product("Lampara", null, 0, 0, null, null);
+	void latestMovements_theTenNewestWithTheNameEvenIfTheProductIsDeleted() {
+		Product lamp = product("Lampara", null, 0, 0, null, null);
 		for (int i = 0; i < 12; i++) {
-			movement(lampara, LocalDateTime.now().minusMinutes(20 - i));
+			movement(lamp, LocalDateTime.now().minusMinutes(20 - i));
 		}
-		Product borrado = product("Borrado", null, 0, 0, null, null);
-		StockMovement ultimo = movement(borrado, LocalDateTime.now());
+		Product deletedProduct = product("Borrado", null, 0, 0, null, null);
+		StockMovement latest = movement(deletedProduct, LocalDateTime.now());
 		em.flush();
-		em.getEntityManager().createNativeQuery("UPDATE product SET deleted_at = NOW() WHERE id = " + borrado.getId())
+		em.getEntityManager().createNativeQuery("UPDATE product SET deleted_at = NOW() WHERE id = " + deletedProduct.getId())
 				.executeUpdate();
 		em.clear();
 
 		List<RecentMovement> movements = dashboardService.dashboard().stock().recentMovements();
 
 		assertEquals(10, movements.size());
-		assertEquals(ultimo.getId(), movements.get(0).id());
+		assertEquals(latest.getId(), movements.get(0).id());
 		assertEquals("Borrado", movements.get(0).productName());
 		assertEquals("Lampara", movements.get(1).productName());
 		assertEquals(StockMovementType.ENTRADA, movements.get(1).type());

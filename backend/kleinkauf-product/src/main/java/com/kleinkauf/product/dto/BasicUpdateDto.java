@@ -1,8 +1,8 @@
 package com.kleinkauf.product.dto;
 
 /*
-El stock no se modifica aca: se usan los movimientos de stock (/api/v1/products/{id}/stock/movements).
-Los campos en null no cambian: se puede mandar solo lo que se edita.
+Stock is not modified here: stock movements are used instead (/api/v1/products/{id}/stock/movements).
+Null fields do not change: only what is being edited can be sent.
  */
 public record BasicUpdateDto(
         String name,

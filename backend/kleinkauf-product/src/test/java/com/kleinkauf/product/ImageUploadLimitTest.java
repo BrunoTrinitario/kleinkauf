@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-// El limite general de subida es 5 MB (por el CSV), pero las imagenes siguen en 1 MB
+// The general upload limit is 5 MB (because of the CSV), but images stay at 1 MB
 @ExtendWith(MockitoExtension.class)
 class ImageUploadLimitTest {
 
@@ -40,12 +40,12 @@ class ImageUploadLimitTest {
 	private ProductService productService;
 
 	@Test
-	void imagenDeMasDe1MB_respondePayloadTooLargeYNoGuardaNinguna() {
+	void imageOver1MB_respondsPayloadTooLargeAndSavesNone() {
 		when(productRepository.existsById(1L)).thenReturn(true);
-		MockMultipartFile chica = new MockMultipartFile("files", "a.jpg", "image/jpeg", new byte[1024]);
-		MockMultipartFile grande = new MockMultipartFile("files", "b.jpg", "image/jpeg", new byte[(int) ProductService.MAX_IMAGE_BYTES + 1]);
+		MockMultipartFile small = new MockMultipartFile("files", "a.jpg", "image/jpeg", new byte[1024]);
+		MockMultipartFile large = new MockMultipartFile("files", "b.jpg", "image/jpeg", new byte[(int) ProductService.MAX_IMAGE_BYTES + 1]);
 
-		ApiException ex = assertThrows(ApiException.class, () -> productService.saveImages(1L, List.of(chica, grande)));
+		ApiException ex = assertThrows(ApiException.class, () -> productService.saveImages(1L, List.of(small, large)));
 
 		assertEquals(HttpStatus.PAYLOAD_TOO_LARGE, ex.getStatus());
 		verifyNoInteractions(fileManager);

@@ -28,22 +28,22 @@ public class Bundle {
 
     private boolean enabled;
 
-    // Precio del combo cuando pricingType es FIXED (null en los otros). El de lista (suma de los productos) y el
-    // precio final se calculan en BundleFactory: nunca leer este campo directo para mostrar o cobrar
+    // Bundle price when pricingType is FIXED (null in the others). The list price (sum of the products) and the
+    // final price are computed in BundleFactory: never read this field directly to display or charge
     @Column(precision = 12, scale = 2)
     private BigDecimal price;
 
-    // Los combos que ya existian quedan en FIXED
+    // Bundles that already existed stay FIXED
     @Enumerated(EnumType.STRING)
     @ColumnDefault("'FIXED'")
     @Column(name = "pricing_type", nullable = false, length = 10)
     private BundlePricingType pricingType = BundlePricingType.FIXED;
 
-    // PERCENT: porcentaje (0 a 100) sobre la suma de los productos. AMOUNT: monto que se resta. FIXED: null
+    // PERCENT: percentage (0 to 100) over the sum of the products. AMOUNT: amount subtracted. FIXED: null
     @Column(precision = 12, scale = 2)
     private BigDecimal discount;
 
-    // Combos vendidos (pedidos pagos de sales). Solo lo ve el administrador
+    // Bundles sold (paid sales orders). Only the administrator sees it
     @ColumnDefault("0")
     @Column(name = "sold_count", nullable = false)
     private int soldCount;

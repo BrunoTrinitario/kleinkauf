@@ -23,7 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Eventos de stock del panel en vivo (store.activity): stock bajo solo al cruzar el minimo
+// Live dashboard stock events (store.activity): low stock only when crossing the minimum
 class StockEventsTest {
 
 	private final KleinKaufEventPublisher publisher = mock(KleinKaufEventPublisher.class);
@@ -45,7 +45,7 @@ class StockEventsTest {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void stockBajo_alCruzarElMinimo() {
+	void lowStock_whenCrossingTheMinimum() {
 		events.lowIfCrossed(product(3, 3), 5);
 
 		ArgumentCaptor<Map<String, Object>> data = ArgumentCaptor.forClass(Map.class);
@@ -56,19 +56,19 @@ class StockEventsTest {
 	}
 
 	@Test
-	void stockBajo_noSeRepiteMientrasSigueBajoNiSinMinimo() {
-		// Ya estaba bajo
+	void lowStock_isNotRepeatedWhileStillLowNorWithoutMinimum() {
+		// It was already low
 		events.lowIfCrossed(product(1, 3), 2);
-		// Sin minimo configurado
+		// No minimum configured
 		events.lowIfCrossed(product(0, 0), 5);
-		// Sigue arriba del minimo
+		// Still above the minimum
 		events.lowIfCrossed(product(4, 3), 9);
 
 		verify(publisher, never()).publish(anyString(), anyString(), any());
 	}
 
 	@Test
-	void sinTenant_noPublica() {
+	void withoutTenant_doesNotPublish() {
 		TenantContext.clear();
 
 		events.lowIfCrossed(product(3, 3), 5);
@@ -78,7 +78,7 @@ class StockEventsTest {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void movimiento_conTipoCantidadYUsuario() {
+	void movement_withTypeQuantityAndUser() {
 		StockMovement movement = new StockMovement();
 		movement.setType(StockMovementType.ENTRADA);
 		movement.setQuantity(5);
