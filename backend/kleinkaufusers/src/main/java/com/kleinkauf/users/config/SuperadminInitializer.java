@@ -5,6 +5,7 @@ import com.kleinkauf.users.entities.Role;
 import com.kleinkauf.users.entities.User;
 import com.kleinkauf.users.repositories.RoleRepository;
 import com.kleinkauf.users.repositories.UserRepository;
+import com.kleinkauf.users.util.UserValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,7 +46,8 @@ public class SuperadminInitializer implements ApplicationRunner {
             log.info("Sin platform.superadmin.email/password: no se crea el superadmin");
             return;
         }
-        if (userRepository.existsByEmail(email)) {
+        String email = UserValidator.normalizeEmail(this.email);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             return;
         }
 

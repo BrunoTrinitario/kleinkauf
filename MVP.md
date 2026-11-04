@@ -212,6 +212,8 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | 2026-11-03 | `CorsConfig` corre **antes** de los filtros que cortan (`@Order(-150)`) y acepta cualquier **subdominio de la plataforma** con forma de identificador, aunque la tienda no exista | Los 401, 404/403 y 429 del gateway salían sin cabeceras CORS: el navegador los veía como error de red y el frontend no podía leer el código |
 | 2026-11-03 | El **último `ADMINISTRADOR`** de una tienda no se puede borrar (ni a sí mismo ni desde el panel) ni perder el rol: **409**, como el último superadmin | Sin administrador nadie puede administrar la tienda ni devolverle el rol a alguien |
 | 2026-11-03 | Link para compartir en **`/share/{tienda}/products/{slug}`**: la tienda va en la ruta y el gateway la resuelve por el identificador; products devuelve un HTML con Open Graph que redirige a la página del producto | Los crawlers de WhatsApp e Instagram no ejecutan JavaScript ni mandan `Origin`; así no hace falta un servidor de Node para el frontend |
+| 2026-11-04 | El **combo se crea completo** en `POST /bundles` (nombre, productos y precio) y se valida todo antes de guardar; cada producto de un combo trae su precio e imagen (en el panel y en el catálogo) | Un combo sin productos no sirve y armarlo en varios pedidos dejaba combos a medio crear. Con el precio de cada producto se elige el del combo y se muestra el detalle en `/combos` |
+| 2026-11-04 | **Combos con descuento** (`PERCENT` o `AMOUNT` sobre la suma de los productos) además del precio fijo. Con descuento el precio **se calcula al leer** y no se guarda | Así sigue al precio de los productos sin tener que actualizar los combos. Actualizarlos al cambiar un producto obligaba a cubrir cada forma de cambiar un precio (endpoint, CSV) y podía dejar copias viejas; los pedidos ya guardan el precio cobrado |
 
 ### Detalle de la librería común
 
@@ -323,7 +325,7 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
 | `GET /api/v1/catalog/products?q&category&sort&page&size` | Página de productos. `q` busca en nombre, descripción y categoría; `sort` = `name` (defecto), `price_asc`, `price_desc`, `best_sellers`; `size` 24 por defecto, máximo 100. Devuelve `{items, page, size, totalItems, totalPages}` |
 | `GET /api/v1/catalog/products/{slug}` | Detalle para el link compartido (imágenes en orden y metadatos) |
 | `GET /api/v1/catalog/categories` | Categorías con la cantidad de productos |
-| `GET /api/v1/catalog/bundles` | Combos que se pueden comprar, con precio, precio de lista, disponibilidad e imagen |
+| `GET /api/v1/catalog/bundles` | Combos que se pueden comprar, con precio, precio de lista, disponibilidad e imagen; cada producto del combo trae categoría, descripción, precio e imagen |
 
 - Cada producto devuelve `id, slug, name, category, description, price, availability, featured, images`. El listado y el
   detalle del panel (`/api/v1/products`) también devuelven `slug`, para armar el botón de compartir.

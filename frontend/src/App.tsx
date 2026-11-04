@@ -7,18 +7,28 @@ import { useCatalogCategories } from "@/api/catalog"
 import StoreUnavailablePage from "@/pages/StoreUnavailablePage"
 import HomePage from "@/pages/HomePage"
 import ProductPage from "@/pages/ProductPage"
+import CatalogPage from "@/pages/CatalogPage"
+import BundlesPage from "@/pages/BundlesPage"
 import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
 import AdminPage from "@/pages/admin/AdminPage"
 import AdminProductsPage from "@/pages/admin/AdminProductsPage"
 import AdminBundlesPage from "@/pages/admin/AdminBundlesPage"
 import AdminUsersPage from "@/pages/admin/AdminUsersPage"
+import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
+import AdminOrderPage from "@/pages/admin/AdminOrderPage"
 import SettingsPage from "@/pages/user/SettingsPage"
+import MyOrdersPage from "@/pages/user/MyOrdersPage"
+import CartPage from "@/pages/CartPage"
+import CheckoutPage from "@/pages/CheckoutPage"
+import OrderPage from "@/pages/OrderPage"
+import OrderLookupPage from "@/pages/OrderLookupPage"
+import PlatformBugReportsPage from "@/pages/platform/PlatformBugReportsPage"
 import PlatformDashboardPage from "@/pages/platform/PlatformDashboardPage"
 import PlatformSuperadminsPage from "@/pages/platform/PlatformSuperadminsPage"
 import PlatformTenantsPage from "@/pages/platform/PlatformTenantsPage"
 
-// Plataforma (localhost:2999): login del superadmin, resumen, tiendas y superadmins. Sin catalogo ni registro
+// Plataforma (localhost:2999): login del superadmin, resumen, tiendas, superadmins y reportes de bugs. Sin catalogo ni registro
 function PlatformRoutes() {
   return (
     <Routes>
@@ -28,6 +38,7 @@ function PlatformRoutes() {
         <Route path="/dashboard" element={<PlatformDashboardPage />} />
         <Route path="/tenants" element={<PlatformTenantsPage />} />
         <Route path="/superadmins" element={<PlatformSuperadminsPage />} />
+        <Route path="/bug-reports" element={<PlatformBugReportsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -48,12 +59,22 @@ function StoreRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/catalogo" element={<CatalogPage />} />
+      <Route path="/combos" element={<BundlesPage />} />
       <Route path="/productos/:slug" element={<ProductPage />} />
+      {/* Compra online: publica (invitado o con sesion). El pedido se consulta con numero + email */}
+      <Route path="/carrito" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/pedido" element={<OrderLookupPage />} />
+      <Route path="/pedido/:number" element={<OrderPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/user/settings" element={<SettingsPage />} />
+        <Route path="/mis-pedidos" element={<MyOrdersPage />} />
         {/* El panel de la tienda es solo del ADMINISTRADOR (docs/panel-admin.md); usuarios pide USUARIOS, que no se delega */}
         <Route element={<RequireRole role="ADMINISTRADOR" />}>
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>
           <Route path="/admin/products" element={<AdminProductsPage />} />

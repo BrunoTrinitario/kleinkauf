@@ -57,8 +57,9 @@ public class GatewayRoutes {
                 .route("auth", r -> r
                         .path("/api/v1/auth/**")
                         .uri(userUrl))
-                .route("internal tenants", r -> r
-                        .path("/api/internal/tenants/**")
+                // Reportar un bug desde el footer de una tienda (lo leen los superadmins)
+                .route("bug reports", r -> r
+                        .path("/api/v1/bug-reports")
                         .uri(userUrl))
                 // Uso por tenant de products: antes que la ruta general de plataforma (order menor gana)
                 .route("platform products", r -> r

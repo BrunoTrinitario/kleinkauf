@@ -8,28 +8,41 @@ export const bundleKeys = {
   all: ["bundles"] as const,
 }
 
-// productid va en minuscula en la respuesta del backend
+// productid va en minuscula en la respuesta del backend. price: el del producto; image: su primera imagen
 export interface BundleProduct {
   productid: number
   productName: string
   quantity: number
+  price: number | null
+  image: string | null
 }
 
-// listPrice: suma de precio x cantidad (null si algun producto no tiene precio). available: cuantos se pueden armar
-export interface Bundle {
+// FIXED: precio guardado. PERCENT / AMOUNT: descuento sobre la suma de los productos (el precio sigue a los productos)
+export type BundlePricingType = "FIXED" | "PERCENT" | "AMOUNT"
+
+// Como se guarda el precio. FIXED usa price (null = sin precio); PERCENT y AMOUNT usan discount
+export interface BundlePricing {
+  pricingType: BundlePricingType
+  price: number | null
+  discount: number | null
+}
+
+// price: el precio final (con el descuento aplicado). listPrice: suma de precio x cantidad (null si algun producto no
+// tiene precio). available: cuantos se pueden armar
+export interface Bundle extends BundlePricing {
   id: number
   name: string
   enabled: boolean
-  price: number | null
   listPrice: number | null
   available: number
   products: BundleProduct[]
 }
 
-export interface NewBundle {
+// Se crea completo de una vez: nombre, productos (al menos uno) y precio
+export interface NewBundle extends BundlePricing {
   name: string
   enabled: boolean
-  price: number | null
+  products: { productId: number; quantity: number }[]
 }
 
 export function useBundles(enabled: boolean) {
@@ -62,7 +75,7 @@ export const useSetBundleEnabled = () =>
   )
 
 export const useSetBundlePrice = () =>
-  useBundleMutation(({ id, price }: { id: number; price: number | null }) => api.put(`/bundles/${id}/price`, { price }))
+  useBundleMutation(({ id, ...pricing }: { id: number } & BundlePricing) => api.put(`/bundles/${id}/price`, pricing))
 
 // Agrega el producto o cambia su cantidad
 export const useSetBundleProduct = () =>

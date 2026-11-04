@@ -29,8 +29,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
         existsById(id)
     */
    Optional<User> findByName(String name);
-   Optional<User> findByEmail(String email);
-   boolean existsByEmail(String email);
+   // IgnoreCase: los usuarios viejos pueden tener el email guardado con mayusculas
+   Optional<User> findByEmailIgnoreCase(String email);
+   boolean existsByEmailIgnoreCase(String email);
 
    // Panel de la tienda (UserDashboardService)
    long countByLastLoginGreaterThanEqual(LocalDateTime since);

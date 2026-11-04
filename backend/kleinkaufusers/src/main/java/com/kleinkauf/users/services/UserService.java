@@ -6,6 +6,7 @@
 package com.kleinkauf.users.services;
 
 import com.kleinkauf.common.constants.TenantConstants;
+import com.kleinkauf.common.constants.TokenConstants;
 import com.kleinkauf.common.dto.RoleDto;
 
 import java.time.LocalDateTime;
@@ -154,7 +155,7 @@ public class UserService {
     public FullUserDto createUser(String name, String email, String password, Set<String> roles) throws ApiException {
         UserValidator.validateNewUser(name, email, password);
         name = name.trim();
-        email = email.trim();
+        email = UserValidator.normalizeEmail(email);
         if (userExistsByEmail(email)){
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.BAD_REQUEST);
         }
@@ -184,7 +185,7 @@ public class UserService {
     }
 
     public boolean userExistsByEmail(String email){
-        return this.userRepository.existsByEmail(email);
+        return this.userRepository.existsByEmailIgnoreCase(UserValidator.normalizeEmail(email));
     }
 
     public boolean userHasRole(Long id, String role) throws ApiException {
@@ -264,7 +265,7 @@ public class UserService {
     }
 
     public LoggedUser login(String email, String password) throws ApiException {
-        User rawUser = this.userRepository.findByEmail(email).orElse(null);
+        User rawUser = this.userRepository.findByEmailIgnoreCase(UserValidator.normalizeEmail(email)).orElse(null);
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
             String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName(), currentTenant());
             List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
@@ -295,9 +296,9 @@ public class UserService {
 
 
     public boolean forgotPasswordRequest(EmailDto userData) throws ApiException {
-        User u = this.userRepository.findByEmail(userData.email()).orElse(null);
+        User u = this.userRepository.findByEmailIgnoreCase(UserValidator.normalizeEmail(userData.email())).orElse(null);
         if (u == null) return false;
-        String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant());
+        String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant(), u.getPassword());
         String url = resetPasswordLink(jwt);
 
         try{
@@ -312,10 +313,19 @@ public class UserService {
         return true;
     }
 
-    // El token tiene que ser valido y del mismo tenant (los ids de usuario se repiten entre tenants)
+    /*
+    El token tiene que ser valido, del mismo tenant (los ids de usuario se repiten entre tenants) y de recuperacion:
+    uno de sesion no sirve para cambiar la contrasena sin saber la actual. Si la contrasena ya cambio desde que se
+    mando el mail (el link ya se uso), la huella no coincide y el token no sirve.
+     */
     public FullUserDto refreshPassword(String jwt, String newPassword) throws ApiException {
         Long id = jwtUtil.getUserId(jwt);
-        if (id == null || !currentTenant().equals(jwtUtil.getTenant(jwt))) {
+        if (id == null || !currentTenant().equals(jwtUtil.getTenant(jwt))
+                || !TokenConstants.PASSWORD_RESET.equals(jwtUtil.getType(jwt))) {
+            throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
+        }
+        User user = this.userRepository.findById(id).orElse(null);
+        if (user == null || !JwtUtil.passwordFingerprint(user.getPassword()).equals(jwtUtil.getPasswordFingerprint(jwt))) {
             throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
         }
         return this.updateUser(id, null, newPassword);

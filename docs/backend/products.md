@@ -410,13 +410,27 @@ Los cambios piden `COMBOS` (incluido el precio del combo). Las lecturas, cualqui
 ```json
 {
   "id": 3, "name": "Comedor completo", "enabled": true,
-  "price": 450000.00, "listPrice": 520000.00, "available": 2,
-  "products": [ { "productid": 12, "productName": "Mesa", "quantity": 1 },
-                { "productid": 15, "productName": "Silla", "quantity": 4 } ]
+  "price": 450000.00, "pricingType": "FIXED", "discount": null, "listPrice": 520000.00, "available": 2,
+  "products": [ { "productid": 12, "productName": "Mesa", "quantity": 1, "price": 400000.00, "image": "/uploads/…" },
+                { "productid": 15, "productName": "Silla", "quantity": 4, "price": 30000.00, "image": null } ]
 }
 ```
 
-(`productid` va en minúscula.)
+**Precio del combo.** `pricingType` dice cómo sale `price`, el precio final que se muestra y se cobra:
+
+| `pricingType` | `price` | `discount` |
+|---|---|---|
+| `FIXED` (por defecto) | El que se guardó (`null` = sin precio, no sale en el catálogo) | `null` |
+| `PERCENT` | Suma de los productos (`listPrice`) menos el porcentaje | Porcentaje, de 0 a 100 |
+| `AMOUNT` | `listPrice` menos el monto, sin bajar de 0 | Monto, 0 o más |
+
+Con descuento el precio **no se guarda**: se calcula cada vez (`BundleFactory.price`, redondeado a 2 decimales), así
+sigue al precio de los productos sin tener que actualizar el combo. Si algún producto no tiene precio, el combo queda
+sin precio. El panel, el catálogo y la reserva de stock (el precio que cobra sales) usan ese mismo cálculo; un pedido
+guarda el precio que cobró, así que un cambio posterior no lo afecta.
+
+(`productid` va en minúscula. `price` es el del producto, `null` si no tiene; `image` es su primera imagen, `null` si
+no tiene.)
 
 ### GET /api/v1/bundles/all
 
@@ -434,11 +448,27 @@ Respuesta **200**: `BundleDto`, o **200 con el cuerpo vacío** si no existe.
 
 **Acceso:** `COMBOS`
 
+Crea el combo completo: nombre, productos y precio. Se valida todo antes de guardar, así que si algo falla no se crea
+nada.
+
 ```json
-{ "name": "Comedor completo", "enabled": true, "price": 450000 }
+{ "name": "Comedor completo", "enabled": true, "price": 450000,
+  "products": [ { "productId": 12, "quantity": 1 }, { "productId": 15, "quantity": 4 } ] }
 ```
 
-Respuesta **200** (no 201): `BundleDto` sin productos. Error: 400 `Price and cost must be zero or greater`.
+`price` puede ser `null` (el combo no aparece en el catálogo hasta tener precio). Sin `enabled` se crea habilitado.
+Con descuento, en lugar de `price` va `"pricingType": "PERCENT"` (o `"AMOUNT"`) y `"discount": 15`; sin
+`pricingType` es precio fijo.
+
+Respuesta **200** (no 201): `BundleDto` con sus productos. Errores:
+
+- 400 `The bundle name is required (up to 255 characters)`
+- 400 `The bundle needs at least one product`
+- 400 `Each product needs an id and a quantity greater than zero`
+- 400 `A product can only appear once in the bundle`
+- 400 `Price and cost must be zero or greater`
+- 400 `The discount is required: a percentage between 0 and 100 or an amount of zero or greater`
+- 404 `Product not found` (alguno de los productos no existe)
 
 ### PUT /api/v1/bundles/{id}/enabled
 
@@ -456,11 +486,17 @@ Respuesta **200**: `BundleDto`. Errores: 400 `The enabled field is required (tru
 
 **Acceso:** `COMBOS`
 
+Precio fijo o descuento (ver [precio del combo](#combos)). Sin `pricingType`, precio fijo como antes:
+
 ```json
 { "price": 430000 }
+{ "pricingType": "PERCENT", "discount": 15 }
+{ "pricingType": "AMOUNT", "discount": 50000 }
 ```
 
-Respuesta **200**: `BundleDto`. Errores: 400 `Price and cost must be zero or greater`, 404 `Bundle not found`.
+Al pasar a descuento se borra el precio guardado, y al volver a precio fijo, el descuento. Respuesta **200**:
+`BundleDto`. Errores: 400 `Price and cost must be zero or greater`, 400 `The discount is required: …`, 404
+`Bundle not found`.
 
 ### PUT /api/v1/bundles/{id}/product
 
@@ -472,14 +508,15 @@ Agrega un producto al combo o cambia su cantidad.
 { "productId": 15, "quantity": 4 }
 ```
 
-Respuesta **200**: `BundleDto`. Un combo o producto inexistente responde **500**.
+Respuesta **200**: `BundleDto`. Errores: 400 `Each product needs an id and a quantity greater than zero`, 404
+`Bundle not found`, 404 `Product not found`.
 
 ### PUT /api/v1/bundles/{id}/product/bulk
 
 **Acceso:** `COMBOS`
 
 Igual con una lista: `[ { "productId": 12, "quantity": 1 }, { "productId": 15, "quantity": 4 } ]`. Respuesta
-**200**: `BundleDto` después del último.
+**200**: `BundleDto` después del último. Con los mismos errores; si uno falla, no se aplica ninguno.
 
 ### DELETE /api/v1/bundles/{id}/product
 
@@ -565,11 +602,13 @@ Combos que se pueden comprar (ver [reglas](#conceptos-y-reglas)), por nombre.
 ```json
 [ { "id": 3, "name": "Comedor completo", "price": 450000.00, "listPrice": 520000.00,
     "availability": "DISPONIBLE", "image": "3f2a..._1730.png",
-    "products": [ { "slug": "mesa", "name": "Mesa", "quantity": 1 } ] } ]
+    "products": [ { "slug": "mesa", "name": "Mesa", "quantity": 1, "category": "Comedor",
+                    "description": "Mesa de roble", "price": 400000.00, "image": "3f2a..._1730.png" } ] } ]
 ```
 
 `listPrice` sirve para mostrar el ahorro; `image` es la primera imagen del primer producto que tenga. Un combo
-solo está `DISPONIBLE` o `AGOTADO`.
+solo está `DISPONIBLE` o `AGOTADO`. Cada producto trae lo necesario para el detalle del combo: `price` es el del
+producto suelto (`null` = consultar) e `image` su primera imagen (`null` si no tiene).
 
 ## Link para compartir
 

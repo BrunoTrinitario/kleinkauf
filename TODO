@@ -5,15 +5,13 @@
 - Revisar el servidor: uso de CPU, memoria y disco por contenedor, heap de cada JVM, latencia de punta a punta
 
 ## Seguridad
-- Auditar la seguridad de la API: autenticacion, permisos por rol, validaciones, rate limit, headers, CORS
-- Rutas inexistentes en el gateway: hoy responden 401, revisar que corresponda
+- Headers de seguridad del frontend (CSP, HSTS) en Caddy o nginx
 
 ## Frontend
 - Sumar las funcionalidades que faltan: ventas (pedidos online y del local, pagos, reportes)
 - Dashboard del superadmin y dashboard del admin de la tienda
 - Disclaimers de uso de datos en el footer (privacidad y terminos)
 - SEO: checks de las paginas (meta tags, Open Graph, sitemap, robots, performance)
-- "Reportar un bug" en el footer: le llega a los superadmins y lo consultan desde el panel de la plataforma
 - Cambiar el favicon de la pagina
 
 ## Tenants

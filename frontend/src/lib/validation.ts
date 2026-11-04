@@ -9,6 +9,10 @@ export const PASSWORD_MAX_BYTES = 72
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Reporte de un bug (kleinkaufusers, entities/BugReport.java)
+export const BUG_REPORT_MIN_LENGTH = 10
+export const BUG_REPORT_MAX_LENGTH = 2000
+
 export function isValidName(name: string): boolean {
   const trimmed = name.trim()
   return trimmed.length > 0 && trimmed.length <= NAME_MAX_LENGTH

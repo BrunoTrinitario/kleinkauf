@@ -49,7 +49,7 @@ class SuperadminInitializerTest {
 	@Test
 	void siYaExiste_noLoVuelveACrear() {
 		config("root@kleinkauf.com", "clave");
-		when(userRepository.existsByEmail("root@kleinkauf.com")).thenReturn(true);
+		when(userRepository.existsByEmailIgnoreCase("root@kleinkauf.com")).thenReturn(true);
 
 		initializer.run(null);
 
@@ -60,7 +60,7 @@ class SuperadminInitializerTest {
 	@Test
 	void creaElSuperadminConSuRol() {
 		config("root@kleinkauf.com", "clave");
-		when(userRepository.existsByEmail("root@kleinkauf.com")).thenReturn(false);
+		when(userRepository.existsByEmailIgnoreCase("root@kleinkauf.com")).thenReturn(false);
 		when(passwordEncoder.encode("clave")).thenReturn("hash");
 		when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

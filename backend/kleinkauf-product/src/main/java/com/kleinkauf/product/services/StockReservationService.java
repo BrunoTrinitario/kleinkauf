@@ -16,6 +16,7 @@ import com.kleinkauf.product.entities.StockReservation;
 import com.kleinkauf.product.repositories.BundleProductRepository;
 import com.kleinkauf.product.repositories.BundleRepository;
 import com.kleinkauf.product.repositories.ProductRepository;
+import com.kleinkauf.product.factories.BundleFactory;
 import com.kleinkauf.product.repositories.StockMovementRepository;
 import com.kleinkauf.product.repositories.StockReservationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -306,11 +307,13 @@ public class StockReservationService {
                         product.getPrice(), product.getCost()));
             } else {
                 Bundle bundle = line.bundle();
-                if (bundle.getPrice() == null && !local) {
+                // El precio sale de BundleFactory: con descuento sigue al de los productos
+                BigDecimal price = BundleFactory.price(bundle);
+                if (price == null && !local) {
                     throw new ApiException(ErrorMessages.ITEM_WITHOUT_PRICE + ": " + bundle.getName(), HttpStatus.CONFLICT);
                 }
                 result.add(new ReservedItemDto(ReservationItemType.BUNDLE, bundle.getId(), bundle.getName(),
-                        bundle.getPrice(), bundleCost(line, products)));
+                        price, bundleCost(line, products)));
             }
         }
         return result;

@@ -1,6 +1,8 @@
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import type { CatalogProduct, CatalogSort } from "@/lib/types"
+import { catalogSearch, readCatalogFilters, type CatalogFilters } from "@/lib/catalog-url"
 import { strings } from "@/lib/strings"
 import { useCatalogCategories, useCatalogProducts } from "@/api/catalog"
 import { ProductCard } from "./product-card"
@@ -9,19 +11,37 @@ import { PaginationControls } from "./pagination-controls"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "./list-toolbar"
 
+// Listado del catalogo con los filtros en la URL (lib/catalog-url.ts). La busqueda se escribe con replace (cada tecla
+// no deja una entrada en el historial); categoria, orden y pagina con push, para que atras los deshaga
 export function ProductCatalog() {
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const [searchInput, setSearchInput] = useState("")
-  const searchQuery = useDebouncedValue(searchInput.trim())
-  const [selectedCategory, setSelectedCategory] = useState("")
-  const [sortBy, setSortBy] = useState<CatalogSort>("name")
-  const [page, setPage] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = readCatalogFilters(searchParams)
+  const { q: searchQuery, category: selectedCategory, sort: sortBy, page } = filters
+  const [searchInput, setSearchInput] = useState(searchQuery)
+  const debouncedSearch = useDebouncedValue(searchInput.trim())
 
-  // Una busqueda nueva arranca desde la primera pagina
+  const updateFilters = (changes: Partial<CatalogFilters>, replace = false) => {
+    setSearchParams(new URLSearchParams(catalogSearch({ ...filters, ...changes })), { replace })
+  }
+
+  // Lo escrito pasa a la URL cuando se deja de tipear; una busqueda nueva arranca desde la primera pagina
   useEffect(() => {
-    setPage(0)
+    if (debouncedSearch !== searchQuery) {
+      updateFilters({ q: debouncedSearch, page: 0 }, true)
+    }
+  }, [debouncedSearch])
+
+  // La URL cambio por afuera (atras, o un link con ?q=): el buscador muestra lo que dice la URL
+  useEffect(() => {
+    setSearchInput((current) => (current.trim() === searchQuery ? current : searchQuery))
   }, [searchQuery])
+
+  const setPage = (next: number) => {
+    updateFilters({ page: next })
+    window.scrollTo({ top: 0 })
+  }
 
   const categories = useCatalogCategories().data ?? []
   const catalogQuery = useCatalogProducts({ q: searchQuery, category: selectedCategory, sort: sortBy, page })
@@ -39,8 +59,7 @@ export function ProductCatalog() {
 
   const clearFilters = () => {
     setSearchInput("")
-    setSelectedCategory("")
-    setPage(0)
+    updateFilters({ q: "", category: "", page: 0 })
   }
 
   return (
@@ -55,10 +74,7 @@ export function ProductCatalog() {
           <FilterSelect
             value={selectedCategory}
             label={strings.productCatalog.all}
-            onChange={(value) => {
-              setSelectedCategory(value)
-              setPage(0)
-            }}
+            onChange={(value) => updateFilters({ category: value, page: 0 })}
           >
             <option value="">{strings.productCatalog.all}</option>
             {categories.map(category => (
@@ -70,10 +86,7 @@ export function ProductCatalog() {
           <FilterSelect
             value={sortBy}
             label={strings.productCatalog.sortByName}
-            onChange={(value) => {
-              setSortBy(value as CatalogSort)
-              setPage(0)
-            }}
+            onChange={(value) => updateFilters({ sort: value as CatalogSort, page: 0 })}
           >
             <option value="name">{strings.productCatalog.sortByName}</option>
             <option value="price_asc">{strings.productCatalog.sortByPriceAsc}</option>

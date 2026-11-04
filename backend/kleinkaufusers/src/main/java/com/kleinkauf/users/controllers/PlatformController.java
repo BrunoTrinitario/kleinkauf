@@ -4,6 +4,9 @@ import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.common.servlet.security.CustomUserDetails;
 import com.kleinkauf.users.dtos.LoggedUser;
 import com.kleinkauf.users.dtos.LoginUserDto;
+import com.kleinkauf.users.dtos.platform.BugReportDto;
+import com.kleinkauf.users.dtos.platform.BugReportPageDto;
+import com.kleinkauf.users.dtos.platform.BugReportStatusDto;
 import com.kleinkauf.users.dtos.platform.NewSuperadminDto;
 import com.kleinkauf.users.dtos.platform.NewTenantDto;
 import com.kleinkauf.users.dtos.platform.PlatformDashboardDto;
@@ -12,6 +15,7 @@ import com.kleinkauf.users.dtos.platform.SuperadminDto;
 import com.kleinkauf.users.dtos.platform.SuperadminStatusDto;
 import com.kleinkauf.users.dtos.platform.TenantStatusDto;
 import com.kleinkauf.users.dtos.platform.TenantUsageDto;
+import com.kleinkauf.users.services.BugReportService;
 import com.kleinkauf.users.services.PlatformDashboardService;
 import com.kleinkauf.users.services.PlatformService;
 import com.kleinkauf.users.services.SuperadminService;
@@ -44,6 +48,9 @@ public class PlatformController {
 
     @Autowired
     private SuperadminService superadminService;
+
+    @Autowired
+    private BugReportService bugReportService;
 
     @PostMapping("/tenants")
     public ResponseEntity<PlatformTenantDto> signUp(@RequestBody NewTenantDto dto) throws ApiException {
@@ -123,5 +130,23 @@ public class PlatformController {
                                                              @AuthenticationPrincipal CustomUserDetails currentUser) throws ApiException {
         platformService.requirePlatformContext();
         return ResponseEntity.ok(superadminService.setActive(id, dto.active(), currentUser.getId()));
+    }
+
+    // Reportes de bugs de las tiendas. status: pending (por defecto), resolved o all. size: 20 por defecto, maximo 100
+    @GetMapping("/admin/bug-reports")
+    public ResponseEntity<BugReportPageDto> listBugReports(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) throws ApiException {
+        platformService.requirePlatformContext();
+        return ResponseEntity.ok(bugReportService.list(status, page, size));
+    }
+
+    @PutMapping("/admin/bug-reports/{id}/resolved")
+    public ResponseEntity<BugReportDto> setBugReportResolved(@PathVariable Long id,
+                                                             @RequestBody BugReportStatusDto dto) throws ApiException {
+        platformService.requirePlatformContext();
+        return ResponseEntity.ok(bugReportService.setResolved(id, dto.resolved()));
     }
 }

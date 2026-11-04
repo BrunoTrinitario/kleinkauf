@@ -123,7 +123,7 @@ public class CatalogService {
     }
 
     static boolean isSellable(Bundle bundle) {
-        return bundle.getPrice() != null
+        return BundleFactory.price(bundle) != null
                 && !bundle.getProducts().isEmpty()
                 && bundle.getProducts().stream().allMatch(bp ->
                         bp.getProduct() != null && bp.getProduct().getDeletedAt() == null
@@ -132,7 +132,12 @@ public class CatalogService {
 
     static CatalogBundleDto toDto(Bundle bundle) {
         List<CatalogBundleProductDto> products = bundle.getProducts().stream()
-                .map(bp -> new CatalogBundleProductDto(bp.getProduct().getSlug(), bp.getProduct().getName(), bp.getQuantity()))
+                .map(bp -> {
+                    Product p = bp.getProduct();
+                    List<String> images = images(p);
+                    return new CatalogBundleProductDto(p.getSlug(), p.getName(), bp.getQuantity(), p.getCategory(),
+                            p.getDescription(), p.getPrice(), images.isEmpty() ? null : images.get(0));
+                })
                 .toList();
         String image = bundle.getProducts().stream()
                 .flatMap(bp -> images(bp.getProduct()).stream())
@@ -141,7 +146,7 @@ public class CatalogService {
         Availability availability = BundleFactory.available(bundle.getProducts()) > 0
                 ? Availability.DISPONIBLE
                 : Availability.AGOTADO;
-        return new CatalogBundleDto(bundle.getId(), bundle.getName(), bundle.getPrice(),
+        return new CatalogBundleDto(bundle.getId(), bundle.getName(), BundleFactory.price(bundle),
                 BundleFactory.listPrice(bundle.getProducts()), availability, image, products);
     }
 
