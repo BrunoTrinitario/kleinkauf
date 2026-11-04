@@ -3,6 +3,8 @@ import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { formatPrice } from "@/lib/utils"
+import { productImageUrl } from "@/lib/api"
+import type { Product } from "@/lib/types"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { useAdminProducts } from "@/api/products"
 import {
@@ -41,7 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Boxes, Plus, Trash2, X } from "lucide-react"
+import { Boxes, ImageIcon, Plus, Trash2, X } from "lucide-react"
 
 // "" = sin precio (el combo no aparece en el catalogo); undefined = no es un precio valido
 const parsePrice = (value: string): number | null | undefined => {
@@ -98,7 +100,7 @@ export default function AdminBundlesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {list.map((bundle) => (
               <BundleCard key={bundle.id} bundle={bundle} canEdit={canEdit} onDelete={() => setToDelete(bundle)} />
             ))}
@@ -176,14 +178,15 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-        <div className="min-w-0 space-y-1">
-          <CardTitle className="truncate">{bundle.name}</CardTitle>
-          <CardDescription>
-            {strings.adminBundles.available(bundle.available)}
-            {bundle.listPrice != null && bundle.products.length > 0
-              ? ` · ${strings.adminBundles.listPrice} ${formatPrice(bundle.listPrice, "")}`
-              : null}
-          </CardDescription>
+        <div className="flex min-w-0 items-center gap-3">
+          <BundleThumbs products={bundle.products} />
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="truncate">{bundle.name}</CardTitle>
+            <CardDescription>
+              {strings.adminBundles.productCount(bundle.products.length)} ·{" "}
+              {strings.adminBundles.available(bundle.available)}
+            </CardDescription>
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {canEdit ? (
@@ -222,6 +225,7 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
                 type="number"
                 min={0}
                 step="0.01"
+                className="no-spinner"
                 value={priceInput}
                 placeholder={strings.adminProductEdit.pricePlaceholder}
                 onChange={(event) => setPriceInput(event.target.value)}
@@ -237,8 +241,16 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
             {strings.adminBundles.price}: {formatPrice(bundle.price, strings.price.ask)}
           </p>
         )}
-        {savings != null ? (
-          <p className="text-sm text-cyan-edge">{strings.adminBundles.saving(formatPrice(savings, ""))}</p>
+        {bundle.listPrice != null && bundle.products.length > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-muted/50 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">
+              {strings.adminBundles.listPrice}{" "}
+              <span className="font-medium text-foreground tabular-nums">{formatPrice(bundle.listPrice, "")}</span>
+            </span>
+            {savings != null ? (
+              <span className="text-cyan-edge">{strings.adminBundles.saving(formatPrice(savings, ""))}</span>
+            ) : null}
+          </div>
         ) : null}
         {bundle.price == null ? <p className="text-xs text-muted-foreground">{strings.adminBundles.noPriceHint}</p> : null}
 
@@ -294,15 +306,23 @@ function BundleProductRow({ bundleId, item, canEdit }: { bundleId: number; item:
   }
 
   return (
-    <li className="flex items-center gap-2">
-      <span className="flex-1 min-w-0 truncate text-sm">{item.productName}</span>
+    <li className="flex items-center gap-3 rounded-lg border border-border p-2">
+      <ProductThumb image={item.image} />
+      <div className="flex-1 min-w-0">
+        <p className="truncate text-sm font-medium">{item.productName}</p>
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {item.price != null
+            ? `${strings.adminBundles.unitPrice(formatPrice(item.price, ""))} · ${formatPrice(item.price * item.quantity, "")}`
+            : strings.price.ask}
+        </p>
+      </div>
       {canEdit ? (
         <>
           <Input
             type="number"
             min={1}
             step={1}
-            className="w-20"
+            className="no-spinner w-14 text-center"
             aria-label={`${strings.adminBundles.quantity}: ${item.productName}`}
             value={quantity}
             onChange={(event) => setQuantity(event.target.value)}
@@ -366,11 +386,15 @@ function AddBundleProduct({ bundle }: { bundle: Bundle }) {
               <li key={product.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50 disabled:opacity-50"
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 disabled:opacity-50"
                   disabled={setProduct.isPending}
                   onClick={() => add(product.id)}
                 >
-                  <span className="truncate">{product.name}</span>
+                  <ProductThumb image={product.images?.[0] ?? null} />
+                  <span className="flex-1 min-w-0 truncate">{product.name}</span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {formatPrice(product.price, strings.price.ask)}
+                  </span>
                   <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </button>
               </li>
@@ -382,20 +406,101 @@ function AddBundleProduct({ bundle }: { bundle: Bundle }) {
   )
 }
 
+// Producto elegido en el dialogo de creacion: guarda lo que hace falta para mostrarlo sin volver a buscarlo
+interface DraftProduct {
+  id: string
+  name: string
+  price: number | null
+  image: string | null
+  quantity: number
+}
+
+function ProductThumb({ image }: { image: string | null }) {
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+      {image ? (
+        <img src={productImageUrl(image)} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+      )}
+    </div>
+  )
+}
+
+// Hasta 3 imagenes de los productos del combo, encimadas; sin imagenes, el icono de combos
+function BundleThumbs({ products }: { products: BundleProduct[] }) {
+  const images = products.map((product) => product.image).filter((image): image is string => !!image).slice(0, 3)
+  if (images.length === 0) {
+    return (
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+        <Boxes className="h-5 w-5 text-muted-foreground" />
+      </div>
+    )
+  }
+  return (
+    <div className="flex shrink-0 -space-x-3">
+      {images.map((image, index) => (
+        <div
+          key={`${image}-${index}`}
+          className="h-12 w-12 overflow-hidden rounded-lg border-2 border-card bg-muted"
+          style={{ zIndex: images.length - index }}
+        >
+          <img src={productImageUrl(image)} alt="" className="h-full w-full object-cover" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Se crea en un solo paso: nombre, productos y por ultimo el precio (con la suma de los productos como referencia)
 function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const createBundle = useCreateBundle()
   const [name, setName] = useState("")
+  const [products, setProducts] = useState<DraftProduct[]>([])
+  const [search, setSearch] = useState("")
   const [price, setPrice] = useState("")
   const [enabled, setEnabled] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const query = useDebouncedValue(search.trim())
+  const results = useAdminProducts({ q: query, page: 0 }, open && query.length > 0)
+  const chosen = new Set(products.map((product) => product.id))
+  const options = (results.data?.items ?? []).filter((product) => !chosen.has(String(product.id))).slice(0, 5)
+
+  // Suma de precio x cantidad; los productos sin precio no suman (se avisa abajo)
+  const total = products.reduce((sum, product) => sum + (product.price ?? 0) * product.quantity, 0)
+  const missingPrice = products.some((product) => product.price == null)
+  const parsedPrice = parsePrice(price)
+  const savings = parsedPrice != null && !missingPrice && total > parsedPrice ? total - parsedPrice : null
+
   useEffect(() => {
     if (!open) return
     setName("")
+    setProducts([])
+    setSearch("")
     setPrice("")
     setEnabled(true)
     setError(null)
   }, [open])
+
+  const addProduct = (product: Product) => {
+    setProducts((current) => [
+      ...current,
+      {
+        id: String(product.id),
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] ?? null,
+        quantity: 1,
+      },
+    ])
+    setSearch("")
+  }
+
+  const setQuantity = (id: string, quantity: number) =>
+    setProducts((current) => current.map((product) => (product.id === id ? { ...product, quantity } : product)))
+
+  const removeProduct = (id: string) => setProducts((current) => current.filter((product) => product.id !== id))
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -403,14 +508,22 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       setError(strings.adminBundles.nameRequired)
       return
     }
-    const parsed = parsePrice(price)
-    if (parsed === undefined) {
+    if (products.length === 0) {
+      setError(strings.adminBundles.productsRequired)
+      return
+    }
+    if (parsedPrice === undefined) {
       setError(strings.adminBundles.invalidPrice)
       return
     }
     setError(null)
     try {
-      await createBundle.mutateAsync({ name: name.trim(), price: parsed, enabled })
+      await createBundle.mutateAsync({
+        name: name.trim(),
+        price: parsedPrice,
+        enabled,
+        products: products.map((product) => ({ productId: Number(product.id), quantity: product.quantity })),
+      })
       onOpenChange(false)
     } catch (err) {
       setError(getErrorMessage(err, strings.adminBundles.saveError))
@@ -419,32 +532,133 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogContent className="grid-cols-1 sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
           <DialogHeader>
             <DialogTitle>{strings.adminBundles.createTitle}</DialogTitle>
             <DialogDescription>{strings.adminBundles.createDescription}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2">
+
+          <div className="grid grid-cols-1 gap-2">
             <label htmlFor="bundle-name" className="text-sm font-medium">
               {strings.adminBundles.nameLabel}
             </label>
             <Input id="bundle-name" value={name} maxLength={255} onChange={(event) => setName(event.target.value)} />
           </div>
-          <div className="grid gap-2">
+
+          <div className="grid grid-cols-1 gap-2">
+            <span className="text-sm font-medium">{strings.adminBundles.products}</span>
+            {products.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{strings.adminBundles.noProductsYet}</p>
+            ) : (
+              <ul className="space-y-2">
+                {products.map((product) => (
+                  <li key={product.id} className="flex items-center gap-3 rounded-lg border border-border p-2">
+                    <ProductThumb image={product.image} />
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-medium">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.price != null
+                          ? strings.adminBundles.unitPrice(formatPrice(product.price, ""))
+                          : strings.price.ask}
+                      </p>
+                    </div>
+                    <Input
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="no-spinner w-14 text-center"
+                      aria-label={`${strings.adminBundles.quantity}: ${product.name}`}
+                      value={product.quantity}
+                      onChange={(event) => {
+                        const value = Number(event.target.value)
+                        if (Number.isInteger(value) && value >= 1) setQuantity(product.id, value)
+                      }}
+                    />
+                    <span className="hidden w-24 text-right text-sm tabular-nums sm:block">
+                      {product.price != null ? formatPrice(product.price * product.quantity, "") : "—"}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${strings.adminBundles.removeProduct}: ${product.name}`}
+                      onClick={() => removeProduct(product.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <Input
+              value={search}
+              placeholder={strings.adminBundles.searchProduct}
+              aria-label={strings.adminBundles.addProduct}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            {query.length > 0 && results.data ? (
+              options.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{strings.adminBundles.noResults}</p>
+              ) : (
+                <ul className="rounded-md border border-border divide-y divide-border">
+                  {options.map((product) => (
+                    <li key={product.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50"
+                        onClick={() => addProduct(product)}
+                      >
+                        <ProductThumb image={product.images?.[0] ?? null} />
+                        <span className="flex-1 min-w-0 truncate">{product.name}</span>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                          {formatPrice(product.price, strings.price.ask)}
+                        </span>
+                        <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-muted-foreground">{strings.adminBundles.productsTotal}</span>
+              <span className="font-medium tabular-nums">{formatPrice(total, "")}</span>
+            </div>
+            {missingPrice ? (
+              <p className="text-xs text-muted-foreground">{strings.adminBundles.productsTotalPartial}</p>
+            ) : null}
+
             <label htmlFor="bundle-new-price" className="text-sm font-medium">
               {strings.adminBundles.price}
             </label>
-            <Input
-              id="bundle-new-price"
-              type="number"
-              min={0}
-              step="0.01"
-              value={price}
-              placeholder={strings.adminProductEdit.pricePlaceholder}
-              onChange={(event) => setPrice(event.target.value)}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="bundle-new-price"
+                type="number"
+                min={0}
+                step="0.01"
+                className="no-spinner"
+                value={price}
+                placeholder={strings.adminProductEdit.pricePlaceholder}
+                onChange={(event) => setPrice(event.target.value)}
+              />
+              <Button type="button" variant="outline" disabled={total === 0} onClick={() => setPrice(String(total))}>
+                {strings.adminBundles.useTotal}
+              </Button>
+            </div>
+            {savings != null ? (
+              <p className="text-sm text-cyan-edge">{strings.adminBundles.saving(formatPrice(savings, ""))}</p>
+            ) : null}
+            {price.trim() === "" ? (
+              <p className="text-xs text-muted-foreground">{strings.adminBundles.priceHint}</p>
+            ) : null}
           </div>
+
           <label className="flex items-center gap-3 text-sm">
             <Switch checked={enabled} onCheckedChange={setEnabled} />
             {strings.adminBundles.enabled}

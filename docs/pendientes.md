@@ -182,8 +182,8 @@ preguntas antes de implementarla, como se hizo con ventas.
 **Errores y reglas**
 
 - **500 en vez de 4xx en products**: crear un producto con el nombre de uno borrado (`createProduct` usa
-  `existsByName`, que no ve los borrados) o renombrar con un nombre usado (`updateProduct` no lo valida); agregar a un
-  combo un producto o combo inexistente (`PUT /bundles/{id}/product`). Y `GET /bundles/{id}` (devuelve `null`) y
+  `existsByName`, que no ve los borrados) o renombrar con un nombre usado (`updateProduct` no lo valida). Y
+  `GET /bundles/{id}` (devuelve `null`) y
   `DELETE /bundles/{id}` responden 200 aunque el combo no exista.
 - **`PUT /products/{id}` reemplaza los cuatro campos**: mandar solo uno borra los otros. Pasar a `PATCH` o documentar
   que van todos.
