@@ -63,8 +63,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/bundles/**").hasAuthority(PermissionArea.COMBOS.authority())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/bundles/**").hasAuthority(PermissionArea.COMBOS.authority())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/bundles/**").hasAuthority(PermissionArea.COMBOS.authority())
-                        .requestMatchers("/api/v1/products/**").permitAll()
-                        .requestMatchers("/api/v1/bundles/**").permitAll()
+                        // Imagenes y metadatos de un producto: no muestran stock, son publicos
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/*/images", "/api/v1/products/*/metadata").permitAll()
+                        // Lo que no tiene regla arriba (otro metodo, un endpoint nuevo) no queda abierto por defecto
+                        .requestMatchers("/api/v1/products/**", "/api/v1/bundles/**").denyAll()
                         .requestMatchers("/products/images/**").permitAll()
                         // Link para compartir (Open Graph): lo abre un crawler, sin login
                         .requestMatchers(HttpMethod.GET, "/share/products/*").permitAll()

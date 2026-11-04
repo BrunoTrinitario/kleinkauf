@@ -53,7 +53,8 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
 
         boolean isInternal = Boolean.parseBoolean(request.getHeader(Headers.INTERNAL_REQUEST));
 
-        if (isInternal) {
+        // /api/internal/** siempre pide el token interno, aunque no venga el header X-internal-request
+        if (isInternal || request.getRequestURI().startsWith(PermittedUrls.INTERNAL_PATH)) {
             String token = request.getHeader(Headers.INTERNAL_TOKEN);
             if (internalTokenService.validateInternalToken(token)) {
                 filterChain.doFilter(request, response);

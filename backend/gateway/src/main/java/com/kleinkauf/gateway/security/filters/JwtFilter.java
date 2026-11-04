@@ -2,6 +2,7 @@ package com.kleinkauf.gateway.security.filters;
 
 import com.kleinkauf.common.constants.Headers;
 import com.kleinkauf.common.constants.TenantConstants;
+import com.kleinkauf.common.constants.TokenConstants;
 import com.kleinkauf.gateway.constants.PermittedUrls;
 import com.kleinkauf.gateway.util.JwtUtil;
 import com.kleinkauf.gateway.util.ManagementRequests;
@@ -66,6 +67,11 @@ public class JwtFilter implements WebFilter {
     private Mono<Void> authenticate(ServerWebExchange exchange, WebFilterChain chain, String path, String token) {
         try {
             if (!jwtUtil.validateToken(token)) {
+                return ResponseUtil.unauthorized(exchange);
+            }
+
+            // El token del mail de recuperacion de contrasena no sirve para entrar (ver TokenConstants)
+            if (TokenConstants.PASSWORD_RESET.equals(jwtUtil.getType(token))) {
                 return ResponseUtil.unauthorized(exchange);
             }
 

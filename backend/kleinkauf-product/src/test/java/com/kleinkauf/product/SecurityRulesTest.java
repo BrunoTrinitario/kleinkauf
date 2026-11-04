@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -130,6 +131,14 @@ class SecurityRulesTest {
 		// Sin stock: siguen publicos
 		mockMvc.perform(as(null, get("/api/v1/products/5/metadata"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/products/5/images"))).andExpect(status().isOk());
+	}
+
+	// Lo que no tiene regla propia no queda abierto, ni para el administrador
+	@Test
+	void rutasSinRegla_seRechazan() throws Exception {
+		mockMvc.perform(as(ADMIN, patch("/api/v1/products/5"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, get("/api/v1/products/5/inventado"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMIN, patch("/api/v1/bundles/3"))).andExpect(status().isForbidden());
 	}
 
 	// Link para compartir: lo abre un crawler sin login; HTML con Open Graph que redirige a la tienda

@@ -1,6 +1,7 @@
 package com.kleinkauf.gateway;
 
 import com.kleinkauf.common.constants.Headers;
+import com.kleinkauf.common.constants.TokenConstants;
 import com.kleinkauf.gateway.security.filters.JwtFilter;
 import com.kleinkauf.gateway.util.JwtUtil;
 import io.jsonwebtoken.Jwts;
@@ -53,6 +54,21 @@ class JwtTenantFilterTest {
 
         assertNull(forwarded.get());
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+    }
+
+    // El token del mail de recuperacion de contrasena no sirve para entrar
+    @Test
+    void tokenDeRecuperacion_respondeUnauthorized() {
+        MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a",
+                token(7L, "tienda_a", TokenConstants.PASSWORD_RESET));
+
+        run(exchange);
+
+        assertNull(forwarded.get());
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+
+        run(tenantRequest("/api/v1/products/5/pricing", "tienda_a", token(7L, "tienda_a", TokenConstants.ACCESS)));
+        assertEquals("7", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
     }
 
     @Test
@@ -130,9 +146,14 @@ class JwtTenantFilterTest {
     }
 
     private static String token(Long userId, String tenant) {
+        return token(userId, tenant, null);
+    }
+
+    private static String token(Long userId, String tenant, String type) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", userId);
         if (tenant != null) claims.put("tenant", tenant);
+        if (type != null) claims.put(TokenConstants.TYPE_CLAIM, type);
         return Jwts.builder()
                 .claims(claims)
                 .issuedAt(new Date())

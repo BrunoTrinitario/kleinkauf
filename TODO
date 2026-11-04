@@ -5,8 +5,7 @@
 - Revisar el servidor: uso de CPU, memoria y disco por contenedor, heap de cada JVM, latencia de punta a punta
 
 ## Seguridad
-- Auditar la seguridad de la API: autenticacion, permisos por rol, validaciones, rate limit, headers, CORS
-- Rutas inexistentes en el gateway: hoy responden 401, revisar que corresponda
+- Headers de seguridad del frontend (CSP, HSTS) en Caddy o nginx
 
 ## Frontend
 - Sumar las funcionalidades que faltan: ventas (pedidos online y del local, pagos, reportes)
