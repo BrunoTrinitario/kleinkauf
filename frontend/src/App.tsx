@@ -9,6 +9,7 @@ import HomePage from "@/pages/HomePage"
 import ProductPage from "@/pages/ProductPage"
 import CatalogPage from "@/pages/CatalogPage"
 import BundlesPage from "@/pages/BundlesPage"
+import LegalPage from "@/pages/LegalPage"
 import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
 import AdminPage from "@/pages/admin/AdminPage"
@@ -62,6 +63,8 @@ function StoreRoutes() {
       <Route path="/catalogo" element={<CatalogPage />} />
       <Route path="/combos" element={<BundlesPage />} />
       <Route path="/productos/:slug" element={<ProductPage />} />
+      <Route path="/privacidad" element={<LegalPage document="privacy" />} />
+      <Route path="/terminos" element={<LegalPage document="terms" />} />
       {/* Compra online: publica (invitado o con sesion). El pedido se consulta con numero + email */}
       <Route path="/carrito" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />

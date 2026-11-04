@@ -33,7 +33,106 @@ export const strings = {
   footer: {
     platform: "Tienda online",
     reportBug: "Reportar un problema",
+    privacy: "Privacidad",
+    terms: "Términos",
     demo: "Aplicación demo con control de acceso basado en roles",
+  },
+  // Textos base de /privacidad y /terminos. Son generales para todas las tiendas: antes de usarlos en serio
+  // conviene que los revise un abogado (Ley 25.326 de Protección de Datos Personales)
+  legal: {
+    updated: "Última actualización: 4 de noviembre de 2026",
+    privacy: {
+      title: "Política de privacidad",
+      highlight: "privacidad",
+      subtitle: "Qué datos guardamos, para qué y cómo puedes pedir que los cambiemos o borremos.",
+      sections: [
+        {
+          title: "Quién trata tus datos",
+          paragraphs: [
+            "Esta tienda funciona sobre KleinKauf, una plataforma de comercio electrónico. La tienda es la responsable de los datos de sus clientes y de sus pedidos; KleinKauf los guarda y los procesa por cuenta de la tienda para que la tienda funcione.",
+          ],
+        },
+        {
+          title: "Qué datos guardamos",
+          paragraphs: [
+            "Si creas una cuenta: tu nombre, tu email y tu contraseña. La contraseña se guarda cifrada y nadie puede leerla, ni la tienda ni la plataforma.",
+            "Si haces un pedido: tu nombre, tu email, tu teléfono, la dirección de entrega si la indicas, lo que compraste y los comprobantes de pago que subas.",
+            "Si reportas un problema: lo que escribas, tu email si lo indicas, la página en la que estabas y los datos de tu navegador.",
+            "Por seguridad, también registramos la dirección IP y la fecha de algunas acciones, como los cambios en los datos de la tienda.",
+          ],
+        },
+        {
+          title: "Para qué los usamos",
+          paragraphs: [
+            "Para que puedas entrar a tu cuenta, hacer y seguir tus pedidos, y para que la tienda pueda preparar y entregar lo que compraste y contactarte por tu pedido.",
+            "No vendemos tus datos ni los usamos para publicidad. Solo los ve la tienda en la que compraste y, si hace falta para mantener la plataforma o resolver un problema, el equipo de KleinKauf.",
+          ],
+        },
+        {
+          title: "Qué se guarda en tu navegador",
+          paragraphs: [
+            "No usamos cookies de seguimiento. El navegador guarda tu sesión (para no pedirte que entres en cada página), tu carrito y los pedidos que consultaste. Puedes borrarlos cerrando la sesión o borrando los datos del sitio en tu navegador.",
+          ],
+        },
+        {
+          title: "Cuánto tiempo los guardamos",
+          paragraphs: [
+            "Los datos de tu cuenta, mientras la tengas. Los pedidos y los comprobantes, el tiempo que la tienda los necesite para su contabilidad y sus obligaciones legales.",
+          ],
+        },
+        {
+          title: "Tus derechos",
+          paragraphs: [
+            "Puedes pedir ver, corregir o borrar tus datos. Desde la configuración de tu cuenta puedes cambiar tu nombre y tu contraseña, o borrar la cuenta. Para lo demás, escríbele a la tienda.",
+            "La Agencia de Acceso a la Información Pública, en su carácter de órgano de control de la Ley 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.",
+          ],
+        },
+      ],
+    },
+    terms: {
+      title: "Términos y condiciones",
+      highlight: "condiciones",
+      subtitle: "Las reglas para comprar en esta tienda.",
+      sections: [
+        {
+          title: "La tienda y la plataforma",
+          paragraphs: [
+            "Esta tienda funciona sobre KleinKauf. La tienda es la que vende: es responsable de sus productos, sus precios, su stock, las entregas, los cambios y las devoluciones. KleinKauf brinda la plataforma y no es parte de la compra.",
+          ],
+        },
+        {
+          title: "Tu cuenta",
+          paragraphs: [
+            "Puedes comprar sin cuenta. Si creas una, eres responsable de cuidar tu contraseña y de lo que se haga con ella. Los datos que cargues tienen que ser verdaderos.",
+          ],
+        },
+        {
+          title: "Pedidos y precios",
+          paragraphs: [
+            "Los precios son los que se muestran al hacer el pedido. Hacer un pedido reserva los productos por el plazo que indica la tienda; si no se paga en ese plazo, el pedido se cancela y los productos se liberan.",
+            "La tienda puede cancelar un pedido si hay un error evidente en el precio o si no puede entregarlo. En ese caso te avisa y, si ya pagaste, te devuelve el dinero.",
+          ],
+        },
+        {
+          title: "Pagos",
+          paragraphs: [
+            "Los pagos se hacen por transferencia a la cuenta que indica la tienda al hacer el pedido. La tienda confirma el pago al recibirlo; el comprobante que subas la ayuda a encontrarlo.",
+          ],
+        },
+        {
+          title: "Uso del sitio",
+          paragraphs: [
+            "No se puede usar el sitio para hacer pedidos falsos, intentar entrar a cuentas ajenas, sobrecargar el servicio ni copiar el contenido de la tienda sin su permiso.",
+          ],
+        },
+        {
+          title: "Cambios en estos términos",
+          paragraphs: [
+            "Estos términos pueden cambiar. La versión vigente es la publicada en esta página, con su fecha de actualización. Los pedidos ya hechos siguen las condiciones vigentes cuando se hicieron.",
+          ],
+        },
+      ],
+    },
   },
   home: {
     loadingProducts: "Cargando productos...",
