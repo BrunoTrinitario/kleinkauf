@@ -50,12 +50,10 @@ public class BundleService {
         return bundleDtos;
     }
 
-    public BundleDto getBundleById(Long id) {
-        Bundle b = this.bundleRepository.findById(id).orElse(null);
-        if (b != null)
-            return BundleFactory.getBundle(b);
-        else
-            return null;
+    public BundleDto getBundleById(Long id) throws ApiException {
+        Bundle b = this.bundleRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorMessages.BUNDLE_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return BundleFactory.getBundle(b);
     }
 
     // Valida todo antes de guardar: el combo se crea completo o no se crea
@@ -148,10 +146,10 @@ public class BundleService {
         b.setDiscount(type == BundlePricingType.FIXED ? null : discount);
     }
 
-    public Boolean deleteBundleById(Long id) {
-        Bundle b = this.bundleRepository.findById(id).orElse(null);
-        if (b != null)
-            this.bundleRepository.delete(b);
+    public Boolean deleteBundleById(Long id) throws ApiException {
+        Bundle b = this.bundleRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorMessages.BUNDLE_NOT_FOUND, HttpStatus.NOT_FOUND));
+        this.bundleRepository.delete(b);
         catalogCache.invalidate();
         return true;
     }

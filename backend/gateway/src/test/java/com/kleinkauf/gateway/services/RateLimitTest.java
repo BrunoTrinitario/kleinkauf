@@ -86,6 +86,21 @@ class RateLimitTest {
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/platform/tenants"));
     }
 
+    // Un X-Forwarded-For distinto en cada request no saltea el limite: cuenta la IP de la conexion
+    @Test
+    void elXForwardedForDelClienteNoSalteaElLimite() {
+        for (int i = 0; i < 6; i++) {
+            MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/auth/login")
+                    .header(HttpHeaders.ORIGIN, "http://localhost:3000")
+                    .header("X-Forwarded-For", "203.0.113." + i)
+                    .remoteAddress(new InetSocketAddress("10.0.0.1", 5000)));
+            filter.filter(exchange, e -> Mono.empty()).block();
+            if (i == 5) {
+                assertEquals(HttpStatus.TOO_MANY_REQUESTS, exchange.getResponse().getStatusCode());
+            }
+        }
+    }
+
     @Test
     void login_permite5PorMinuto() {
         for (int i = 0; i < 5; i++) {
@@ -116,6 +131,8 @@ class RateLimitTest {
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password/abc"));
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/auth/me"));
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/bug-reports"));
+        assertEquals(RequestTenantFactory.LOGIN, RequestTenantFactory.generatePathType("/api/v1/auth/refresh"));
+        assertEquals(RequestTenantFactory.LOGIN, RequestTenantFactory.generatePathType("/api/v1/platform/auth/refresh"));
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/platform/admin/bug-reports"));
     }
 

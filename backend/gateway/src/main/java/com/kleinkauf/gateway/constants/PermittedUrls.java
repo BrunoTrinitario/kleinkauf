@@ -34,10 +34,12 @@ public class PermittedUrls {
         return List.of(
                 "/api/v1/auth/login",
                 "/api/v1/auth/register",
+                "POST:/api/v1/auth/refresh",
                 "POST:/api/v1/auth/forgot-password",
                 "POST:/api/v1/auth/forgot-password/{any}",
                 "POST:/api/v1/platform/tenants",
                 "POST:/api/v1/platform/auth/login",
+                "POST:/api/v1/platform/auth/refresh",
                 "GET:/api/v1/products/{id}/metadata",
                 "GET:/api/v1/catalog/products",
                 "GET:/api/v1/catalog/featured",

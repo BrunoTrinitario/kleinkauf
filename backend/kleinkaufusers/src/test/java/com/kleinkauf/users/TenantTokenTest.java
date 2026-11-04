@@ -4,7 +4,9 @@ import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.common.constants.TokenConstants;
 import com.kleinkauf.common.servlet.tenant.TenantContext;
 import com.kleinkauf.users.entities.User;
+import com.kleinkauf.users.repositories.RoleRepository;
 import com.kleinkauf.users.repositories.UserRepository;
+import com.kleinkauf.users.util.CacheUtil;
 import com.kleinkauf.users.services.UserService;
 import com.kleinkauf.users.util.JwtUtil;
 import com.kleinkauf.users.util.RoleUtility;
@@ -37,6 +39,13 @@ class TenantTokenTest {
 
 	@Mock
 	private UserRepository userRepository;
+
+	// Para armar la sesion del refresh (roles y su cache)
+	@Mock
+	private RoleRepository roleRepository;
+
+	@Mock
+	private CacheUtil cacheUtil;
 
 	@InjectMocks
 	private UserService userService;
@@ -111,6 +120,46 @@ class TenantTokenTest {
 		assertEquals(TokenConstants.ACCESS, jwtUtil.getType(jwtUtil.generateAccessToken(1L, "a@b.com", "Ana", "t")));
 		assertEquals(JwtUtil.passwordFingerprint("hash"),
 				jwtUtil.getPasswordFingerprint(jwtUtil.generatePasswordToken(1L, "a@b.com", "t", "hash")));
+	}
+
+	// El refresh renueva la sesion con tokens nuevos
+	@Test
+	void refresh_valido_devuelveTokensNuevos() throws Exception {
+		JwtUtil jwtUtil = realJwtUtil();
+		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
+		TenantContext.setCurrentTenant("tienda_a");
+		User user = new User();
+		user.setId(1L);
+		user.setName("Ana");
+		user.setEmail("ana@mail.com");
+		user.setPassword("hash");
+		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+		var session = userService.refresh(jwtUtil.generateRefreshToken(1L, "tienda_a", "hash"));
+
+		assertEquals(TokenConstants.ACCESS, jwtUtil.getType(session.token()));
+		assertEquals(TokenConstants.REFRESH, jwtUtil.getType(session.refreshToken()));
+		assertEquals("tienda_a", jwtUtil.getTenant(session.token()));
+	}
+
+	// Ni un token de sesion, ni uno de otra tienda, ni uno de antes de cambiar la contrasena
+	@Test
+	void refresh_conTokenQueNoSirve_respondeUnauthorized() {
+		JwtUtil jwtUtil = realJwtUtil();
+		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
+		TenantContext.setCurrentTenant("tienda_a");
+		User user = new User();
+		user.setId(1L);
+		user.setPassword("hash-nuevo");
+		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+		for (String token : java.util.List.of(
+				jwtUtil.generateAccessToken(1L, "ana@mail.com", "Ana", "tienda_a"),
+				jwtUtil.generateRefreshToken(1L, "tienda_b", "hash-nuevo"),
+				jwtUtil.generateRefreshToken(1L, "tienda_a", "hash-viejo"))) {
+			ApiException ex = assertThrows(ApiException.class, () -> userService.refresh(token));
+			assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
+		}
 	}
 
 	private static JwtUtil realJwtUtil() {

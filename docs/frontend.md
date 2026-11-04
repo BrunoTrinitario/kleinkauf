@@ -5,7 +5,7 @@ backend ([referencia por servicio](backend/README.md), [tenants](tenants.md), [p
 [panel-admin](panel-admin.md), [auditoría](auditoria.md), [observabilidad](observabilidad.md)) y del frontend actual.
 
 Leyenda: **[listo]** el backend ya lo expone · **[plan]** está planificado y todavía no existe en el backend ·
-☑ ya existe en el frontend actual (Next.js) y se reescribe · **[x]** hecho en `frontend/` (revisado contra el código el
+☑ existía en el frontend anterior (Next.js, ya reemplazado) y se reescribió · **[x]** hecho en `frontend/` (revisado contra el código el
 2026-11-04; lo que está a medias sigue sin marcar, con una nota de lo que falta).
 
 ---
@@ -162,19 +162,23 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [x] Cada bloque carga por separado: si un servicio falla, el resto del panel sigue
 - [x] Gráficos con períodos en cero incluidos
 
-### 8. Panel de la tienda: ventas **[seguimiento de pedidos listo; faltan venta del local y reportes]** (solo `ADMINISTRADOR`)
-- [x] Lista de pedidos en `/admin/orders` con filtros (estado, canal, fechas) y búsqueda por número o email, en la URL;
-  atajo a los comprobantes para revisar y contador en el menú ("Ventas") — falta filtrar por medio de pago y por
-  "stock para revisar" (hoy se marca con un ícono en la fila)
+### 8. Panel de la tienda: ventas **[listo]** (solo `ADMINISTRADOR`)
+- [x] Lista de pedidos en `/admin/orders` con filtros (estado, canal, medio de pago, "stock para revisar", fechas) y
+  búsqueda por número o email, en la URL; atajo a los comprobantes para revisar y contador en el menú ("Ventas")
 - [x] Detalle del pedido en `/admin/orders/{número}`: ítems con precio de lista, cobrado y costo, ganancia, comprador,
-  entrega, historial (con el usuario) y comprobantes (ver en un diálogo o descargar)
+  entrega, historial con el nombre de quien hizo cada cambio y comprobantes (ver en un diálogo o descargar)
 - [x] Cambios de estado según las transiciones válidas: validar / rechazar con motivo, preparar, listo, entregar, cancelar con motivo
-- [ ] **Venta del local (mostrador)**: buscar productos, cambiar precio de un ítem, descuento, medio de pago, estado inicial, comprador opcional
-- [ ] Avisos de venta sin stock suficiente (ajuste automático)
+- [x] **Venta del local (mostrador)** en `/admin/orders/new`: buscar productos y combos, cantidad y precio cobrado por
+  ítem (obligatorio para los "a consultar"), descuento, medio de pago, estado inicial (entregado o pagado), comprador
+  opcional, retiro o envío y notas
+- [x] Avisos de venta sin stock suficiente: al cargar la venta (se vende igual con un ajuste), al registrarla y en la
+  lista y el detalle del pedido
 - [x] Configuración de ventas: alias, CBU, titular, banco y plazo de vencimiento ("Datos de cobro" en la lista de
   pedidos, que avisa si faltan)
-- [ ] Reportes: totales por período, ranking de productos, ganancia, desglose por canal y medio de pago — el resumen
-  de `/admin` ya los muestra; falta la pantalla de reportes del panel de ventas
+- [x] Reportes en `/admin/reports` (link desde la lista de pedidos y el resumen de `/admin`): rango de fechas,
+  agrupado por día, semana o mes, canal y medio de pago; facturado, ventas, unidades, ticket promedio, costo,
+  ganancia y descuentos, gráfico por período, desglose por canal y por medio de pago, y ranking de productos y combos
+  por unidades, facturado o ganancia
 - [ ] Contador de vendidos en productos y orden "más vendidos" en el catálogo — falta: el frontend no muestra
   `soldCount` y el orden del catálogo no ofrece `best_sellers`
 
@@ -194,7 +198,8 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
   (`tsc -b && vite build`); falta revisar que los tipos cubran todas las respuestas
 - [ ] Tests de las reglas de permisos del cliente y de los flujos principales (login, alta de tienda, carga de producto)
 - [ ] Accesibilidad básica: foco, etiquetas, contraste
-- [ ] Pipeline de build y despliegue de los archivos estáticos
+- [x] Pipeline de build y despliegue de los archivos estáticos: un push a `deploy/frontend` compila la imagen (`tsc -b` y
+  `vite build`, servido por nginx) y la despliega ([deploy.md](../deploy.md)). Falta un CI que corra el build en cada push a `main`
 
 ---
 

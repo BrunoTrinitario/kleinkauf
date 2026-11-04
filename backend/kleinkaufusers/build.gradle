@@ -51,6 +51,10 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	// Postgres y Redis reales para los tests que levantan la app (se saltean si no hay Docker)
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
@@ -58,6 +62,9 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// La zona del JVM viaja a Postgres al conectar: la de Windows (America/Buenos_Aires) Postgres 17 no la acepta.
+	// En el server los contenedores corren en UTC
+	systemProperty 'user.timezone', 'UTC'
 }
 
 bootRun {

@@ -11,6 +11,9 @@ public class PermittedUrls {
                 "/api/v1/auth/register",
                 "/api/v1/platform/tenants",
                 "/api/v1/platform/auth/login",
+                // Renovar la sesion: el token de 1 hora puede estar vencido
+                "/api/v1/auth/refresh",
+                "/api/v1/platform/auth/refresh",
                 // Reportar un bug: con o sin sesion. El controller lee el usuario del header del gateway
                 "/api/v1/bug-reports"
         );

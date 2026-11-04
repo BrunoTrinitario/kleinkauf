@@ -25,15 +25,42 @@ public class FileManager {
         }
         return paths;
     }
+
+    /*
+    Extension de una imagen segun sus primeros bytes (no el nombre ni el Content-Type, que los elige el cliente):
+    png, jpg, webp o gif. null si no es ninguna (tampoco se acepta SVG: puede traer scripts).
+    La extension decide el Content-Type con el que se sirve en /products/images/.
+     */
+    public static String imageExtension(byte[] bytes) {
+        if (startsWith(bytes, 0, 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A)) return "png";
+        if (startsWith(bytes, 0, 0xFF, 0xD8, 0xFF)) return "jpg";
+        if (startsWith(bytes, 0, 'G', 'I', 'F', '8')) return "gif";
+        if (startsWith(bytes, 0, 'R', 'I', 'F', 'F') && startsWith(bytes, 8, 'W', 'E', 'B', 'P')) return "webp";
+        return null;
+    }
+
+    private static boolean startsWith(byte[] bytes, int offset, int... signature) {
+        if (bytes == null || bytes.length < offset + signature.length) return false;
+        for (int i = 0; i < signature.length; i++) {
+            if ((bytes[offset + i] & 0xFF) != signature[i]) return false;
+        }
+        return true;
+    }
+
     private String saveImage(MultipartFile file){
         try {
-            String filename = UUID.randomUUID() + "_" + System.currentTimeMillis() + ".png";
+            byte[] bytes = file.getBytes();
+            String extension = imageExtension(bytes);
+            if (extension == null) {
+                throw new IllegalArgumentException("No es una imagen valida");
+            }
+            String filename = UUID.randomUUID() + "_" + System.currentTimeMillis() + "." + extension;
 
             Path uploadPath = Paths.get(imagePath).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
             Path filePath = uploadPath.resolve(filename);
-            Files.write(filePath, file.getBytes());
+            Files.write(filePath, bytes);
 
             return filePath.toString();
         } catch (IOException e) {

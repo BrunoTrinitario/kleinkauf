@@ -1,5 +1,5 @@
 import axios from "axios"
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import { normalizeOrderNumber } from "@/lib/known-orders"
@@ -9,13 +9,30 @@ import type {
   CheckoutInfo,
   CreatedOrder,
   NewOrder,
+  NewLocalSale,
+  OrderChannel,
   Order,
   OrderStatus,
   OrderSummary,
   Page,
   PriceChange,
+  PaymentMethod,
   SalesSettings,
+  User,
 } from "@/lib/types"
+import type { SalesSummary } from "@/api/dashboard"
+
+// Un renglon del ranking: revenue es antes del descuento del pedido; profit es mas alta de lo real si unitsWithoutCost > 0
+export interface SalesRankingRow {
+  type: "PRODUCT" | "BUNDLE"
+  id: number
+  name: string
+  units: number
+  revenue: number
+  cost: number
+  profit: number
+  unitsWithoutCost: number
+}
 
 // Compra online (/api/v1/sales, docs/backend/sales.md). Lo del comprador va por numero + email, sin login
 export const salesKeys = {
@@ -142,6 +159,8 @@ export function useAdminOrders(filters: AdminOrderFilters) {
           params: {
             status: filters.status || undefined,
             channel: filters.channel || undefined,
+            paymentMethod: filters.paymentMethod || undefined,
+            stockReview: filters.stockReview || undefined,
             q: filters.q || undefined,
             from: filters.from || undefined,
             to: filters.to || undefined,
@@ -230,4 +249,93 @@ export function useUpdateSalesSettings() {
       queryClient.invalidateQueries({ queryKey: salesKeys.checkout() })
     },
   })
+}
+
+/*
+Venta del local (ya cobrada). Reserva el stock como una venta: si falta, products registra un ajuste y el pedido queda
+con stockReview. 400: datos invalidos o productos "a consultar" sin precio. 409: un item no existe o no esta
+disponible. 503: products no respondio
+ */
+export function useCreateLocalSale() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (sale: NewLocalSale) =>
+      api.post<AdminOrder>("/sales/admin/orders", sale).then((response) => response.data),
+    onSuccess: (order) => {
+      queryClient.setQueryData(salesKeys.adminOrder(order.number), order)
+      queryClient.invalidateQueries({ queryKey: salesKeys.all })
+      queryClient.invalidateQueries({ queryKey: ["catalog"] })
+      queryClient.invalidateQueries({ queryKey: ["products"] })
+      queryClient.invalidateQueries({ queryKey: ["bundles"] })
+    },
+  })
+}
+
+// Reportes: dias de la tienda (yyyy-MM-dd, inclusive), hasta 366. Vacio = todos los canales / medios de pago
+export interface SalesReportFilters {
+  from: string
+  to: string
+  groupBy: "day" | "week" | "month"
+  channel: OrderChannel | ""
+  paymentMethod: PaymentMethod | ""
+}
+
+export function useSalesReport(filters: SalesReportFilters, enabled = true) {
+  return useQuery({
+    queryKey: [...salesKeys.admin(), "report", filters],
+    queryFn: () =>
+      api
+        .get<SalesSummary>("/sales/admin/reports/summary", {
+          params: {
+            from: filters.from,
+            to: filters.to,
+            groupBy: filters.groupBy,
+            channel: filters.channel || undefined,
+            paymentMethod: filters.paymentMethod || undefined,
+          },
+        })
+        .then((response) => response.data),
+    enabled,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export type RankingSort = "units" | "revenue" | "profit"
+
+// revenue del ranking: subtotales de las lineas, antes del descuento del pedido
+export function useSalesRanking(
+  filters: { from: string; to: string; channel: OrderChannel | ""; sort: RankingSort },
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [...salesKeys.admin(), "ranking", filters],
+    queryFn: () =>
+      api
+        .get<{ items: SalesRankingRow[] }>("/sales/admin/reports/products", {
+          params: {
+            from: filters.from,
+            to: filters.to,
+            channel: filters.channel || undefined,
+            sort: filters.sort,
+            limit: 20,
+          },
+        })
+        .then((response) => response.data.items),
+    enabled,
+    placeholderData: keepPreviousData,
+  })
+}
+
+// Nombres de los usuarios del historial (GET /users/{id}, solo ADMINISTRADOR). Un usuario borrado queda sin nombre
+export function useUserNames(ids: number[]): Record<number, string | undefined> {
+  const unique = [...new Set(ids)]
+  const results = useQueries({
+    queries: unique.map((id) => ({
+      queryKey: ["users", "name", id],
+      queryFn: () => api.get<User>(`/users/${id}`).then((response) => response.data.name),
+      staleTime: 10 * 60_000,
+      retry: false,
+    })),
+  })
+  return Object.fromEntries(unique.map((id, index) => [id, results[index]?.data]))
 }

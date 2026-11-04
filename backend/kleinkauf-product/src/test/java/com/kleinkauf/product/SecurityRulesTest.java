@@ -206,7 +206,7 @@ class SecurityRulesTest {
 		String body = "{\"name\":\"Silla\",\"stock\":1}";
 		mockMvc.perform(as(CLIENTE, json(post("/api/v1/products"), body))).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/products"), body))).andExpect(status().isForbidden());
-		mockMvc.perform(as(ADMIN, json(post("/api/v1/products"), body))).andExpect(status().isOk());
+		mockMvc.perform(as(ADMIN, json(post("/api/v1/products"), body))).andExpect(status().isCreated());
 	}
 
 	@Test
@@ -315,7 +315,7 @@ class SecurityRulesTest {
 	void empleadoConProductos_editaProductosYDestacados() throws Exception {
 		empleadoPermissions = PermissionArea.PRODUCTOS.bit();
 
-		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/products"), "{\"name\":\"Silla\"}"))).andExpect(status().isOk());
+		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/products"), "{\"name\":\"Silla\"}"))).andExpect(status().isCreated());
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/products/5/featured"), "{\"featured\":true}"))).andExpect(status().isOk());
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/products/5/pricing"))).andExpect(status().isForbidden());
 	}
@@ -337,7 +337,7 @@ class SecurityRulesTest {
 		empleadoPermissions = PermissionArea.COMBOS.bit();
 
 		mockMvc.perform(as(EMPLEADO, json(put("/api/v1/bundles/1/price"), "{\"price\":90000}"))).andExpect(status().isOk());
-		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/bundles"), "{\"name\":\"Combo\"}"))).andExpect(status().isOk());
+		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/bundles"), "{\"name\":\"Combo\"}"))).andExpect(status().isCreated());
 		mockMvc.perform(as(EMPLEADO, json(post("/api/v1/products"), "{\"name\":\"Silla\"}"))).andExpect(status().isForbidden());
 	}
 

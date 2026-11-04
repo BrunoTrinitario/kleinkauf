@@ -9,6 +9,7 @@ import HomePage from "@/pages/HomePage"
 import ProductPage from "@/pages/ProductPage"
 import CatalogPage from "@/pages/CatalogPage"
 import BundlesPage from "@/pages/BundlesPage"
+import LegalPage from "@/pages/LegalPage"
 import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
 import AdminPage from "@/pages/admin/AdminPage"
@@ -17,6 +18,8 @@ import AdminBundlesPage from "@/pages/admin/AdminBundlesPage"
 import AdminUsersPage from "@/pages/admin/AdminUsersPage"
 import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
 import AdminOrderPage from "@/pages/admin/AdminOrderPage"
+import AdminLocalSalePage from "@/pages/admin/AdminLocalSalePage"
+import AdminReportsPage from "@/pages/admin/AdminReportsPage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import MyOrdersPage from "@/pages/user/MyOrdersPage"
 import CartPage from "@/pages/CartPage"
@@ -62,6 +65,8 @@ function StoreRoutes() {
       <Route path="/catalogo" element={<CatalogPage />} />
       <Route path="/combos" element={<BundlesPage />} />
       <Route path="/productos/:slug" element={<ProductPage />} />
+      <Route path="/privacidad" element={<LegalPage document="privacy" />} />
+      <Route path="/terminos" element={<LegalPage document="terms" />} />
       {/* Compra online: publica (invitado o con sesion). El pedido se consulta con numero + email */}
       <Route path="/carrito" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
@@ -74,6 +79,8 @@ function StoreRoutes() {
         <Route element={<RequireRole role="ADMINISTRADOR" />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/orders/new" element={<AdminLocalSalePage />} />
+          <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>

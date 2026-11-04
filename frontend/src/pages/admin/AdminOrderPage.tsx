@@ -6,8 +6,8 @@ import { AlertTriangle, Download, Eye } from "lucide-react"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
 import { formatAmount, formatServerDateTime } from "@/lib/utils"
-import type { AdminOrder, OrderReceipt, OrderStatus } from "@/lib/types"
-import { fetchReceipt, useAdminOrder, useChangeOrderStatus } from "@/api/sales"
+import type { AdminOrder, OrderChannel, OrderReceipt, OrderStatus } from "@/lib/types"
+import { fetchReceipt, useAdminOrder, useChangeOrderStatus, useUserNames } from "@/api/sales"
 import { Header } from "@/components/header"
 import { PageHeader } from "@/components/page-header"
 import { OrderStatusBadge } from "@/components/order-status-badge"
@@ -27,7 +27,9 @@ Los cambios que puede hacer el administrador desde el estado actual (el mismo cr
 sales): validar mientras no se pago, rechazar un comprobante en revision, avanzar la entrega sin volver atras (se
 pueden saltear pasos) y cancelar cualquier pedido que no este cerrado
  */
-function availableChanges(status: OrderStatus): OrderStatus[] {
+function availableChanges(status: OrderStatus, channel: OrderChannel): OrderStatus[] {
+  // Una venta del local entregada se puede anular (se cargo por error o la devolvieron)
+  if (status === "ENTREGADO" && channel === "LOCAL") return ["CANCELADO"]
   if (FINAL.includes(status)) return []
   const changes: OrderStatus[] = []
   if (AWAITING_PAYMENT.includes(status)) changes.push("PAGADO")
@@ -69,6 +71,7 @@ export default function AdminOrderPage() {
 }
 
 function OrderDetail({ order, listPath }: { order: AdminOrder; listPath: string }) {
+  const userNames = useUserNames(order.history.flatMap((entry) => (entry.userId ? [entry.userId] : [])))
   const subtitle = [
     strings.adminOrder.created(formatServerDateTime(order.createdAt)),
     strings.adminOrder.channelPayment(
@@ -160,7 +163,7 @@ function OrderDetail({ order, listPath }: { order: AdminOrder; listPath: string 
                     <span>{strings.order.status[entry.status]}</span>
                     <span className="text-xs text-muted-foreground">
                       {formatServerDateTime(entry.createdAt)} ·{" "}
-                      {entry.userId ? strings.adminOrder.byUser(entry.userId) : strings.adminOrder.byBuyerOrSystem}
+                      {entry.userId ? strings.adminOrder.byUser(entry.userId, userNames[entry.userId]) : strings.adminOrder.byBuyerOrSystem}
                     </span>
                     {entry.reason ? <span className="text-xs text-muted-foreground">{entry.reason}</span> : null}
                   </li>
@@ -180,7 +183,7 @@ function OrderDetail({ order, listPath }: { order: AdminOrder; listPath: string 
 }
 
 function StatusActions({ order }: { order: AdminOrder }) {
-  const changes = availableChanges(order.status)
+  const changes = availableChanges(order.status, order.channel)
   const [target, setTarget] = useState<OrderStatus | null>(null)
 
   return (

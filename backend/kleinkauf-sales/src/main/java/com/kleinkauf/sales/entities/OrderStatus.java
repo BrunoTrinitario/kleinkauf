@@ -64,4 +64,13 @@ public enum OrderStatus {
             default -> false;
         };
     }
+
+    /*
+    Lo mismo, segun el canal: una venta del local entregada se puede anular (se cargo por error o la devolvieron).
+    Los pedidos online entregados siguen siendo finales.
+     */
+    public boolean canChangeTo(OrderStatus target, SalesChannel channel) {
+        if (this == ENTREGADO && target == CANCELADO) return channel == SalesChannel.LOCAL;
+        return canChangeTo(target);
+    }
 }

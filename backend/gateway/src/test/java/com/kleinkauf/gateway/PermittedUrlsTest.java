@@ -41,6 +41,14 @@ class PermittedUrlsTest {
     }
 
     // Muestran el stock exacto: son del panel, no del catalogo
+    // Renovar la sesion: publico, el token de 1 hora puede estar vencido
+    @Test
+    void refresh_esPublico() {
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/auth/refresh"));
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/auth/refresh"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/auth/refresh"));
+    }
+
     // Reportar un bug: publico y con login opcional (con sesion queda quien lo mando)
     @Test
     void reportarUnBug_publicoConLoginOpcional() {

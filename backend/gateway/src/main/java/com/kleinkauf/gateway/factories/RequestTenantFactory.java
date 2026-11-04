@@ -13,7 +13,9 @@ public class RequestTenantFactory {
 
     public static String generatePathType(String path){
         String result;
-        if (path.startsWith("/api/v1/auth/login") || path.startsWith("/api/v1/platform/auth/login"))
+        // Renovar la sesion comparte el limite del login: tambien da tokens nuevos
+        if (path.startsWith("/api/v1/auth/login") || path.startsWith("/api/v1/platform/auth/login")
+                || path.equals("/api/v1/auth/refresh") || path.equals("/api/v1/platform/auth/refresh"))
             result = LOGIN;
         // Registro y recuperacion de contrasena comparten el limite del alta de tiendas: cada recuperacion manda un
         // mail, y con el limite global se podria llenar de mails la casilla de alguien
