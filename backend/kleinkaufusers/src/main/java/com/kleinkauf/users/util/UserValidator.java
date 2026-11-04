@@ -5,6 +5,7 @@ import com.kleinkauf.users.constants.ErrorMessages;
 import org.springframework.http.HttpStatus;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /*
@@ -46,6 +47,11 @@ public final class UserValidator {
         if (email == null || email.trim().length() > EMAIL_MAX_LENGTH || !EMAIL.matcher(email.trim()).matches()) {
             throw new ApiException(ErrorMessages.INVALID_EMAIL, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    // El email no distingue mayusculas: se guarda y se busca en minuscula
+    public static String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
     public static void validatePassword(String password) throws ApiException {

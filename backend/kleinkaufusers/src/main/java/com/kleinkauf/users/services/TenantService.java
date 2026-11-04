@@ -129,7 +129,7 @@ public class TenantService {
         }
 
         try {
-            tenantOwnerCreator.createOwner(schema, dto.ownerName().trim(), dto.ownerEmail().trim(), dto.ownerPassword());
+            tenantOwnerCreator.createOwner(schema, dto.ownerName().trim(), UserValidator.normalizeEmail(dto.ownerEmail()), dto.ownerPassword());
         } catch (RuntimeException e) {
             // Sin dueno nadie podria administrarlo: se deshace el alta
             tenantRepository.delete(tenant);
