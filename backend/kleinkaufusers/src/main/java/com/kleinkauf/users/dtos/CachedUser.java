@@ -16,6 +16,8 @@ public class CachedUser {
 
     public CachedUser(Long userId, String tenantSchema, List<RoleDto> roles) {
         this.key = CacheKeys.CACHE_USER(userId, tenantSchema);
+        // Sin esto en Redis quedaba "null" y products, sales y el gateway le pedian los roles a users en cada request
+        this.roles = roles;
     }
 
 }
