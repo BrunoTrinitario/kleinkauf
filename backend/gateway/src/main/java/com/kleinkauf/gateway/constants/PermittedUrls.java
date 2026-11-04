@@ -17,6 +17,9 @@ public class PermittedUrls {
     // The browser does not send Origin when loading an <img>, so the tenant cannot be resolved
     public static String PRODUCT_IMAGES_PATH = "/products/images/";
 
+    // User profile photos: same as product images (public files with random names, no tenant)
+    public static String USER_AVATARS_PATH = "/users/avatars/";
+
     // Observability WebSocket: the browser cannot send the JWT in the handshake, it gets in with a ticket
     public static String WS_PATH = "/ws";
 
@@ -27,7 +30,7 @@ public class PermittedUrls {
 
     // Routes that do not belong to any tenant: the gateway neither looks it up nor adds the header
     public static boolean isTenantlessPath(String path) {
-        return isPlatformPath(path) || path.startsWith(PRODUCT_IMAGES_PATH);
+        return isPlatformPath(path) || path.startsWith(PRODUCT_IMAGES_PATH) || path.startsWith(USER_AVATARS_PATH);
     }
 
     public static List<String> getExcludedPaths() {
@@ -49,6 +52,7 @@ public class PermittedUrls {
                 "GET:/api/v1/catalog/products/{any}",
                 "GET:/api/v1/catalog/categories",
                 "GET:/api/v1/catalog/bundles",
+                "GET:/api/v1/catalog/store",
                 "GET:/api/v1/sales/checkout",
                 "POST:/api/v1/sales/orders",
                 "POST:/api/v1/sales/orders/lookup",
@@ -56,6 +60,7 @@ public class PermittedUrls {
                 "POST:/api/v1/sales/orders/{code}/cancel",
                 "POST:/api/v1/bug-reports",
                 "/products/images/{any}",
+                "GET:/users/avatars/{any}",
                 "GET:/share/{code}/products/{code}",
                 "GET:/ws"
         );

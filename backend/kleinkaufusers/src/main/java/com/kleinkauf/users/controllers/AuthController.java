@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.users.services.UserService;
 import java.util.Set;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  *
@@ -71,6 +72,18 @@ public class AuthController {
     public ResponseEntity<FullUserDto> Update(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody PatchUserDto userData) throws ApiException {
         FullUserDto updatedUser = userService.updateUser(userDetails.getId(), userData.name(), userData.password());
         return new ResponseEntity<>(updatedUser, org.springframework.http.HttpStatus.OK);
+    }
+
+    // Own profile photo: PNG, JPG, WEBP or GIF up to 1 MB. Replaces the previous one
+    @PostMapping(value = "/me/avatar", consumes = "multipart/form-data")
+    public ResponseEntity<FullUserDto> uploadAvatar(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                    @RequestParam("file") MultipartFile file) throws ApiException {
+        return ResponseEntity.ok(userService.setAvatar(userDetails.getId(), file));
+    }
+
+    @DeleteMapping("/me/avatar")
+    public ResponseEntity<FullUserDto> deleteAvatar(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
+        return ResponseEntity.ok(userService.deleteAvatar(userDetails.getId()));
     }
 
     @PostMapping("/forgot-password")

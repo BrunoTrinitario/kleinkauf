@@ -7,11 +7,34 @@ export const accountKeys = {
   me: ["me"] as const,
 }
 
+// The header also reads it (for the photo): it is cached for a minute instead of reloading on every page
 export function useMe(enabled: boolean) {
   return useQuery({
     queryKey: accountKeys.me,
     queryFn: () => api.get<User>("/auth/me").then((response) => response.data),
     enabled,
+    staleTime: 60_000,
+  })
+}
+
+// Profile photo: PNG, JPG, WEBP or GIF up to 1 MB (users checks the content). The response is the updated user
+export function useUploadAvatar() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append("file", file)
+      return api.post<User>("/auth/me/avatar", form).then((response) => response.data)
+    },
+    onSuccess: (user) => queryClient.setQueryData(accountKeys.me, user),
+  })
+}
+
+export function useDeleteAvatar() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete<User>("/auth/me/avatar").then((response) => response.data),
+    onSuccess: (user) => queryClient.setQueryData(accountKeys.me, user),
   })
 }
 

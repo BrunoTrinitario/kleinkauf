@@ -35,14 +35,14 @@ function StripLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-// A single row at every width: on phones each card takes almost the whole width (you can tell there is more to the
-// right), 2 fit from sm and 4 on desktop; the rest is seen by swiping or with the arrows
+// A single row at every width: on phones each card takes almost the full width (so it shows there is more to the
+// right), 2 fit from sm and 4 on desktop; the rest is reached by swiping or with the arrows
 const stripRow = "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:gap-6 [scrollbar-width:none]"
 const stripItem = "grid w-[75%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]"
 
-// Row with arrows that move one screen at a time (4 cards on desktop). The last screen ends at the
-// last item even if fewer than 4 remain; from there the right arrow goes back to the start (and the left one, from the
-// start, goes to the end). The arrows only appear if there are more items than fit
+// Row with arrows that move one screen at a time (4 cards on desktop). The last screen ends at the last item even
+// if fewer than 4 are left; from there the right arrow goes back to the start (and the left one, from the start,
+// goes to the end). The arrows only show up when there are more items than fit
 function Carousel({ children }: { children: ReactNode }) {
   const rowRef = useRef<HTMLDivElement>(null)
   const [overflows, setOverflows] = useState(false)
@@ -151,7 +151,7 @@ export function BundlesStrip() {
   )
 }
 
-// First catalog page (default sort) as a grid, like in /catalogo; at the end, the link to the full catalog
+// First catalog page (default order) in a grid, as in /catalogo; at the end, the link to the full catalog
 export function CatalogStrip() {
   const products = useCatalogProducts({ page: 0 }).data?.items ?? []
   const [selected, setSelected] = useState<CatalogProduct | null>(null)

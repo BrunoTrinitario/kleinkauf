@@ -37,6 +37,8 @@ public class SecurityConfig {
                         // Store dashboard: administrator only (the whole dashboard, not by areas). Before the
                         // /api/v1/products/** rules, which leave GETs open
                         .requestMatchers("/api/v1/products/dashboard").hasRole("ADMINISTRADOR")
+                        // Store settings (name, theme, icon): administrator only
+                        .requestMatchers("/api/v1/store/**").hasRole("ADMINISTRADOR")
                         // Permissions by area (PermissionArea). ADMINISTRADOR has all of them;
                         // EMPLEADO's and CLIENTE's are configured by the administrator in users
                         .requestMatchers("/api/v1/products/*/stock/movements", "/api/v1/products/stock/low")

@@ -18,7 +18,9 @@ public class PermittedUrls {
                 "/api/v1/auth/logout",
                 "/api/v1/platform/auth/logout",
                 // Reporting a bug: with or without a session. The controller reads the user from the gateway header
-                "/api/v1/bug-reports"
+                "/api/v1/bug-reports",
+                // Profile photos: public files, nobody is logged in when an <img> loads them
+                "/users/avatars/"
         );
     }
 

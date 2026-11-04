@@ -20,6 +20,7 @@ import { Header } from "@/components/header"
 import type { ProfileFormState } from "@/lib/types"
 import { isValidName, isValidPassword } from "@/lib/validation"
 import { PasswordRequirements } from "@/components/password-requirements"
+import { ProfilePhotoCard } from "@/components/profile-photo-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -113,6 +114,8 @@ export default function UserSettingsPage() {
 							{strings.userSettings.subtitle}
 					</p>
 				</div>
+
+				{me.data ? <ProfilePhotoCard user={me.data} /> : null}
 
 				<Card className="max-w-2xl">
 					<CardHeader>

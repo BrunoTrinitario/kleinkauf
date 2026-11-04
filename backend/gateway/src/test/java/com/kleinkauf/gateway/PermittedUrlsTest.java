@@ -96,6 +96,23 @@ class PermittedUrlsTest {
     }
 
     @Test
+    void userAvatars_publicToRead_uploadAndDeleteRequireLogin() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/users/avatars/abc_123.png"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/users/avatars/abc_123.png"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/auth/me/avatar"));
+        assertFalse(PermittedUrls.isPermitted("DELETE", "/api/v1/auth/me/avatar"));
+    }
+
+    @Test
+    void storeSettings_publicReadsConfig_editingRequiresLogin() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/store"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/store/settings"));
+        assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/store/settings"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/store/settings/icon"));
+        assertFalse(PermittedUrls.isPermitted("DELETE", "/api/v1/store/settings/icon"));
+    }
+
+    @Test
     void checkout_public_myOrdersAndDashboardRequireLogin() {
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/bundles"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/sales/checkout"));

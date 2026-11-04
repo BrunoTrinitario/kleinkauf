@@ -12,7 +12,7 @@ interface AddToCartButtonProps {
   availability: Availability
   className?: string
   // On listing cards: without a price nothing is shown (the card already says "Consultar precio").
-  // The button is the same everywhere (blue, normal size)
+  // The button is the same everywhere (primary color, default size)
   compact?: boolean
 }
 

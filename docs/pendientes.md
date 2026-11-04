@@ -144,8 +144,19 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
   transferir, cuenta regresiva, comprobante, motivo del rechazo, cancelar e historial; consulta del invitado en
   `/pedido` con número y email, y "Mis pedidos" en `/mis-pedidos`. El navegador recuerda número y email de los
   pedidos (`lib/known-orders.ts`) para abrirlos sin volver a pedir el email.
-- **Home, catálogo y combos separados**: `/` es una vidriera corta (buscador, categorías, destacados en una fila que
-  se desliza y una fila de combos); el listado completo está en `/catalogo`, con búsqueda, categoría, orden y
+- **Foto de perfil**: cualquier usuario de una tienda sube su foto en "Configuración de cuenta" (PNG, JPG, WEBP o GIF
+  de hasta 1 MB, validada por el contenido). Se ve en el header y en la lista de usuarios del panel; sin foto, las
+  iniciales. La guarda users (`POST`/`DELETE /api/v1/auth/me/avatar`, servida en `/users/avatars/`) y se borra con la
+  cuenta. Los superadmins de la plataforma todavía no tienen foto.
+- **Configuración de la tienda** (parte de B12): en `/admin/store` el administrador elige el nombre (sin nombre
+  propio sale del identificador), uno de 7 temas de colores (6 claros y "Noche", oscuro) y un ícono, y si el ícono va
+  junto al nombre y como favicon. Lo guarda products (`store_settings`, una fila por schema; `GET
+  /api/v1/catalog/store` público y `/api/v1/store/settings` solo `ADMINISTRADOR`). El frontend aplica el tema pisando
+  las variables de `index.css` (`lib/store-themes.ts`) y lo recuerda en el navegador para no arrancar con otros
+  colores. El footer dice "Powered by KleinKauf" y la plataforma tiene su favicon propio.
+- **Home, catálogo y combos separados**: `/` es una vidriera corta (destacados y combos en carruseles con flechas que
+  pasan de a 4 y vuelven al principio, y la primera página del catálogo con "Ver todos"); en el celular la navegación
+  va en un menú lateral. El listado completo está en `/catalogo`, con búsqueda, categoría, orden y
   página en la URL (`?q=&categoria=&orden=&pagina=`, `lib/catalog-url.ts`), así "atrás" vuelve al mismo listado y una
   búsqueda se puede compartir; los combos tienen su página en `/combos`. En la página de un producto, "Volver" va a la
   página anterior y, si se entró por un link compartido, a `/catalogo`.
@@ -199,7 +210,6 @@ esto ya está.
   precio y el costo, solo con `PRECIOS`.
 - **Más vendidos**: mostrar `soldCount` en el panel y sumar el orden `best_sellers` al catálogo (el backend ya lo
   acepta).
-- **Tema oscuro**: colores `.dark` en `index.css` y un selector.
 - **Estados vacíos y de carga comunes**: hoy cada página arma los suyos.
 - **Plataforma**: landing y alta pública de tienda (hoy `/` redirige a `/dashboard` y la tienda se crea desde el
   panel del superadmin).
@@ -213,12 +223,12 @@ esto ya está.
 ### B11. Publicación
 
 - SEO: meta tags, Open Graph, sitemap, robots y performance de las páginas.
-- Cambiar el favicon.
 - Que un abogado revise los textos de `/privacidad` y `/terminos` (`lib/strings.ts`, `legal`).
 
 ### B12. Configuración por tienda
 
-- Que el administrador configure el frontend de su tienda: marca, colores y textos.
+- Textos de la tienda configurables (nombre, tema e ícono ya están, ver arriba).
+- Que cada visitante elija claro u oscuro (hoy lo decide la tienda con el tema "Noche").
 - Mails de recupero de contraseña configurables por tienda.
 - Configuración general de la tienda desde su panel.
 
@@ -265,7 +275,18 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## D. Deuda técnica y prolijidad
 
-Está todo resuelto (ver arriba).
+- **CHECK de los enums**: las columnas `@Enumerated(EnumType.STRING)` (estado del pedido, canal, medio de pago,
+  entrega, tipo de movimiento de stock, estado de la reserva, tipo de precio del combo) tienen un `CHECK` que
+  Hibernate crea con los valores de ese momento, y `hbm2ddl update` no lo actualiza: al sumar un valor nuevo, guardarlo
+  falla en los schemas que ya existían. Antes de agregar un valor hay que borrar ese `CHECK` en cada schema (o guardar
+  la columna como texto, como `store_settings.theme`).
+- **Detección de imágenes repetida**: `FileManager.imageExtension` de products hace lo mismo que
+  `ImageFiles.extension` de kleinkauf-common (que usa users para las fotos de perfil). Pasar products a la de common.
+- **Volumen para las fotos de perfil**: `docker-compose.prod.yml` (no está en el repo) necesita un volumen para
+  `/app/uploads/users/avatars` de user-service, como `product-uploads` (ver [deploy.md](../deploy.md)).
+- **Configuración de ventas duplicada**: `sales_settings` es "una fila por schema" pero con id autoincremental; si
+  los dos primeros guardados de una tienda llegan juntos, quedan dos filas (y se usa la de menor id).
+  `store_settings` lo resuelve con id fijo y un reintento (`StoreSettingsService.save`).
 
 **Decidido**
 

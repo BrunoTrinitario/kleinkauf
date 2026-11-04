@@ -6,8 +6,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Theme based on STYLES.md: a warm stone canvas, neutrals from the stone scale
- * and a single cyan accent. Light theme only.
+ * Theme based on STYLES.md: warm stone canvas, neutrals from the stone scale
+ * and a single cyan accent. This is the OCEAN theme: the other store themes (including the dark one, NIGHT)
+ * override these variables from lib/store-themes.ts.
  */
 
 :root {
@@ -58,6 +59,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* Border and hover of the primary button: the primary color slightly darker, so it follows the store theme */
+  --color-primary-dark: color-mix(in srgb, var(--primary) 85%, black);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

@@ -247,7 +247,8 @@ alias kk='docker compose --env-file ~/kleinkauf/.env -f ~/kleinkauf/backend/back
 | Frenar todo (sin perder datos) | `kk --profile server stop` |
 
 Los datos viven en volúmenes de Docker (`kleinkauf_postgres-data`, `kleinkauf_product-uploads`,
-`kleinkauf_sales-uploads`, `kleinkauf_caddy-data`, etc.). `docker compose down` los conserva; **`down -v` los borra**.
+`kleinkauf_sales-uploads`, `kleinkauf_caddy-data`, etc.). Las fotos de perfil de users (`/app/uploads/users/avatars`)
+necesitan su propio volumen (`user-uploads`) en `docker-compose.prod.yml`: sin él se pierden en cada deploy. `docker compose down` los conserva; **`down -v` los borra**.
 `kleinkauf_caddy-data` guarda los certificados: si se pierde, Caddy los vuelve a pedir, pero Let's Encrypt limita
 cuántos se emiten por semana.
 

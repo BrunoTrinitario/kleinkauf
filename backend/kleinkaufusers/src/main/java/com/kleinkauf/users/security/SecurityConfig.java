@@ -30,6 +30,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/platform/admin/**").hasRole("SUPERADMIN")
                 // Reporting a bug from a store's footer: with or without a session
                 .requestMatchers(HttpMethod.POST, "/api/v1/bug-reports").permitAll()
+                // Profile photos: public files (random names), like product images
+                .requestMatchers(HttpMethod.GET, "/users/avatars/**").permitAll()
                 .anyRequest().denyAll()
             ).csrf(csrf -> csrf.disable())
             .headers(headers -> headers

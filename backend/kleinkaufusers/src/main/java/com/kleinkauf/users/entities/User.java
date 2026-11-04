@@ -63,4 +63,8 @@ public class User {
     @AuditIgnore
     private LocalDateTime lastLogin;
 
+    // Profile photo: file name under avatar.path (see AvatarStorage). null: no photo
+    @Column(length = 255)
+    private String avatar;
+
 }

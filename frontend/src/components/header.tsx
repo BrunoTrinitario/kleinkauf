@@ -23,6 +23,10 @@ import {
 import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
+import { useStoreConfig } from "@/api/store"
+import { useMe } from "@/api/account"
+import { UserAvatar } from "@/components/user-avatar"
+import { productImageUrl } from "@/lib/api"
 import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Menu } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
@@ -39,7 +43,7 @@ interface NavLinksProps {
   canManageUsers: boolean
   pendingReview: number
   lowStock: number
-  // In the side menu: one below the other and each link closes the menu
+  // In the side menu: stacked, and each link closes the menu
   vertical?: boolean
   onNavigate?: () => void
 }
@@ -57,7 +61,7 @@ function CountBadge({ count, label }: { count: number; label: string }) {
   )
 }
 
-// Store links and, separately, the dashboard ones (e.g. the store's "Combos" and the dashboard's "Combos")
+// Store links and, separately, panel links (e.g. the store's "Combos" and the panel's "Combos")
 function NavLinks({
   hasBundles,
   showPanel,
@@ -116,7 +120,22 @@ function NavLinks({
   )
 }
 
-// Menu button (only below md) that opens the navigation in a panel from the left
+// Store name and, if enabled, its icon. Shows nothing while the settings load (so one name is not replaced by
+// another)
+function StoreBrand() {
+  const config = useStoreConfig().data
+  if (!config) return <span className="h-5 w-24" aria-hidden />
+  return (
+    <>
+      {config.icon && config.showIconInHeader ? (
+        <img src={productImageUrl(config.icon)} alt="" className="h-7 w-7 shrink-0 rounded-md object-contain" />
+      ) : null}
+      <span className="truncate text-sm font-medium">{config.name}</span>
+    </>
+  )
+}
+
+// Menu button (below md only) that opens the navigation in a panel from the left
 function MobileNav(props: NavLinksProps) {
   const [open, setOpen] = useState(false)
   return (
@@ -128,7 +147,9 @@ function MobileNav(props: NavLinksProps) {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 gap-0 p-4">
         <SheetHeader className="p-0 pb-4">
-          <SheetTitle className="text-left">{strings.site.name}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2 text-left">
+            <StoreBrand />
+          </SheetTitle>
           <SheetDescription className="sr-only">{strings.nav.menuDescription}</SheetDescription>
         </SheetHeader>
         <nav className="flex flex-col">
@@ -143,6 +164,8 @@ export function Header() {
   const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
   const availableRoles = user?.roles.map(role => role.type) ?? []
   const { units } = useCart()
+  // Profile photo (same cached query as the settings page)
+  const me = useMe(isAuthenticated).data
   // The store's "Combos" only if there is any to buy (the same query as the home page, cached)
   const hasBundles = (useCatalogBundles().data?.length ?? 0) > 0
 
@@ -181,13 +204,12 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <MobileNav {...navProps} />
-          <Link to="/" className="flex items-center gap-2">
-            <Store className="h-5 w-5" strokeWidth={1.5} />
-            <span className="text-sm font-medium">{strings.site.name}</span>
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <StoreBrand />
           </Link>
         </div>
 
-        {/* Navigation in a row from md; on phones it goes in the side menu (MobileNav) */}
+        {/* Navigation in a row from md; on phones it lives in the side menu (MobileNav) */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks {...navProps} />
         </nav>
@@ -210,9 +232,7 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-2">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <UserAvatar name={user?.name} avatar={me?.avatar} />
                     <div className="hidden sm:flex flex-col items-start">
                       <span className="text-sm font-medium leading-none">{user?.name}</span>
                       <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded mt-1 ${getRoleBadgeColor()}`}>
@@ -265,6 +285,12 @@ export function Header() {
                         <Link to="/admin">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           {strings.auth.dashboard}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/store">
+                          <Store className="mr-2 h-4 w-4" />
+                          {strings.adminStore.menu}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>

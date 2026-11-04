@@ -26,6 +26,7 @@ export const PLATFORM_PATH = "/platform"
 
 // Images are served without a tenant and outside /api/v1 (see docs/backend/products.md)
 export const productImageUrl = (fileName: string) => `${API_BASE_URL}/products/images/${fileName}`
+export const avatarUrl = (fileName: string) => `${API_BASE_URL}/users/avatars/${fileName}`
 
 interface ApiSession {
   getToken: () => string | null
