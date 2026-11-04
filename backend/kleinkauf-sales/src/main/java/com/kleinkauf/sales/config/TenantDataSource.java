@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /*
-Encargada de definir el buffer de conexiones de todas lsa bds
+In charge of defining the connection pool of all the dbs
  */
 @Component
 public class TenantDataSource implements Serializable, TenantSchemaManager {

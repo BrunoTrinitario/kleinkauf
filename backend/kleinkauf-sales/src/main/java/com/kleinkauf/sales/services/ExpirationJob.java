@@ -14,9 +14,9 @@ import java.util.EnumSet;
 import java.util.List;
 
 /*
-Vence los pedidos que no subieron el comprobante a tiempo (PENDIENTE_PAGO y RECHAZADO):
-pasan a VENCIDO y se devuelve el stock. Corre cada sales.expiration.interval (1 hora) y recorre
-todas las tiendas. Un pedido que falla (products caido) se reintenta en la pasada siguiente.
+Expires the orders that did not upload the receipt in time (PENDIENTE_PAGO and RECHAZADO):
+they move to VENCIDO and the stock is returned. Runs every sales.expiration.interval (1 hour) and goes through
+every store. An order that fails (products down) is retried on the next pass.
  */
 @Slf4j
 @Component
@@ -48,7 +48,7 @@ public class ExpirationJob {
         }
     }
 
-    // Devuelve cuantos pedidos vencio
+    // Returns how many orders it expired
     int expireTenant(String tenant, LocalDateTime now) {
         int expired = 0;
         List<String> numbers = orderRepository.findExpiredNumbers(EnumSet.of(OrderStatus.PENDIENTE_PAGO, OrderStatus.RECHAZADO), now);

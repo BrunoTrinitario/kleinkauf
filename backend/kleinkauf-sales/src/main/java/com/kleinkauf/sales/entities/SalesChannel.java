@@ -1,8 +1,8 @@
 package com.kleinkauf.sales.entities;
 
 public enum SalesChannel {
-    // Tienda online
+    // Online store
     ONLINE,
-    // Venta en el local, la carga el administrador
+    // In-store sale, entered by the administrator
     LOCAL
 }

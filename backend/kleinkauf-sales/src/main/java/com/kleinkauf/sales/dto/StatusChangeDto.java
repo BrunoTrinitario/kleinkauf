@@ -4,7 +4,7 @@ import com.kleinkauf.sales.entities.OrderStatus;
 
 import java.time.LocalDateTime;
 
-// userId solo en la vista del administrador (null para el comprador)
+// userId only in the administrator view (null for the buyer)
 public record StatusChangeDto(
         OrderStatus status,
         LocalDateTime createdAt,

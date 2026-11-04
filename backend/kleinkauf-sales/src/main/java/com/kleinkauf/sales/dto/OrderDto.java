@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /*
-Pedido visto por el comprador (consulta del invitado). Sin costos ni datos internos.
-payment solo mientras se puede subir el comprobante (PENDIENTE_PAGO o RECHAZADO).
+Order as seen by the buyer (guest lookup). No costs or internal data.
+payment only while the receipt can be uploaded (PENDIENTE_PAGO or RECHAZADO).
  */
 public record OrderDto(
         String number,
@@ -25,7 +25,7 @@ public record OrderDto(
         BigDecimal total,
         PaymentDetailsDto payment,
         List<StatusChangeDto> history,
-        // Comprobantes subidos (el comprador no los puede descargar)
+        // Uploaded receipts (the buyer cannot download them)
         int receipts
 ) {
 }

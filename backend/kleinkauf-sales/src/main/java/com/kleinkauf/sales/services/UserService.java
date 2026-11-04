@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /*
-Datos de usuarios y tenants: primero cache local, despues Redis y por ultimo
-el microservicio de usuarios (UsersClient). Lo que no se pudo obtener no se cachea.
+User and tenant data: first the local cache, then Redis and finally
+the users microservice (UsersClient). Whatever could not be obtained is not cached.
  */
 @Service
 public class UserService {

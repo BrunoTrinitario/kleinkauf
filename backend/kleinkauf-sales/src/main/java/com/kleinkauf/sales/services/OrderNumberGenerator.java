@@ -5,9 +5,9 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 
 /*
-Numero de pedido aleatorio con formato XXXX-XXXX (ej. K7QM-4X2P). Aleatorio para que no se puedan
-recorrer los pedidos de otros. Sin 0/O, 1/I/L para que se pueda dictar sin confusiones.
-31^8 combinaciones: la unicidad la asegura OrderService contra la base.
+Random order number with the XXXX-XXXX format (e.g. K7QM-4X2P). Random so other people's orders cannot be
+enumerated. No 0/O, 1/I/L so it can be dictated without confusion.
+31^8 combinations: OrderService ensures uniqueness against the database.
  */
 @Component
 public class OrderNumberGenerator {

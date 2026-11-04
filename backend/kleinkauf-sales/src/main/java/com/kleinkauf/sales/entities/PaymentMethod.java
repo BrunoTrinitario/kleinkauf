@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.entities;
 
-// Los pedidos online son siempre TRANSFERENCIA
+// Online orders are always TRANSFERENCIA
 public enum PaymentMethod {
     EFECTIVO,
     TRANSFERENCIA,

@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-// Scheduling: vencimiento de los pedidos sin comprobante (ExpirationJob)
+// Scheduling: expiry of orders without a receipt (ExpirationJob)
 @SpringBootApplication
 @EnableScheduling
 public class Application {

@@ -9,7 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 
-// Configuracion de ventas de la tienda: una sola fila por schema
+// The store's sales settings: a single row per schema
 @Entity
 @Audited
 @Table(name = "sales_settings")
@@ -24,7 +24,7 @@ public class SalesSettings {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Datos para la transferencia
+    // Transfer details
     @Column(length = 20)
     private String alias;
 
@@ -37,7 +37,7 @@ public class SalesSettings {
     @Column(length = 100)
     private String bank;
 
-    // Horas para subir el comprobante antes de que el pedido venza
+    // Hours to upload the receipt before the order expires
     @ColumnDefault("48")
     @Column(name = "expiration_hours", nullable = false)
     private int expirationHours = DEFAULT_EXPIRATION_HOURS;

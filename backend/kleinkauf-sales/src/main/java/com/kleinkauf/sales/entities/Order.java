@@ -27,7 +27,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Codigo aleatorio (K7QM-4X2P) para que no se pueda recorrer; unico en la tienda
+    // Random code (K7QM-4X2P) so orders cannot be enumerated; unique within the store
     @Column(nullable = false, unique = true, length = 9)
     private String number;
 
@@ -43,18 +43,18 @@ public class Order {
     @Column(name = "payment_method", nullable = false, length = 20)
     private PaymentMethod paymentMethod;
 
-    // Datos del comprador: obligatorios online, opcionales en el local (consumidor final)
+    // Buyer data: required online, optional in the store (final consumer)
     @Column(name = "buyer_name", length = 100)
     private String buyerName;
 
-    // Guardado en minusculas: la consulta del invitado lo compara asi
+    // Stored in lowercase: the guest lookup compares it that way
     @Column(name = "buyer_email", length = 150)
     private String buyerEmail;
 
     @Column(name = "buyer_phone", length = 30)
     private String buyerPhone;
 
-    // Usuario logueado que hizo el pedido (id del microservicio de usuarios); null si fue invitado
+    // Logged-in user who placed the order (id from the users microservice); null if it was a guest
     @Column(name = "user_id")
     private Long userId;
 
@@ -72,20 +72,20 @@ public class Order {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal discount = BigDecimal.ZERO;
 
-    // Suma de los subtotales menos el descuento
+    // Sum of the subtotals minus the discount
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total;
 
-    // Venta del local sin stock suficiente: products hizo un AJUSTE y hay que revisar
+    // In-store sale without enough stock: products made an AJUSTE and it needs to be reviewed
     @ColumnDefault("false")
     @Column(name = "stock_review", nullable = false)
     private boolean stockReview;
 
-    // Hasta cuando se puede subir el comprobante (PENDIENTE_PAGO / RECHAZADO)
+    // Until when the receipt can be uploaded (PENDIENTE_PAGO / RECHAZADO)
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
-    // Cuando se valido el pago (o se cargo la venta del local): la fecha de la venta en los reportes
+    // When the payment was validated (or the in-store sale was entered): the sale date in the reports
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
@@ -95,7 +95,7 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Control optimista: un cambio del administrador, un comprobante y el vencimiento no se pisan
+    // Optimistic locking: an administrator change, a receipt and the expiry do not overwrite each other
     @Version
     @ColumnDefault("0")
     @Column(nullable = false)
@@ -123,12 +123,12 @@ public class Order {
         receipts.add(receipt);
     }
 
-    // Suma de los subtotales antes del descuento
+    // Sum of the subtotals before the discount
     public BigDecimal subtotal() {
         return items.stream().map(OrderItem::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    // Cambia el estado y lo deja en el historial
+    // Changes the status and records it in the history
     public void changeStatus(OrderStatus newStatus, Long byUserId, String reason) {
         LocalDateTime now = LocalDateTime.now();
         this.status = newStatus;

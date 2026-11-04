@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.dto;
 
-// Datos para transferir
+// Transfer details
 public record PaymentDetailsDto(
         String alias,
         String cbu,

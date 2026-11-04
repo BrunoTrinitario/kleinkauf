@@ -11,10 +11,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Eventos de pedidos para el panel en vivo de la tienda (canal store.activity, docs/observabilidad.md):
-- order.created: un pedido online nuevo o una venta del local (channel lo distingue).
-- order.receipt-uploaded: el comprador subio un comprobante y el pedido quedo para revisar.
-Dentro de una transaccion se publican despues del commit. Sin Redis no se publica nada y el pedido sigue igual.
+Order events for the store's live dashboard (store.activity channel, docs/observabilidad.md):
+- order.created: a new online order or an in-store sale (channel tells them apart).
+- order.receipt-uploaded: the buyer uploaded a receipt and the order is waiting for review.
+Inside a transaction they are published after the commit. Without Redis nothing is published and the order is unaffected.
  */
 @Component
 public class OrderEvents {
