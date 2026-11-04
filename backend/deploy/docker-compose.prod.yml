@@ -126,6 +126,9 @@ services:
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/products
+      #Vista previa del link compartido (ShareController): a donde redirige y de donde sale la imagen de og:image
+      SHARE_STORE_URL: ${PLATFORM_SCHEME}://{identifier}.${PLATFORM_DOMAIN}
+      SHARE_PUBLIC_URL: ${PUBLIC_API_URL}
     volumes:
       #Imagenes de los productos
       - product-uploads:/app/uploads

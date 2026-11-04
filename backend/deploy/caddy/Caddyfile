@@ -33,7 +33,22 @@ https:// {
 		on_demand
 	}
 	encode zstd gzip
-	reverse_proxy frontend:80
+
+	#Vista previa de un producto compartido: los crawlers no ejecutan JavaScript, asi que /productos/{slug} se les
+	#responde con el HTML de Open Graph del gateway (/share/{tienda}/products/{slug}). Las personas abren la SPA
+	@preview {
+		path_regexp slug ^/productos/([^/]+)/?$
+		header_regexp host Host ^([a-z0-9-]+)\.
+		header_regexp bot User-Agent (?i)(whatsapp|facebookexternalhit|facebot|meta-externalagent|twitterbot|telegrambot|slackbot|linkedinbot|discordbot|pinterest|skypeuripreview|iframely|embedly|googlebot|bingbot)
+	}
+	handle @preview {
+		rewrite * /share/{re.host.1}/products/{re.slug.1}
+		reverse_proxy gateway-service:3000
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
 }
 
 #Permiso del on-demand: solo <identificador>.{$PLATFORM_DOMAIN}, con el formato de identificador de las tiendas
