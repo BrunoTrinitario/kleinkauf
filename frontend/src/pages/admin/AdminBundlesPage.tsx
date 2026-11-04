@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
@@ -68,6 +68,13 @@ function PricingFields({
   listPrice: number | null
   action?: React.ReactNode
 }) {
+  // Lo escrito en cada tipo: al ir de "% de descuento" a "Precio fijo" y volver, el porcentaje sigue ahi
+  const valuesByType = useRef<Partial<Record<BundlePricingType, string>>>({})
+  const selectType = (type: BundlePricingType) => {
+    if (type === draft.type) return
+    valuesByType.current[draft.type] = draft.value
+    onChange({ type, value: valuesByType.current[type] ?? "" })
+  }
   const parsed = parsePricing(draft)
   const final = parsed ? bundlePrice(parsed, listPrice) : null
   const savings = final != null && listPrice != null && listPrice > final ? listPrice - final : null
@@ -95,7 +102,7 @@ function PricingFields({
             className={`rounded px-2 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               draft.type === type ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => type !== draft.type && onChange({ type, value: "" })}
+            onClick={() => selectType(type)}
           >
             {strings.adminBundles.pricingTypes[type]}
           </button>

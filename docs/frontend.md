@@ -5,7 +5,8 @@ backend ([referencia por servicio](backend/README.md), [tenants](tenants.md), [p
 [panel-admin](panel-admin.md), [auditoría](auditoria.md), [observabilidad](observabilidad.md)) y del frontend actual.
 
 Leyenda: **[listo]** el backend ya lo expone · **[plan]** está planificado y todavía no existe en el backend ·
-☑ ya existe en el frontend actual (Next.js) y se reescribe.
+☑ ya existe en el frontend actual (Next.js) y se reescribe · **[x]** hecho en `frontend/` (revisado contra el código el
+2026-11-04; lo que está a medias sigue sin marcar, con una nota de lo que falta).
 
 ---
 
@@ -58,101 +59,107 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 ## Checklist
 
 ### 0. Base técnica
-- [ ] Proyecto Vite + TypeScript + Tailwind + shadcn/ui, en `frontend/`
-- [ ] Cliente HTTP único (baseURL del gateway, `Authorization`, manejo central de 401 / 403 / 404 / 429)
-- [ ] Detección de contexto: plataforma (sin subdominio) vs. tienda (con subdominio) ☑
-- [ ] Contexto de sesión: usuario, roles y **máscara de permisos** (bits 1/2/4/8/16), con helper `can('STOCK')`
-- [ ] Rutas protegidas por rol y por área de permiso (la UI oculta lo que no se puede usar; el backend igual valida)
-- [ ] Layouts: público, panel de la tienda, panel de la plataforma
-- [ ] Textos en español centralizados (hoy en `lib/strings.ts`), moneda en pesos, fechas locales
-- [ ] Tema claro/oscuro, responsive (uso en tablet y celular en el local)
-- [ ] Estados vacíos, de carga y de error reutilizables; aviso de "demasiados intentos" para el 429
-- [ ] Páginas de tienda inexistente (404) y deshabilitada (403)
-- [ ] Variables de entorno (URL del gateway) y build para producción
+- [x] Proyecto Vite + TypeScript + Tailwind + shadcn/ui, en `frontend/`
+- [x] Cliente HTTP único (baseURL del gateway, `Authorization`, manejo central de 401 / 403 / 404 / 429)
+- [x] Detección de contexto: plataforma (sin subdominio) vs. tienda (con subdominio) ☑
+- [x] Contexto de sesión: usuario, roles y **máscara de permisos** (bits 1/2/4/8/16), con helper `can('STOCK')`
+- [x] Rutas protegidas por rol y por área de permiso (la UI oculta lo que no se puede usar; el backend igual valida)
+- [x] Layouts: público, panel de la tienda, panel de la plataforma
+- [x] Textos en español centralizados (hoy en `lib/strings.ts`), moneda en pesos, fechas locales
+- [ ] Tema claro/oscuro, responsive (uso en tablet y celular en el local) — responsive está; falta el tema oscuro
+  (no hay colores `.dark` ni selector)
+- [ ] Estados vacíos, de carga y de error reutilizables; aviso de "demasiados intentos" para el 429 — el aviso del
+  429 está; los estados vacíos y de carga se arman en cada página (no hay componentes comunes)
+- [x] Páginas de tienda inexistente (404) y deshabilitada (403)
+- [x] Variables de entorno (URL del gateway) y build para producción
 
 ### 1. Plataforma (sin tenant) **[listo]**
 - [ ] Landing con explicación del producto
 - [ ] **Alta de tienda** (`POST /platform/tenants`): identificador con la validación del backend (3–30 caracteres,
   `a-z 0-9 -`, reservados), datos del dueño, errores 400 / 409 / 429, y redirección a la URL de la tienda al terminar
-- [ ] Login del superadmin (`/platform/auth/login`) ☑ en `http://localhost:2999/login`
-- [ ] Panel de tenants (`/tenants`): lista con búsqueda y filtro por estado ☑, alta ☑, habilitar/deshabilitar ☑, borrar
+  — hoy la tienda solo se crea desde el panel de tenants del superadmin; falta el alta pública (en la plataforma `/`
+  redirige a `/dashboard`)
+- [x] Login del superadmin (`/platform/auth/login`) ☑ en `http://localhost:2999/login`
+- [x] Panel de tenants (`/tenants`): lista con búsqueda y filtro por estado ☑, alta ☑, habilitar/deshabilitar ☑, borrar
   (soft delete) con confirmación ☑; aviso de que el cambio tarda hasta 1 min ☑. El detalle no tiene pantalla propia:
   la tarjeta ya muestra todo lo que devuelve `GET /admin/tenants/{id}`
-- [ ] Resumen (`/dashboard`, a donde lleva el login): tenants (total / habilitados / deshabilitados / borrados) ☑ y
+- [x] Resumen (`/dashboard`, a donde lleva el login): tenants (total / habilitados / deshabilitados / borrados) ☑ y
   altas por período en barras, con tooltip y vista de tabla ☑ (30 días por día, 12 semanas o 12 meses)
-- [ ] Uso por tenant en el resumen: tabla con usuarios, activos, última actividad, productos y combos ☑, orden
+- [x] Uso por tenant en el resumen: tabla con usuarios, activos, última actividad, productos y combos ☑, orden
   elegible (por defecto productos) ☑. Junta users y products por `schema`; si products falla, la tabla sale igual
   sin esas columnas ☑
-- [ ] Gestión de superadmins (`/superadmins`): lista ☑, alta con contraseña temporal ☑, desactivar/reactivar ☑ (el
+- [x] Gestión de superadmins (`/superadmins`): lista ☑, alta con contraseña temporal ☑, desactivar/reactivar ☑ (el
   propio no se puede desactivar; el último activo da 409)
 - Las páginas de plataforma comparten `hooks/use-platform-session.ts` (redirige al login y cierra la sesión con el
   primer 401). Las fechas de la plataforma llegan con offset (`2026-11-02T21:00:16Z`): el backend corre en UTC.
 
 ### 2. Cuenta y sesión en la tienda **[listo]**
-- [ ] Login ☑ y registro como `CLIENTE` ☑
+- [x] Login ☑ y registro como `CLIENTE` ☑
 - [ ] Recupero de contraseña: pedir el mail y pantalla `/reset-password?token=` (el link del mail lleva ahí; el token vale 15 min y se manda a `POST /api/v1/auth/forgot-password/{token}`)
-- [ ] Perfil: cambiar nombre y contraseña ☑, borrar la propia cuenta con confirmación
-- [ ] Sesión vencida: volver al login conservando la página de destino
-- [ ] Menú de usuario con los roles y logout
+- [x] Perfil: cambiar nombre y contraseña ☑, borrar la propia cuenta con confirmación
+- [x] Sesión vencida: volver al login conservando la página de destino
+- [x] Menú de usuario con los roles y logout
 
 ### 3. Catálogo público **[listo]**
-- [ ] Home (`/`) como vidriera corta: buscador y categorías que llevan al catálogo, **productos destacados**
+- [x] Home (`/`) como vidriera corta: buscador y categorías que llevan al catálogo, **productos destacados**
   (`/catalog/featured`, en su orden) en una fila y los combos (con la misma tarjeta que `/combos`) en otra fila igual
-- [ ] Listado paginado (24 por página) en `/catalogo`, con búsqueda `q`, filtro por categoría y orden (nombre / precio ↑ /
+- [x] Listado paginado (24 por página) en `/catalogo`, con búsqueda `q`, filtro por categoría y orden (nombre / precio ↑ /
   precio ↓) en la URL (`?q=&categoria=&orden=&pagina=`)
-- [ ] Categorías con su cantidad de productos
-- [ ] Detalle por **slug** (URL compartible), con imágenes, metadatos (material, color, estilo, medidas) ☑
-- [ ] Disponibilidad: `DISPONIBLE`, `POCAS_UNIDADES`, `AGOTADO` (el catálogo nunca muestra stock exacto ni costo)
-- [ ] Producto sin precio → "Consultar"
-- [ ] **Combos** en `/combos`: precio, precio de lista (ahorro), disponibilidad, productos que incluye (miniatura,
+- [x] Categorías con su cantidad de productos
+- [x] Detalle por **slug** (URL compartible), con imágenes, metadatos (material, color, estilo, medidas) ☑
+- [x] Disponibilidad: `DISPONIBLE`, `POCAS_UNIDADES`, `AGOTADO` (el catálogo nunca muestra stock exacto ni costo)
+- [x] Producto sin precio → "Consultar"
+- [x] **Combos** en `/combos`: precio, precio de lista (ahorro), disponibilidad, productos que incluye (miniatura,
   precio suelto y cantidad, con link a cada producto) y agregar al carrito; la foto es un mosaico de los productos.
   Tocar la foto abre el detalle: cada producto con foto, categoría, descripción y subtotal, y la cuenta de lo que sale por
   separado contra el precio del combo
-- [ ] Botón para compartir el link (WhatsApp, copiar) y vista previa Open Graph (ver Stack)
-- [ ] Imágenes con carga diferida y tamaño controlado
+- [x] Botón para compartir el link (WhatsApp, copiar) y vista previa Open Graph (ver Stack)
+- [x] Imágenes con carga diferida y tamaño controlado
 
 ### 4. Compra online **[listo]**
-- [ ] Carrito en el frontend (productos y combos, cantidades, persistido en el navegador)
-- [ ] Aviso si cambió un precio entre el carrito y el pedido
-- [ ] Checkout: datos del comprador (invitado o logueado), retiro o envío con dirección, notas
-- [ ] Pantalla del pedido: número (`K7QM-4X2P`), total, **datos para transferir** (alias, CBU, titular, banco) y vencimiento con cuenta regresiva
-- [ ] Subir comprobante (JPG / PNG / PDF, hasta 5 MB), con reintento si se rechaza
-- [ ] Consulta de pedido de invitado (email + número, por POST)
-- [ ] Cancelar el pedido mientras no esté validado el pago
-- [ ] "Mis pedidos" del cliente logueado, con paginación
-- [ ] Estados del pedido legibles (pendiente, en revisión, rechazado con motivo, pagado, en preparación, listo, entregado, cancelado, vencido)
+- [x] Carrito en el frontend (productos y combos, cantidades, persistido en el navegador)
+- [x] Aviso si cambió un precio entre el carrito y el pedido
+- [x] Checkout: datos del comprador (invitado o logueado), retiro o envío con dirección, notas
+- [x] Pantalla del pedido: número (`K7QM-4X2P`), total, **datos para transferir** (alias, CBU, titular, banco) y vencimiento con cuenta regresiva
+- [x] Subir comprobante (JPG / PNG / PDF, hasta 5 MB), con reintento si se rechaza
+- [x] Consulta de pedido de invitado (email + número, por POST)
+- [x] Cancelar el pedido mientras no esté validado el pago
+- [x] "Mis pedidos" del cliente logueado, con paginación
+- [x] Estados del pedido legibles (pendiente, en revisión, rechazado con motivo, pagado, en preparación, listo, entregado, cancelado, vencido)
 
 ### 5. Panel de la tienda: productos **[listo]**
 Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
-- [ ] Lista de productos con búsqueda y filtros ☑ (con stock exacto)
-- [ ] Alta y edición: nombre, categoría, descripción, stock mínimo ☑ (el stock inicial queda como movimiento de entrada)
-- [ ] Borrar producto con confirmación ☑
-- [ ] Imágenes: subir varias (hasta 1 MB cada una, con validación en el cliente), ver y borrar
-- [ ] Metadatos: material, color, estilo, alto, ancho, largo, peso
-- [ ] Destacados: marcar/desmarcar y elegir el orden
-- [ ] **Precios** (`PRECIOS`): precio, costo, margen y margen %; sin el permiso, esos campos no se muestran
-- [ ] **Stock** (`STOCK`): registrar entrada / salida / ajuste con motivo, historial por producto, error 409 por stock insuficiente
-- [ ] Alerta de **stock bajo** (listado y contador en el menú)
-- [ ] **Importar CSV** (`PRODUCTOS` + `PRECIOS`): descargar plantilla, subir archivo, mostrar `{created, updated}` o la **tabla de errores por fila**; límites de 5.000 filas / 5 MB
-- [ ] **Exportar CSV**
-- [ ] **Combos** (`COMBOS`): crear el combo completo en un solo paso (nombre, productos con imagen, precio, cantidad y
+- [x] Lista de productos con búsqueda y filtros ☑ (con stock exacto)
+- [x] Alta y edición: nombre, categoría, descripción, stock mínimo ☑ (el stock inicial queda como movimiento de entrada)
+- [x] Borrar producto con confirmación ☑
+- [x] Imágenes: subir varias (hasta 1 MB cada una, con validación en el cliente), ver y borrar
+- [x] Metadatos: material, color, estilo, alto, ancho, largo, peso
+- [x] Destacados: marcar/desmarcar y elegir el orden
+- [ ] **Precios** (`PRECIOS`): precio, costo, margen y margen %; sin el permiso, esos campos no se muestran — precio
+  y costo están (y se ocultan sin el permiso); falta mostrar `margin` y `marginPercent`, que ya vienen en
+  `GET /products/{id}/pricing`
+- [x] **Stock** (`STOCK`): registrar entrada / salida / ajuste con motivo, historial por producto, error 409 por stock insuficiente
+- [x] Alerta de **stock bajo** (listado y contador en el menú)
+- [x] **Importar CSV** (`PRODUCTOS` + `PRECIOS`): descargar plantilla, subir archivo, mostrar `{created, updated}` o la **tabla de errores por fila**; límites de 5.000 filas / 5 MB
+- [x] **Exportar CSV**
+- [x] **Combos** (`COMBOS`): crear el combo completo en un solo paso (nombre, productos con imagen, precio, cantidad y
   subtotal, y al final el precio, con la suma de los productos a la vista), habilitar/deshabilitar, cambiar precio
   (precio fijo, % de descuento o $ de descuento sobre la suma, con el precio final y el ahorro a la vista),
   agregar / quitar productos y cambiar cantidades, borrar. Cada combo muestra miniaturas de sus productos y los input
   numéricos no tienen flechas (`no-spinner` en `index.css`)
 
 ### 6. Panel de la tienda: usuarios y permisos **[listo]** (solo `ADMINISTRADOR`)
-- [ ] Lista de usuarios con sus roles ☑
-- [ ] Crear usuario con roles ☑, editar nombre o contraseña ☑, borrar ☑
-- [ ] Asignar y quitar roles (`SUPERADMIN` no se ofrece)
-- [ ] **Matriz de permisos por rol**: casillas de `PRODUCTOS`, `PRECIOS`, `STOCK`, `COMBOS` para `EMPLEADO` y `CLIENTE`; `USUARIOS` bloqueado; `ADMINISTRADOR` solo lectura; aviso de que products tarda hasta 1 min en aplicarlo
+- [x] Lista de usuarios con sus roles ☑
+- [x] Crear usuario con roles ☑, editar nombre o contraseña ☑, borrar ☑
+- [x] Asignar y quitar roles (`SUPERADMIN` no se ofrece)
+- [x] **Matriz de permisos por rol**: casillas de `PRODUCTOS`, `PRECIOS`, `STOCK`, `COMBOS` para `EMPLEADO` y `CLIENTE`; `USUARIOS` bloqueado; `ADMINISTRADOR` solo lectura; aviso de que products tarda hasta 1 min en aplicarlo
 
 ### 7. Panel de la tienda: resumen **[listo en el backend: panel-admin]** (`GET /products/dashboard` y `GET /users/dashboard`)
-- [ ] Dashboard de productos: total, por categoría, sin precio, sin imágenes, destacados
-- [ ] Dashboard de stock: stock bajo, agotados, valor del inventario a costo y a precio (con los excluidos), últimos 10 movimientos
-- [ ] Dashboard de usuarios: total, activos (30 días), por rol, altas por período (`from`, `to`, `groupBy`)
-- [ ] Cada bloque carga por separado: si un servicio falla, el resto del panel sigue
-- [ ] Gráficos con períodos en cero incluidos
+- [x] Dashboard de productos: total, por categoría, sin precio, sin imágenes, destacados
+- [x] Dashboard de stock: stock bajo, agotados, valor del inventario a costo y a precio (con los excluidos), últimos 10 movimientos
+- [x] Dashboard de usuarios: total, activos (30 días), por rol, altas por período (`from`, `to`, `groupBy`)
+- [x] Cada bloque carga por separado: si un servicio falla, el resto del panel sigue
+- [x] Gráficos con períodos en cero incluidos
 
 ### 8. Panel de la tienda: ventas **[plan: ventas, etapas 1–3]** (solo `ADMINISTRADOR`)
 - [ ] Lista de pedidos con filtros (estado, canal, medio de pago, "stock para revisar", fechas) y búsqueda por número o email
@@ -161,8 +168,10 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] **Venta del local (mostrador)**: buscar productos, cambiar precio de un ítem, descuento, medio de pago, estado inicial, comprador opcional
 - [ ] Avisos de venta sin stock suficiente (ajuste automático)
 - [ ] Configuración de ventas: alias, CBU, titular, banco y plazo de vencimiento
-- [ ] Reportes: totales por período, ranking de productos, ganancia, desglose por canal y medio de pago
-- [ ] Contador de vendidos en productos y orden "más vendidos" en el catálogo
+- [ ] Reportes: totales por período, ranking de productos, ganancia, desglose por canal y medio de pago — el resumen
+  de `/admin` ya los muestra; falta la pantalla de reportes del panel de ventas
+- [ ] Contador de vendidos en productos y orden "más vendidos" en el catálogo — falta: el frontend no muestra
+  `soldCount` y el orden del catálogo no ofrece `best_sellers`
 
 ### 9. Auditoría y observabilidad **[listo en el backend]**
 - [ ] Panel de la plataforma: salud de los servicios, tráfico y recursos en tiempo real (`GET /platform/observability/overview` + canales `platform.health` y `platform.traffic`)
@@ -176,7 +185,8 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] Historial por REST al abrir el panel; el WS solo trae lo nuevo
 
 ### 10. Calidad
-- [ ] Tipos de TypeScript de todas las respuestas del backend (activar el chequeo de tipos en el build; hoy está desactivado)
+- [ ] Tipos de TypeScript de todas las respuestas del backend — el chequeo de tipos ya corre en el build
+  (`tsc -b && vite build`); falta revisar que los tipos cubran todas las respuestas
 - [ ] Tests de las reglas de permisos del cliente y de los flujos principales (login, alta de tienda, carga de producto)
 - [ ] Accesibilidad básica: foco, etiquetas, contraste
 - [ ] Pipeline de build y despliegue de los archivos estáticos

@@ -141,6 +141,17 @@ esto ya está.
    más `store.usage`) y conectados (`GET /store/users` más `store.users`).
 4. El historial se carga por REST al abrir el panel y el WS solo trae lo nuevo.
 
+### B10. Faltantes chicos (de la revisión de [frontend.md](frontend.md))
+
+- **Margen en precios**: mostrar `margin` y `marginPercent` (ya vienen en `GET /products/{id}/pricing`) junto al
+  precio y el costo, solo con `PRECIOS`.
+- **Más vendidos**: mostrar `soldCount` en el panel y sumar el orden `best_sellers` al catálogo (el backend ya lo
+  acepta).
+- **Tema oscuro**: colores `.dark` en `index.css` y un selector.
+- **Estados vacíos y de carga comunes**: hoy cada página arma los suyos.
+- **Plataforma**: landing y alta pública de tienda (hoy `/` redirige a `/dashboard` y la tienda se crea desde el
+  panel del superadmin).
+
 ### B9. Calidad
 
 - Tipos de todas las respuestas (las fichas de `docs/backend/` tienen los ejemplos).
