@@ -6,11 +6,14 @@ export const strings = {
     name: "KleinKauf",
   },
   nav: {
+    home: "Inicio",
     catalog: "Catálogo",
     products: "Productos",
     bundles: "Combos",
     users: "Usuarios",
     panel: "Panel",
+    openMenu: "Abrir menú",
+    menuDescription: "Secciones de la tienda y del panel",
   },
   auth: {
     signIn: "Iniciar sesión",
@@ -141,11 +144,11 @@ export const strings = {
     bundlesDescription: "Productos que se llevan juntos, a mejor precio.",
     catalogTitle: "Catálogo",
     allProducts: "Ver todos",
+    previous: "Anteriores",
+    next: "Siguientes",
     allBundles: "Ver combos",
   },
   catalogPage: {
-    previous: "Anteriores",
-    next: "Siguientes",
     title: "Catálogo",
     highlight: "Catálogo",
     subtitle: "Busca por nombre o filtra por categoría.",

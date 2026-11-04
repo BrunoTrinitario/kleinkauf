@@ -1,5 +1,6 @@
-
+import { useState } from "react"
 import { Link } from "react-router-dom"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/auth-context"
 import type { UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
@@ -22,13 +23,121 @@ import {
 import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
-import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt } from "lucide-react"
+import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Menu } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "CLIENTE", label: strings.roles.cliente, icon: User },
   { value: "EMPLEADO", label: strings.roles.empleado, icon: Briefcase },
   { value: "ADMINISTRADOR", label: strings.roles.administrador, icon: Shield },
 ]
+
+interface NavLinksProps {
+  hasBundles: boolean
+  showPanel: boolean
+  canManageSales: boolean
+  canManageProducts: boolean
+  canManageUsers: boolean
+  pendingReview: number
+  lowStock: number
+  // En el menu lateral: uno debajo del otro y cada link cierra el menu
+  vertical?: boolean
+  onNavigate?: () => void
+}
+
+function CountBadge({ count, label }: { count: number; label: string }) {
+  if (count <= 0) return null
+  return (
+    <span
+      className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
+      aria-label={label}
+      title={label}
+    >
+      {count}
+    </span>
+  )
+}
+
+// Links de la tienda y, aparte, los del panel (ej. "Combos" de la tienda y "Combos" del panel)
+function NavLinks({
+  hasBundles,
+  showPanel,
+  canManageSales,
+  canManageProducts,
+  canManageUsers,
+  pendingReview,
+  lowStock,
+  vertical = false,
+  onNavigate,
+}: NavLinksProps) {
+  const link = vertical
+    ? "flex items-center gap-1.5 rounded-md px-3 py-2.5 text-base text-foreground hover:bg-muted transition-colors"
+    : "flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+  const panelLabel = vertical
+    ? "mt-4 border-t border-border px-3 pt-4 pb-1 text-xs uppercase tracking-wider text-muted-foreground"
+    : "flex items-center gap-2 border-l border-border pl-6 text-xs uppercase tracking-wider text-muted-foreground"
+
+  return (
+    <>
+      <Link to="/" className={link} onClick={onNavigate}>
+        {strings.nav.home}
+      </Link>
+      <Link to={CATALOG_PATH} className={link} onClick={onNavigate}>
+        {strings.nav.catalog}
+      </Link>
+      {hasBundles && (
+        <Link to="/combos" className={link} onClick={onNavigate}>
+          {strings.nav.bundles}
+        </Link>
+      )}
+      {showPanel && <span className={panelLabel}>{strings.nav.panel}</span>}
+      {canManageSales && (
+        <Link to="/admin/orders" className={link} onClick={onNavigate}>
+          {strings.adminOrders.nav}
+          <CountBadge count={pendingReview} label={strings.adminOrders.navBadge(pendingReview)} />
+        </Link>
+      )}
+      {canManageProducts && (
+        <Link to="/admin/products" className={link} onClick={onNavigate}>
+          {strings.nav.products}
+          <CountBadge count={lowStock} label={strings.adminLowStock.navBadge(lowStock)} />
+        </Link>
+      )}
+      {canManageProducts && (
+        <Link to="/admin/bundles" className={link} onClick={onNavigate}>
+          {strings.nav.bundles}
+        </Link>
+      )}
+      {canManageUsers && (
+        <Link to="/admin/users" className={link} onClick={onNavigate}>
+          {strings.nav.users}
+        </Link>
+      )}
+    </>
+  )
+}
+
+// Boton de menu (solo debajo de md) que abre la navegacion en un panel desde la izquierda
+function MobileNav(props: NavLinksProps) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden -ml-2" aria-label={strings.nav.openMenu}>
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72 gap-0 p-4">
+        <SheetHeader className="p-0 pb-4">
+          <SheetTitle className="text-left">{strings.site.name}</SheetTitle>
+          <SheetDescription className="sr-only">{strings.nav.menuDescription}</SheetDescription>
+        </SheetHeader>
+        <nav className="flex flex-col">
+          <NavLinks {...props} vertical onNavigate={() => setOpen(false)} />
+        </nav>
+      </SheetContent>
+    </Sheet>
+  )
+}
 
 export function Header() {
   const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
@@ -57,75 +166,30 @@ export function Header() {
   const canManageSales = isAuthenticated && activeRole === "ADMINISTRADOR"
   const pendingReview = usePendingReviewCount(canManageSales).data ?? 0
 
+  const navProps: NavLinksProps = {
+    hasBundles,
+    showPanel: isAuthenticated && (canManageProducts || canManageUsers || canManageSales),
+    canManageSales,
+    canManageProducts: isAuthenticated && canManageProducts,
+    canManageUsers: isAuthenticated && canManageUsers,
+    pendingReview,
+    lowStock,
+  }
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-card">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <Store className="h-5 w-5" strokeWidth={1.5} />
-          <span className="text-sm font-medium">{strings.site.name}</span>
-        </Link>
-
-        {/* Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to={CATALOG_PATH} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            {strings.nav.catalog}
+        <div className="flex items-center gap-1">
+          <MobileNav {...navProps} />
+          <Link to="/" className="flex items-center gap-2">
+            <Store className="h-5 w-5" strokeWidth={1.5} />
+            <span className="text-sm font-medium">{strings.site.name}</span>
           </Link>
-          {hasBundles && (
-            <Link to="/combos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {strings.nav.bundles}
-            </Link>
-          )}
-          {/* Lo del panel va aparte de lo de la tienda (ej. "Combos" de la tienda y "Combos" del panel) */}
-          {isAuthenticated && (canManageProducts || canManageUsers || canManageSales) && (
-            <span className="flex items-center gap-2 border-l border-border pl-6 text-xs uppercase tracking-wider text-muted-foreground">
-              {strings.nav.panel}
-            </span>
-          )}
-          {canManageSales && (
-            <Link
-              to="/admin/orders"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {strings.adminOrders.nav}
-              {pendingReview > 0 ? (
-                <span
-                  className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
-                  aria-label={strings.adminOrders.navBadge(pendingReview)}
-                  title={strings.adminOrders.navBadge(pendingReview)}
-                >
-                  {pendingReview}
-                </span>
-              ) : null}
-            </Link>
-          )}
-          {isAuthenticated && canManageProducts && (
-            <Link
-              to="/admin/products"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {strings.nav.products}
-              {lowStock > 0 ? (
-                <span
-                  className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
-                  aria-label={strings.adminLowStock.navBadge(lowStock)}
-                  title={strings.adminLowStock.navBadge(lowStock)}
-                >
-                  {lowStock}
-                </span>
-              ) : null}
-            </Link>
-          )}
-          {isAuthenticated && canManageProducts && (
-            <Link to="/admin/bundles" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {strings.nav.bundles}
-            </Link>
-          )}
-          {isAuthenticated && canManageUsers && (
-            <Link to="/admin/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {strings.nav.users}
-            </Link>
-          )}
+        </div>
+
+        {/* Navegacion en fila desde md; en el celular va en el menu lateral (MobileNav) */}
+        <nav className="hidden md:flex items-center gap-6">
+          <NavLinks {...navProps} />
         </nav>
 
         {/* Actions */}
