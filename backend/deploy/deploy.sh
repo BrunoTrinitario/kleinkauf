@@ -16,7 +16,8 @@ compose() { docker compose --env-file "$ENV_FILE" -f backend/deploy/docker-compo
 case "$PART" in
   backend)
     BUILD="eureka user-service product-service sales-service observability-service gateway-service"
-    #Postgres y Redis entran como dependencias; no se compilan. Caddy (la entrada HTTPS) va con el backend
+    #Postgres y Redis entran como dependencias; no se compilan. Caddy (la entrada HTTPS) va con el backend.
+    #El backup (servicio backup) todavia no se levanta: para activarlo, sumarlo aca (ver deploy.md, "Backups")
     UP="$BUILD caddy"
     UP_FLAGS=""
     ;;

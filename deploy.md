@@ -251,6 +251,47 @@ Los datos viven en volúmenes de Docker (`kleinkauf_postgres-data`, `kleinkauf_p
 `kleinkauf_caddy-data` guarda los certificados: si se pierde, Caddy los vuelve a pedir, pero Let's Encrypt limita
 cuántos se emiten por semana.
 
+### Backups
+
+> **Todavía no está activo.** El servicio está armado pero `deploy.sh` no lo levanta. Para activarlo: sumar `backup` a
+> `UP` en la parte `backend` de [`deploy.sh`](backend/deploy/deploy.sh) y volver a desplegar el backend. Para probarlo a
+> mano sin activarlo: `kk up -d backup` (y `kk stop backup` para frenarlo).
+
+El servicio `backup` hace un backup por día a partir de las `BACKUP_HOUR` UTC (por
+defecto 6, las 3 de Argentina) en `BACKUP_DIR` (por defecto `~/kleinkauf/backups`), una carpeta del host fuera de
+los volúmenes:
+
+| Archivo | Qué tiene |
+|---|---|
+| `kleinkauf-<fecha>.sql.gz` | `pg_dumpall` de todas las bases (users, products, sales, observability) |
+| `kleinkauf-<fecha>-uploads.tgz` | Imágenes de productos (`products/`) y comprobantes de pago (`sales/`) |
+
+Se guardan `BACKUP_KEEP_DAYS` días (por defecto 14). Si el contenedor se reinicia no repite el del día. Lo que hizo se
+ve con `kk logs backup`.
+
+Los backups quedan en el mismo server: si se pierde el disco, se pierden con él. Conviene copiarlos afuera de vez en
+cuando, por ejemplo desde tu máquina: `scp -P <puerto> 'bruno@<ip>:kleinkauf/backups/kleinkauf-*' .`
+
+**Restaurar** (pisa los datos actuales):
+
+```bash
+kk stop user-service product-service sales-service observability-service gateway-service
+# Bases (el dump borra y vuelve a crear cada tabla)
+gunzip -c ~/kleinkauf/backups/kleinkauf-<fecha>.sql.gz | kk exec -T postgres psql -U postgres -d postgres
+# Imagenes y comprobantes
+docker run --rm -v kleinkauf_product-uploads:/restore/products -v kleinkauf_sales-uploads:/restore/sales   -v ~/kleinkauf/backups:/backups:ro postgres:17 tar -xzf /backups/kleinkauf-<fecha>-uploads.tgz -C /restore
+kk up -d user-service product-service sales-service observability-service gateway-service
+```
+
+### Headers de seguridad
+
+Caddy agrega en todo lo que sirve por HTTPS: HSTS (1 año, con subdominios), `X-Content-Type-Options`,
+`Referrer-Policy` y `Permissions-Policy`. En el frontend, además, `X-Frame-Options: DENY` y la CSP.
+
+La CSP está en **Report-Only**: no bloquea nada, solo avisa en la consola del navegador (`Content-Security-Policy-Report-Only`)
+lo que bloquearía. Después de usar un rato la tienda y el panel sin que aparezcan avisos, cambiar en el Caddyfile
+`Content-Security-Policy-Report-Only` por `Content-Security-Policy`.
+
 ### Firewall
 
 Docker publica sus puertos escribiendo reglas de iptables propias, así que las reglas comunes de ufw (`ufw allow`) no
@@ -296,5 +337,6 @@ Las tiendas ya creadas guardan su URL con el dominio viejo, así que habría que
 | [`backend/deploy/docker-compose.prod.yml`](backend/deploy/docker-compose.prod.yml) | Compose de producción |
 | [`backend/deploy/Dockerfile.service`](backend/deploy/Dockerfile.service) | Imagen de cada servicio del backend |
 | [`backend/deploy/caddy/Caddyfile`](backend/deploy/caddy/Caddyfile) | Configuración de Caddy |
+| [`backend/deploy/backup/backup.sh`](backend/deploy/backup/backup.sh) | Backup diario (servicio `backup`) |
 | [`backend/deploy/.env.example`](backend/deploy/.env.example) | Variables del `.env` |
 | [`frontend/Dockerfile`](frontend/Dockerfile) | Imagen del frontend (build de Vite + nginx) |

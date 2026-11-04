@@ -225,6 +225,29 @@ services:
       - caddy-config:/config
     #Sin depends_on: el frontend lo despliega su rama (deploy/frontend); hasta que este, Caddy responde 502
 
+  #Backup diario de Postgres y de las imagenes y comprobantes (backup/backup.sh). Todavia no esta activo: tiene su
+  #propio profile y deploy.sh no lo levanta (ver deploy.md, "Backups").
+  #Van a una carpeta del host (BACKUP_DIR), fuera de los volumenes: un down -v no se los lleva
+  backup:
+    image: postgres:17
+    profiles: [backup]
+    restart: unless-stopped
+    entrypoint: ["bash", "/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      BACKUP_HOUR: ${BACKUP_HOUR:-6}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backup/backup.sh:/backup.sh:ro
+      - ${BACKUP_DIR:-${HOME}/kleinkauf/backups}:/backups
+      - product-uploads:/uploads/products:ro
+      - sales-uploads:/uploads/sales:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   #Seed de la tienda demo: solo con --profile seed. Es para probar, no para el server real
   seed:
     image: node:22.11.0-alpine3.20
