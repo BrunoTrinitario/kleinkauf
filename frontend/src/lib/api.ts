@@ -11,6 +11,8 @@ declare module "axios" {
   interface AxiosRequestConfig {
     // Un 401 de esta llamada no cierra la sesion ni manda al login (ej. la carga inicial de /auth/me)
     skipSessionExpiry?: boolean
+    // Un 401 de esta llamada no intenta renovar la sesion (la propia renovacion, o un reintento que ya la renovo)
+    skipRefresh?: boolean
   }
 }
 
@@ -27,12 +29,15 @@ export const productImageUrl = (fileName: string) => `${API_BASE_URL}/products/i
 
 interface ApiSession {
   getToken: () => string | null
-  // Un 401 de una llamada que llevaba el token: el token vencio o ya no vale
+  // Renueva la sesion con el refresh token: el token nuevo, o null si no se pudo (no hay, vencio o ya no vale)
+  refresh: () => Promise<string | null>
+  // Un 401 de una llamada que llevaba el token y no se pudo renovar: la sesion se termino
   onSessionExpired: () => void
 }
 
 let session: ApiSession = {
   getToken: () => null,
+  refresh: async () => null,
   onSessionExpired: () => {},
 }
 
@@ -53,7 +58,22 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-api.interceptors.response.use(undefined, (error) => {
+api.interceptors.response.use(undefined, async (error) => {
+  // El token de 1 hora vencio: se renueva con el refresh y se repite la llamada una vez
+  const config = axios.isAxiosError(error) ? error.config : undefined
+  if (
+    config &&
+    error.response?.status === 401 &&
+    !config.skipRefresh &&
+    AxiosHeaders.from(config.headers).has("Authorization")
+  ) {
+    const token = await session.refresh()
+    if (token) {
+      const headers = AxiosHeaders.from(config.headers)
+      headers.set("Authorization", `Bearer ${token}`)
+      return api({ ...config, headers, skipRefresh: true })
+    }
+  }
   if (isSessionExpired(error)) {
     session.onSessionExpired()
   }

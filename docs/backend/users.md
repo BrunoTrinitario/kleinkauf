@@ -48,11 +48,18 @@ El email de un usuario tiene que ser único **dentro de la tienda** (otro usuari
 
 ### Login y uso del token
 
-1. `POST /api/v1/auth/login` desde la tienda (con su `Origin`) → `{ name, id, email, token, roles }`.
+1. `POST /api/v1/auth/login` desde la tienda (con su `Origin`) → `{ name, id, email, token, refreshToken, roles }`.
+   El email no distingue mayúsculas.
 2. Mandar `Authorization: Bearer <token>` en cada request. El token dura **1 hora** y sirve solo en esa tienda.
 3. `roles` trae cada rol con su máscara de permisos: el frontend arma el menú con eso (por ejemplo, mostrar
    "Stock" si algún rol tiene el bit 4).
-4. Vencido o de otra tienda: el gateway responde 401 y hay que volver a loguearse (no hay refresh).
+4. Vencido: `POST /api/v1/auth/refresh` con el `refreshToken` (dura **7 días**) devuelve tokens nuevos sin pedir la
+   contraseña. El frontend lo hace solo ante un 401 y repite la llamada.
+5. El refresh deja de servir si la contraseña cambia (lleva una huella de la contraseña) o si el usuario se borra.
+   Con un refresh vencido o que ya no sirve, hay que volver a loguearse.
+
+Cada token lleva su tipo en el claim `type` (`access`, `refresh` o `password`, ver `TokenConstants` en common): el
+gateway solo deja entrar con el de sesión, y cada endpoint de users acepta solo el suyo.
 
 Los superadmins hacen lo mismo con `POST /api/v1/platform/auth/login` desde el frontend de la plataforma (sin tienda).
 
@@ -115,6 +122,7 @@ Respuesta **200**:
   "id": 1,
   "email": "admin@demo.local",
   "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9...",
   "roles": [
     { "type": "ADMINISTRADOR", "permissions": 31 },
     { "type": "EMPLEADO", "permissions": 4 }
@@ -127,6 +135,21 @@ Respuesta **200**:
 | 401 | Email o contraseña incorrectos (o el usuario está borrado) | `Invalid username or password.` |
 
 Actualiza el último login (`lastLogin`), que usan los paneles para "activos".
+
+### POST /api/v1/auth/refresh
+
+**Acceso:** Público (con el refresh token) · **Rate limit:** el del login, 5 por minuto
+
+Renueva la sesión: devuelve lo mismo que el login, con tokens nuevos (también el refresh) y los roles al día. No
+actualiza el último login.
+
+```json
+{ "refreshToken": "eyJhbGciOiJIUzI1NiJ9..." }
+```
+
+| Código | Cuándo | Mensaje |
+|---|---|---|
+| 401 | Token inválido, vencido, de otra tienda, de otro tipo, de un usuario borrado o de antes de cambiar la contraseña | `The access token is invalid.` |
 
 ### POST /api/v1/auth/register
 
@@ -146,7 +169,7 @@ Respuesta **201**: igual que el login, con `roles: [{ "type": "CLIENTE", "permis
 | Código | Cuándo | Mensaje |
 |---|---|---|
 | 400 | Nombre, email o contraseña inválidos | Ver [reglas](#reglas-de-validación) |
-| 400 | Email usado en la tienda | `The email is already in use.` |
+| 409 | Email usado en la tienda | `The email is already in use.` |
 
 ### GET /api/v1/auth/me
 
@@ -289,7 +312,7 @@ Respuesta **201**: `FullUserDto`.
 | Código | Cuándo | Mensaje |
 |---|---|---|
 | 400 | Datos inválidos | Ver [reglas](#reglas-de-validación) |
-| 400 | Email usado en la tienda | `The email is already in use.` |
+| 409 | Email usado en la tienda | `The email is already in use.` |
 
 ### GET /api/v1/users/{id}
 
@@ -340,7 +363,7 @@ Respuesta **200**: `FullUserDto` con los roles nuevos.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
-| 404 | Rol inexistente | `The role provided is invalid.` |
+| 400 | Rol inexistente | `The role provided is invalid.` |
 | 404 | Usuario inexistente | `The user was not found.` |
 
 ### DELETE /api/v1/users/{id}/roles?roleName=
@@ -351,7 +374,7 @@ Le saca un rol. Respuesta **200**: `FullUserDto`.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
-| 404 | Rol inexistente | `The role provided is invalid.` |
+| 400 | Rol inexistente | `The role provided is invalid.` |
 | 404 | Usuario inexistente o sin ese rol | `The user was not found.` |
 | 409 | Se le saca `ADMINISTRADOR` al último administrador de la tienda | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
 
@@ -480,6 +503,13 @@ Login del superadmin. Mismo body y respuesta que [el de las tiendas](#post-apiv1
 | Código | Cuándo | Mensaje |
 |---|---|---|
 | 401 | Credenciales incorrectas, superadmin desactivado o usuario sin rol `SUPERADMIN` | `Invalid username or password.` |
+
+### POST /api/v1/platform/auth/refresh
+
+**Acceso:** Público (con el refresh token) · **Rate limit:** el del login
+
+Igual que [el de las tiendas](#post-apiv1authrefresh), con un refresh de `public`. Un superadmin desactivado ya no
+tiene el rol, así que no se renueva: 401 `The access token is invalid.`
 
 ### GET /api/v1/platform/admin/tenants
 
@@ -707,6 +737,9 @@ No los llama el frontend ni pasan por el gateway: los llaman los servicios direc
 Base `users`. Hibernate crea las tablas con `hbm2ddl` (sin Flyway). Los nombres de columnas sin `@Column` quedan en
 minúsculas sin guion bajo (`lastlogin`, `userid`).
 
+Al arrancar, `TenantDataSource` migra `public` y el schema de cada tienda no borrada (como products y sales), así un
+cambio en las entidades llega a todas en el deploy. Una tienda nueva crea su schema en la primera conexión.
+
 **En el schema de cada tienda:**
 
 | Tabla | Columnas | Notas |
@@ -738,10 +771,11 @@ Levantarlo solo: `cd backend/kleinkaufusers && ./gradlew bootRun` (con Postgres,
 
 ## Límites conocidos
 
-- El token no se puede renovar (no hay refresh): a la hora hay que volver a loguearse.
-- Un email repetido responde 400 en las tiendas y 409 en los superadmins.
-- Un rol inexistente responde 400 en el listado y 404 al dar o sacar roles.
-- Si el mail del recupero falla, se pierde sin aviso.
+- Los refresh tokens no se pueden revocar uno por uno: cerrar la sesión en el navegador borra el suyo, pero uno
+  robado sirve hasta que vence (7 días) o hasta que el usuario cambia la contraseña.
+- Si el mail del recupero falla, queda en el log como `ERROR` (`MailService`) pero no se reintenta.
+- Un rol inexistente responde 400 si viene como parámetro (`?roleName=`, `?role=`) y 404 si viene en la ruta
+  (`/roles/{role}/permissions`).
 
 ## Para limpiar
 

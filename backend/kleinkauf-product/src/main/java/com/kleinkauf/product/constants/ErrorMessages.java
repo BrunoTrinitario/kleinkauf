@@ -13,6 +13,8 @@ public class ErrorMessages {
     public static String PRODUCT_NOT_FOUND = "Product not found";
     public static String IMAGE_NOT_FOUND = "Image not found";
     public static String PRODUCT_NAME_IN_USE = "The Product name is already in use";
+    public static String PRODUCT_NAME_OF_DELETED = "The name belongs to a deleted product";
+    public static String PRODUCT_NAME_REQUIRED = "The product name is required (up to 255 characters)";
     public static String TENANT_NOT_FOUND = "Tenant not found";
     public static String BUNDLE_NOT_FOUND = "Bundle not found";
     public static String BUNDLE_ENABLED_REQUIRED = "The enabled field is required (true or false)";
@@ -29,6 +31,7 @@ public class ErrorMessages {
     public static String INVALID_MIN_STOCK = "The minimum stock must be zero or greater";
     public static String INVALID_FEATURED_ORDER = "The featured order must be zero or greater";
     public static String IMAGE_TOO_LARGE = "Each image must be 1 MB or smaller";
+    public static String INVALID_IMAGE = "Only JPG, PNG, WEBP or GIF images are allowed";
     public static String INVALID_CATALOG_SORT = "The sort must be name, price_asc, price_desc or best_sellers";
     public static String INVALID_CATALOG_PAGE = "The page must be 0 or greater and the size between 1 and 100";
     public static String INVALID_RESERVATION = "The reservation needs a reference (up to 40 characters) and items with type, id and a quantity greater than zero";

@@ -5,6 +5,7 @@
 
 package com.kleinkauf.users;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kleinkauf.common.dto.RoleDto;
 import com.kleinkauf.users.constants.ErrorMessages;
 import com.kleinkauf.users.dtos.FullUserDto;
 import com.kleinkauf.users.dtos.LoggedUser;
@@ -31,7 +33,7 @@ import com.kleinkauf.users.services.UserService;
  */
 @SpringBootTest
 @Transactional
-public class UserServiceTest {
+public class UserServiceTest extends ContainersTest {
 
     @Autowired
     private UserService userService;
@@ -50,7 +52,7 @@ public class UserServiceTest {
         assertNotNull(user.id());
         assertEquals("user", user.name());
         assertEquals("user@test.com", user.email());
-        assertTrue(user.roles().contains("CLIENTE"));
+        assertTrue(roleTypes(user).contains("CLIENTE"));
     }
 
     @Test
@@ -60,7 +62,7 @@ public class UserServiceTest {
             () -> userService.createUser("admin2", "admin@test.com", "password1", Set.of("CLIENTE"))
         );
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         assertEquals(ErrorMessages.EMAIL_ALREADY_IN_USE, exception.getMessage());
     }
 
@@ -72,7 +74,7 @@ public class UserServiceTest {
         assertEquals(created.id(), fetched.id());
         assertEquals("user", fetched.name());
         assertEquals("get-id@test.com", fetched.email());
-        assertTrue(fetched.roles().contains("CLIENTE"));
+        assertTrue(roleTypes(fetched).contains("CLIENTE"));
     }
 
     @Test
@@ -109,7 +111,7 @@ public class UserServiceTest {
         assertFalse(userService.userHasRole(created.id(), "EMPLEADO"));
 
         FullUserDto withRole = userService.addRoleToUser(created.id(), "EMPLEADO");
-        assertTrue(withRole.roles().contains("EMPLEADO"));
+        assertTrue(roleTypes(withRole).contains("EMPLEADO"));
         assertTrue(userService.userHasRole(created.id(), "EMPLEADO"));
         assertEquals(2, withRole.roles().size());
 
@@ -118,10 +120,10 @@ public class UserServiceTest {
         assertFalse(userService.userHasRole(created.id(), "EMPLEADO"));
 
         FullUserDto withRoleAgain = userService.addRoleToUser(created.id(), "EMPLEADO");
-        assertTrue(withRoleAgain.roles().contains("EMPLEADO"));
+        assertTrue(roleTypes(withRoleAgain).contains("EMPLEADO"));
         assertTrue(userService.userHasRole(created.id(), "EMPLEADO"));
         assertEquals(2, withRoleAgain.roles().size());
-        assertEquals(1, withRoleAgain.roles().stream().filter("EMPLEADO"::equals).count());
+        assertEquals(1, roleTypes(withRoleAgain).stream().filter("EMPLEADO"::equals).count());
     }
 
     @Test
@@ -134,17 +136,18 @@ public class UserServiceTest {
 
         ApiException oldCredentialsException = assertThrows(
             ApiException.class,
-            () -> userService.login("updated-name", "password1")
+            () -> userService.login("updatable@test.com", "password1")
         );
         assertEquals(HttpStatus.UNAUTHORIZED, oldCredentialsException.getStatus());
 
-        LoggedUser loggedUser = userService.login("updated-name", "new-password1");
+        LoggedUser loggedUser = userService.login("updatable@test.com", "new-password1");
         assertNotNull(loggedUser.token());
     }
 
     @Test
     void login_validCredentials_returnsLoggedUser() throws ApiException {
-        LoggedUser loggedUser = userService.login("admin", "password1");
+        // El login es con el email (sin distinguir mayusculas)
+        LoggedUser loggedUser = userService.login("Admin@Test.com", "password1");
 
         assertEquals("admin", loggedUser.name());
         assertEquals("admin@test.com", loggedUser.email());
@@ -154,7 +157,7 @@ public class UserServiceTest {
 
     @Test
     void login_invalidCredentials_throwsApiException() {
-        ApiException exception = assertThrows(ApiException.class, () -> userService.login("admin", "wrong-password"));
+        ApiException exception = assertThrows(ApiException.class, () -> userService.login("admin@test.com", "wrong-password"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals(ErrorMessages.INVALID_CREDENTIALS, exception.getMessage());
@@ -171,4 +174,8 @@ public class UserServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
 
+    // Los roles vienen con su mascara de permisos (RoleDto): para comparar alcanza el tipo
+    private static List<String> roleTypes(FullUserDto user) {
+        return user.roles().stream().map(RoleDto::getType).toList();
+    }
 }

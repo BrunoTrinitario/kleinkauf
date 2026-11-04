@@ -71,6 +71,18 @@ class JwtTenantFilterTest {
         assertEquals("7", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
     }
 
+    // El refresh solo sirve para POST /auth/refresh, no para entrar
+    @Test
+    void tokenDeRefresh_respondeUnauthorized() {
+        MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a",
+                token(7L, "tienda_a", TokenConstants.REFRESH));
+
+        run(exchange);
+
+        assertNull(forwarded.get());
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+    }
+
     @Test
     void tokenViejoSinTenant_respondeUnauthorized() {
         MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a", token(7L, null));

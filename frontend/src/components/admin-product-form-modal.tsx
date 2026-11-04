@@ -280,7 +280,7 @@ export function AdminProductFormModal({
               </div>
             )}
             <label className="inline-flex">
-              <input type="file" multiple accept="image/png" onChange={handleFileSelection} className="sr-only" />
+              <input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileSelection} className="sr-only" />
               <span className="cursor-pointer rounded-full border border-border px-4 py-2 text-sm hover:bg-muted">
                 {strings.adminProductEdit.addImages}
               </span>

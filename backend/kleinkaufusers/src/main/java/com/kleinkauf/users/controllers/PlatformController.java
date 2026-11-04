@@ -4,6 +4,7 @@ import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.common.servlet.security.CustomUserDetails;
 import com.kleinkauf.users.dtos.LoggedUser;
 import com.kleinkauf.users.dtos.LoginUserDto;
+import com.kleinkauf.users.dtos.RefreshTokenDto;
 import com.kleinkauf.users.dtos.platform.BugReportDto;
 import com.kleinkauf.users.dtos.platform.BugReportPageDto;
 import com.kleinkauf.users.dtos.platform.BugReportStatusDto;
@@ -61,6 +62,11 @@ public class PlatformController {
     @PostMapping("/auth/login")
     public ResponseEntity<LoggedUser> login(@RequestBody LoginUserDto dto) throws ApiException {
         return ResponseEntity.ok(platformService.login(dto.email(), dto.password()));
+    }
+
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<LoggedUser> refresh(@RequestBody RefreshTokenDto dto) throws ApiException {
+        return ResponseEntity.ok(platformService.refresh(dto == null ? null : dto.refreshToken()));
     }
 
     @GetMapping("/admin/tenants")

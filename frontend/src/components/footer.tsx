@@ -1,7 +1,10 @@
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { strings } from "@/lib/strings"
 import { BugReportDialog } from "@/components/bug-report-dialog"
 import { Bug } from "lucide-react"
+
+const linkClass = "text-sm text-muted-foreground hover:text-foreground transition-colors"
 
 export function Footer() {
   const [isReportOpen, setIsReportOpen] = useState(false)
@@ -13,14 +16,22 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             {strings.footer.platform}
           </p>
-          <button
-            type="button"
-            onClick={() => setIsReportOpen(true)}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Bug className="h-4 w-4" />
-            {strings.footer.reportBug}
-          </button>
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link to="/privacidad" className={linkClass}>
+              {strings.footer.privacy}
+            </Link>
+            <Link to="/terminos" className={linkClass}>
+              {strings.footer.terms}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsReportOpen(true)}
+              className={`inline-flex items-center gap-1.5 ${linkClass}`}
+            >
+              <Bug className="h-4 w-4" />
+              {strings.footer.reportBug}
+            </button>
+          </nav>
         </div>
       </div>
       <BugReportDialog open={isReportOpen} onOpenChange={setIsReportOpen} />

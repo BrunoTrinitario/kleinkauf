@@ -36,6 +36,8 @@ public class JwtUtil {
 
     private static final String PASSWORD_CLAIM = "pwd";
 
+    public static final long REFRESH_TOKEN_MILLIS = 1000L * 60 * 60 * 24 * 7; // 7 dias
+
     @PostConstruct
     public void init() {
 
@@ -54,13 +56,15 @@ public class JwtUtil {
         return createToken(claims, 1000 * 60 * 60); // 1h
     }
 
-    public String generateRefreshToken(Long id, String email, String name, String tenant) {
+    // Renueva la sesion sin volver a pedir la contrasena (POST /auth/refresh). Como el de recuperacion, lleva la huella
+    // de la contrasena: cambiarla corta todas las sesiones cuando vence su token de 1 hora
+    public String generateRefreshToken(Long id, String tenant, String passwordHash) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
-        claims.put("name", name);
-        claims.put("email", email);
         claims.put(TenantConstants.TOKEN_CLAIM, tenant);
-        return createToken(claims, 1000 * 60 * 60 * 24); // 24h
+        claims.put(TokenConstants.TYPE_CLAIM, TokenConstants.REFRESH);
+        claims.put(PASSWORD_CLAIM, passwordFingerprint(passwordHash));
+        return createToken(claims, REFRESH_TOKEN_MILLIS);
     }
 
     // passwordHash: la contrasena actual (hasheada). El token deja de servir cuando la contrasena cambia,

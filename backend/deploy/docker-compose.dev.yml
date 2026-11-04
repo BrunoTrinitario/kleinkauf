@@ -203,6 +203,31 @@ services:
       product-service:
         condition: service_healthy
 
+  #Prueba de punta a punta (e2e/e2e.mjs): solo con --profile e2e. Crea una tienda nueva y la borra al terminar
+  e2e:
+    image: node:22.11.0-alpine3.20
+    profiles: [e2e]
+    volumes:
+      - ./e2e:/e2e:ro
+    command: ["node", "/e2e/e2e.mjs"]
+    environment:
+      GATEWAY_URL: http://gateway-service:3000
+      PLATFORM_URL: http://localhost:2999
+      STORE_SCHEME: http
+      STORE_DOMAIN: localhost:2999
+      SUPERADMIN_EMAIL: superadmin@kleinkauf.local
+      SUPERADMIN_PASSWORD: superadmin123
+    restart: "no"
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      sales-service:
+        condition: service_healthy
+
 volumes:
   #La cache original queda para eureka, que ya la tiene cargada
   gradle-cache:

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useSearchParams } from "react-router-dom"
-import { AlertTriangle, Landmark } from "lucide-react"
+import { AlertTriangle, BarChart3, Landmark, Plus } from "lucide-react"
 import { strings } from "@/lib/strings"
 import { formatAmount, formatServerDateTime } from "@/lib/utils"
-import type { AdminOrderFilters, OrderChannel, OrderStatus } from "@/lib/types"
+import { PAYMENT_METHODS, type AdminOrderFilters, type OrderChannel, type OrderStatus, type PaymentMethod } from "@/lib/types"
 import { useAdminOrders, useCheckoutInfo, usePendingReviewCount } from "@/api/sales"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { Header } from "@/components/header"
@@ -37,6 +37,8 @@ export default function AdminOrdersPage() {
     q: params.get("q") ?? "",
     from: params.get("desde") ?? "",
     to: params.get("hasta") ?? "",
+    paymentMethod: (params.get("pago") as PaymentMethod | null) ?? "",
+    stockReview: params.get("stock") === "revisar",
     page: Math.max(0, Number(params.get("pagina") ?? 1) - 1) || 0,
   }
 
@@ -63,7 +65,15 @@ export default function AdminOrdersPage() {
   const orders = useAdminOrders(filters)
   const pendingReview = usePendingReviewCount(true).data ?? 0
   const checkout = useCheckoutInfo()
-  const hasFilters = !!(filters.status || filters.channel || filters.q || filters.from || filters.to)
+  const hasFilters = !!(
+    filters.status ||
+    filters.channel ||
+    filters.paymentMethod ||
+    filters.stockReview ||
+    filters.q ||
+    filters.from ||
+    filters.to
+  )
 
   const clearFilters = () => {
     setSearchInput("")
@@ -79,10 +89,24 @@ export default function AdminOrdersPage() {
           highlight={strings.adminOrders.highlight}
           subtitle={strings.adminOrders.subtitle}
           action={
-            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
-              <Landmark className="mr-2 h-4 w-4" />
-              {strings.adminOrders.settings}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link to="/admin/orders/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  {strings.adminOrders.newSale}
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/admin/reports">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  {strings.adminOrders.reports}
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+                <Landmark className="mr-2 h-4 w-4" />
+                {strings.adminOrders.settings}
+              </Button>
+            </div>
           }
         />
 
@@ -132,6 +156,30 @@ export default function AdminOrdersPage() {
           <div className="flex flex-wrap items-end gap-3">
             <DateField label={strings.adminOrders.from} value={filters.from ?? ""} max={filters.to || undefined} onChange={(value) => update({ desde: value })} />
             <DateField label={strings.adminOrders.to} value={filters.to ?? ""} min={filters.from || undefined} onChange={(value) => update({ hasta: value })} />
+            <label className="grid gap-1 text-xs text-muted-foreground">
+              {strings.adminOrders.paymentFilter}
+              <FilterSelect
+                value={filters.paymentMethod ?? ""}
+                onChange={(value) => update({ pago: value })}
+                label={strings.adminOrders.paymentFilter}
+              >
+                <option value="">{strings.adminOrders.allPayments}</option>
+                {PAYMENT_METHODS.map((method) => (
+                  <option key={method} value={method}>
+                    {strings.admin.sales.payments[method]}
+                  </option>
+                ))}
+              </FilterSelect>
+            </label>
+            <label className="flex h-9 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!filters.stockReview}
+                onChange={(event) => update({ stock: event.target.checked ? "revisar" : "" })}
+                className="h-4 w-4 accent-primary"
+              />
+              {strings.adminOrders.stockReviewFilter}
+            </label>
             {pendingReview > 0 && filters.status !== "PAGO_EN_REVISION" ? (
               <Button variant="outline" size="sm" onClick={() => update({ estado: "PAGO_EN_REVISION" })}>
                 <span className="mr-2 inline-block h-2 w-2 rounded-full bg-destructive" />

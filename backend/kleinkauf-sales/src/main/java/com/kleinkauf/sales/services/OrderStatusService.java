@@ -48,10 +48,10 @@ public class OrderStatusService {
     @Autowired
     private SalesSettingsService settingsService;
 
-    // Cambio del administrador (ver OrderStatus.canChangeTo)
+    // Cambio del administrador (ver OrderStatus.canChangeTo; una venta del local entregada tambien se anula)
     public Order change(Order order, OrderStatus target, Long userId, String reason) throws ApiException {
         OrderStatus current = order.getStatus();
-        if (target == null || !current.canChangeTo(target)) {
+        if (target == null || !current.canChangeTo(target, order.getChannel())) {
             throw new ApiException(ErrorMessages.INVALID_STATUS_CHANGE.formatted(current, target), HttpStatus.CONFLICT);
         }
         String cleanReason = OrderValidation.trimToNull(reason);
