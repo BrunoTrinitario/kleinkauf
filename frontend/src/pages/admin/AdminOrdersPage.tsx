@@ -78,7 +78,6 @@ export default function AdminOrdersPage() {
           title={strings.adminOrders.title}
           highlight={strings.adminOrders.highlight}
           subtitle={strings.adminOrders.subtitle}
-          backTo="/admin"
           action={
             <Button variant="outline" onClick={() => setSettingsOpen(true)}>
               <Landmark className="mr-2 h-4 w-4" />
@@ -169,6 +168,7 @@ export default function AdminOrdersPage() {
                   <li key={order.number}>
                     <Link
                       to={`/admin/orders/${order.number}`}
+                      state={{ listSearch: location.search }}
                       className="grid gap-1 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none md:grid-cols-[8rem_9rem_minmax(0,1fr)_6rem_10rem_8rem] md:items-center md:gap-4"
                     >
                       <span className="flex items-center justify-between gap-2 md:block">

@@ -41,7 +41,7 @@ import { FileSpreadsheet, Plus, Package, Star } from "lucide-react"
 
 // Abre con cualquier area del panel (RequireArea en App.tsx); crear, editar y borrar piden PRODUCTOS
 export default function ProductsManagementPage() {
-  const { user, activeRole, can } = useAuth()
+  const { user, can } = useAuth()
   const queryClient = useQueryClient()
   const [searchInput, setSearchInput] = useState("")
   const searchQuery = useDebouncedValue(searchInput.trim())
@@ -130,7 +130,6 @@ export default function ProductsManagementPage() {
           title={strings.adminProducts.title}
           highlight="productos"
           subtitle={strings.adminProducts.subtitle}
-          backTo={activeRole === "ADMINISTRADOR" ? "/admin" : "/"}
           action={
             canEditProducts ? (
               <div className="flex flex-wrap gap-2">

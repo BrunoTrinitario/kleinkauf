@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useLocation, useParams } from "react-router-dom"
 import axios from "axios"
 import { toast } from "sonner"
 import { AlertTriangle, Download, Eye } from "lucide-react"
@@ -43,6 +43,9 @@ function availableChanges(status: OrderStatus): OrderStatus[] {
 // Detalle de un pedido en el panel de ventas (/admin/orders/:number, solo ADMINISTRADOR)
 export default function AdminOrderPage() {
   const { number = "" } = useParams()
+  // La flecha vuelve a la lista con los filtros con los que se entro (vienen en el estado del link)
+  const listSearch = (useLocation().state as { listSearch?: string } | null)?.listSearch ?? ""
+  const listPath = `/admin/orders${listSearch}`
   const order = useAdminOrder(number)
   const notFound = axios.isAxiosError(order.error) && order.error.response?.status === 404
 
@@ -51,10 +54,10 @@ export default function AdminOrderPage() {
       <Header />
       <main className="container mx-auto px-4 py-8">
         {order.data ? (
-          <OrderDetail order={order.data} />
+          <OrderDetail order={order.data} listPath={listPath} />
         ) : order.isError ? (
           <>
-            <PageHeader title={strings.order.title} highlight="" subtitle="" backTo="/admin/orders" />
+            <PageHeader title={strings.order.title} highlight="" subtitle="" backTo={listPath} />
             <p className="text-destructive">{notFound ? strings.adminOrder.notFound : strings.adminOrder.loadError}</p>
           </>
         ) : (
@@ -65,7 +68,7 @@ export default function AdminOrderPage() {
   )
 }
 
-function OrderDetail({ order }: { order: AdminOrder }) {
+function OrderDetail({ order, listPath }: { order: AdminOrder; listPath: string }) {
   const subtitle = [
     strings.adminOrder.created(formatServerDateTime(order.createdAt)),
     strings.adminOrder.channelPayment(
@@ -77,7 +80,7 @@ function OrderDetail({ order }: { order: AdminOrder }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <PageHeader title={order.number} highlight="" subtitle={subtitle} backTo="/admin/orders" action={<OrderStatusBadge status={order.status} />} />
+        <PageHeader title={order.number} highlight="" subtitle={subtitle} backTo={listPath} action={<OrderStatusBadge status={order.status} />} />
         {order.stockReview ? (
           <p className="-mt-6 flex items-center gap-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4" />

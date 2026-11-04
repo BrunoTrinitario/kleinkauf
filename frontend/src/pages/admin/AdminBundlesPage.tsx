@@ -148,7 +148,7 @@ function PricingFields({
 
 // Abre con cualquier area del panel (RequireArea en App.tsx); crear, cambiar y borrar piden COMBOS
 export default function AdminBundlesPage() {
-  const { user, activeRole, can } = useAuth()
+  const { user, can } = useAuth()
   const canEdit = can("COMBOS")
   const bundles = useBundles(!!user?.token)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -173,7 +173,6 @@ export default function AdminBundlesPage() {
           title={strings.adminBundles.title}
           highlight={strings.adminBundles.highlight}
           subtitle={strings.adminBundles.subtitle}
-          backTo={activeRole === "ADMINISTRADOR" ? "/admin" : "/"}
           action={
             canEdit ? (
               <Button onClick={() => setIsCreateOpen(true)}>
