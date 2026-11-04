@@ -154,7 +154,7 @@ public class UserService {
     public FullUserDto createUser(String name, String email, String password, Set<String> roles) throws ApiException {
         UserValidator.validateNewUser(name, email, password);
         name = name.trim();
-        email = email.trim();
+        email = UserValidator.normalizeEmail(email);
         if (userExistsByEmail(email)){
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.BAD_REQUEST);
         }
@@ -184,7 +184,7 @@ public class UserService {
     }
 
     public boolean userExistsByEmail(String email){
-        return this.userRepository.existsByEmail(email);
+        return this.userRepository.existsByEmailIgnoreCase(UserValidator.normalizeEmail(email));
     }
 
     public boolean userHasRole(Long id, String role) throws ApiException {
@@ -264,7 +264,7 @@ public class UserService {
     }
 
     public LoggedUser login(String email, String password) throws ApiException {
-        User rawUser = this.userRepository.findByEmail(email).orElse(null);
+        User rawUser = this.userRepository.findByEmailIgnoreCase(UserValidator.normalizeEmail(email)).orElse(null);
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
             String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName(), currentTenant());
             List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
@@ -295,7 +295,7 @@ public class UserService {
 
 
     public boolean forgotPasswordRequest(EmailDto userData) throws ApiException {
-        User u = this.userRepository.findByEmail(userData.email()).orElse(null);
+        User u = this.userRepository.findByEmailIgnoreCase(UserValidator.normalizeEmail(userData.email())).orElse(null);
         if (u == null) return false;
         String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant());
         String url = resetPasswordLink(jwt);

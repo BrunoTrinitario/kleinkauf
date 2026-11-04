@@ -83,7 +83,7 @@ public class SuperadminService {
             throw new ApiException(ErrorMessages.INVALID_NAME, HttpStatus.BAD_REQUEST);
         }
         UserValidator.validateNewUser(dto.name(), dto.email(), dto.password());
-        String email = dto.email().trim();
+        String email = UserValidator.normalizeEmail(dto.email());
         // existsByEmail no ve los borrados, y el email es unico tambien contra ellos
         if (emailInUse(email)) {
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE, HttpStatus.CONFLICT);
@@ -150,7 +150,7 @@ public class SuperadminService {
     }
 
     private boolean emailInUse(String email) {
-        Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM public.usuarios WHERE email = ?", Long.class, email);
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM public.usuarios WHERE LOWER(email) = ?", Long.class, email);
         return count != null && count > 0;
     }
 
