@@ -36,7 +36,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.net.URI;
 import java.util.List;
+import java.time.Instant;
 import java.util.Map;
+import java.util.function.Consumer;
+import com.kleinkauf.common.audit.AuditEvent;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -300,6 +304,39 @@ class WebSocketFlowTest {
         assertThat(get("/api/v1/observability/store/audit", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(get("/api/v1/platform/observability/audit", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(get("/api/v1/observability/store/audit?from=ayer", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void exportarLaAuditoriaEnCsv_conLosMismosPermisosQueLaConsulta() {
+        when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
+        when(usersClient.getUserRoles(eq(13L), any())).thenReturn(SUPERADMIN_ROLES);
+        when(auditStore.count(any(), any())).thenReturn(1L);
+        doAnswer(invocation -> {
+            Consumer<AuditEvent> each = invocation.getArgument(3);
+            each.accept(new AuditEvent("e1", "mi_tienda", Instant.parse("2026-11-02T01:30:00Z"), "products",
+                    new AuditEvent.Actor(12L, "Ana", "ADMINISTRADOR"), "1.2.3.4", null, "UPDATE", "Product", "12",
+                    Map.of("price", new AuditEvent.Change("15000.00", "18000.00"))));
+            return null;
+        }).when(auditStore).forEach(any(), any(), anyInt(), any());
+
+        ResponseEntity<String> csv = rest.exchange("/api/v1/observability/store/audit/export?entity=Product", HttpMethod.GET,
+                new HttpEntity<>(headers("12", "mi_tienda")), String.class);
+        assertThat(csv.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(csv.getHeaders().getContentType().toString()).startsWith("text/csv");
+        assertThat(csv.getHeaders().getContentDisposition().getFilename()).startsWith("auditoria-mi_tienda-");
+        // La 1:30 UTC del 2 es la 22:30 del 1 en Argentina
+        assertThat(csv.getBody()).contains("2026-11-01 22:30:00,Ana,12,ADMINISTRADOR,UPDATE,Product,12,price: 15000.00 -> 18000.00,products,1.2.3.4");
+        verify(auditStore).forEach(eq("mi_tienda"), eq(new AuditStore.Query(null, null, null, "Product", null, null)),
+                eq(AuditStore.MAX_EXPORT_ROWS), any());
+
+        assertThat(rest.exchange("/api/v1/platform/observability/audit/export", HttpMethod.GET,
+                new HttpEntity<>(headers("13", null)), String.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(get("/api/v1/observability/store/audit/export", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(get("/api/v1/platform/observability/audit/export", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        // Con demasiados eventos no se manda un archivo cortado
+        when(auditStore.count(any(), any())).thenReturn(AuditStore.MAX_EXPORT_ROWS + 1L);
+        assertThat(get("/api/v1/observability/store/audit/export", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     private ResponseEntity<Map> post(String path, String userId, String tenant) {

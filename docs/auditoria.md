@@ -16,6 +16,7 @@ Se apoya en el servicio de [observabilidad](observabilidad.md).
 | Cómo llega | **Outbox**: la fila se guarda en la misma transacción que el cambio y después se publica en Redis Streams. **No se pierde** aunque observability o Redis estén caídos |
 | Outbox | **Una sola tabla por servicio**, `public.outbox_events`, con columna `tenant` (no una por schema): se escribe con la misma conexión que el cambio y el publicador lee una sola tabla |
 | Dónde se guarda | En **`kleinkauf-observability`**, base `observability`: `<schema>.audit_events`, un schema por tienda y `public` para la plataforma |
+| Particiones | `audit_events` está **particionada por mes** (`occurred_at` en UTC): `audit_events_2026_11`, etc. Una consulta por fechas lee solo esos meses y un mes viejo se puede archivar sin tocar el resto |
 | Retención | **Para siempre**. Nadie la edita ni la borra |
 | Quién la ve | **Cada uno lo suyo**: el administrador ve la de su tienda y el superadmin la de la plataforma. El superadmin **no** ve la de las tiendas |
 | Nombres | Observability busca el nombre del usuario en users **al guardar** y lo deja guardado: si después lo borran, su auditoría sigue diciendo quién era |
@@ -134,11 +135,27 @@ La importación del CSV apaga la captura automática mientras corre (`AuditSuppr
 | GET | `/api/v1/observability/store/audit` | Admin de la tienda | Historial de su tienda, paginado (`page`, `size` hasta 100), con filtros `from`, `to`, `userId`, `entity` y `action` |
 | GET | `/api/v1/observability/store/audit/{entity}/{entityId}` | Admin de la tienda | Historial de una cosa puntual (ej. `Product/12`) |
 | GET | `/api/v1/platform/observability/audit` | Superadmin | Historial de la plataforma, paginado y con los mismos filtros (y `entityId`) |
+| GET | `/api/v1/observability/store/audit/export` | Admin de la tienda | El historial con los mismos filtros, en **CSV** |
+| GET | `/api/v1/platform/observability/audit/export` | Superadmin | El de la plataforma en CSV |
 
 - `from` y `to` son fechas con zona (ISO-8601, ej. `2026-11-02T03:00:00Z`); `to` no se incluye. Una fecha mal
   escrita responde 400.
 - Respuesta: `{ "items": [ … ], "page": 0, "size": 20, "totalItems": 3, "totalPages": 1 }`, lo más nuevo primero.
 - Desde la plataforma, las rutas de la tienda responden 404; un administrador que pide la de la plataforma, 403.
+- **CSV**: UTF-8 con BOM (para Excel), columnas `fecha,usuario,id_usuario,rol,accion,entidad,id_entidad,cambios,servicio,ip`,
+  la fecha en hora argentina (`audit.export.zone`) y los cambios como `campo: antes -> despues; ...`. Los textos que
+  empiezan con `=`, `+`, `-` o `@` llevan un `'` adelante para que Excel no los tome como fórmula. Hasta **50.000**
+  eventos: con más responde 400 y hay que acotar las fechas (no se manda un archivo cortado).
+
+### Particiones
+
+- La partición de un mes se crea antes de guardar el primer evento de ese mes (`CREATE TABLE IF NOT EXISTS ...
+  PARTITION OF`). No hay partición por defecto: si no se pudiera crear, el evento no se confirma y se reintenta.
+- La clave es `(id, occurred_at)` (en una tabla particionada tiene que incluir la fecha). Un evento repetido trae la
+  misma fecha, así que se sigue guardando una sola vez.
+- Las tablas de antes (sin particiones) se pasan solas la primera vez que observability usa ese schema: en una
+  transacción, se renombra la vieja, se crea la particionada con un mes por cada mes que tenía, se copian los eventos y
+  se borra la vieja. Queda en el log (`eventos pasados a la tabla particionada`).
 
 ## Límites conocidos
 
@@ -149,7 +166,4 @@ La importación del CSV apaga la captura automática mientras corre (`AuditSuppr
   mucho movimiento, se perderían los más viejos (la outbox ya los marcó como enviados).
 - Los cambios hechos con SQL directo que no pasan por `AuditLog` no quedan registrados.
 
-## Para decidir
-
-- Si se puede exportar el historial (CSV).
-- Particionado de `audit_events` si crece mucho (hoy tiene índices por fecha, por usuario y por entidad).
+- La exportación arma el CSV en memoria (hasta 50.000 eventos, unos 10 MB).

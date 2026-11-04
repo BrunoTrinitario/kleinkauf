@@ -4,6 +4,7 @@ import com.kleinkauf.common.audit.AuditEvent;
 import com.kleinkauf.common.constants.TenantConstants;
 import com.kleinkauf.common.dto.RoleDto;
 import com.kleinkauf.common.servlet.security.CustomUserDetails;
+import com.kleinkauf.observability.audit.AuditCsv;
 import com.kleinkauf.observability.audit.AuditStore;
 import com.kleinkauf.observability.collector.PlatformState;
 import com.kleinkauf.observability.dto.PageDto;
@@ -34,6 +35,7 @@ igual que el resto de /api/v1/platform/**.
 - GET /overview: la ultima lectura del recolector, para mostrar algo antes del primer mensaje del WS.
 - GET /audit: la auditoria de la plataforma (tiendas, superadmins), paginada y con filtros. No incluye la de
   las tiendas: esa la ve solo cada administrador.
+- GET /audit/export: lo mismo en CSV (hasta 50000 eventos).
  */
 @RestController
 @RequestMapping("/api/v1/platform/observability")
@@ -43,12 +45,15 @@ public class PlatformObservabilityController {
     private final RolesService roles;
     private final PlatformState state;
     private final AuditStore audit;
+    private final AuditCsv csv;
 
-    public PlatformObservabilityController(TicketStore tickets, RolesService roles, PlatformState state, AuditStore audit) {
+    public PlatformObservabilityController(TicketStore tickets, RolesService roles, PlatformState state, AuditStore audit,
+                                           AuditCsv csv) {
         this.tickets = tickets;
         this.roles = roles;
         this.state = state;
         this.audit = audit;
+        this.csv = csv;
     }
 
     @PostMapping("/ws-ticket")
@@ -86,6 +91,21 @@ public class PlatformObservabilityController {
         requirePlatform(request);
         return ResponseEntity.ok(audit.page(TenantConstants.PUBLIC,
                 AuditQueries.query(from, to, userId, entity, entityId, action), page, size));
+    }
+
+    @GetMapping("/audit/export")
+    public ResponseEntity<byte[]> export(
+            HttpServletRequest request,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String entity,
+            @RequestParam(required = false) String entityId,
+            @RequestParam(required = false) String action
+    ) {
+        requirePlatform(request);
+        return AuditQueries.export(audit, csv, TenantConstants.PUBLIC,
+                AuditQueries.query(from, to, userId, entity, entityId, action), "plataforma");
     }
 
     private static void requirePlatform(HttpServletRequest request) {

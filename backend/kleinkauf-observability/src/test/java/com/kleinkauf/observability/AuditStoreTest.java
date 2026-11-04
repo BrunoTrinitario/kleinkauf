@@ -10,7 +10,6 @@ import com.kleinkauf.observability.ws.SessionRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.stream.RecordId;
@@ -18,9 +17,14 @@ import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,26 +40,97 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
-Guardado y consulta de la auditoria con H2 en modo PostgreSQL, y el consumidor del stream (Redis es un mock).
+Guardado y consulta de la auditoria contra un Postgres real (la tabla esta particionada por mes, H2 no lo soporta),
+y el consumidor del stream (Redis es un mock). Sin Docker se saltea.
+Cada test arranca con los schemas vacios.
  */
+@Testcontainers(disabledWithoutDocker = true)
 class AuditStoreTest {
 
     private static final Instant T0 = Instant.parse("2026-11-02T10:00:00Z");
+    private static final List<String> SCHEMAS = List.of("mi_tienda", "otra_tienda", "nueva", "vieja");
+
+    // Uno para toda la clase: levantarlo por test es lento
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17");
+
+    static {
+        if (DockerClientFactory.instance().isDockerAvailable()) {
+            POSTGRES.start();
+        }
+    }
 
     private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).build();
-    private DriverManagerDataSource db;
+    private JdbcTemplate jdbc;
     private AuditStore store;
 
     @BeforeEach
     void setUp() {
-        db = new DriverManagerDataSource("jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1");
-        store = new AuditStore(new JdbcTemplate(db), mapper);
+        jdbc = new JdbcTemplate(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
+        for (String schema : SCHEMAS) {
+            jdbc.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        }
+        jdbc.execute("DROP TABLE IF EXISTS public.audit_events CASCADE");
+        store = new AuditStore(jdbc, mapper);
     }
 
-    @AfterEach
-    void tearDown() {
-        new JdbcTemplate(db).execute("SHUTDOWN");
+    // Cada mes en su particion; una consulta por fechas lee igual de varias
+    @Test
+    void cadaMesVaASuParticion() throws Exception {
+        store.insert(event("mi_tienda", Instant.parse("2026-10-31T23:59:59Z"), 3L, "UPDATE", "Product", "1"));
+        store.insert(event("mi_tienda", Instant.parse("2026-11-01T00:00:00Z"), 3L, "UPDATE", "Product", "1"));
+        store.insert(event("mi_tienda", Instant.parse("2027-01-15T10:00:00Z"), 3L, "UPDATE", "Product", "1"));
+
+        assertThat(rows("mi_tienda.audit_events_2026_10")).isEqualTo(1);
+        assertThat(rows("mi_tienda.audit_events_2026_11")).isEqualTo(1);
+        assertThat(rows("mi_tienda.audit_events_2027_01")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                + "WHERE n.nspname = 'mi_tienda' AND c.relname = 'audit_events'", String.class)).isEqualTo("p");
+        assertThat(store.page("mi_tienda", query(Instant.parse("2026-10-01T00:00:00Z"), Instant.parse("2026-12-01T00:00:00Z"),
+                null, null), 0, 10).totalItems()).isEqualTo(2);
+    }
+
+    // La tabla de antes (sin particiones) se pasa a particionada la primera vez, sin perder eventos
+    @Test
+    void laTablaViejaSePasaAParticionadaConSusEventos() throws Exception {
+        jdbc.execute("CREATE SCHEMA vieja");
+        jdbc.execute("CREATE TABLE vieja.audit_events (id VARCHAR(36) PRIMARY KEY, occurred_at TIMESTAMP WITH TIME ZONE NOT NULL, "
+                + "service VARCHAR(40), actor_user_id BIGINT, actor_name VARCHAR(200), actor_role VARCHAR(40), ip VARCHAR(64), "
+                + "trace_id VARCHAR(64), action VARCHAR(40) NOT NULL, entity VARCHAR(60) NOT NULL, entity_id VARCHAR(100), "
+                + "changes TEXT, received_at TIMESTAMP WITH TIME ZONE NOT NULL)");
+        jdbc.execute("CREATE INDEX audit_events_at ON vieja.audit_events (occurred_at)");
+        jdbc.update("INSERT INTO vieja.audit_events VALUES ('a', '2026-09-10 12:00:00+00', 'products', 3, 'Ana', 'ADMINISTRADOR', "
+                + "null, null, 'UPDATE', 'Product', '1', '{}', now())");
+        jdbc.update("INSERT INTO vieja.audit_events VALUES ('b', '2026-10-31 23:30:00+00', 'products', 3, 'Ana', 'ADMINISTRADOR', "
+                + "null, null, 'DELETE', 'Product', '2', '{}', now())");
+
+        PageDto<AuditEvent> page = store.page("vieja", query(null, null, null, null), 0, 10);
+
+        assertThat(page.totalItems()).isEqualTo(2);
+        assertThat(page.items().get(0).action()).isEqualTo("DELETE");
+        assertThat(rows("vieja.audit_events_2026_09")).isEqualTo(1);
+        assertThat(rows("vieja.audit_events_2026_10")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT to_regclass('vieja.audit_events_legacy')", String.class)).isNull();
+        // Y sigue guardando, tambien en un mes nuevo
+        assertThat(store.insert(event("vieja", T0, 3L, "CREATE", "Product", "3"))).isTrue();
+        assertThat(store.page("vieja", query(null, null, null, null), 0, 10).totalItems()).isEqualTo(3);
+    }
+
+    @Test
+    void exportaTodoLoFiltradoDeLoMasNuevoALoMasViejo() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            store.insert(event("mi_tienda", T0.plusSeconds(i), 3L, i == 4 ? "DELETE" : "UPDATE", "Product", String.valueOf(i)));
+        }
+        List<AuditEvent> exported = new ArrayList<>();
+
+        store.forEach("mi_tienda", query(null, null, null, "UPDATE"), 100, exported::add);
+
+        assertThat(store.count("mi_tienda", query(null, null, null, "UPDATE"))).isEqualTo(4);
+        assertThat(exported).extracting(AuditEvent::entityId).containsExactly("3", "2", "1", "0");
+    }
+
+    private long rows(String table) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM " + table, Long.class);
     }
 
     @Test

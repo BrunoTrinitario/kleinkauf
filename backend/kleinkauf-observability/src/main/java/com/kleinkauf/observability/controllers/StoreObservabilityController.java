@@ -4,6 +4,7 @@ import com.kleinkauf.common.audit.AuditEvent;
 import com.kleinkauf.common.constants.TenantConstants;
 import com.kleinkauf.common.dto.RoleDto;
 import com.kleinkauf.common.servlet.security.CustomUserDetails;
+import com.kleinkauf.observability.audit.AuditCsv;
 import com.kleinkauf.observability.audit.AuditStore;
 import com.kleinkauf.observability.dto.PageDto;
 import com.kleinkauf.observability.dto.StoreUsageDto;
@@ -34,6 +35,7 @@ Panel de la tienda (solo ADMINISTRADOR, ver SecurityConfig). Siempre de la tiend
 - POST /ws-ticket: ticket para el WS de la tienda, con los roles actuales.
 - GET /store/audit: historial de la tienda, paginado y con filtros (fecha, usuario, entidad, accion).
 - GET /store/audit/{entity}/{entityId}: historial de una cosa puntual (ej. Product/12).
+- GET /store/audit/export: el historial con los mismos filtros, en CSV (hasta 50000 eventos).
 - GET /store/users y /store/usage: lo mismo que mandan store.users y store.usage, para cuando se abre el panel
   (el WS manda solo lo nuevo). 503 si no se pudo leer Redis.
  */
@@ -45,12 +47,15 @@ public class StoreObservabilityController {
     private final RolesService roles;
     private final AuditStore audit;
     private final StoreFeeds storeFeeds;
+    private final AuditCsv csv;
 
-    public StoreObservabilityController(TicketStore tickets, RolesService roles, AuditStore audit, StoreFeeds storeFeeds) {
+    public StoreObservabilityController(TicketStore tickets, RolesService roles, AuditStore audit, StoreFeeds storeFeeds,
+                                        AuditCsv csv) {
         this.tickets = tickets;
         this.roles = roles;
         this.audit = audit;
         this.storeFeeds = storeFeeds;
+        this.csv = csv;
     }
 
     @PostMapping("/ws-ticket")
@@ -80,6 +85,19 @@ public class StoreObservabilityController {
     ) {
         String tenant = requireStore(request);
         return ResponseEntity.ok(audit.page(tenant, AuditQueries.query(from, to, userId, entity, null, action), page, size));
+    }
+
+    @GetMapping("/store/audit/export")
+    public ResponseEntity<byte[]> export(
+            HttpServletRequest request,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String entity,
+            @RequestParam(required = false) String action
+    ) {
+        String tenant = requireStore(request);
+        return AuditQueries.export(audit, csv, tenant, AuditQueries.query(from, to, userId, entity, null, action), tenant);
     }
 
     @GetMapping("/store/audit/{entity}/{entityId}")

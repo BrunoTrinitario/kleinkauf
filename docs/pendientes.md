@@ -1,6 +1,6 @@
 # Pendientes
 
-_Última actualización: 2026-11-04 (deuda técnica: refresh revocable, rate limit en Redis y CI; A1 cerrado)_
+_Última actualización: 2026-11-04 (deuda técnica cerrada: refresh revocable, rate limit en Redis, CI y auditoría; A1 cerrado)_
 
 Lista de lo que queda por hacer, armada comparando la documentación ([MVP.md](../MVP.md), `docs/` y la referencia
 por servicio en [docs/backend/](backend/README.md)) con el código. Cada tarea tiene el flujo previsto para
@@ -10,11 +10,14 @@ implementarla.
 auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta, el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
 y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el panel de ventas;
-falta el tiempo real. En el backend queda la auditoría (exportar y
-particionar). La **gestión presencial** todavía no tiene decisiones tomadas.
+falta el tiempo real. El backend del MVP está completo. La **gestión presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
 
+- **Auditoría**: `audit_events` está particionada por mes (las tablas de antes se pasan solas la primera vez) y el
+  historial se exporta en CSV (`/store/audit/export` y el de la plataforma), hasta 50.000 eventos, con la hora
+  argentina y protegido contra fórmulas de Excel. Ver [auditoria.md](auditoria.md#consultas). Falta el botón en el
+  frontend, que va con el feed de auditoría de B8.
 - **A1 cerrado**: las altas por período de los paneles van en hora argentina (`DashboardTime`,
   `users.dashboard.zone`). Se decidió no sumar pedidos y facturación de todas las tiendas (el superadmin no ve los
   datos de las tiendas) y dejar "activos" como el último login en 30 días.
@@ -186,6 +189,8 @@ esto ya está.
 3. Tienda: feed de auditoría (`store.audit`), actividad en vivo (`store.activity`), uso del día (`GET /store/usage`
    más `store.usage`) y conectados (`GET /store/users` más `store.users`).
 4. El historial se carga por REST al abrir el panel y el WS solo trae lo nuevo.
+5. Botón "Exportar CSV" en la auditoría de la tienda y de la plataforma (`/store/audit/export`, `/audit/export`),
+   con los filtros que estén puestos.
 
 ### B10. Faltantes chicos (de la revisión de [frontend.md](frontend.md))
 
@@ -248,9 +253,7 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## D. Deuda técnica y prolijidad
 
-Lo demás está resuelto (ver arriba). Queda:
-
-- Auditoría: exportar el historial a CSV y particionar `audit_events`.
+Está todo resuelto (ver arriba).
 
 **Decidido**
 
@@ -264,4 +267,3 @@ Lo demás está resuelto (ver arriba). Queda:
 
 1. **B8**: tiempo real en los paneles. Ya están B0 a B7 y A1 a A3.
 2. **Decidir y planificar C1**, la próxima etapa de ventas.
-3. Auditoría (D): exportar el historial a CSV y particionar `audit_events`.
