@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Lee el formato de texto de Prometheus (version 0.0.4) que devuelve /metrics:
-  nombre{etiqueta="valor",...} 12.5
-Las lineas de comentario (# HELP, # TYPE) se saltean y las que no se entienden tambien: una metrica
-rara no tiene que tirar abajo la lectura de las demas.
+Reads the Prometheus text format (version 0.0.4) returned by /metrics:
+  name{label="value",...} 12.5
+Comment lines (# HELP, # TYPE) are skipped and so are the ones that cannot be parsed: an odd
+metric must not bring down the reading of the others.
  */
 public final class PrometheusText {
 
@@ -61,13 +61,13 @@ public final class PrometheusText {
             name = line.substring(0, space);
             rest = line.substring(space + 1).strip();
         }
-        // Puede venir un timestamp despues del valor
+        // A timestamp may follow the value
         String value = rest.split("\\s+")[0];
         Double parsed = parseValue(value);
         return parsed == null ? null : new Sample(name, labels, parsed);
     }
 
-    // Devuelve la posicion de la '}' que cierra, o -1 si la linea esta mal formada
+    // Returns the position of the closing '}', or -1 if the line is malformed
     private static int parseLabels(String line, int start, Map<String, String> labels) {
         int i = start;
         while (i < line.length()) {

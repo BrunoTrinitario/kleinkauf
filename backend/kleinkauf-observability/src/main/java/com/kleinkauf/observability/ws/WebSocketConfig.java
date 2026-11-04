@@ -6,8 +6,8 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 /*
-WebSocket puro en /ws (sin STOMP). El origen no se restringe aca: el gateway ya rechaza los origenes que no
-son de una tienda ni de la plataforma, y sin ticket no se entra.
+Plain WebSocket on /ws (no STOMP). The origin is not restricted here: the gateway already rejects origins that
+belong to neither a store nor the platform, and without a ticket nobody gets in.
  */
 @Configuration
 @EnableWebSocket

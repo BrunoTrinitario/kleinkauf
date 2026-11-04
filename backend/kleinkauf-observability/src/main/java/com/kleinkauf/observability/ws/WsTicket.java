@@ -4,7 +4,7 @@ import com.kleinkauf.common.constants.TenantConstants;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /*
-Quien abre el WS: el usuario y el tenant con que pidio el ticket ("public" para el superadmin).
+Who opens the WS: the user and the tenant with which they requested the ticket ("public" for the superadmin).
  */
 public record WsTicket(Long userId, String tenant) {
 

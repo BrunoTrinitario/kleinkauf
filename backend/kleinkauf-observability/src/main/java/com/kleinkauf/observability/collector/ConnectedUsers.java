@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Usuarios conectados: las keys activity:<tenant>:<userId> que marca el gateway (vencen a los 5 minutos).
-Se recorren con SCAN (no bloquea Redis como KEYS). Con miles de usuarios conviene un contador por tienda.
+Online users: the activity:<tenant>:<userId> keys marked by the gateway (expire after 5 minutes).
+Iterated with SCAN (does not block Redis like KEYS). With thousands of users a per-store counter would be better.
  */
 @Slf4j
 @Component
@@ -30,7 +30,7 @@ public class ConnectedUsers {
         this.redis = redis;
     }
 
-    // null si no se pudo leer Redis
+    // null if Redis could not be read
     public ConnectedUsersDto count() {
         Map<String, Long> byTenant = new HashMap<>();
         ScanOptions options = ScanOptions.scanOptions().match(ActivityKeys.PREFIX + "*").count(SCAN_COUNT).build();

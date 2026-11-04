@@ -37,7 +37,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Canales de la tienda que arma el recolector: store.users y store.usage
+// Store channels built by the collector: store.users and store.usage
 class StoreFeedsTest {
 
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
@@ -48,11 +48,11 @@ class StoreFeedsTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void usuariosConectados_delMasRecienteConNombre() {
+    void onlineUsers_mostRecentFirstWithName() {
         scan(List.of("activity:demo:7", "activity:demo:8", "activity:demo:9"));
         ValueOperations<String, String> values = mock(ValueOperations.class);
         when(redis.opsForValue()).thenReturn(values);
-        // El 9 vencio entre el SCAN y la lectura
+        // Number 9 expired between the SCAN and the read
         when(values.multiGet(List.of("activity:demo:7", "activity:demo:8", "activity:demo:9")))
                 .thenReturn(java.util.Arrays.asList("1000", "5000", null));
         when(names.name(7L, "demo")).thenReturn("Ana");
@@ -67,14 +67,14 @@ class StoreFeedsTest {
     }
 
     @Test
-    void usuariosConectados_unTenantSinFormaDeSchemaNoVaAlScan() {
+    void onlineUsers_tenantNotShapedLikeSchemaDoesNotGoToScan() {
         assertThat(feeds.users("demo*").total()).isZero();
         verify(redis, never()).scan(any(ScanOptions.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void uso_visitasLos5MasVistosYElTraficoDeLaTienda() {
+    void usage_visitsTop5ViewedAndTheStoreTraffic() {
         HashOperations<String, Object, Object> hash = mock(HashOperations.class);
         when(redis.opsForHash()).thenReturn(hash);
         Map<Object, Object> counts = new LinkedHashMap<>();
@@ -82,7 +82,7 @@ class StoreFeedsTest {
         for (int i = 1; i <= 6; i++) counts.put("product:mesa-" + i, String.valueOf(i * 10));
         when(hash.entries(UsageKeys.key("demo", UsageKeys.today()))).thenReturn(counts);
 
-        // Sin dos lecturas del gateway todavia: sin trafico
+        // No two gateway readings yet: no traffic
         assertThat(feeds.usage("demo").traffic()).isNull();
 
         feeds.update(Map.of("demo", new Traffic.TenantRates(2.5, 0.1, 0)));
@@ -92,14 +92,14 @@ class StoreFeedsTest {
         assertThat(usage.topProducts()).hasSize(5);
         assertThat(usage.topProducts().get(0)).isEqualTo(new StoreUsageDto.ProductViews("mesa-6", 60));
         assertThat(usage.traffic()).isEqualTo(new StoreUsageDto.Traffic(2.5, 0.1, 0));
-        // Otra tienda sin requests en el intervalo: 0, no null
+        // Another store without requests in the interval: 0, not null
         when(hash.entries(UsageKeys.key("otra", UsageKeys.today()))).thenReturn(Map.of());
         assertThat(feeds.usage("otra").traffic()).isEqualTo(new StoreUsageDto.Traffic(0, 0, 0));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void update_mandaSoloALasTiendasSuscriptasYSiRedisFallaNoManda() {
+    void update_sendsOnlyToSubscribedStoresAndSendsNothingIfRedisFails() {
         HashOperations<String, Object, Object> hash = mock(HashOperations.class);
         when(redis.opsForHash()).thenReturn(hash);
         when(hash.entries(anyString())).thenReturn(Map.of("visits", "3"));

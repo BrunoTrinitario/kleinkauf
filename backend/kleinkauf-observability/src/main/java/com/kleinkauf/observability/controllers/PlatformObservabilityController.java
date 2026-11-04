@@ -28,14 +28,14 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /*
-Panel de la plataforma (solo SUPERADMIN, ver SecurityConfig). Sin tienda: desde una tienda responde 404,
-igual que el resto de /api/v1/platform/**.
-- POST /ws-ticket: ticket para abrir el WS. Se emite con los roles actuales (pedidos a users en el momento):
-  un superadmin desactivado no consigue otro.
-- GET /overview: la ultima lectura del recolector, para mostrar algo antes del primer mensaje del WS.
-- GET /audit: la auditoria de la plataforma (tiendas, superadmins), paginada y con filtros. No incluye la de
-  las tiendas: esa la ve solo cada administrador.
-- GET /audit/export: lo mismo en CSV (hasta 50000 eventos).
+Platform dashboard (SUPERADMIN only, see SecurityConfig). No store: from a store it responds 404,
+like the rest of /api/v1/platform/**.
+- POST /ws-ticket: ticket to open the WS. Issued with the current roles (requested from users right then):
+  a deactivated superadmin does not get another one.
+- GET /overview: the collector's last reading, to show something before the first WS message.
+- GET /audit: the platform audit (stores, superadmins), paginated and with filters. It does not include the
+  stores' audit: only each administrator sees that one.
+- GET /audit/export: the same as CSV (up to 50000 events).
  */
 @RestController
 @RequestMapping("/api/v1/platform/observability")

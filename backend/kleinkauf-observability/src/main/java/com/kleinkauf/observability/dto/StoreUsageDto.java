@@ -5,10 +5,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 /*
-Uso de una tienda (canal store.usage y GET /api/v1/observability/store/usage):
-- date, catalogVisits y topProducts: el catalogo publico en el dia (lo cuenta products, ver UsageKeys).
-- traffic: requests y errores por segundo de la tienda en el gateway, de la ultima lectura del recolector.
-  null hasta la segunda lectura (las tasas salen de restar dos) o si el gateway no respondio.
+A store's usage (store.usage channel and GET /api/v1/observability/store/usage):
+- date, catalogVisits and topProducts: the public catalog on that day (counted by products, see UsageKeys).
+- traffic: the store's requests and errors per second at the gateway, from the collector's last reading.
+  null until the second reading (rates come from subtracting two) or if the gateway did not answer.
  */
 public record StoreUsageDto(
         Instant at,

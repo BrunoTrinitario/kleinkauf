@@ -3,17 +3,17 @@ package com.kleinkauf.observability.ws;
 import java.util.Set;
 
 /*
-Canales del WS (docs/observabilidad.md).
-Plataforma (superadmin, ticket de public):
-- platform.health: la salud de los servicios, cuando cambia algun estado.
-- platform.traffic: trafico, recursos y usuarios conectados, en cada lectura del recolector.
-- platform.business: altas, bajas y cambios de tiendas (eventos de users).
-- platform.audit: la auditoria de la plataforma, apenas se guarda.
-Tienda (administrador, ticket de su tienda): siempre de la tienda del ticket, no se puede pedir otra.
-- store.audit: la auditoria de su tienda, apenas se guarda.
-- store.activity: pedidos nuevos, ventas del local, comprobantes y stock (eventos de sales y products), apenas pasan.
-- store.usage: visitas al catalogo, productos mas vistos del dia y requests y errores, en cada lectura del recolector.
-- store.users: los usuarios conectados (alguna request en los ultimos 5 minutos), en cada lectura del recolector.
+WS channels (docs/observabilidad.md).
+Platform (superadmin, public ticket):
+- platform.health: the services' health, when some status changes.
+- platform.traffic: traffic, resources and online users, on each collector reading.
+- platform.business: store creations, deletions and changes (users events).
+- platform.audit: the platform audit, as soon as it is stored.
+Store (administrator, ticket for their store): always the ticket's store, another one cannot be requested.
+- store.audit: their store's audit, as soon as it is stored.
+- store.activity: new orders, in-store sales, receipts and stock (sales and products events), as they happen.
+- store.usage: catalog visits, the day's most viewed products and requests and errors, on each collector reading.
+- store.users: the online users (some request in the last 5 minutes), on each collector reading.
  */
 public final class Channels {
 

@@ -10,10 +10,10 @@ import java.time.Duration;
 import java.util.List;
 
 /*
-Roles de los usuarios:
-- cached: para el REST, guardados 1 minuto (como en products y sales: un rol quitado deja de valer en hasta 1 minuto).
-- fresh: siempre a users. Al emitir un ticket y al revisar los WS abiertos (AccessRevalidator).
-null: users no respondio.
+Users' roles:
+- cached: for REST, kept for 1 minute (as in products and sales: a removed role stops working within 1 minute).
+- fresh: always from users. When issuing a ticket and when checking the open WSs (AccessRevalidator).
+null: users did not answer.
  */
 @Service
 public class RolesService {
@@ -54,7 +54,7 @@ public class RolesService {
         return roles;
     }
 
-    // El rol que hace falta para el WS: superadmin en la plataforma; en la tienda, el administrador
+    // The role needed for the WS: superadmin on the platform; in the store, the administrator
     public static String requiredRole(WsTicket ticket) {
         return ticket.isPlatform() ? SUPERADMIN : ADMINISTRADOR;
     }
