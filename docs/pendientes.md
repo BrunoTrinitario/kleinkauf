@@ -1,15 +1,17 @@
 # Pendientes
 
-_Última actualización: 2026-11-03 (después del panel de la tienda, los canales `store.*` y `docs/backend/`)_
+_Última actualización: 2026-11-04 (revisión contra el código después del renombre a KleinKauf)_
 
 Lista de lo que queda por hacer, armada comparando la documentación ([MVP.md](../MVP.md), `docs/` y la referencia
 por servicio en [docs/backend/](backend/README.md)) con el código. Cada tarea tiene el flujo previsto para
 implementarla.
 
 **Resumen:** el backend de los dos paneles, las ventas, la observabilidad (también los canales de la tienda) y la
-auditoría está hecho. Lo que más falta es el **frontend**, que hoy cubre login y registro, catálogo básico, CRUD de
-productos y usuarios, ajustes y el panel de la plataforma. En el backend quedan algunos ajustes de plataforma, la
-vista previa al compartir y la limpieza de endpoints. La **gestión presencial** todavía no tiene decisiones tomadas.
+auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta (salvo el recupero de contraseña), el
+catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
+y combos), usuarios y permisos, el resumen de la tienda, ajustes y el panel de la plataforma; falta el panel de ventas
+y el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
+presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
 
@@ -64,6 +66,26 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
 - **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
 - **La tienda no se queda sin administrador**: users responde 409 si se quiere borrar o sacarle el rol al último
   `ADMINISTRADOR` (a sí mismo o desde el panel de usuarios).
+- **`TODO`**: se sacaron las notas viejas (también la de que ventas "no entra") y quedó solo con pendientes nuevos.
+- **Altas con 201**: usuarios, tiendas, superadmins, pedidos y movimientos de stock ya responden 201.
+- **Compra online** (B6): carrito en `localStorage` con productos y combos (`lib/cart.tsx`, ícono con la cantidad en
+  el header); checkout en `/checkout` como invitado o con sesión, con retiro o envío, que ante el 409 de precios
+  actualiza el carrito y muestra antes y después; pantalla del pedido en `/pedido/{número}` con los datos para
+  transferir, cuenta regresiva, comprobante, motivo del rechazo, cancelar e historial; consulta del invitado en
+  `/pedido` con número y email, y "Mis pedidos" en `/mis-pedidos`. El navegador recuerda número y email de los
+  pedidos (`lib/known-orders.ts`) para abrirlos sin volver a pedir el email.
+- **Home, catálogo y combos separados**: `/` es una vidriera corta (buscador, categorías, destacados en una fila que
+  se desliza y una fila de combos); el listado completo está en `/catalogo`, con búsqueda, categoría, orden y
+  página en la URL (`?q=&categoria=&orden=&pagina=`, `lib/catalog-url.ts`), así "atrás" vuelve al mismo listado y una
+  búsqueda se puede compartir; los combos tienen su página en `/combos`. En la página de un producto, "Volver" va a la
+  página anterior y, si se entró por un link compartido, a `/catalogo`.
+- **Combos completos**: `POST /bundles` crea el combo con nombre, productos y precio de una vez y valida todo antes de
+  guardar (sin productos, cantidad 0, repetidos o inexistentes no se crea). `PUT /bundles/{id}/product` responde 404
+  en vez de 500, ya no duplica el producto al cambiar la cantidad y el bulk aplica todo o nada. En `/admin/bundles` el
+  diálogo de crear pide nombre, productos (con imagen, precio y subtotal) y al final el precio con la suma a la vista,
+  y las tarjetas muestran miniaturas. En `/combos` cada combo lista sus productos con foto y precio, y tocar la foto
+  abre la descripción de cada uno y la cuenta contra el precio del combo (el catálogo trae categoría, descripción,
+  precio e imagen de cada producto del combo).
 
 ---
 
@@ -82,6 +104,31 @@ vista previa al compartir y la limpieza de endpoints. La **gestión presencial**
   como inactivo. Las keys `activity:*` duran 5 minutos, así que haría falta guardar la última request en la base
   (por ejemplo, actualizarla como mucho una vez por hora).
 
+### A4. Combos con descuento porcentual o fijo
+
+Hoy el combo tiene un precio fijo: si sube el precio de un producto, hay que acordarse de actualizar cada combo que
+lo incluye (y mientras tanto el "ahorro" puede quedar mal o hasta negativo). La idea es que el combo pueda guardar un
+**descuento** sobre la suma de sus productos, y que el precio se calcule solo.
+
+1. products: en `Bundle`, un tipo de precio (`pricingType`: `FIXED`, `PERCENT` o `AMOUNT`) y un `discount`
+   (porcentaje entre 0 y 100, o monto mayor o igual a 0). Migración: los combos actuales quedan en `FIXED` con su
+   `price`, así no cambia nada de lo que ya se vende.
+2. Precio final en un solo lugar (`BundleFactory`): `FIXED` → `price`; `PERCENT` → suma de los productos × (1 −
+   descuento / 100); `AMOUNT` → suma − descuento, sin bajar de 0. Redondear a 2 decimales (`HALF_UP`). Si algún
+   producto no tiene precio, el combo con descuento queda sin precio (no se vende online, como hoy).
+3. Usar ese precio en todo lo que hoy lee `bundle.getPrice()`: `BundleDto`, el catálogo (`CatalogService.toDto` e
+   `isSellable`) y la reserva de stock que le da el precio a sales (`StockReservationService`), para que el pedido
+   cobre lo mismo que muestra el catálogo.
+4. API: `POST /bundles` y `PUT /bundles/{id}/price` reciben `pricingType` y `discount` (o `price` para `FIXED`), con
+   400 si el descuento está fuera de rango. `BundleDto` devuelve el tipo, el descuento y el precio calculado.
+5. Caché: cambiar el precio de un producto ya invalida el catálogo; comprobar que con eso alcanza para que el combo
+   muestre el precio nuevo.
+6. Frontend, en `/admin/bundles` (crear y la tarjeta): elegir "Precio fijo", "% de descuento" o "Descuento en $", y
+   ver el precio resultante y el ahorro mientras se escribe. En `/combos` no cambia nada (sigue llegando `price` y
+   `listPrice`).
+7. Tests del cálculo (cada tipo, redondeo, producto sin precio, descuento mayor que la suma) y docs
+   ([products.md](backend/products.md) y [frontend.md](frontend.md)).
+
 ---
 
 ## B. Frontend
@@ -94,17 +141,6 @@ esto ya está.
 - Recupero de contraseña: pedir el mail con `POST /auth/forgot-password` y la página `/reset-password?token=`, que
   es a donde lleva el mail, con el `POST /auth/forgot-password/{token}`. El token vale 15 minutos. **Para más
   adelante.**
-
-### B6. Compra online
-
-1. Carrito en `localStorage`, con productos y combos.
-2. Checkout como invitado o con sesión, con retiro o envío.
-3. Manejar el 409 cuando cambió un precio, mostrando los precios nuevos.
-4. Pantalla del pedido: número, total, datos para transferir y cuenta regresiva.
-5. Subir el comprobante.
-6. Consulta del invitado con email y número.
-7. Cancelar.
-8. "Mis pedidos".
 
 ### B7. Panel de ventas (solo `ADMINISTRADOR`)
 
@@ -177,27 +213,32 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 **Errores y reglas**
 
-- **500 en vez de 4xx en products**: crear un producto con el nombre de uno borrado o renombrar con un nombre usado;
-  agregar a un combo un producto inexistente. Y `GET`/`PUT`/`DELETE /bundles/{id}` responden 200 aunque no exista.
+- **500 en vez de 4xx en products**: crear un producto con el nombre de uno borrado (`createProduct` usa
+  `existsByName`, que no ve los borrados) o renombrar con un nombre usado (`updateProduct` no lo valida). Y
+  `GET /bundles/{id}` (devuelve `null`) y
+  `DELETE /bundles/{id}` responden 200 aunque el combo no exista.
 - **`PUT /products/{id}` reemplaza los cuatro campos**: mandar solo uno borra los otros. Pasar a `PATCH` o documentar
   que van todos.
 - **Imágenes**: se guardan siempre como `.png` y no se valida que sean imágenes (solo el tamaño).
-- **Respuestas inconsistentes**: las altas responden 200 en vez de 201; un email repetido da 400 en las tiendas y 409
-  en los superadmins; un rol inexistente da 400 o 404 según el endpoint.
-- **El mail del recupero puede fallar sin aviso.**
+- **Respuestas inconsistentes**: `POST /products` y `POST /bundles` responden 200 en vez de 201; un email repetido da
+  400 en las tiendas y 409 en los superadmins; un rol inexistente da 400 o 404 según el endpoint.
+- **El mail del recupero puede fallar sin aviso**: `MailService` no captura los errores al mandar.
 
 **Seguridad**
 
-- **Rate limit esquivable con `X-Forwarded-For`**, y es por instancia: confiar en el header solo detrás de un proxy
-  propio y, si no, usar la IP de la conexión.
+- **Rate limit esquivable con `X-Forwarded-For`** (`Parser.generateRequestIdentifier`), y es por instancia: confiar
+  en el header solo detrás de un proxy propio y, si no, usar la IP de la conexión. La IP de la auditoría ya usa la de
+  la conexión.
 - **`/api/internal/**` de users** no pide nada si se llama directo al puerto 3001 sin `X-internal-request`. Validar
-  el token interno siempre, sin depender de que el puerto no esté expuesto.
+  el token interno siempre, sin depender de que el puerto no esté expuesto, como ya hace `HeaderAuthFilter` en
+  products.
 - **Sin refresh token**: a la hora hay que volver a loguearse.
 
 **Rendimiento y tests**
 
-- **users migra el schema en cada conexión**: `TenantDataSource.prepareSchema` llama a `createSchema` y eso corre
-  `runMigration` siempre. Hacer como products: migrar solo si el schema no existe, más todos al arrancar.
+- **users migra cada schema al arrancar aunque ya exista**: `DatabaseMultiTenantConnectionProvider` lo prepara una
+  sola vez por tienda y por instancia, pero `TenantDataSource.prepareSchema` de users llama siempre a `createSchema`,
+  que corre `runMigration`. Hacer como products: migrar solo si el schema no existe.
 - **Tests rotos**: `ProductServiceTest.deleteProductById_*` mockea `existsById` y el servicio usa `findById`; los
   `contextLoads` necesitan Postgres. Conviene **Testcontainers**.
 - **Prueba de punta a punta con Docker**: todo junto, con Postgres y Redis reales.
@@ -211,10 +252,13 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 **Documentación y repo**
 
-- `TODO` todavía dice que ventas "no entra".
 - [frontend.md](frontend.md) tiene todo sin tildar y habla del "frontend actual (Next.js)".
-- El README "sin Docker" no lista sales ni observability en el orden de arranque.
+- README desactualizado: "sin Docker" no lista sales ni observability en el orden de arranque, dice que `init.sql`
+  crea solo `users` y `products` (crea las cuatro bases) y que Docker levanta "los tres servicios".
 - Archivo suelto `backend/eureka/nul`, sin trackear: es basura de una redirección en Windows y se puede borrar.
+- Carpetas viejas del renombre en `backend/` (`com.decor.product`, `decor-common`, `decor-observability`,
+  `decor-sales`, `decorusers`), ignoradas por git: solo tienen compilados y se pueden borrar. Las imágenes subidas que
+  estaban en `com.decor.product/uploads` ya se movieron a `kleinkauf-product/uploads`.
 - **`init.sql` solo corre con el volumen nuevo**: un volumen de Postgres creado antes de ventas u observabilidad no
   tiene las bases `sales` ni `observability`, y sales queda reiniciándose. Contarlo en el README (crearlas a mano o
   borrar el volumen) o crearlas al arrancar si no existen.
@@ -223,8 +267,8 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B6 y B7**: compra online y panel de ventas. Ya están B0 a B5, A2 y A3 (falta solo el recupero de contraseña de
-   B1).
-2. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
+1. **B7**: panel de ventas. Ya están B0 a B6, A2 y A3 (falta solo el recupero de contraseña de B1).
+2. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. **A4** (combos con descuento) se puede
+   hacer en cualquier momento: es chico y no depende de nada.
 3. **Decidir y planificar C1**, la próxima etapa de ventas.
 4. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.

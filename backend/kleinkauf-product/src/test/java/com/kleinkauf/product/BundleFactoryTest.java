@@ -4,6 +4,7 @@ import com.kleinkauf.product.dto.bundles.BundleDto;
 import com.kleinkauf.product.entities.Bundle;
 import com.kleinkauf.product.entities.BundleProduct;
 import com.kleinkauf.product.entities.Product;
+import com.kleinkauf.product.entities.ProductImage;
 import com.kleinkauf.product.factories.BundleFactory;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,31 @@ class BundleFactoryTest {
 
 		assertEquals(0, dto.getAvailable());
 		assertEquals(BigDecimal.ZERO, dto.getListPrice());
+	}
+
+	@Test
+	void cadaProductoTraeSuPrecioYSuPrimeraImagen() {
+		Bundle bundle = bundle(null);
+		Product mesa = product(1L, "Mesa", "50000.00", 3);
+		mesa.getImages().add(image(mesa, "mesa-2.png", 1));
+		mesa.getImages().add(image(mesa, "mesa-1.png", 0));
+		add(bundle, mesa, 1);
+		add(bundle, product(2L, "Silla", null, 10), 4);
+
+		BundleDto dto = BundleFactory.getBundle(bundle);
+
+		assertEquals(new BigDecimal("50000.00"), dto.getProducts().get(0).price());
+		assertEquals("mesa-1.png", dto.getProducts().get(0).image());
+		assertNull(dto.getProducts().get(1).price());
+		assertNull(dto.getProducts().get(1).image());
+	}
+
+	private static ProductImage image(Product product, String path, int order) {
+		ProductImage image = new ProductImage();
+		image.setProduct(product);
+		image.setPath(path);
+		image.setImageOrder(order);
+		return image;
 	}
 
 	private static Bundle bundle(String price) {

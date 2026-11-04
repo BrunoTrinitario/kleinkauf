@@ -41,6 +41,15 @@ class PermittedUrlsTest {
     }
 
     // Muestran el stock exacto: son del panel, no del catalogo
+    // Reportar un bug: publico y con login opcional (con sesion queda quien lo mando)
+    @Test
+    void reportarUnBug_publicoConLoginOpcional() {
+        assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/bug-reports"));
+        assertTrue(PermittedUrls.isOptionalAuth("POST", "/api/v1/bug-reports"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/bug-reports"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/admin/bug-reports"));
+    }
+
     @Test
     void wsSinJwt_ticketDeObservabilityPideLogin() {
         assertTrue(PermittedUrls.isPermitted("GET", "/ws"));

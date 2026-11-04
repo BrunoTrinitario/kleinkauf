@@ -8,11 +8,13 @@ export const bundleKeys = {
   all: ["bundles"] as const,
 }
 
-// productid va en minuscula en la respuesta del backend
+// productid va en minuscula en la respuesta del backend. price: el del producto; image: su primera imagen
 export interface BundleProduct {
   productid: number
   productName: string
   quantity: number
+  price: number | null
+  image: string | null
 }
 
 // listPrice: suma de precio x cantidad (null si algun producto no tiene precio). available: cuantos se pueden armar
@@ -26,10 +28,12 @@ export interface Bundle {
   products: BundleProduct[]
 }
 
+// Se crea completo de una vez: nombre, productos (al menos uno) y precio
 export interface NewBundle {
   name: string
   enabled: boolean
   price: number | null
+  products: { productId: number; quantity: number }[]
 }
 
 export function useBundles(enabled: boolean) {

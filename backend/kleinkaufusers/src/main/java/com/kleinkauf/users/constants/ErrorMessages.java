@@ -34,5 +34,7 @@ public class ErrorMessages {
     public static String CANNOT_DEACTIVATE_SELF = "You cannot deactivate yourself.";
     public static String LAST_ACTIVE_SUPERADMIN = "The last active superadmin cannot be deactivated.";
     public static String LAST_ADMINISTRATOR = "The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.";
+    public static String INVALID_BUG_REPORT = "The description must have 10 to 2000 characters.";
+    public static String BUG_REPORT_NOT_FOUND = "The bug report was not found.";
     public static String INVALID_PERMISSIONS ="Invalid permissions: use PRODUCTOS=1, PRECIOS=2, STOCK=4 and COMBOS=8 (USUARIOS cannot be delegated).";
 }

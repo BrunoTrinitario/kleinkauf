@@ -10,12 +10,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Building2, LayoutDashboard, LogOut, ShieldCheck, Store, User } from "lucide-react"
+import { Bug, Building2, LayoutDashboard, LogOut, ShieldCheck, Store, User } from "lucide-react"
 
 const NAV = [
   { to: "/dashboard", label: strings.platform.dashboard, icon: LayoutDashboard },
   { to: "/tenants", label: strings.platform.tenants, icon: Store },
   { to: "/superadmins", label: strings.platform.superadmins, icon: ShieldCheck },
+  { to: "/bug-reports", label: strings.platform.bugReports, icon: Bug },
 ]
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>

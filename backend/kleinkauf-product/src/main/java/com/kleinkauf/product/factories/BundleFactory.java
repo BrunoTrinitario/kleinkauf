@@ -5,9 +5,11 @@ import com.kleinkauf.product.dto.bundles.BundleProductDto;
 import com.kleinkauf.product.entities.Bundle;
 import com.kleinkauf.product.entities.BundleProduct;
 import com.kleinkauf.product.entities.Product;
+import com.kleinkauf.product.entities.ProductImage;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class BundleFactory {
@@ -23,7 +25,9 @@ public class BundleFactory {
             BundleProductDto bpdto = new BundleProductDto(
                     p.getId(),
                     p.getName(),
-                    bp.getQuantity()
+                    bp.getQuantity(),
+                    p.getPrice(),
+                    firstImage(p)
             );
             bundleProducts.add(bpdto);
         }
@@ -54,6 +58,15 @@ public class BundleFactory {
             available = Math.min(available, Math.max(bp.getProduct().getStock(), 0) / quantity);
         }
         return available == Integer.MAX_VALUE ? 0 : available;
+    }
+
+    // La de menor orden, como en el catalogo
+    private static String firstImage(Product p) {
+        if (p.getImages() == null) return null;
+        return p.getImages().stream()
+                .min(Comparator.comparingInt(ProductImage::getImageOrder))
+                .map(ProductImage::getPath)
+                .orElse(null);
     }
 
     private static int quantity(BundleProduct bp) {
