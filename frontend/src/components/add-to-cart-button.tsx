@@ -11,8 +11,8 @@ interface AddToCartButtonProps {
   item: Omit<NewCartItem, "price"> & { price: number | null }
   availability: Availability
   className?: string
-  // En las tarjetas del listado: sin precio no se muestra nada (la tarjeta ya dice "Consultar precio").
-  // El boton es el mismo en todos lados (azul, tamano normal)
+  // On listing cards: without a price nothing is shown (the card already says "Consultar precio").
+  // The button is the same everywhere (primary color, default size)
   compact?: boolean
 }
 

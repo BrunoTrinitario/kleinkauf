@@ -2,8 +2,8 @@ import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { BundlesStrip, CatalogStrip, FeaturedStrip } from "@/components/catalog-highlights"
 
-// Home de la tienda: una vidriera corta. Destacados, unos pocos combos y la primera pagina del catalogo, que
-// termina en el link a /catalogo (ahi estan el listado completo, la busqueda y los filtros)
+// Store home: a short showcase. Featured products, bundles and the first catalog page, which ends with the link
+// to /catalogo (the full listing, search and filters live there)
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
