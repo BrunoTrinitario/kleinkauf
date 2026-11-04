@@ -5,7 +5,9 @@ import com.kleinkauf.product.constants.ErrorMessages;
 import com.kleinkauf.product.dto.bundles.BundleDto;
 import com.kleinkauf.product.dto.bundles.NewBundleDto;
 import com.kleinkauf.product.dto.bundles.NewBundleProductDto;
+import com.kleinkauf.product.dto.bundles.UpdateBundlePriceDto;
 import com.kleinkauf.product.entities.Bundle;
+import com.kleinkauf.product.entities.BundlePricingType;
 import com.kleinkauf.product.entities.BundleProduct;
 import com.kleinkauf.product.entities.Product;
 import com.kleinkauf.product.repositories.BundleProductRepository;
@@ -24,9 +26,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -61,6 +65,51 @@ class BundleServiceTest {
 		assertEquals(new BigDecimal("98000.00"), dto.getListPrice());
 		assertEquals(2, dto.getProducts().size());
 		assertEquals(4, dto.getProducts().get(1).quantity());
+		verify(catalogCache).invalidate();
+	}
+
+	@Test
+	void crearCombo_conDescuentoPorcentual_noGuardaPrecio() throws ApiException {
+		when(productRepository.findAllById(anyIterable()))
+				.thenReturn(List.of(product(1L, "Mesa", "50000.00"), product(2L, "Silla", "12000.00")));
+		when(bundleRepository.save(any(Bundle.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Aunque mande un precio, con descuento no se guarda: el precio sale de los productos
+		BundleDto dto = bundleService.createBundle(new NewBundleDto(
+				"Comedor", true, new BigDecimal("1"),
+				List.of(new NewBundleProductDto(1L, 1), new NewBundleProductDto(2L, 4)),
+				BundlePricingType.PERCENT, new BigDecimal("10")));
+
+		assertEquals(BundlePricingType.PERCENT, dto.getPricingType());
+		assertEquals(new BigDecimal("88200.00"), dto.getPrice());
+		verify(bundleRepository).save(argThat(bundle -> bundle.getPrice() == null
+				&& new BigDecimal("10").equals(bundle.getDiscount())));
+	}
+
+	@Test
+	void crearCombo_descuentoInvalido_noGuarda() {
+		List<NewBundleProductDto> items = List.of(new NewBundleProductDto(1L, 1));
+		assertError(ErrorMessages.INVALID_BUNDLE_DISCOUNT, HttpStatus.BAD_REQUEST,
+				new NewBundleDto("Comedor", true, null, items, BundlePricingType.PERCENT, new BigDecimal("101")));
+		assertError(ErrorMessages.INVALID_BUNDLE_DISCOUNT, HttpStatus.BAD_REQUEST,
+				new NewBundleDto("Comedor", true, null, items, BundlePricingType.AMOUNT, new BigDecimal("-1")));
+		assertError(ErrorMessages.INVALID_BUNDLE_DISCOUNT, HttpStatus.BAD_REQUEST,
+				new NewBundleDto("Comedor", true, null, items, BundlePricingType.PERCENT, null));
+	}
+
+	@Test
+	void cambiarAPrecioFijo_borraElDescuento() throws ApiException {
+		Bundle bundle = new Bundle();
+		bundle.setId(1L);
+		bundle.setPricingType(BundlePricingType.AMOUNT);
+		bundle.setDiscount(new BigDecimal("5000"));
+		when(bundleRepository.findById(1L)).thenReturn(Optional.of(bundle));
+
+		BundleDto dto = bundleService.updatePrice(1L, new UpdateBundlePriceDto(new BigDecimal("40000"), null, null));
+
+		assertEquals(BundlePricingType.FIXED, bundle.getPricingType());
+		assertNull(bundle.getDiscount());
+		assertEquals(new BigDecimal("40000"), dto.getPrice());
 		verify(catalogCache).invalidate();
 	}
 

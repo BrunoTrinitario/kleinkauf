@@ -5,7 +5,9 @@ import com.kleinkauf.product.constants.ErrorMessages;
 import com.kleinkauf.product.dto.bundles.BundleDto;
 import com.kleinkauf.product.dto.bundles.NewBundleDto;
 import com.kleinkauf.product.dto.bundles.NewBundleProductDto;
+import com.kleinkauf.product.dto.bundles.UpdateBundlePriceDto;
 import com.kleinkauf.product.entities.Bundle;
+import com.kleinkauf.product.entities.BundlePricingType;
 import com.kleinkauf.product.entities.BundleProduct;
 import com.kleinkauf.product.entities.Product;
 import com.kleinkauf.product.factories.BundleFactory;
@@ -63,7 +65,8 @@ public class BundleService {
         if (name.isEmpty() || name.length() > 255) {
             throw new ApiException(ErrorMessages.BUNDLE_NAME_REQUIRED, HttpStatus.BAD_REQUEST);
         }
-        validatePrice(newBundleDto.price());
+        BundlePricingType pricingType = pricingTypeOf(newBundleDto.pricingType());
+        validatePricing(pricingType, newBundleDto.price(), newBundleDto.discount());
         List<NewBundleProductDto> items = newBundleDto.products();
         if (items == null || items.isEmpty()) {
             throw new ApiException(ErrorMessages.BUNDLE_PRODUCTS_REQUIRED, HttpStatus.BAD_REQUEST);
@@ -87,7 +90,7 @@ public class BundleService {
         b.setName(name);
         // Sin el campo se crea habilitado, como en el panel
         b.setEnabled(!Boolean.FALSE.equals(newBundleDto.enabled()));
-        b.setPrice(newBundleDto.price());
+        applyPricing(b, pricingType, newBundleDto.price(), newBundleDto.discount());
         for (NewBundleProductDto item : items) {
             BundleProduct bp = new BundleProduct();
             bp.setBundle(b);
@@ -107,20 +110,42 @@ public class BundleService {
         }
     }
 
-    public BundleDto updatePrice(Long id, BigDecimal price) throws ApiException {
-        validatePrice(price);
+    // Precio fijo o descuento sobre la suma de los productos (sin pricingType, precio fijo como antes)
+    public BundleDto updatePrice(Long id, UpdateBundlePriceDto dto) throws ApiException {
+        BundlePricingType pricingType = pricingTypeOf(dto.pricingType());
+        validatePricing(pricingType, dto.price(), dto.discount());
         Bundle b = this.bundleRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorMessages.BUNDLE_NOT_FOUND, HttpStatus.NOT_FOUND));
-        b.setPrice(price);
+        applyPricing(b, pricingType, dto.price(), dto.discount());
         this.bundleRepository.save(b);
         catalogCache.invalidate();
         return BundleFactory.getBundle(b);
     }
 
-    private void validatePrice(BigDecimal price) throws ApiException {
-        if (price != null && price.signum() < 0) {
-            throw new ApiException(ErrorMessages.INVALID_PRICE, HttpStatus.BAD_REQUEST);
+    private static BundlePricingType pricingTypeOf(BundlePricingType type) {
+        return type != null ? type : BundlePricingType.FIXED;
+    }
+
+    // FIXED: precio null (sin precio) o >= 0. PERCENT: descuento entre 0 y 100. AMOUNT: descuento >= 0
+    private void validatePricing(BundlePricingType type, BigDecimal price, BigDecimal discount) throws ApiException {
+        if (type == BundlePricingType.FIXED) {
+            if (price != null && price.signum() < 0) {
+                throw new ApiException(ErrorMessages.INVALID_PRICE, HttpStatus.BAD_REQUEST);
+            }
+            return;
         }
+        boolean invalid = discount == null || discount.signum() < 0
+                || (type == BundlePricingType.PERCENT && discount.compareTo(BigDecimal.valueOf(100)) > 0);
+        if (invalid) {
+            throw new ApiException(ErrorMessages.INVALID_BUNDLE_DISCOUNT, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // Guarda solo lo que usa cada tipo: con descuento no queda un precio viejo guardado que pueda leerse por error
+    private static void applyPricing(Bundle b, BundlePricingType type, BigDecimal price, BigDecimal discount) {
+        b.setPricingType(type);
+        b.setPrice(type == BundlePricingType.FIXED ? price : null);
+        b.setDiscount(type == BundlePricingType.FIXED ? null : discount);
     }
 
     public Boolean deleteBundleById(Long id) {

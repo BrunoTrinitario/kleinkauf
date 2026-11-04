@@ -4,6 +4,7 @@ import { strings } from "@/lib/strings"
 import { getErrorMessage, notifyError } from "@/lib/api-error"
 import { formatPrice } from "@/lib/utils"
 import { productImageUrl } from "@/lib/api"
+import { bundlePrice, emptyPricing, parsePricing, pricingDraftOf, type PricingDraft } from "@/lib/bundle-pricing"
 import type { Product } from "@/lib/types"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { useAdminProducts } from "@/api/products"
@@ -16,6 +17,7 @@ import {
   useSetBundleProduct,
   useSetBundleEnabled,
   type Bundle,
+  type BundlePricingType,
   type BundleProduct,
 } from "@/api/bundles"
 import { Header } from "@/components/header"
@@ -45,11 +47,96 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Boxes, ImageIcon, Plus, Trash2, X } from "lucide-react"
 
-// "" = sin precio (el combo no aparece en el catalogo); undefined = no es un precio valido
-const parsePrice = (value: string): number | null | undefined => {
-  if (value.trim() === "") return null
-  const price = Number(value)
-  return Number.isFinite(price) && price >= 0 ? price : undefined
+const invalidPricingMessage = (draft: PricingDraft) =>
+  draft.type === "FIXED" ? strings.adminBundles.invalidPrice : strings.adminBundles.invalidDiscount
+
+/*
+Precio del combo: precio fijo, % de descuento o $ de descuento sobre la suma de los productos (listPrice, null si
+alguno no tiene precio). Con descuento muestra el precio final mientras se escribe. action va al lado del campo
+(guardar en la tarjeta; "usar la suma" en el alta)
+*/
+function PricingFields({
+  id,
+  draft,
+  onChange,
+  listPrice,
+  action,
+}: {
+  id: string
+  draft: PricingDraft
+  onChange: (draft: PricingDraft) => void
+  listPrice: number | null
+  action?: React.ReactNode
+}) {
+  const parsed = parsePricing(draft)
+  const final = parsed ? bundlePrice(parsed, listPrice) : null
+  const savings = final != null && listPrice != null && listPrice > final ? listPrice - final : null
+  const label =
+    draft.type === "PERCENT"
+      ? strings.adminBundles.discountPercent
+      : draft.type === "AMOUNT"
+        ? strings.adminBundles.discountAmount
+        : strings.adminBundles.price
+  const types: BundlePricingType[] = ["FIXED", "PERCENT", "AMOUNT"]
+
+  return (
+    <div className="grid grid-cols-1 gap-2">
+      <div
+        role="radiogroup"
+        aria-label={strings.adminBundles.pricingAria}
+        className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1"
+      >
+        {types.map((type) => (
+          <button
+            key={type}
+            type="button"
+            role="radio"
+            aria-checked={draft.type === type}
+            className={`rounded px-2 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              draft.type === type ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => type !== draft.type && onChange({ type, value: "" })}
+          >
+            {strings.adminBundles.pricingTypes[type]}
+          </button>
+        ))}
+      </div>
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id={id}
+          type="number"
+          min={0}
+          max={draft.type === "PERCENT" ? 100 : undefined}
+          step="0.01"
+          className="no-spinner"
+          value={draft.value}
+          placeholder={draft.type === "FIXED" ? strings.adminProductEdit.pricePlaceholder : undefined}
+          onChange={(event) => onChange({ ...draft, value: event.target.value })}
+        />
+        {action}
+      </div>
+      {draft.type !== "FIXED" ? (
+        <div className="space-y-0.5 text-sm">
+          {parsed ? (
+            final != null ? (
+              <p>
+                {strings.adminBundles.finalPrice}: <span className="font-medium tabular-nums">{formatPrice(final, "")}</span>
+              </p>
+            ) : (
+              <p className="text-muted-foreground">{strings.adminBundles.finalPriceUnknown}</p>
+            )
+          ) : null}
+          <p className="text-xs text-muted-foreground">{strings.adminBundles.followsProducts}</p>
+        </div>
+      ) : null}
+      {savings != null ? (
+        <p className="text-sm text-cyan-edge">{strings.adminBundles.saving(formatPrice(savings, ""))}</p>
+      ) : null}
+    </div>
+  )
 }
 
 // Abre con cualquier area del panel (RequireArea en App.tsx); crear, cambiar y borrar piden COMBOS
@@ -139,18 +226,20 @@ export default function AdminBundlesPage() {
 function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: boolean; onDelete: () => void }) {
   const toggle = useSetBundleEnabled()
   const setPrice = useSetBundlePrice()
-  const [priceInput, setPriceInput] = useState(bundle.price != null ? String(bundle.price) : "")
+  const saved = pricingDraftOf(bundle)
+  const [pricing, setPricing] = useState<PricingDraft>(saved)
   const [priceError, setPriceError] = useState<string | null>(null)
 
+  // Al guardar (o si otro lo cambia) se vuelve a lo guardado
   useEffect(() => {
-    setPriceInput(bundle.price != null ? String(bundle.price) : "")
-  }, [bundle.price])
+    setPricing(saved)
+  }, [saved.type, saved.value])
 
   const savings =
     bundle.price != null && bundle.listPrice != null && bundle.listPrice > bundle.price
       ? bundle.listPrice - bundle.price
       : null
-  const priceChanged = priceInput !== (bundle.price != null ? String(bundle.price) : "")
+  const priceChanged = pricing.type !== saved.type || pricing.value !== saved.value
 
   const handleToggle = async (enabled: boolean) => {
     try {
@@ -162,14 +251,14 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
 
   const handleSavePrice = async (event: React.FormEvent) => {
     event.preventDefault()
-    const price = parsePrice(priceInput)
-    if (price === undefined) {
-      setPriceError(strings.adminBundles.invalidPrice)
+    const parsed = parsePricing(pricing)
+    if (parsed === undefined) {
+      setPriceError(invalidPricingMessage(pricing))
       return
     }
     setPriceError(null)
     try {
-      await setPrice.mutateAsync({ id: bundle.id, price })
+      await setPrice.mutateAsync({ id: bundle.id, ...parsed })
     } catch (err) {
       setPriceError(getErrorMessage(err, strings.adminBundles.saveError))
     }
@@ -216,30 +305,33 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
       <CardContent className="space-y-4">
         {canEdit ? (
           <form onSubmit={handleSavePrice} className="space-y-1">
-            <label htmlFor={`bundle-price-${bundle.id}`} className="text-sm font-medium">
-              {strings.adminBundles.price}
-            </label>
-            <div className="flex gap-2">
-              <Input
-                id={`bundle-price-${bundle.id}`}
-                type="number"
-                min={0}
-                step="0.01"
-                className="no-spinner"
-                value={priceInput}
-                placeholder={strings.adminProductEdit.pricePlaceholder}
-                onChange={(event) => setPriceInput(event.target.value)}
-              />
-              <Button type="submit" variant="outline" disabled={!priceChanged || setPrice.isPending}>
-                {strings.adminBundles.savePrice}
-              </Button>
-            </div>
+            <PricingFields
+              id={`bundle-price-${bundle.id}`}
+              draft={pricing}
+              onChange={setPricing}
+              listPrice={bundle.listPrice}
+              action={
+                <Button type="submit" variant="outline" disabled={!priceChanged || setPrice.isPending}>
+                  {strings.adminBundles.savePrice}
+                </Button>
+              }
+            />
             {priceError ? <p className="text-sm text-destructive">{priceError}</p> : null}
           </form>
         ) : (
-          <p className="text-sm">
-            {strings.adminBundles.price}: {formatPrice(bundle.price, strings.price.ask)}
-          </p>
+          <div className="space-y-0.5 text-sm">
+            <p>
+              {strings.adminBundles.price}: {formatPrice(bundle.price, strings.price.ask)}
+            </p>
+            {bundle.pricingType !== "FIXED" && bundle.discount != null ? (
+              <p className="text-xs text-muted-foreground">
+                {strings.adminBundles.discountSummary(
+                  bundle.pricingType,
+                  bundle.pricingType === "PERCENT" ? String(bundle.discount) : formatPrice(bundle.discount, "")
+                )}
+              </p>
+            ) : null}
+          </div>
         )}
         {bundle.listPrice != null && bundle.products.length > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-muted/50 px-3 py-2 text-sm">
@@ -247,7 +339,7 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
               {strings.adminBundles.listPrice}{" "}
               <span className="font-medium text-foreground tabular-nums">{formatPrice(bundle.listPrice, "")}</span>
             </span>
-            {savings != null ? (
+            {savings != null && !canEdit ? (
               <span className="text-cyan-edge">{strings.adminBundles.saving(formatPrice(savings, ""))}</span>
             ) : null}
           </div>
@@ -458,7 +550,7 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [name, setName] = useState("")
   const [products, setProducts] = useState<DraftProduct[]>([])
   const [search, setSearch] = useState("")
-  const [price, setPrice] = useState("")
+  const [pricing, setPricing] = useState<PricingDraft>(emptyPricing)
   const [enabled, setEnabled] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -470,15 +562,15 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   // Suma de precio x cantidad; los productos sin precio no suman (se avisa abajo)
   const total = products.reduce((sum, product) => sum + (product.price ?? 0) * product.quantity, 0)
   const missingPrice = products.some((product) => product.price == null)
-  const parsedPrice = parsePrice(price)
-  const savings = parsedPrice != null && !missingPrice && total > parsedPrice ? total - parsedPrice : null
+  // Como en el backend: con algun producto sin precio no hay suma (un descuento deja el combo sin precio)
+  const listPrice = products.length > 0 && !missingPrice ? total : null
 
   useEffect(() => {
     if (!open) return
     setName("")
     setProducts([])
     setSearch("")
-    setPrice("")
+    setPricing(emptyPricing)
     setEnabled(true)
     setError(null)
   }, [open])
@@ -512,15 +604,16 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       setError(strings.adminBundles.productsRequired)
       return
     }
-    if (parsedPrice === undefined) {
-      setError(strings.adminBundles.invalidPrice)
+    const parsed = parsePricing(pricing)
+    if (parsed === undefined) {
+      setError(invalidPricingMessage(pricing))
       return
     }
     setError(null)
     try {
       await createBundle.mutateAsync({
         name: name.trim(),
-        price: parsedPrice,
+        ...parsed,
         enabled,
         products: products.map((product) => ({ productId: Number(product.id), quantity: product.quantity })),
       })
@@ -633,28 +726,25 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               <p className="text-xs text-muted-foreground">{strings.adminBundles.productsTotalPartial}</p>
             ) : null}
 
-            <label htmlFor="bundle-new-price" className="text-sm font-medium">
-              {strings.adminBundles.price}
-            </label>
-            <div className="flex gap-2">
-              <Input
-                id="bundle-new-price"
-                type="number"
-                min={0}
-                step="0.01"
-                className="no-spinner"
-                value={price}
-                placeholder={strings.adminProductEdit.pricePlaceholder}
-                onChange={(event) => setPrice(event.target.value)}
-              />
-              <Button type="button" variant="outline" disabled={total === 0} onClick={() => setPrice(String(total))}>
-                {strings.adminBundles.useTotal}
-              </Button>
-            </div>
-            {savings != null ? (
-              <p className="text-sm text-cyan-edge">{strings.adminBundles.saving(formatPrice(savings, ""))}</p>
-            ) : null}
-            {price.trim() === "" ? (
+            <PricingFields
+              id="bundle-new-price"
+              draft={pricing}
+              onChange={setPricing}
+              listPrice={listPrice}
+              action={
+                pricing.type === "FIXED" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={total === 0}
+                    onClick={() => setPricing({ type: "FIXED", value: String(total) })}
+                  >
+                    {strings.adminBundles.useTotal}
+                  </Button>
+                ) : null
+              }
+            />
+            {pricing.type === "FIXED" && pricing.value.trim() === "" ? (
               <p className="text-xs text-muted-foreground">{strings.adminBundles.priceHint}</p>
             ) : null}
           </div>

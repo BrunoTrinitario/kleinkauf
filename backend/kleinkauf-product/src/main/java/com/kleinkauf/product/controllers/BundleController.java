@@ -46,7 +46,7 @@ public class BundleController {
 
     @PutMapping("/{id}/price")
     public ResponseEntity<BundleDto> updateBundlePrice(@PathVariable Long id, @RequestBody UpdateBundlePriceDto dto) throws ApiException {
-        return ResponseEntity.ok(bundleService.updatePrice(id, dto.price()));
+        return ResponseEntity.ok(bundleService.updatePrice(id, dto));
     }
 
     @PutMapping("/{id}/product")

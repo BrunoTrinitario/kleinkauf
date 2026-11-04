@@ -136,7 +136,8 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] **Importar CSV** (`PRODUCTOS` + `PRECIOS`): descargar plantilla, subir archivo, mostrar `{created, updated}` o la **tabla de errores por fila**; límites de 5.000 filas / 5 MB
 - [ ] **Exportar CSV**
 - [ ] **Combos** (`COMBOS`): crear el combo completo en un solo paso (nombre, productos con imagen, precio, cantidad y
-  subtotal, y al final el precio, con la suma de los productos a la vista), habilitar/deshabilitar, cambiar precio,
+  subtotal, y al final el precio, con la suma de los productos a la vista), habilitar/deshabilitar, cambiar precio
+  (precio fijo, % de descuento o $ de descuento sobre la suma, con el precio final y el ahorro a la vista),
   agregar / quitar productos y cambiar cantidades, borrar. Cada combo muestra miniaturas de sus productos y los input
   numéricos no tienen flechas (`no-spinner` en `index.css`)
 
