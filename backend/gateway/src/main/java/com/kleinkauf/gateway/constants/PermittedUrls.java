@@ -40,6 +40,9 @@ public class PermittedUrls {
                 "POST:/api/v1/platform/tenants",
                 "POST:/api/v1/platform/auth/login",
                 "POST:/api/v1/platform/auth/refresh",
+                // Cerrar sesion: corta el refresh que manda (el token de 1 hora puede estar vencido)
+                "POST:/api/v1/auth/logout",
+                "POST:/api/v1/platform/auth/logout",
                 "GET:/api/v1/products/{id}/metadata",
                 "GET:/api/v1/catalog/products",
                 "GET:/api/v1/catalog/featured",

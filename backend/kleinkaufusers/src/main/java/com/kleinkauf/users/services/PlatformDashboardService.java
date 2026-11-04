@@ -8,6 +8,7 @@ import com.kleinkauf.users.dtos.platform.TenantUsageDto;
 import com.kleinkauf.users.entities.Tenant;
 import com.kleinkauf.users.repositories.TenantRepository;
 import com.kleinkauf.users.util.CacheUtil;
+import com.kleinkauf.users.util.DashboardTime;
 import com.kleinkauf.users.util.Dates;
 import com.kleinkauf.users.util.Periods;
 import com.kleinkauf.users.util.RecentActivity;
@@ -63,8 +64,11 @@ public class PlatformDashboardService {
     @Autowired
     private RecentActivity recentActivity;
 
+    @Autowired
+    private DashboardTime dashboardTime;
+
     public PlatformDashboardDto dashboard(String from, String to, String groupBy) throws ApiException {
-        Periods.Range range = Periods.parse(from, to, groupBy, LocalDate.now());
+        Periods.Range range = Periods.parse(from, to, groupBy, dashboardTime.today());
         List<Tenant> tenants = tenantRepository.findAll();
 
         long deleted = tenants.stream().filter(t -> t.getDeletedAt() != null).count();
@@ -75,7 +79,7 @@ public class PlatformDashboardService {
         List<LocalDate> createdDates = tenants.stream()
                 .map(Tenant::getCreatedAt)
                 .filter(Objects::nonNull)
-                .map(LocalDateTime::toLocalDate)
+                .map(dashboardTime::dayOf)
                 .toList();
         return new PlatformDashboardDto(counts, Periods.series(range, createdDates));
     }

@@ -26,7 +26,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/users/**").hasRole("ADMINISTRADOR")
                 // Plataforma: alta por autoservicio y login del superadmin son publicos
                 .requestMatchers(HttpMethod.POST, "/api/v1/platform/tenants", "/api/v1/platform/auth/login",
-                        "/api/v1/platform/auth/refresh").permitAll()
+                        "/api/v1/platform/auth/refresh", "/api/v1/platform/auth/logout").permitAll()
                 .requestMatchers("/api/v1/platform/admin/**").hasRole("SUPERADMIN")
                 // Reportar un bug desde el footer de una tienda: con o sin sesion
                 .requestMatchers(HttpMethod.POST, "/api/v1/bug-reports").permitAll()

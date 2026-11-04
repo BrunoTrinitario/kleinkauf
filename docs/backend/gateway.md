@@ -64,9 +64,9 @@ segmento y `{any}` cualquier cosa.
 
 | Ruta |
 |---|
-| `/api/v1/auth/login`, `/api/v1/auth/register`, `POST /api/v1/auth/refresh` |
+| `/api/v1/auth/login`, `/api/v1/auth/register`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout` |
 | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/forgot-password/{any}` |
-| `POST /api/v1/platform/tenants`, `POST /api/v1/platform/auth/login`, `POST /api/v1/platform/auth/refresh` |
+| `POST /api/v1/platform/tenants`, `POST /api/v1/platform/auth/login`, `POST /api/v1/platform/auth/refresh`, `POST /api/v1/platform/auth/logout` |
 | `GET /api/v1/products/{id}/metadata` |
 | `GET /api/v1/catalog/products`, `GET /api/v1/catalog/featured`, `GET /api/v1/catalog/products/{any}`, `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/bundles` |
 | `GET /api/v1/sales/checkout`, `POST /api/v1/sales/orders`, `POST /api/v1/sales/orders/lookup`, `POST /api/v1/sales/orders/{code}/receipt`, `POST /api/v1/sales/orders/{code}/cancel` |
@@ -84,8 +84,10 @@ token el pedido o el reporte queda asociado al usuario, y un token inválido res
 ## Rate limit
 
 Ventanas de **1 minuto** por tipo de ruta, IP de la conexión y `Origin`. El `X-Forwarded-For` que mande el cliente no
-cuenta; detrás de Caddy, `server.forward-headers-strategy=framework` arma la IP de la conexión con el que pone Caddy. Se cuenta en memoria
-(Caffeine), así que con varias instancias del gateway cada una cuenta lo suyo.
+cuenta; detrás de Caddy, `server.forward-headers-strategy=framework` arma la IP de la conexión con el que pone Caddy. Se cuenta en **Redis**
+(`RateLimitCounter`: `INCR` de `rate_limit:<tipo>:<origen>_<ip>:<minuto>`, que vence a los 2 minutos), así que todas
+las instancias del gateway comparten el contador. Si Redis falla o tarda más de 300 ms, cuenta en la memoria de esa
+instancia (Caffeine) y lo avisa en el log una vez por minuto: el límite sigue, pero por gateway.
 
 | Tipo | Rutas | Límite por minuto | Propiedad |
 |---|---|---|---|
@@ -143,7 +145,7 @@ Con el límite en 5 pasan 5 requests y la sexta recibe **429** con el cuerpo vac
 
 - Las respuestas que corta el gateway (401, 404/403 de la tienda, 429) tienen el cuerpo vacío o en texto: el
   frontend tiene que decidir por el código.
-- El rate limit es por instancia (memoria): con varias instancias del gateway cada una cuenta lo suyo.
+- Con Redis caído el rate limit cuenta por instancia (memoria) hasta que vuelve.
 - La IP del rate limit y de `X-Client-Ip` es la de la conexión. Detrás de otro proxy que no sea Caddy hay que dejar
   `server.forward-headers-strategy=framework` (si no, sería la del proxy) y que el proxy pise el `X-Forwarded-For` del
   cliente.

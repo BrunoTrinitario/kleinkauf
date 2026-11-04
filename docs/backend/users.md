@@ -55,8 +55,10 @@ El email de un usuario tiene que ser único **dentro de la tienda** (otro usuari
    "Stock" si algún rol tiene el bit 4).
 4. Vencido: `POST /api/v1/auth/refresh` con el `refreshToken` (dura **7 días**) devuelve tokens nuevos sin pedir la
    contraseña. El frontend lo hace solo ante un 401 y repite la llamada.
-5. El refresh deja de servir si la contraseña cambia (lleva una huella de la contraseña) o si el usuario se borra.
-   Con un refresh vencido o que ya no sirve, hay que volver a loguearse.
+5. Cada refresh se usa **una vez**: renovar devuelve uno nuevo y el viejo deja de servir a los 30 segundos (por si
+   otra pestaña renueva a la vez). Se guardan en Redis (`refresh:<tenant>:<userId>:<jti>`, 7 días).
+6. El refresh deja de servir si se cierra esa sesión (`POST /auth/logout`), si la contraseña cambia (lleva una huella
+   de la contraseña) o si el usuario se borra. Con un refresh vencido o que ya no sirve, hay que volver a loguearse.
 
 Cada token lleva su tipo en el claim `type` (`access`, `refresh` o `password`, ver `TokenConstants` en common): el
 gateway solo deja entrar con el de sesión, y cada endpoint de users acepta solo el suyo.
@@ -142,7 +144,7 @@ Actualiza el último login (`lastLogin`), que usan los paneles para "activos".
 **Acceso:** Público (con el refresh token) · **Rate limit:** el del login, 5 por minuto
 
 Renueva la sesión: devuelve lo mismo que el login, con tokens nuevos (también el refresh) y los roles al día. No
-actualiza el último login.
+actualiza el último login. El refresh que se manda deja de servir a los 30 segundos: hay que guardar el nuevo.
 
 ```json
 { "refreshToken": "eyJhbGciOiJIUzI1NiJ9..." }
@@ -150,7 +152,18 @@ actualiza el último login.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
-| 401 | Token inválido, vencido, de otra tienda, de otro tipo, de un usuario borrado o de antes de cambiar la contraseña | `The access token is invalid.` |
+| 401 | Token inválido, vencido, de otra tienda, de otro tipo, ya usado, de una sesión cerrada, de un usuario borrado o de antes de cambiar la contraseña | `The access token is invalid.` |
+
+### POST /api/v1/auth/logout
+
+**Acceso:** Público (con el refresh token)
+
+Cierra la sesión: el refresh deja de servir. El token de 1 hora sigue valiendo hasta que vence (el gateway no los
+guarda). Responde **204** siempre, aunque el refresh ya no sirviera, así el frontend sale igual.
+
+```json
+{ "refreshToken": "eyJhbGciOiJIUzI1NiJ9..." }
+```
 
 ### POST /api/v1/auth/register
 
@@ -390,6 +403,9 @@ Panel de la tienda: usuarios, activos, por rol y altas por período. Siempre al 
 | `from`, `to` | Últimos 30 días hasta hoy | `yyyy-MM-dd`, inclusive |
 | `groupBy` | `DAY` | `DAY`, `WEEK` o `MONTH` |
 
+Los días son en hora argentina (`users.dashboard.zone`): un alta del lunes a las 22 hs es del lunes aunque en UTC ya
+sea martes.
+
 ```bash
 curl 'http://localhost:3000/api/v1/users/dashboard?from=2026-10-01&to=2026-10-31&groupBy=WEEK' \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
@@ -511,6 +527,12 @@ Login del superadmin. Mismo body y respuesta que [el de las tiendas](#post-apiv1
 
 Igual que [el de las tiendas](#post-apiv1authrefresh), con un refresh de `public`. Un superadmin desactivado ya no
 tiene el rol, así que no se renueva: 401 `The access token is invalid.`
+
+### POST /api/v1/platform/auth/logout
+
+**Acceso:** Público (con el refresh token)
+
+Igual que [el de las tiendas](#post-apiv1authlogout), con un refresh de `public`. **204**.
 
 ### GET /api/v1/platform/admin/tenants
 
@@ -763,6 +785,7 @@ en `usuarios` y `roles` con el rol `SUPERADMIN`. Ver [tenants.md](../tenants.md#
 | `jwt.secret` | — | Firma los JWT. Tiene que ser el mismo que el del gateway. **Cambiarlo fuera de desarrollo** |
 | `api.internal.key` | — | Token interno. **Cambiarlo fuera de desarrollo** |
 | `kleinkauf.tenant.required` | `false` | Sin tienda trabaja en `public` (plataforma e internos) |
+| `users.dashboard.zone` | `America/Argentina/Buenos_Aires` | Zona de los días de los paneles (altas por período) |
 | `platform.scheme`, `platform.domain` | `http`, `localhost:2999` | Arman la URL de cada tienda nueva y el link del recupero |
 | `platform.superadmin.email` / `.password` | `${SUPERADMIN_EMAIL}` / `${SUPERADMIN_PASSWORD}` | Primer superadmin, al arrancar |
 | `spring.mail.*` | Gmail de ejemplo | Mail del recupero |
@@ -772,8 +795,9 @@ Levantarlo solo: `cd backend/kleinkaufusers && ./gradlew bootRun` (con Postgres,
 
 ## Límites conocidos
 
-- Los refresh tokens no se pueden revocar uno por uno: cerrar la sesión en el navegador borra el suyo, pero uno
-  robado sirve hasta que vence (7 días) o hasta que el usuario cambia la contraseña.
+- Cerrar sesión corta el refresh pero no el token de 1 hora, que sigue valiendo hasta que vence. No hay "cerrar
+  todas mis sesiones" (cambiar la contraseña lo hace).
+- Los refresh emitidos antes de guardarlos en Redis (sin `jti`) ya no sirven: esas sesiones vuelven a loguearse.
 - Si el mail del recupero falla, queda en el log como `ERROR` (`MailService`) pero no se reintenta.
 - Un rol inexistente responde 400 si viene como parámetro (`?roleName=`, `?role=`) y 404 si viene en la ruta
   (`/roles/{role}/permissions`).

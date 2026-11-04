@@ -9,6 +9,7 @@ import com.kleinkauf.common.constants.TenantConstants;
 import com.kleinkauf.common.constants.TokenConstants;
 import com.kleinkauf.common.dto.RoleDto;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -45,6 +46,9 @@ import jakarta.transaction.Transactional;
  */
 @Service
 public class UserService {
+    // Lo que sigue sirviendo un refresh despues de rotarlo (otra pestana pudo renovar con el mismo a la vez)
+    private static final Duration REFRESH_GRACE = Duration.ofSeconds(30);
+
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -280,25 +284,48 @@ public class UserService {
 
     /*
     Renueva la sesion con el refresh token: devuelve tokens nuevos (el refresh tambien) y los roles al dia.
-    No sirve si es de otro tenant, si el usuario se borro o si la contrasena cambio despues de entrar.
+    No sirve si es de otro tenant, si el usuario se borro, si la contrasena cambio despues de entrar, si se cerro esa
+    sesion o si ya se uso (cada refresh se usa una vez; el viejo dura REFRESH_GRACE por si otra pestana renueva a la vez).
      */
     public LoggedUser refresh(String refreshToken) throws ApiException {
-        Long id = refreshToken == null ? null : jwtUtil.getUserId(refreshToken);
-        if (id == null || !currentTenant().equals(jwtUtil.getTenant(refreshToken))
-                || !TokenConstants.REFRESH.equals(jwtUtil.getType(refreshToken))) {
+        Long id = refreshUserId(refreshToken);
+        String tokenId = id == null ? null : jwtUtil.getTokenId(refreshToken);
+        if (tokenId == null || !cacheUtil.isRefreshTokenActive(currentTenant(), id, tokenId)) {
             throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
         }
         User user = this.userRepository.findById(id).orElse(null);
         if (user == null || !JwtUtil.passwordFingerprint(user.getPassword()).equals(jwtUtil.getPasswordFingerprint(refreshToken))) {
             throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
         }
+        cacheUtil.retireRefreshToken(currentTenant(), id, tokenId, REFRESH_GRACE);
         return session(user);
+    }
+
+    // Cerrar sesion: corta el refresh de esa sesion. No falla si ya no servia (el frontend sale igual)
+    public void logout(String refreshToken) {
+        Long id = refreshUserId(refreshToken);
+        String tokenId = id == null ? null : jwtUtil.getTokenId(refreshToken);
+        if (tokenId != null) {
+            cacheUtil.deleteRefreshToken(currentTenant(), id, tokenId);
+        }
+    }
+
+    // Id del usuario si el token es un refresh firmado de este tenant; null si no
+    private Long refreshUserId(String refreshToken) {
+        Long id = refreshToken == null ? null : jwtUtil.getUserId(refreshToken);
+        if (id == null || !currentTenant().equals(jwtUtil.getTenant(refreshToken))
+                || !TokenConstants.REFRESH.equals(jwtUtil.getType(refreshToken))) {
+            return null;
+        }
+        return id;
     }
 
     // Tokens nuevos y roles del usuario (tambien quedan en la cache de Redis que leen los otros servicios)
     private LoggedUser session(User user) {
         String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getName(), currentTenant());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), currentTenant(), user.getPassword());
+        cacheUtil.saveRefreshToken(currentTenant(), user.getId(), jwtUtil.getTokenId(refreshToken),
+                Duration.ofMillis(JwtUtil.REFRESH_TOKEN_MILLIS));
         List<RoleDto> roleList = this.getUserRoles(user.getId());
         CachedUser cu = new CachedUser(user.getId(), TenantContext.getCurrentTenant(), roleList);
         cacheUtil.saveOrUpdateUserCache(cu);

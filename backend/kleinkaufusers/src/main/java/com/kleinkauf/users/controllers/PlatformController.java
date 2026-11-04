@@ -69,6 +69,12 @@ public class PlatformController {
         return ResponseEntity.ok(platformService.refresh(dto == null ? null : dto.refreshToken()));
     }
 
+    @PostMapping("/auth/logout")
+    public ResponseEntity<Void> logout(@RequestBody(required = false) RefreshTokenDto dto) throws ApiException {
+        platformService.logout(dto == null ? null : dto.refreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/admin/tenants")
     public ResponseEntity<List<PlatformTenantDto>> listTenants() throws ApiException {
         platformService.requirePlatformContext();

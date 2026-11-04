@@ -5,6 +5,7 @@ import com.kleinkauf.users.constants.RolesType;
 import com.kleinkauf.users.dtos.dashboard.UserDashboardDto;
 import com.kleinkauf.users.repositories.RoleRepository;
 import com.kleinkauf.users.repositories.UserRepository;
+import com.kleinkauf.users.util.DashboardTime;
 import com.kleinkauf.users.util.Periods;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,8 +33,11 @@ public class UserDashboardService {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private DashboardTime dashboardTime;
+
     public UserDashboardDto dashboard(String from, String to, String groupBy) throws ApiException {
-        Periods.Range range = Periods.parse(from, to, groupBy, LocalDate.now());
+        Periods.Range range = Periods.parse(from, to, groupBy, dashboardTime.today());
         int window = PlatformDashboardService.ACTIVE_WINDOW_DAYS;
 
         Map<String, Long> byRole = new LinkedHashMap<>();
@@ -43,9 +47,9 @@ public class UserDashboardService {
         }
 
         List<LocalDate> createdDates = userRepository
-                .findCreatedAtBetween(range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay())
+                .findCreatedAtBetween(dashboardTime.startOfDay(range.from()), dashboardTime.startOfDay(range.to().plusDays(1)))
                 .stream()
-                .map(LocalDateTime::toLocalDate)
+                .map(dashboardTime::dayOf)
                 .toList();
 
         return new UserDashboardDto(

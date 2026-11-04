@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  *
@@ -57,9 +58,11 @@ public class JwtUtil {
     }
 
     // Renueva la sesion sin volver a pedir la contrasena (POST /auth/refresh). Como el de recuperacion, lleva la huella
-    // de la contrasena: cambiarla corta todas las sesiones cuando vence su token de 1 hora
+    // de la contrasena: cambiarla corta todas las sesiones cuando vence su token de 1 hora.
+    // jti: identifica el refresh para guardarlo en Redis y poder cortarlo solo a el (logout, rotacion)
     public String generateRefreshToken(Long id, String tenant, String passwordHash) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put(Claims.ID, UUID.randomUUID().toString());
         claims.put("id", id);
         claims.put(TenantConstants.TOKEN_CLAIM, tenant);
         claims.put(TokenConstants.TYPE_CLAIM, TokenConstants.REFRESH);
@@ -138,6 +141,11 @@ public class JwtUtil {
     public String getType(String token) {
         Claims claims = getClaims(token);
         return claims != null ? claims.get(TokenConstants.TYPE_CLAIM, String.class) : null;
+    }
+
+    public String getTokenId(String token) {
+        Claims claims = getClaims(token);
+        return claims != null ? claims.getId() : null;
     }
 
     public String getPasswordFingerprint(String token) {

@@ -161,8 +161,11 @@ Cada servicio corre los suyos con `./gradlew test` (en Windows, `gradlew.bat tes
 (`@SpringBootTest`) usan **Testcontainers**: arrancan Postgres y Redis en Docker solos, así que no hace falta tener la
 base levantada. Sin Docker esos tests se saltean y el resto corre igual.
 
+**CI** (`.github/workflows/ci.yml`): en cada push a `main` y en cada PR contra `main` corre los tests de cada servicio
+(con Testcontainers) y el build del frontend (`tsc -b` y `vite build`). No despliega.
+
 **Prueba de punta a punta** (`backend/deploy/e2e/e2e.mjs`): con todo levantado por el compose de desarrollo, recorre
-por la API el alta de una tienda, la sesión (login, refresh), productos e imágenes, el catálogo, un pedido como
+por la API el alta de una tienda, la sesión (login, refresh, logout), productos e imágenes, el catálogo, un pedido como
 invitado, un reporte de problema y el panel de la plataforma. Crea una tienda nueva y la borra al terminar; sale con
 código 1 si algo falla:
 

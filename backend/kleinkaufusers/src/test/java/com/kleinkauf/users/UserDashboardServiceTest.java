@@ -7,6 +7,7 @@ import com.kleinkauf.users.entities.Role;
 import com.kleinkauf.users.entities.User;
 import com.kleinkauf.users.services.UserDashboardService;
 import com.kleinkauf.users.services.UserService;
+import com.kleinkauf.users.util.DashboardTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,9 +29,11 @@ valida las consultas JPQL y que los borrados no cuenten.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:users-dashboard;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
-		"spring.jpa.hibernate.ddl-auto=create-drop"
+		"spring.jpa.hibernate.ddl-auto=create-drop",
+		// Los tests corren en UTC: con la misma zona los dias guardados son los del panel (DashboardTimeTest prueba la otra)
+		"users.dashboard.zone=UTC"
 })
-@Import(UserDashboardService.class)
+@Import({UserDashboardService.class, DashboardTime.class})
 class UserDashboardServiceTest {
 
 	@Autowired
