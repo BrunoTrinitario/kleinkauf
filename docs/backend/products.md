@@ -575,9 +575,13 @@ solo está `DISPONIBLE` o `AGOTADO`.
 
 ### GET /share/{tienda}/products/{slug}
 
-**Acceso:** público (sin login). Es el link que comparte el frontend en WhatsApp o Instagram.
+**Acceso:** público (sin login). Es la vista previa del link que comparte el frontend en WhatsApp o Instagram.
 
-Los crawlers de las vistas previas no ejecutan JavaScript ni mandan `Origin`: por eso la tienda va en la ruta. El
+El frontend comparte la página del producto en la tienda (`https://<tienda>.<dominio>/productos/{slug}`). Los
+crawlers de las vistas previas no ejecutan JavaScript, así que en el server Caddy reconoce su `User-Agent` y les
+pasa ese pedido a esta ruta (ver `backend/deploy/caddy/Caddyfile`); las personas abren la SPA.
+
+Los crawlers tampoco mandan `Origin`: por eso la tienda va en la ruta. El
 gateway la resuelve con su identificador (arma la URL de la tienda con el esquema, host y puerto de `platform.url`)
 y reescribe la ruta a `/share/products/{slug}` en products.
 
@@ -589,7 +593,8 @@ caracteres), `og:image` (la primera imagen, con URL absoluta), `og:url` y una re
 - Producto inexistente o borrado: **404** con el mismo HTML, sin `og:title`, que redirige a la home de la tienda.
 - Tienda inexistente (404) o deshabilitada (403): los responde el gateway, en texto.
 - Configuración: `share.store-url` (default `http://{identifier}.localhost:2999`) y `share.public-url` (el gateway
-  visto desde afuera, para la imagen; default `http://localhost:3000`).
+  visto desde afuera, para la imagen; default `http://localhost:3000`). En producción salen del `.env`
+  (`SHARE_STORE_URL` y `SHARE_PUBLIC_URL` en `docker-compose.prod.yml`).
 
 ```bash
 curl http://localhost:3000/share/demo/products/mesa-de-roble

@@ -10,7 +10,7 @@ import { ProductDetail } from "@/components/product-detail"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft } from "lucide-react"
 
-// Pagina de un producto (/productos/:slug): a donde redirige el link compartido (ver lib/share.ts). Publica
+// Pagina de un producto (/productos/:slug): es el link que se comparte (ver lib/share.ts). Publica
 export default function ProductPage() {
   const { slug = "" } = useParams()
   const detail = useCatalogProduct(slug, slug !== "")
