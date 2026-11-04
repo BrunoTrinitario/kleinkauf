@@ -21,11 +21,12 @@ import CartPage from "@/pages/CartPage"
 import CheckoutPage from "@/pages/CheckoutPage"
 import OrderPage from "@/pages/OrderPage"
 import OrderLookupPage from "@/pages/OrderLookupPage"
+import PlatformBugReportsPage from "@/pages/platform/PlatformBugReportsPage"
 import PlatformDashboardPage from "@/pages/platform/PlatformDashboardPage"
 import PlatformSuperadminsPage from "@/pages/platform/PlatformSuperadminsPage"
 import PlatformTenantsPage from "@/pages/platform/PlatformTenantsPage"
 
-// Plataforma (localhost:2999): login del superadmin, resumen, tiendas y superadmins. Sin catalogo ni registro
+// Plataforma (localhost:2999): login del superadmin, resumen, tiendas, superadmins y reportes de bugs. Sin catalogo ni registro
 function PlatformRoutes() {
   return (
     <Routes>
@@ -35,6 +36,7 @@ function PlatformRoutes() {
         <Route path="/dashboard" element={<PlatformDashboardPage />} />
         <Route path="/tenants" element={<PlatformTenantsPage />} />
         <Route path="/superadmins" element={<PlatformSuperadminsPage />} />
+        <Route path="/bug-reports" element={<PlatformBugReportsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

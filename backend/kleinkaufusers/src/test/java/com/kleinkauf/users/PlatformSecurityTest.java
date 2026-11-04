@@ -3,10 +3,12 @@ package com.kleinkauf.users;
 import com.kleinkauf.common.constants.Headers;
 import com.kleinkauf.common.security.InternalTokenService;
 import com.kleinkauf.common.servlet.tenant.TenantFilter;
+import com.kleinkauf.users.controllers.BugReportController;
 import com.kleinkauf.users.controllers.PlatformController;
 import com.kleinkauf.users.entities.Role;
 import com.kleinkauf.users.repositories.RoleRepository;
 import com.kleinkauf.users.security.SecurityConfig;
+import com.kleinkauf.users.services.BugReportService;
 import com.kleinkauf.users.services.PlatformDashboardService;
 import com.kleinkauf.users.services.PlatformService;
 import com.kleinkauf.users.services.RolePermissionService;
@@ -26,6 +28,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -38,7 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos de /api/v1/platform/** con el SecurityConfig y el HeaderAuthFilter reales de users.
 Los roles salen de RoleRepository (mock) segun el X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = PlatformController.class)
+@WebMvcTest(controllers = {PlatformController.class, BugReportController.class})
 @Import({SecurityConfig.class, PlatformSecurityTest.TenantConfig.class})
 class PlatformSecurityTest {
 
@@ -77,6 +82,9 @@ class PlatformSecurityTest {
 	@MockitoBean
 	private SuperadminService superadminService;
 
+	@MockitoBean
+	private BugReportService bugReportService;
+
 	// Lo pide el CommandLineRunner de KleinKaufusersApplication
 	@MockitoBean
 	private UserService userService;
@@ -93,6 +101,29 @@ class PlatformSecurityTest {
 						"{\"identifier\":\"mi-tienda\",\"ownerName\":\"Ana\",\"ownerEmail\":\"a@a.com\",\"ownerPassword\":\"x\"}"))
 				.andExpect(status().isCreated());
 		mockMvc.perform(json(post("/api/v1/platform/auth/login"), "{\"email\":\"root@kleinkauf.com\",\"password\":\"x\"}"))
+				.andExpect(status().isOk());
+	}
+
+	// Reportar un bug: publico, y con sesion el controller recibe el usuario del gateway
+	@Test
+	void reportarUnBug_esPublico() throws Exception {
+		String body = "{\"description\":\"El carrito no suma bien\"}";
+		mockMvc.perform(json(post("/api/v1/bug-reports"), body)).andExpect(status().isCreated());
+		verify(bugReportService).create(any(), isNull(), isNull());
+
+		mockMvc.perform(as(ADMINISTRADOR, json(post("/api/v1/bug-reports"), body))).andExpect(status().isCreated());
+		verify(bugReportService).create(any(), eq(ADMINISTRADOR), isNull());
+	}
+
+	@Test
+	void reportesDeBugs_soloSuperadmin() throws Exception {
+		mockMvc.perform(get("/api/v1/platform/admin/bug-reports")).andExpect(status().isForbidden());
+		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/platform/admin/bug-reports"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(SUPERADMIN, get("/api/v1/platform/admin/bug-reports"))).andExpect(status().isOk());
+
+		mockMvc.perform(as(ADMINISTRADOR, json(put("/api/v1/platform/admin/bug-reports/4/resolved"), "{\"resolved\":true}")))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(as(SUPERADMIN, json(put("/api/v1/platform/admin/bug-reports/4/resolved"), "{\"resolved\":true}")))
 				.andExpect(status().isOk());
 	}
 

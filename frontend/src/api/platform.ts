@@ -1,8 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, PLATFORM_PATH } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import type { PeriodRange } from "@/lib/periods"
 import type {
+  BugReport,
+  BugReportPage,
+  BugReportStatus,
   NewTenantDto,
   PlatformDashboard,
   PlatformTenant,
@@ -19,6 +22,8 @@ export const platformKeys = {
   productsUsage: () => [...platformKeys.all, "usage", "products"] as const,
   tenants: () => [...platformKeys.all, "tenants"] as const,
   superadmins: () => [...platformKeys.all, "superadmins"] as const,
+  bugReports: () => [...platformKeys.all, "bug-reports"] as const,
+  bugReportsPage: (status: BugReportStatus, page: number) => [...platformKeys.bugReports(), status, page] as const,
 }
 
 export function usePlatformDashboard(range: PeriodRange, enabled: boolean) {
@@ -113,5 +118,28 @@ export function useCreateSuperadmin() {
     mutationFn: (payload: { name: string; email: string; password: string }) =>
       api.post<Superadmin>(`${PLATFORM_PATH}/admin/superadmins`, payload).then((response) => response.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: platformKeys.superadmins() }),
+  })
+}
+
+export function useBugReports(status: BugReportStatus, page: number, enabled: boolean) {
+  return useQuery({
+    queryKey: platformKeys.bugReportsPage(status, page),
+    queryFn: () =>
+      api
+        .get<BugReportPage>(`${PLATFORM_PATH}/admin/bug-reports`, { params: { status, page } })
+        .then((response) => response.data),
+    enabled,
+    placeholderData: keepPreviousData,
+    meta: { errorMessage: strings.errors.loadBugReports },
+  })
+}
+
+// Cambia de lista (pendientes / resueltos) y el contador de pendientes
+export function useSetBugReportResolved() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, resolved }: { id: number; resolved: boolean }) =>
+      api.put<BugReport>(`${PLATFORM_PATH}/admin/bug-reports/${id}/resolved`, { resolved }).then((response) => response.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: platformKeys.bugReports() }),
   })
 }

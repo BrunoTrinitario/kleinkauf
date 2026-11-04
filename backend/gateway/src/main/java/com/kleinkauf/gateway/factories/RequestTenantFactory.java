@@ -17,8 +17,9 @@ public class RequestTenantFactory {
             result = LOGIN;
         // Registro y recuperacion de contrasena comparten el limite del alta de tiendas: cada recuperacion manda un
         // mail, y con el limite global se podria llenar de mails la casilla de alguien
+        // Los reportes de bugs tambien: son publicos y le llegan a los superadmins
         else if (path.startsWith("/api/v1/platform/tenants") || path.equals("/api/v1/auth/register")
-                || path.startsWith("/api/v1/auth/forgot-password"))
+                || path.startsWith("/api/v1/auth/forgot-password") || path.equals("/api/v1/bug-reports"))
             result = SIGNUP;
         else if (path.startsWith("/products/images/"))
             result = IMAGE;

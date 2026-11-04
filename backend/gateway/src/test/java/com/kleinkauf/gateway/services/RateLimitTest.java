@@ -115,6 +115,8 @@ class RateLimitTest {
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password"));
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password/abc"));
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/auth/me"));
+        assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/bug-reports"));
+        assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/platform/admin/bug-reports"));
     }
 
     // null = paso (no se seteo status)
