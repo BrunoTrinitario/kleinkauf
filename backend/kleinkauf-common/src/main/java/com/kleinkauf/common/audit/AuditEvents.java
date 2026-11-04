@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /*
-Arma los eventos con lo que se sabe de la request en curso (AuditRequest). null si no corresponde auditar
-(llamada interna o sin request).
+Builds the events with what is known about the current request (AuditRequest). null if nothing should be audited
+(internal call or no request).
  */
 public class AuditEvents {
 

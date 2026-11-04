@@ -10,8 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /*
-Genera y valida los JWT que usan los microservicios para hablar entre ellos (/api/internal/**).
-Se firman con api.internal.key, distinta a la clave de los tokens de usuario.
+Generates and validates the JWTs the microservices use to talk to each other (/api/internal/**).
+They are signed with api.internal.key, different from the user token key.
  */
 public class InternalTokenService {
 

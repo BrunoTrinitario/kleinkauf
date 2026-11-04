@@ -14,7 +14,7 @@ import java.io.Serializable;
 public class RoleDto implements Serializable {
 
     private String type;
-    // Mascara de bits de PermissionArea de este rol en la tienda (la calcula users)
+    // PermissionArea bit mask of this role in the store (computed by users)
     private int permissions;
 
 }

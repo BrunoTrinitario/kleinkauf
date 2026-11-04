@@ -3,9 +3,9 @@ package com.kleinkauf.common.observability;
 import java.util.regex.Pattern;
 
 /*
-Valor de la etiqueta "tenant" de las metricas: el schema de la tienda.
-Una etiqueta con valores sin limite llenaria Prometheus de series, asi que solo se acepta algo con
-forma de schema; lo demas se agrupa en "invalid". Sin tenant (plataforma, imagenes): "none".
+Value of the "tenant" tag on the metrics: the store's schema.
+A tag with unbounded values would flood Prometheus with series, so only something shaped
+like a schema is accepted; anything else is grouped under "invalid". Without a tenant (platform, images): "none".
  */
 public final class TenantTag {
 

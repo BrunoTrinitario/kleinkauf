@@ -5,12 +5,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 /*
-Uso del catalogo de cada tienda en Redis (docs/observabilidad.md, canal store.usage): un hash por tienda y dia,
-usage:<tenant>:<yyyy-MM-dd>, con
-- visits: veces que se abrio el listado del catalogo (la primera pagina),
-- product:<slug>: veces que se abrio el detalle de ese producto.
-Lo escribe products y lo lee observability. Vence a los TTL: es para el panel, no un historial.
-El dia es el de ZONE (todavia no hay zona por tienda).
+Catalog usage of each store in Redis (docs/observabilidad.md, store.usage channel): one hash per store and day,
+usage:<tenant>:<yyyy-MM-dd>, with
+- visits: times the catalog listing was opened (the first page),
+- product:<slug>: times that product's detail was opened.
+Written by products and read by observability. Expires after TTL: it is for the dashboard, not a history.
+The day is the one in ZONE (there is no per-store zone yet).
  */
 public final class UsageKeys {
 

@@ -18,12 +18,12 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /*
-Observabilidad de los servicios servlet (users, products, sales, observability, eureka):
-- Etiqueta "tenant" en las metricas HTTP.
-- Tenant y usuario en el MDC de los logs.
-- El puerto de gestion (/health, /ready, /metrics) no pide login: es interno, el gateway no lo expone.
-  Spring aplica la seguridad del servicio tambien a ese puerto, y sin esta regla las reglas del
-  servicio (ej. anyRequest().authenticated()) lo cerrarian.
+Observability of the servlet services (users, products, sales, observability, eureka):
+- "tenant" tag on the HTTP metrics.
+- Tenant and user in the logs' MDC.
+- The management port (/health, /ready, /metrics) does not require login: it is internal, the gateway does not expose it.
+  Spring applies the service's security to that port too, and without this rule the service's
+  rules (e.g. anyRequest().authenticated()) would lock it.
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -45,7 +45,7 @@ public class KleinKaufObservabilityServletAutoConfiguration {
         return registration;
     }
 
-    // true si la request llego por el puerto de gestion (contexto hijo de Actuator)
+    // true if the request came in through the management port (Actuator child context)
     public static boolean isManagementRequest(HttpServletRequest request) {
         WebApplicationContext context = WebApplicationContextUtils.getWebApplicationContext(request.getServletContext());
         return context instanceof WebServerApplicationContext webContext

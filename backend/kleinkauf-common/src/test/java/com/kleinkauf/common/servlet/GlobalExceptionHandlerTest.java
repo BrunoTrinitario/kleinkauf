@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Los errores del pedido responden su codigo (antes caian en el 500 generico)
+// Request errors respond with their own status code (they used to fall into the generic 500)
 class GlobalExceptionHandlerTest {
 
     @RestController
@@ -45,29 +45,29 @@ class GlobalExceptionHandlerTest {
             .build();
 
     @Test
-    void parametroConOtroTipo_400() throws Exception {
-        // Ej. GET /products/all cuando /all ya no existe: cae en /{id} con un id que no es numero
+    void parameterOfAnotherType_400() throws Exception {
+        // E.g. GET /products/all when /all no longer exists: it hits /{id} with an id that is not a number
         mockMvc.perform(get("/items/all"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Invalid value for id"));
     }
 
     @Test
-    void metodoQueLaRutaNoTiene_405() throws Exception {
+    void methodTheRouteDoesNotHave_405() throws Exception {
         mockMvc.perform(post("/items/5"))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(content().string("Method not allowed"));
     }
 
     @Test
-    void cuerpoQueNoEsJson_400() throws Exception {
-        mockMvc.perform(put("/items/5").contentType(MediaType.APPLICATION_JSON).content("{no es json"))
+    void bodyThatIsNotJson_400() throws Exception {
+        mockMvc.perform(put("/items/5").contentType(MediaType.APPLICATION_JSON).content("{not json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("The request body is missing or is not valid JSON"));
     }
 
     @Test
-    void errorNoPrevisto_sigueSiendo500() throws Exception {
+    void unexpectedError_isStill500() throws Exception {
         mockMvc.perform(get("/boom"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(content().string("se rompio"));

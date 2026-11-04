@@ -1,8 +1,8 @@
 package com.kleinkauf.common.servlet.tenant;
 
 /*
-Lo implementa cada microservicio (TenantDataSource) para crear y migrar
-el schema de un tenant antes de usar su conexion.
+Implemented by each microservice (TenantDataSource) to create and migrate
+a tenant's schema before using its connection.
  */
 public interface TenantSchemaManager {
 
