@@ -1,4 +1,5 @@
-import { Link, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
+import { CATALOG_PATH } from "@/lib/catalog-url"
 import axios from "axios"
 import { productImageUrl } from "@/lib/api"
 import { strings } from "@/lib/strings"
@@ -13,6 +14,9 @@ import { ArrowLeft } from "lucide-react"
 // Pagina de un producto (/productos/:slug): es el link que se comparte (ver lib/share.ts). Publica
 export default function ProductPage() {
   const { slug = "" } = useParams()
+  const navigate = useNavigate()
+  // key "default" = es la primera pagina que se abrio en esta pestana (no hay a donde volver dentro de la tienda)
+  const cameFromStore = useLocation().key !== "default"
   const detail = useCatalogProduct(slug, slug !== "")
   const product = detail.data
   const notFound = axios.isAxiosError(detail.error) && detail.error.response?.status === 404
@@ -21,10 +25,22 @@ export default function ProductPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="container mx-auto flex-1 px-4 py-8 space-y-6">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-          {strings.productPage.back}
-        </Link>
+        {/* Desde la tienda vuelve a donde estaba (el catalogo con sus filtros); desde un link compartido, al catalogo */}
+        {cameFromStore ? (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {strings.productPage.backPrevious}
+          </button>
+        ) : (
+          <Link to={CATALOG_PATH} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+            {strings.productPage.back}
+          </Link>
+        )}
 
         {product ? (
           <Card className="overflow-hidden p-0">

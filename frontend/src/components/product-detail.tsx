@@ -3,6 +3,7 @@ import type { CatalogProduct, ProductMetadata } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { formatPrice } from "@/lib/utils"
 import { ShareButtons } from "@/components/share-buttons"
+import { AddToCartButton } from "@/components/add-to-cart-button"
 import { Package, Check, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface ProductDetailProps {
@@ -55,13 +56,15 @@ export function ProductDetail({
     // grid-cols-1 (minmax(0, 1fr)) y min-w-0 en las columnas: sin eso, segun el navegador la columna crece al ancho
     // minimo del contenido y se sale del contenedor en mobile (la imagen y la flecha quedaban cortadas)
     <div className="grid grid-cols-1 md:grid-cols-2 min-w-0">
-      <div className="relative min-w-0 aspect-square md:aspect-auto md:h-full bg-muted">
+      {/* contain y no cover: la columna sigue el alto del texto y las imagenes pueden tener cualquier proporcion;
+          con cover se recortaba buena parte (ej. una foto 4:3 en una columna 2:3). El fondo completa lo que sobra */}
+      <div className="relative min-w-0 aspect-square md:aspect-auto md:h-full md:min-h-[24rem] bg-muted">
         {count > 0 ? (
           <div className="relative h-full w-full">
             <img
               src={imageSrcs[Math.min(currentImageIndex, count - 1)]}
               alt={product.name}
-              className="h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-contain"
               loading="lazy"
             />
             {count > 1 ? (
@@ -102,6 +105,18 @@ export function ProductDetail({
           <Description className="text-muted-foreground leading-relaxed">{product.description}</Description>
 
           <p className="text-lg font-medium text-foreground">{formatPrice(product.price, strings.price.ask)}</p>
+
+          <AddToCartButton
+            item={{
+              type: "PRODUCT",
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              image: product.images?.[0] ?? null,
+              slug: product.slug,
+            }}
+            availability={product.availability}
+          />
 
           {/* Disponibilidad: el catalogo no muestra el stock exacto */}
           <div className="flex items-center gap-2 text-sm">

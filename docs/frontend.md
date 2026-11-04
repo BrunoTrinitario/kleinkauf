@@ -96,18 +96,20 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 - [ ] Menú de usuario con los roles y logout
 
 ### 3. Catálogo público **[listo]**
-- [ ] Home con **productos destacados** (`/catalog/featured`, en su orden)
-- [ ] Listado paginado (24 por página) con búsqueda `q`, filtro por categoría, orden (nombre / precio ↑ / precio ↓)
+- [ ] Home (`/`) como vidriera corta: buscador y categorías que llevan al catálogo, **productos destacados**
+  (`/catalog/featured`, en su orden) en una fila y unos pocos combos
+- [ ] Listado paginado (24 por página) en `/catalogo`, con búsqueda `q`, filtro por categoría y orden (nombre / precio ↑ /
+  precio ↓) en la URL (`?q=&categoria=&orden=&pagina=`)
 - [ ] Categorías con su cantidad de productos
 - [ ] Detalle por **slug** (URL compartible), con imágenes, metadatos (material, color, estilo, medidas) ☑
 - [ ] Disponibilidad: `DISPONIBLE`, `POCAS_UNIDADES`, `AGOTADO` (el catálogo nunca muestra stock exacto ni costo)
 - [ ] Producto sin precio → "Consultar"
-- [ ] **Combos**: listado y detalle con precio, precio de lista (ahorro) y disponibilidad
-  (`/bundles`; en el catálogo propiamente dicho llegan con ventas)
+- [ ] **Combos** en `/combos`: precio, precio de lista (ahorro), disponibilidad, productos que incluye y agregar al
+  carrito
 - [ ] Botón para compartir el link (WhatsApp, copiar) y vista previa Open Graph (ver Stack)
 - [ ] Imágenes con carga diferida y tamaño controlado
 
-### 4. Compra online **[plan: ventas, etapa 1–2]**
+### 4. Compra online **[listo]**
 - [ ] Carrito en el frontend (productos y combos, cantidades, persistido en el navegador)
 - [ ] Aviso si cambió un precio entre el carrito y el pedido
 - [ ] Checkout: datos del comprador (invitado o logueado), retiro o envío con dirección, notas
