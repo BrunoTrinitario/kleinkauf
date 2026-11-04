@@ -5,8 +5,10 @@ import type { CatalogBundle, CatalogProduct } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { productImageUrl } from "@/lib/api"
 import { formatPrice } from "@/lib/utils"
-import { useCatalogBundles, useCatalogFeatured } from "@/api/catalog"
+import { CATALOG_PATH } from "@/lib/catalog-url"
+import { useCatalogBundles, useCatalogFeatured, useCatalogProducts } from "@/api/catalog"
 import { ProductCard } from "./product-card"
+import { Button } from "./ui/button"
 import { ProductModal } from "./product-modal"
 import { AddToCartButton } from "./add-to-cart-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
@@ -81,6 +83,33 @@ export function BundlesStrip() {
           </div>
         ))}
       </div>
+    </Strip>
+  )
+}
+
+// Primera pagina del catalogo (orden por defecto) en grilla, como en /catalogo; al final, el link al catalogo completo
+export function CatalogStrip() {
+  const products = useCatalogProducts({ page: 0 }).data?.items ?? []
+  const [selected, setSelected] = useState<CatalogProduct | null>(null)
+
+  if (products.length === 0) return null
+
+  return (
+    <Strip title={strings.home.catalogTitle}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {products.map((product) => (
+          <ProductCard key={product.slug} product={product} onClick={() => setSelected(product)} />
+        ))}
+      </div>
+      <div className="flex justify-center pt-2">
+        <Button asChild variant="outline">
+          <Link to={CATALOG_PATH}>
+            {strings.home.allProducts}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+      <ProductModal product={selected} open={selected !== null} onOpenChange={(open) => !open && setSelected(null)} />
     </Strip>
   )
 }

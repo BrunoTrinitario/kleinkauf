@@ -139,10 +139,8 @@ export const strings = {
     featuredTitle: "Destacados",
     bundlesTitle: "Combos",
     bundlesDescription: "Productos que se llevan juntos, a mejor precio.",
-    heroTitle: "Encuentra lo que buscas",
-    heroHighlight: "buscas",
-    search: "Buscar",
-    categoriesLabel: "Categorías",
+    catalogTitle: "Catálogo",
+    allProducts: "Ver todos",
     allBundles: "Ver combos",
   },
   catalogPage: {
