@@ -3,6 +3,8 @@ package com.kleinkauf.users.constants;
 import java.util.List;
 
 public class PermittedUrls {
+
+    public static String INTERNAL_PATH = "/api/internal";
     public static List<String> getExcludedPaths() {
         return List.of(
                 "/api/v1/auth/login",

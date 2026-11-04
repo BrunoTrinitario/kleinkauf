@@ -15,7 +15,10 @@ public class RequestTenantFactory {
         String result;
         if (path.startsWith("/api/v1/auth/login") || path.startsWith("/api/v1/platform/auth/login"))
             result = LOGIN;
-        else if (path.startsWith("/api/v1/platform/tenants"))
+        // Registro y recuperacion de contrasena comparten el limite del alta de tiendas: cada recuperacion manda un
+        // mail, y con el limite global se podria llenar de mails la casilla de alguien
+        else if (path.startsWith("/api/v1/platform/tenants") || path.equals("/api/v1/auth/register")
+                || path.startsWith("/api/v1/auth/forgot-password"))
             result = SIGNUP;
         else if (path.startsWith("/products/images/"))
             result = IMAGE;

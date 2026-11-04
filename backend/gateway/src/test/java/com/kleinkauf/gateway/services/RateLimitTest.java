@@ -110,6 +110,11 @@ class RateLimitTest {
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/platform/admin/tenants"));
         assertEquals(RequestTenantFactory.LOGIN, RequestTenantFactory.generatePathType("/api/v1/platform/auth/login"));
         assertEquals(RequestTenantFactory.IMAGE, RequestTenantFactory.generatePathType("/products/images/a.jpg"));
+        // Registro y recuperacion de contrasena (manda un mail): el limite del alta, no el global
+        assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/register"));
+        assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password"));
+        assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password/abc"));
+        assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/auth/me"));
     }
 
     // null = paso (no se seteo status)

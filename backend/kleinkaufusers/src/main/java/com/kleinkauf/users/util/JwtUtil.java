@@ -5,6 +5,7 @@
 package com.kleinkauf.users.util;
 
 import com.kleinkauf.common.constants.TenantConstants;
+import com.kleinkauf.common.constants.TokenConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -13,8 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 /**
@@ -28,6 +33,8 @@ public class JwtUtil {
     private String secret;
 
     private SecretKey key;
+
+    private static final String PASSWORD_CLAIM = "pwd";
 
     @PostConstruct
     public void init() {
@@ -43,6 +50,7 @@ public class JwtUtil {
         claims.put("name", name);
         claims.put("email", email);
         claims.put(TenantConstants.TOKEN_CLAIM, tenant);
+        claims.put(TokenConstants.TYPE_CLAIM, TokenConstants.ACCESS);
         return createToken(claims, 1000 * 60 * 60); // 1h
     }
 
@@ -55,12 +63,27 @@ public class JwtUtil {
         return createToken(claims, 1000 * 60 * 60 * 24); // 24h
     }
 
-    public String generatePasswordToken(Long id, String email, String tenant){
+    // passwordHash: la contrasena actual (hasheada). El token deja de servir cuando la contrasena cambia,
+    // asi que el link del mail se usa una sola vez
+    public String generatePasswordToken(Long id, String email, String tenant, String passwordHash){
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("email", email);
         claims.put(TenantConstants.TOKEN_CLAIM, tenant);
+        claims.put(TokenConstants.TYPE_CLAIM, TokenConstants.PASSWORD_RESET);
+        claims.put(PASSWORD_CLAIM, passwordFingerprint(passwordHash));
         return createToken(claims, 1000 * 60 * 15); //15 min
+    }
+
+    // Huella de la contrasena hasheada: el token viaja en el mail y no tiene que llevar el hash
+    public static String passwordFingerprint(String passwordHash) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(String.valueOf(passwordHash).getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 16);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private String createToken(Map<String, Object> claims, long expirationMillis) {
@@ -106,6 +129,16 @@ public class JwtUtil {
     public String getTenant(String token) {
         Claims claims = getClaims(token);
         return claims != null ? claims.get(TenantConstants.TOKEN_CLAIM, String.class) : null;
+    }
+
+    public String getType(String token) {
+        Claims claims = getClaims(token);
+        return claims != null ? claims.get(TokenConstants.TYPE_CLAIM, String.class) : null;
+    }
+
+    public String getPasswordFingerprint(String token) {
+        Claims claims = getClaims(token);
+        return claims != null ? claims.get(PASSWORD_CLAIM, String.class) : null;
     }
 
 }

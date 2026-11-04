@@ -9,4 +9,9 @@ public class ResponseUtil {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }
+
+    public static Mono<Void> notFound(ServerWebExchange exchange) {
+        exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+        return exchange.getResponse().setComplete();
+    }
 }
