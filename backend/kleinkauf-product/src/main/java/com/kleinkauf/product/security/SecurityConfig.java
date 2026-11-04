@@ -37,6 +37,8 @@ public class SecurityConfig {
                         // Panel de la tienda: solo el administrador (todo el panel, no por areas). Antes de las
                         // reglas de /api/v1/products/**, que dejan los GET abiertos
                         .requestMatchers("/api/v1/products/dashboard").hasRole("ADMINISTRADOR")
+                        // Store settings (name, theme, icon): administrator only
+                        .requestMatchers("/api/v1/store/**").hasRole("ADMINISTRADOR")
                         // Permisos por area (PermissionArea). El ADMINISTRADOR tiene todas;
                         // los de EMPLEADO y CLIENTE los configura el administrador en users
                         .requestMatchers("/api/v1/products/*/stock/movements", "/api/v1/products/stock/low")

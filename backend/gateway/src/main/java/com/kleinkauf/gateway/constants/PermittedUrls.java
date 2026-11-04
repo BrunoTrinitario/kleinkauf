@@ -49,6 +49,7 @@ public class PermittedUrls {
                 "GET:/api/v1/catalog/products/{any}",
                 "GET:/api/v1/catalog/categories",
                 "GET:/api/v1/catalog/bundles",
+                "GET:/api/v1/catalog/store",
                 "GET:/api/v1/sales/checkout",
                 "POST:/api/v1/sales/orders",
                 "POST:/api/v1/sales/orders/lookup",

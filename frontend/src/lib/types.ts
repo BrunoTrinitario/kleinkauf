@@ -412,6 +412,25 @@ export interface AdminOrderFilters {
   page: number
 }
 
+// Store settings (GET /catalog/store, public; GET/PUT /store/settings, ADMINISTRADOR).
+// name is never null (without a custom name it is derived from the identifier); customName is the one the admin set.
+// icon: file under /products/images/ or null
+export interface StoreConfig {
+  name: string
+  customName: string | null
+  theme: string
+  icon: string | null
+  showIconInHeader: boolean
+  showIconAsFavicon: boolean
+}
+
+export interface UpdateStoreConfig {
+  name: string | null
+  theme: string
+  showIconInHeader: boolean
+  showIconAsFavicon: boolean
+}
+
 // Datos para cobrar. Los vacios se guardan como null; expirationHours null = 48
 export interface SalesSettings {
   alias: string | null

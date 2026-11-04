@@ -8,6 +8,8 @@ import com.kleinkauf.product.dto.catalog.CatalogProductDto;
 import com.kleinkauf.product.dto.catalog.CategoryDto;
 import com.kleinkauf.product.services.CatalogService;
 import com.kleinkauf.product.services.CatalogUsage;
+import com.kleinkauf.product.services.StoreSettingsService;
+import com.kleinkauf.product.dto.store.StoreDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,9 @@ public class CatalogController {
 
     @Autowired
     private CatalogUsage catalogUsage;
+
+    @Autowired
+    private StoreSettingsService storeSettingsService;
 
     // sort: name (por defecto) | price_asc | price_desc | best_sellers. size: 24 por defecto, maximo 100
     @GetMapping("/products")
@@ -64,5 +69,11 @@ public class CatalogController {
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryDto>> categories() {
         return ResponseEntity.ok(catalogService.categories());
+    }
+
+    // Store name, theme and icon: the frontend requests them when any page loads
+    @GetMapping("/store")
+    public ResponseEntity<StoreDto> store() {
+        return ResponseEntity.ok(storeSettingsService.get());
     }
 }

@@ -13,8 +13,9 @@ export function Footer() {
     <footer className="border-t border-border bg-card mt-16">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* The store shows its name at the top; the platform signs at the bottom */}
           <p className="text-sm text-muted-foreground">
-            {strings.footer.platform}
+            {strings.footer.poweredBy} <span className="font-medium text-foreground">{strings.site.name}</span>
           </p>
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <Link to="/privacidad" className={linkClass}>

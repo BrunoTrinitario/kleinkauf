@@ -47,6 +47,11 @@ public class GatewayRoutes {
                         .path("/api/v1/catalog/**")
                         .uri(productUrl))
 
+                // Store settings (name, theme, icon): stored by products
+                .route("store", r -> r
+                        .path("/api/v1/store/**")
+                        .uri(productUrl))
+
                 .route("sales", r -> r
                         .path("/api/v1/sales/**")
                         .uri(salesUrl))

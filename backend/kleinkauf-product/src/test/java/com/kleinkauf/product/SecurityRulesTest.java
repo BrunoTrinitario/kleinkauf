@@ -13,6 +13,8 @@ import com.kleinkauf.product.controllers.ProductCsvController;
 import com.kleinkauf.product.controllers.ProductController;
 import com.kleinkauf.product.controllers.StockController;
 import com.kleinkauf.product.controllers.ShareController;
+import com.kleinkauf.product.controllers.StoreSettingsController;
+import com.kleinkauf.product.services.StoreSettingsService;
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.product.dto.catalog.Availability;
 import com.kleinkauf.product.dto.catalog.CatalogProductDetailDto;
@@ -42,6 +44,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -55,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
 Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
  */
-@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class, DashboardController.class, ShareController.class})
+@WebMvcTest(controllers = {ProductController.class, StockController.class, BundleController.class, ProductCsvController.class, CatalogController.class, InternalStockController.class, DashboardController.class, ShareController.class, StoreSettingsController.class})
 @Import({SecurityConfig.class, SecurityRulesTest.TenantConfig.class})
 class SecurityRulesTest {
 
@@ -104,6 +107,9 @@ class SecurityRulesTest {
 	@MockitoBean
 	private CatalogUsage catalogUsage;
 
+	@MockitoBean
+	private StoreSettingsService storeSettingsService;
+
 	// Lo que users devuelve para EMPLEADO: por defecto solo STOCK; cada test puede configurarlo
 	private int empleadoPermissions = PermissionArea.STOCK.bit();
 
@@ -131,6 +137,26 @@ class SecurityRulesTest {
 		// Sin stock: siguen publicos
 		mockMvc.perform(as(null, get("/api/v1/products/5/metadata"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, get("/api/v1/products/5/images"))).andExpect(status().isOk());
+	}
+
+	// Name, theme and icon: anyone can read them (catalog); only the administrator can change them, even if an EMPLEADO
+	// has every panel area
+	@Test
+	void storeSettings_publicToRead_onlyAdministratorCanChange() throws Exception {
+		empleadoPermissions = PermissionArea.ALL;
+		mockMvc.perform(as(null, get("/api/v1/catalog/store"))).andExpect(status().isOk());
+
+		MockMultipartFile icon = new MockMultipartFile("file", "icono.png", "image/png", new byte[]{1});
+		for (Long user : new Long[]{null, CLIENTE, EMPLEADO}) {
+			mockMvc.perform(as(user, get("/api/v1/store/settings"))).andExpect(status().isForbidden());
+			mockMvc.perform(as(user, json(put("/api/v1/store/settings"), "{\"name\":\"Otra\"}"))).andExpect(status().isForbidden());
+			mockMvc.perform(as(user, multipart("/api/v1/store/settings/icon").file(icon))).andExpect(status().isForbidden());
+			mockMvc.perform(as(user, delete("/api/v1/store/settings/icon"))).andExpect(status().isForbidden());
+		}
+		mockMvc.perform(as(ADMIN, get("/api/v1/store/settings"))).andExpect(status().isOk());
+		mockMvc.perform(as(ADMIN, json(put("/api/v1/store/settings"), "{\"name\":\"Otra\"}"))).andExpect(status().isOk());
+		mockMvc.perform(as(ADMIN, multipart("/api/v1/store/settings/icon").file(icon))).andExpect(status().isOk());
+		mockMvc.perform(as(ADMIN, delete("/api/v1/store/settings/icon"))).andExpect(status().isOk());
 	}
 
 	// Lo que no tiene regla propia no queda abierto, ni para el administrador

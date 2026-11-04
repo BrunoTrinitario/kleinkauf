@@ -23,6 +23,8 @@ import {
 import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
+import { useStoreConfig } from "@/api/store"
+import { productImageUrl } from "@/lib/api"
 import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Menu } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
@@ -39,7 +41,7 @@ interface NavLinksProps {
   canManageUsers: boolean
   pendingReview: number
   lowStock: number
-  // En el menu lateral: uno debajo del otro y cada link cierra el menu
+  // In the side menu: stacked, and each link closes the menu
   vertical?: boolean
   onNavigate?: () => void
 }
@@ -57,7 +59,7 @@ function CountBadge({ count, label }: { count: number; label: string }) {
   )
 }
 
-// Links de la tienda y, aparte, los del panel (ej. "Combos" de la tienda y "Combos" del panel)
+// Store links and, separately, panel links (e.g. the store's "Combos" and the panel's "Combos")
 function NavLinks({
   hasBundles,
   showPanel,
@@ -116,7 +118,22 @@ function NavLinks({
   )
 }
 
-// Boton de menu (solo debajo de md) que abre la navegacion en un panel desde la izquierda
+// Store name and, if enabled, its icon. Shows nothing while the settings load (so one name is not replaced by
+// another)
+function StoreBrand() {
+  const config = useStoreConfig().data
+  if (!config) return <span className="h-5 w-24" aria-hidden />
+  return (
+    <>
+      {config.icon && config.showIconInHeader ? (
+        <img src={productImageUrl(config.icon)} alt="" className="h-7 w-7 shrink-0 rounded-md object-contain" />
+      ) : null}
+      <span className="truncate text-sm font-medium">{config.name}</span>
+    </>
+  )
+}
+
+// Menu button (below md only) that opens the navigation in a panel from the left
 function MobileNav(props: NavLinksProps) {
   const [open, setOpen] = useState(false)
   return (
@@ -128,7 +145,9 @@ function MobileNav(props: NavLinksProps) {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 gap-0 p-4">
         <SheetHeader className="p-0 pb-4">
-          <SheetTitle className="text-left">{strings.site.name}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2 text-left">
+            <StoreBrand />
+          </SheetTitle>
           <SheetDescription className="sr-only">{strings.nav.menuDescription}</SheetDescription>
         </SheetHeader>
         <nav className="flex flex-col">
@@ -181,13 +200,12 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <MobileNav {...navProps} />
-          <Link to="/" className="flex items-center gap-2">
-            <Store className="h-5 w-5" strokeWidth={1.5} />
-            <span className="text-sm font-medium">{strings.site.name}</span>
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <StoreBrand />
           </Link>
         </div>
 
-        {/* Navegacion en fila desde md; en el celular va en el menu lateral (MobileNav) */}
+        {/* Navigation in a row from md; on phones it lives in the side menu (MobileNav) */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks {...navProps} />
         </nav>
@@ -265,6 +283,12 @@ export function Header() {
                         <Link to="/admin">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           {strings.auth.dashboard}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/store">
+                          <Store className="mr-2 h-4 w-4" />
+                          {strings.adminStore.menu}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>

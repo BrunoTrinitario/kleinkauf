@@ -4,6 +4,7 @@ import { PRODUCT_PANEL_AREAS } from "@/lib/permissions"
 import { RequireArea, RequireAuth, RequireRole, RequireSuperadmin } from "@/components/route-guards"
 import { useTenantStatus } from "@/lib/tenant-status"
 import { useCatalogCategories } from "@/api/catalog"
+import { useStoreBranding } from "@/lib/store-branding"
 import StoreUnavailablePage from "@/pages/StoreUnavailablePage"
 import HomePage from "@/pages/HomePage"
 import ProductPage from "@/pages/ProductPage"
@@ -22,6 +23,7 @@ import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
 import AdminOrderPage from "@/pages/admin/AdminOrderPage"
 import AdminLocalSalePage from "@/pages/admin/AdminLocalSalePage"
 import AdminReportsPage from "@/pages/admin/AdminReportsPage"
+import AdminStorePage from "@/pages/admin/AdminStorePage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import MyOrdersPage from "@/pages/user/MyOrdersPage"
 import CartPage from "@/pages/CartPage"
@@ -54,6 +56,8 @@ function StoreRoutes() {
   // Consulta publica y en cache que hace cualquier pagina de la tienda: si la tienda no existe o esta
   // deshabilitada, el gateway lo dice al abrir (tambien en el login, que no llama a la API hasta enviar)
   useCatalogCategories()
+  // Store color theme, tab title and favicon
+  useStoreBranding()
   const tenantStatus = useTenantStatus()
   if (tenantStatus !== "ok") {
     return <StoreUnavailablePage status={tenantStatus} />
@@ -87,6 +91,7 @@ function StoreRoutes() {
           <Route path="/admin/orders/new" element={<AdminLocalSalePage />} />
           <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
+          <Route path="/admin/store" element={<AdminStorePage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>
           <Route path="/admin/products" element={<AdminProductsPage />} />

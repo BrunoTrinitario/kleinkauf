@@ -96,6 +96,15 @@ class PermittedUrlsTest {
     }
 
     @Test
+    void storeSettings_publicReadsConfig_editingRequiresLogin() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/store"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/store/settings"));
+        assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/store/settings"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/store/settings/icon"));
+        assertFalse(PermittedUrls.isPermitted("DELETE", "/api/v1/store/settings/icon"));
+    }
+
+    @Test
     void checkout_publico_misPedidosYPanelPidenLogin() {
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/bundles"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/sales/checkout"));
