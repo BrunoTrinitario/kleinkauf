@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 /*
-A donde lleva el link del mail de recupero: /reset-password?token=. El token vale 15 minutos y una sola vez; si
-vencio o ya se uso, el backend responde 401 y se ofrece pedir otro. Al terminar va al login con un aviso
+Where the recovery email link leads: /reset-password?token=. The token is valid for 15 minutes and only once; if
+it expired or was already used, the backend responds 401 and requesting another one is offered. When done it goes to login with a notice
  */
 export default function ResetPasswordPage() {
   const navigate = useNavigate()

@@ -34,7 +34,7 @@ export default function PlatformTenantsPage() {
   const [savingId, setSavingId] = useState<number | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  // El objetivo se mantiene al cerrar el dialogo para que el texto no cambie durante la animacion
+  // The target is kept when closing the dialog so the text does not change during the animation
   const [deleteTarget, setDeleteTarget] = useState<PlatformTenant | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const tenantsQuery = usePlatformTenants(ready)
@@ -45,7 +45,7 @@ export default function PlatformTenantsPage() {
   const createTenant = useCreateTenant()
   const isCreating = createTenant.isPending
 
-  // El backend devuelve todas las tiendas no borradas sin paginar: se filtra aca
+  // The backend returns all non-deleted stores without pagination: filtered here
   const visibleTenants = useMemo(() => {
     const query = searchInput.trim().toLowerCase()
     return (tenants ?? []).filter((tenant) => {
@@ -64,7 +64,7 @@ export default function PlatformTenantsPage() {
 
   const hasFilters = searchInput.trim() !== "" || statusFilter !== ""
 
-  // Cada cambio recarga la lista (y el resumen): va de la mas nueva a la mas vieja, como la devuelve el backend
+  // Each change reloads the list (and the overview): newest to oldest, as the backend returns it
   const handleToggleEnabled = async (target: PlatformTenant, enabled: boolean) => {
     setSavingId(target.id)
     try {

@@ -26,11 +26,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-// Mismos topes que sales (sales.receipts.max-size y los tipos que acepta)
+// Same limits as sales (sales.receipts.max-size and the types it accepts)
 const RECEIPT_MAX_BYTES = 5 * 1024 * 1024
 const RECEIPT_TYPES = ["image/jpeg", "image/png", "application/pdf"]
 
-// El comprador puede cancelar mientras no se valido el pago
+// The buyer can cancel while the payment has not been validated
 const CANCELLABLE: OrderStatus[] = ["PENDIENTE_PAGO", "PAGO_EN_REVISION", "RECHAZADO"]
 
 interface OrderLocationState {
@@ -38,8 +38,8 @@ interface OrderLocationState {
   justCreated?: boolean
 }
 
-// Pantalla del pedido (/pedido/:number). El email sale del estado de la navegacion (checkout, consulta o "mis pedidos")
-// o de los pedidos guardados en este navegador; si no esta, se pide
+// Order screen (/pedido/:number). The email comes from the navigation state (checkout, lookup or "my orders")
+// or from the orders stored in this browser; if it is not there, it is asked for
 export default function OrderPage() {
   const { number: rawNumber = "" } = useParams()
   const number = normalizeOrderNumber(rawNumber)
@@ -50,7 +50,7 @@ export default function OrderPage() {
   const lookup = useOrderLookup(number, email)
   const notFound = axios.isAxiosError(lookup.error) && lookup.error.response?.status === 404
 
-  // Consultado con exito: se recuerda para volver a abrirlo sin el email
+  // Looked up successfully: it is remembered to open it again without the email
   useEffect(() => {
     if (lookup.data && email) rememberOrder(lookup.data.number, email)
   }, [lookup.data, email])
@@ -210,7 +210,7 @@ function OrderDetail({ order, email, justCreated }: { order: Order; email: strin
   )
 }
 
-// Cuenta regresiva hasta el vencimiento; se actualiza cada segundo mientras se muestra
+// Countdown to the expiry; updated every second while it is shown
 function useRemaining(expiresAt: string | null) {
   const target = expiresAt ? parseServerDateTime(expiresAt).getTime() : null
   const [now, setNow] = useState(() => Date.now())

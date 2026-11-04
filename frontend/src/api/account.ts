@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { User } from "@/lib/types"
 
-// Cuenta del usuario logueado en la tienda (/api/v1/auth)
+// Account of the user logged in to the store (/api/v1/auth)
 export const accountKeys = {
   me: ["me"] as const,
 }
@@ -15,7 +15,7 @@ export function useMe(enabled: boolean) {
   })
 }
 
-// Contrasena undefined = no se cambia. El email no se puede cambiar
+// Password undefined = not changed. The email cannot be changed
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -25,8 +25,8 @@ export function useUpdateProfile() {
 }
 
 /*
-Recupero de contrasena (sin sesion). Pedir el mail responde lo mismo exista o no el email. El link del mail lleva a
-/reset-password?token=: vale 15 minutos y una sola vez (401 si vencio o ya se uso)
+Password recovery (no session). Requesting the email responds the same whether the email exists or not. The email link goes to
+/reset-password?token=: valid for 15 minutes and only once (401 if it expired or was already used)
  */
 export function useRequestPasswordReset() {
   return useMutation({
@@ -37,12 +37,12 @@ export function useRequestPasswordReset() {
 export function useResetPassword() {
   return useMutation({
     mutationFn: ({ token, newPassword }: { token: string; newPassword: string }) =>
-      // Un 401 es el link vencido o usado, no la sesion: no se renueva ni se cierra la sesion abierta
+      // A 401 means the link expired or was used, not the session: the open session is neither renewed nor closed
       api.post(`/auth/forgot-password/${encodeURIComponent(token)}`, { newPassword }, { skipRefresh: true, skipSessionExpiry: true }),
   })
 }
 
-// 409 si es el ultimo ADMINISTRADOR de la tienda
+// 409 if it is the store's last ADMINISTRADOR
 export function useDeleteAccount() {
   return useMutation({
     mutationFn: () => api.delete("/auth/me"),

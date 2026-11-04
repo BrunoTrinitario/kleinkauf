@@ -10,7 +10,7 @@ import type {
   CatalogSort,
 } from "@/lib/types"
 
-// Catalogo publico (/api/v1/catalog): sin login. Cualquier cambio de productos invalida "catalog"
+// Public catalog (/api/v1/catalog): no login. Any product change invalidates "catalog"
 export const catalogKeys = {
   all: ["catalog"] as const,
   categories: () => [...catalogKeys.all, "categories"] as const,
@@ -25,7 +25,7 @@ export interface CatalogParams {
   page?: number
 }
 
-// Sin categorias el catalogo sigue funcionando, solo sin el filtro: no se avisa el error
+// Without categories the catalog keeps working, just without the filter: the error is not shown
 export function useCatalogCategories() {
   return useQuery({
     queryKey: catalogKeys.categories(),
@@ -34,7 +34,7 @@ export function useCatalogCategories() {
   })
 }
 
-// Al cambiar de pagina o filtro se sigue mostrando la pagina anterior hasta que llega la nueva
+// When changing page or filter the previous page keeps showing until the new one arrives
 export function useCatalogProducts(params: CatalogParams) {
   return useQuery({
     queryKey: catalogKeys.products(params),
@@ -49,7 +49,7 @@ export function useCatalogProducts(params: CatalogParams) {
   })
 }
 
-// Destacados de la home, en el orden que eligio la tienda
+// Home page featured products, in the order the store chose
 export function useCatalogFeatured() {
   return useQuery({
     queryKey: [...catalogKeys.all, "featured"],
@@ -57,7 +57,7 @@ export function useCatalogFeatured() {
   })
 }
 
-// Combos que se pueden comprar (habilitados, con precio y productos vigentes)
+// Bundles that can be bought (enabled, with a price and available products)
 export function useCatalogBundles() {
   return useQuery({
     queryKey: [...catalogKeys.all, "bundles"],
@@ -65,7 +65,7 @@ export function useCatalogBundles() {
   })
 }
 
-// Detalle por slug (metadatos e imagenes en orden): lo piden el modal y la pagina del producto
+// Detail by slug (metadata and images in order): requested by the modal and the product page
 export function useCatalogProduct(slug: string, enabled: boolean) {
   return useQuery({
     queryKey: catalogKeys.product(slug),

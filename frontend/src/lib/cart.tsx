@@ -2,9 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { OrderItemType, PriceChange } from "./types"
 
 /*
-Carrito de la tienda, guardado en localStorage. Cada tienda es un subdominio (otro origen), asi que cada una tiene el
-suyo. El precio es el que vio el comprador: el backend pone el real y responde 409 si cambio (ver docs/backend/sales.md).
-Los topes son los del pedido online (GET /sales/checkout los confirma): 30 lineas y 20 unidades por linea.
+Store cart, stored in localStorage. Each store is a subdomain (another origin), so each one has its
+own. The price is the one the buyer saw: the backend sets the real one and responds 409 if it changed (see docs/backend/sales.md).
+The limits are those of the online order (GET /sales/checkout confirms them): 30 lines and 20 units per line.
  */
 
 export const MAX_LINES = 30
@@ -15,7 +15,7 @@ export interface CartItem {
   id: number
   name: string
   price: number
-  // Primera imagen (nombre de archivo) y slug del producto, para mostrarlo en el carrito
+  // First image (file name) and product slug, to show it in the cart
   image: string | null
   slug: string | null
   quantity: number
@@ -23,7 +23,7 @@ export interface CartItem {
 
 export type NewCartItem = Omit<CartItem, "quantity">
 
-// Resultado de agregar: "limit" = se llego al tope de unidades o de lineas
+// Result of adding: "limit" = the unit or line limit was reached
 export type AddResult = "added" | "limit"
 
 interface CartContextType {
@@ -34,7 +34,7 @@ interface CartContextType {
   setQuantity: (type: OrderItemType, id: number, quantity: number) => void
   remove: (type: OrderItemType, id: number) => void
   clear: () => void
-  // Aplica los precios nuevos de un 409; un item que ya no tiene precio se saca del carrito
+  // Applies the new prices from a 409; an item that no longer has a price is removed from the cart
   applyPriceChanges: (changes: PriceChange[]) => void
 }
 
@@ -46,7 +46,7 @@ const sameItem = (item: CartItem, type: OrderItemType, id: number) => item.type 
 
 const clampQuantity = (quantity: number) => Math.min(MAX_QUANTITY, Math.max(1, Math.floor(quantity)))
 
-// localStorage puede no estar (modo privado, bloqueado) o tener basura: el carrito arranca vacio
+// localStorage may be missing (private mode, blocked) or contain garbage: the cart starts empty
 function readStoredCart(): CartItem[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
@@ -78,7 +78,7 @@ function writeStoredCart(items: CartItem[]) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
     }
   } catch {
-    // Sin localStorage el carrito sigue andando mientras la pagina este abierta
+    // Without localStorage the cart keeps working while the page stays open
   }
 }
 
@@ -89,7 +89,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     writeStoredCart(items)
   }, [items])
 
-  // Otra pestana de la misma tienda cambio el carrito
+  // Another tab of the same store changed the cart
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY) setItems(readStoredCart())
@@ -104,7 +104,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (current) {
         if (current.quantity >= MAX_QUANTITY) return "limit"
         const next = Math.min(MAX_QUANTITY, current.quantity + quantity)
-        // Se actualizan nombre, precio e imagen con lo ultimo que vio el comprador
+        // Name, price and image are updated with the latest the buyer saw
         setItems((prev) => prev.map((existing) => (sameItem(existing, item.type, item.id) ? { ...item, quantity: next } : existing)))
         return next - current.quantity < quantity ? "limit" : "added"
       }

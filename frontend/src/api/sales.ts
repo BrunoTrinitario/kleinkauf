@@ -22,7 +22,7 @@ import type {
 } from "@/lib/types"
 import type { SalesSummary } from "@/api/dashboard"
 
-// Un renglon del ranking: revenue es antes del descuento del pedido; profit es mas alta de lo real si unitsWithoutCost > 0
+// A ranking row: revenue is before the order discount; profit is higher than the real one if unitsWithoutCost > 0
 export interface SalesRankingRow {
   type: "PRODUCT" | "BUNDLE"
   id: number
@@ -34,7 +34,7 @@ export interface SalesRankingRow {
   unitsWithoutCost: number
 }
 
-// Compra online (/api/v1/sales, docs/backend/sales.md). Lo del comprador va por numero + email, sin login
+// Online purchase (/api/v1/sales, docs/backend/sales.md). Buyer operations go by number + email, without login
 export const salesKeys = {
   all: ["sales"] as const,
   checkout: () => [...salesKeys.all, "checkout"] as const,
@@ -47,7 +47,7 @@ export const salesKeys = {
   settings: () => [...salesKeys.admin(), "settings"] as const,
 }
 
-// Datos para transferir, plazo y topes. paymentConfigured false = la tienda todavia no vende online
+// Transfer details, deadline and limits. paymentConfigured false = the store does not sell online yet
 export function useCheckoutInfo() {
   return useQuery({
     queryKey: salesKeys.checkout(),
@@ -56,12 +56,12 @@ export function useCheckoutInfo() {
   })
 }
 
-// 409 con JSON items = cambiaron precios (el pedido no se creo); 409 con texto = sin stock, no disponible o sin precio
+// 409 with JSON items = prices changed (the order was not created); 409 with text = no stock, not available or no price
 export function useCreateOrder() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (order: NewOrder) => api.post<CreatedOrder>("/sales/orders", order).then((response) => response.data),
-    // Mis pedidos y la disponibilidad del catalogo cambian (el pedido reserva stock)
+    // My orders and the catalog availability change (the order reserves stock)
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...salesKeys.all, "mine"] })
       queryClient.invalidateQueries({ queryKey: ["catalog"] })
@@ -75,8 +75,8 @@ export function priceChangesOf(error: unknown): PriceChange[] | null {
   return data && typeof data === "object" && Array.isArray(data.items) ? (data.items as PriceChange[]) : null
 }
 
-// Por POST para que el email no quede en la URL. Se vuelve a pedir cada vez que se abre la pantalla (el estado lo
-// cambia la tienda), pero no al volver a la pestana: rate limit de 10 por minuto, compartido con cancelar
+// By POST so the email does not end up in the URL. It is requested again every time the screen opens (the store
+// changes the status), but not when returning to the tab: rate limit of 10 per minute, shared with cancelling
 export function useOrderLookup(number: string, email: string | null) {
   return useQuery({
     queryKey: salesKeys.order(number, email ?? ""),
@@ -89,8 +89,8 @@ export function useOrderLookup(number: string, email: string | null) {
   })
 }
 
-// Las respuestas de comprobante y cancelar son el pedido actualizado: se deja en la cache de la consulta.
-// returnsStock: cancelar devuelve el stock, asi que cambia la disponibilidad del catalogo
+// The receipt and cancel responses are the updated order: it is left in the lookup's cache.
+// returnsStock: cancelling returns the stock, so the catalog availability changes
 function useOrderUpdate<TVariables>(
   mutationFn: (variables: TVariables) => Promise<Order>,
   email: string,
@@ -107,7 +107,7 @@ function useOrderUpdate<TVariables>(
   })
 }
 
-// Pasa a PAGO_EN_REVISION. JPG, PNG o PDF de hasta 5 MB (el backend mira el contenido)
+// Moves to PAGO_EN_REVISION. JPG, PNG or PDF up to 5 MB (the backend checks the content)
 export function useUploadReceipt(number: string, email: string) {
   return useOrderUpdate((file: File) => {
     const form = new FormData()
@@ -119,7 +119,7 @@ export function useUploadReceipt(number: string, email: string) {
   }, email)
 }
 
-// Solo mientras no se valido el pago. Devuelve el stock
+// Only while the payment has not been validated. Returns the stock
 export function useCancelOrder(number: string, email: string) {
   return useOrderUpdate<void>(
     () =>
@@ -131,7 +131,7 @@ export function useCancelOrder(number: string, email: string) {
   )
 }
 
-// Pedidos del usuario logueado, mas nuevos primero
+// Orders of the logged-in user, newest first
 export function useMyOrders(page: number, enabled: boolean) {
   return useQuery({
     queryKey: salesKeys.mine(page),
@@ -144,8 +144,8 @@ export function useMyOrders(page: number, enabled: boolean) {
 }
 
 /*
-Panel de ventas (solo ADMINISTRADOR, docs/ventas.md). Las keys cuelgan de ["sales"], asi un cambio de estado tambien
-actualiza el resumen del panel (/admin) y "mis pedidos".
+Sales dashboard (ADMINISTRADOR only, docs/ventas.md). The keys hang from ["sales"], so a status change also
+updates the dashboard overview (/admin) and "my orders".
  */
 
 const ADMIN_PAGE_SIZE = 20
@@ -173,7 +173,7 @@ export function useAdminOrders(filters: AdminOrderFilters) {
   })
 }
 
-// Comprobantes por revisar: el contador del menu. Se vuelve a mirar cada minuto
+// Receipts to review: the menu counter. Checked again every minute
 export function usePendingReviewCount(enabled: boolean) {
   return useQuery({
     queryKey: salesKeys.pendingReview(),
@@ -198,8 +198,8 @@ export function useAdminOrder(number: string) {
 }
 
 /*
-Validar, rechazar, avanzar o cancelar. reason es obligatorio para RECHAZADO y CANCELADO.
-409: el cambio no corresponde o alguien lo cambio mientras tanto. 503: products no respondio (el pedido no cambio)
+Validate, reject, advance or cancel. reason is required for RECHAZADO and CANCELADO.
+409: the change does not apply or someone changed it in the meantime. 503: products did not answer (the order did not change)
  */
 export function useChangeOrderStatus(number: string) {
   const queryClient = useQueryClient()
@@ -214,14 +214,14 @@ export function useChangeOrderStatus(number: string) {
     onSuccess: (order) => {
       queryClient.setQueryData(salesKeys.adminOrder(order.number), order)
       queryClient.invalidateQueries({ queryKey: salesKeys.all })
-      // Cancelar devuelve stock y validar suma vendidos: cambia el catalogo y el stock del panel
+      // Cancelling returns stock and validating adds to sold: the catalog and the dashboard stock change
       queryClient.invalidateQueries({ queryKey: ["catalog"] })
       queryClient.invalidateQueries({ queryKey: ["products"] })
     },
   })
 }
 
-// El comprobante pide el token: se baja como blob y se muestra o descarga desde una URL local
+// The receipt requires the token: it is downloaded as a blob and shown or downloaded from a local URL
 export async function fetchReceipt(number: string, id: number): Promise<Blob> {
   const response = await api.get<Blob>(
     `/sales/admin/orders/${encodeURIComponent(normalizeOrderNumber(number))}/receipts/${id}`,
@@ -238,7 +238,7 @@ export function useSalesSettings(enabled = true) {
   })
 }
 
-// Cambia lo que ve el checkout (datos para transferir y plazo)
+// Changes what the checkout shows (transfer details and deadline)
 export function useUpdateSalesSettings() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -252,9 +252,9 @@ export function useUpdateSalesSettings() {
 }
 
 /*
-Venta del local (ya cobrada). Reserva el stock como una venta: si falta, products registra un ajuste y el pedido queda
-con stockReview. 400: datos invalidos o productos "a consultar" sin precio. 409: un item no existe o no esta
-disponible. 503: products no respondio
+In-store sale (already charged). Reserves the stock like a sale: if it is short, products records an adjustment and the order
+gets stockReview. 400: invalid data or "a consultar" products without a price. 409: an item does not exist or is not
+available. 503: products did not answer
  */
 export function useCreateLocalSale() {
   const queryClient = useQueryClient()
@@ -271,7 +271,7 @@ export function useCreateLocalSale() {
   })
 }
 
-// Reportes: dias de la tienda (yyyy-MM-dd, inclusive), hasta 366. Vacio = todos los canales / medios de pago
+// Reports: store days (yyyy-MM-dd, inclusive), up to 366. Empty = all channels / payment methods
 export interface SalesReportFilters {
   from: string
   to: string
@@ -302,7 +302,7 @@ export function useSalesReport(filters: SalesReportFilters, enabled = true) {
 
 export type RankingSort = "units" | "revenue" | "profit"
 
-// revenue del ranking: subtotales de las lineas, antes del descuento del pedido
+// Ranking revenue: line subtotals, before the order discount
 export function useSalesRanking(
   filters: { from: string; to: string; channel: OrderChannel | ""; sort: RankingSort },
   enabled = true
@@ -326,7 +326,7 @@ export function useSalesRanking(
   })
 }
 
-// Nombres de los usuarios del historial (GET /users/{id}, solo ADMINISTRADOR). Un usuario borrado queda sin nombre
+// Names of the history users (GET /users/{id}, ADMINISTRADOR only). A deleted user ends up without a name
 export function useUserNames(ids: number[]): Record<number, string | undefined> {
   const unique = [...new Set(ids)]
   const results = useQueries({

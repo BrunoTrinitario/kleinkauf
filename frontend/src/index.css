@@ -6,8 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Tema basado en STYLES.md: lienzo cálido de piedra, neutros de la escala stone
- * y un único acento cian. Solo tema claro.
+ * Theme based on STYLES.md: a warm stone canvas, neutrals from the stone scale
+ * and a single cyan accent. Light theme only.
  */
 
 :root {
@@ -98,7 +98,7 @@
   --color-cyan-signal: #3ba6f1;
   --color-cyan-edge: #3398e1;
 
-  /* Escala tipográfica */
+  /* Type scale */
   --text-caption: 10px;
   --text-caption--line-height: 2.3;
   --text-body-lg: 16px;
@@ -154,7 +154,7 @@
   max-width: 1200px;
 }
 
-/* Input number sin las flechitas (se escribe el valor) */
+/* Number inputs without the spinner arrows (the value is typed) */
 @utility no-spinner {
   appearance: textfield;
   -moz-appearance: textfield;

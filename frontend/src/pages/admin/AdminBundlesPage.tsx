@@ -51,9 +51,9 @@ const invalidPricingMessage = (draft: PricingDraft) =>
   draft.type === "FIXED" ? strings.adminBundles.invalidPrice : strings.adminBundles.invalidDiscount
 
 /*
-Precio del combo: precio fijo, % de descuento o $ de descuento sobre la suma de los productos (listPrice, null si
-alguno no tiene precio). Con descuento muestra el precio final mientras se escribe. action va al lado del campo
-(guardar en la tarjeta; "usar la suma" en el alta)
+Bundle price: fixed price, % discount or $ discount over the sum of the products (listPrice, null if
+any has no price). With a discount it shows the final price while typing. action goes next to the field
+(save on the card; "use the sum" when creating)
 */
 function PricingFields({
   id,
@@ -68,7 +68,7 @@ function PricingFields({
   listPrice: number | null
   action?: React.ReactNode
 }) {
-  // Lo escrito en cada tipo: al ir de "% de descuento" a "Precio fijo" y volver, el porcentaje sigue ahi
+  // What was typed for each type: going from "% de descuento" to "Precio fijo" and back, the percentage is still there
   const valuesByType = useRef<Partial<Record<BundlePricingType, string>>>({})
   const selectType = (type: BundlePricingType) => {
     if (type === draft.type) return
@@ -146,7 +146,7 @@ function PricingFields({
   )
 }
 
-// Abre con cualquier area del panel (RequireArea en App.tsx); crear, cambiar y borrar piden COMBOS
+// Opens with any dashboard area (RequireArea in App.tsx); creating, changing and deleting require COMBOS
 export default function AdminBundlesPage() {
   const { user, can } = useAuth()
   const canEdit = can("COMBOS")
@@ -236,7 +236,7 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
   const [pricing, setPricing] = useState<PricingDraft>(saved)
   const [priceError, setPriceError] = useState<string | null>(null)
 
-  // Al guardar (o si otro lo cambia) se vuelve a lo guardado
+  // On save (or if someone else changes it) it goes back to what was saved
   useEffect(() => {
     setPricing(saved)
   }, [saved.type, saved.value])
@@ -370,7 +370,7 @@ function BundleCard({ bundle, canEdit, onDelete }: { bundle: Bundle; canEdit: bo
   )
 }
 
-// La cantidad se guarda al salir del campo o con Enter; 0 o vacio no se acepta (para eso se quita)
+// The quantity is saved when leaving the field or with Enter; 0 or empty is not accepted (removing is for that)
 function BundleProductRow({ bundleId, item, canEdit }: { bundleId: number; item: BundleProduct; canEdit: boolean }) {
   const setProduct = useSetBundleProduct()
   const removeProduct = useRemoveBundleProduct()
@@ -449,7 +449,7 @@ function BundleProductRow({ bundleId, item, canEdit }: { bundleId: number; item:
   )
 }
 
-// Busca entre los productos del panel; elegir uno lo agrega con cantidad 1 (si ya estaba, se cambia en su fila)
+// Searches among the dashboard products; choosing one adds it with quantity 1 (if it was already there, it is changed in its row)
 function AddBundleProduct({ bundle }: { bundle: Bundle }) {
   const [search, setSearch] = useState("")
   const query = useDebouncedValue(search.trim())
@@ -504,7 +504,7 @@ function AddBundleProduct({ bundle }: { bundle: Bundle }) {
   )
 }
 
-// Producto elegido en el dialogo de creacion: guarda lo que hace falta para mostrarlo sin volver a buscarlo
+// Product chosen in the creation dialog: keeps what is needed to show it without searching for it again
 interface DraftProduct {
   id: string
   name: string
@@ -525,7 +525,7 @@ function ProductThumb({ image }: { image: string | null }) {
   )
 }
 
-// Hasta 3 imagenes de los productos del combo, encimadas; sin imagenes, el icono de combos
+// Up to 3 images of the bundle's products, stacked; without images, the bundles icon
 function BundleThumbs({ products }: { products: BundleProduct[] }) {
   const images = products.map((product) => product.image).filter((image): image is string => !!image).slice(0, 3)
   if (images.length === 0) {
@@ -550,7 +550,7 @@ function BundleThumbs({ products }: { products: BundleProduct[] }) {
   )
 }
 
-// Se crea en un solo paso: nombre, productos y por ultimo el precio (con la suma de los productos como referencia)
+// Created in a single step: name, products and finally the price (with the sum of the products as a reference)
 function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const createBundle = useCreateBundle()
   const [name, setName] = useState("")
@@ -565,10 +565,10 @@ function CreateBundleDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const chosen = new Set(products.map((product) => product.id))
   const options = (results.data?.items ?? []).filter((product) => !chosen.has(String(product.id))).slice(0, 5)
 
-  // Suma de precio x cantidad; los productos sin precio no suman (se avisa abajo)
+  // Sum of price x quantity; products without a price do not add up (flagged below)
   const total = products.reduce((sum, product) => sum + (product.price ?? 0) * product.quantity, 0)
   const missingPrice = products.some((product) => product.price == null)
-  // Como en el backend: con algun producto sin precio no hay suma (un descuento deja el combo sin precio)
+  // As in the backend: with any product without a price there is no sum (a discount leaves the bundle without a price)
   const listPrice = products.length > 0 && !missingPrice ? total : null
 
   useEffect(() => {

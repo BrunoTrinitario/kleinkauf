@@ -15,22 +15,22 @@ interface AuthContextType {
   isLoading: boolean
   login: (credentials: LoginUserDto) => Promise<LoggedUser>
   register: (email: string, password: string, name: string) => Promise<void>
-  // Cierra la sesion y va a redirectTo (por defecto la home de la tienda o el login de la plataforma)
+  // Closes the session and goes to redirectTo (by default the store home page or the platform login)
   logout: (redirectTo?: string) => void
   switchRole: (role: UserRole) => void
-  // Areas del rol activo (ver lib/permissions.ts)
+  // Areas of the active role (see lib/permissions.ts)
   can: (area: PermissionArea) => boolean
-  // Destino de un cierre de sesion en curso (null si no hay): las rutas protegidas van ahi y no al login
+  // Destination of a logout in progress (null if none): protected routes go there and not to login
   signedOutTo: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const AUTH_TOKEN_COOKIE = "auth_token"
-// Refresh token de la tienda: dura 7 dias y renueva el de 1 hora (POST /auth/refresh)
+// Store refresh token: lasts 7 days and renews the 1-hour one (POST /auth/refresh)
 const REFRESH_TOKEN_COOKIE = "auth_refresh"
 
-// Segundos hasta que vence el JWT (claim exp); null si no se puede leer
+// Seconds until the JWT expires (exp claim); null if it cannot be read
 const secondsUntilExpiry = (token: string): number | null => {
   try {
     const payload = token.split(".")[1]
@@ -47,7 +47,7 @@ const isExpired = (token: string) => {
   return seconds !== null && seconds <= 0
 }
 
-// Cada cookie dura lo mismo que su token: vencido el token no tiene sentido guardarlo
+// Each cookie lasts as long as its token: once the token expires there is no point keeping it
 const setCookie = (name: string, token: string) => {
   const maxAge = Math.max(secondsUntilExpiry(token) ?? 60 * 60, 0)
   document.cookie = `${name}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
@@ -78,15 +78,15 @@ const clearAuthCookie = () => {
   document.cookie = `${REFRESH_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`
 }
 
-// La plataforma no tiene /auth/me (esa ruta es de las tiendas): el superadmin se guarda entero al loguearse,
-// con el refresh token. Si el token vence, la primera llamada al panel lo renueva
+// The platform has no /auth/me (that route belongs to the stores): the whole superadmin is stored on login,
+// with the refresh token. If the token expires, the first dashboard call renews it
 const PLATFORM_USER_KEY = "platform_user"
 
 const savePlatformUser = (user: LoggedUser) => {
   try {
     localStorage.setItem(PLATFORM_USER_KEY, JSON.stringify(user))
   } catch {
-    // Sin storage la sesion dura hasta recargar
+    // Without storage the session lasts until reload
   }
 }
 
@@ -94,7 +94,7 @@ const loadPlatformUser = (): LoggedUser | null => {
   try {
     const raw = localStorage.getItem(PLATFORM_USER_KEY)
     const user = raw ? (JSON.parse(raw) as LoggedUser) : null
-    // Con el token vencido sigue valiendo mientras el refresh no venza: se renueva en la primera llamada
+    // With the token expired it is still valid while the refresh token has not expired: it is renewed on the first call
     return user && (!isExpired(user.token) || (!!user.refreshToken && !isExpired(user.refreshToken))) ? user : null
   } catch {
     return null
@@ -105,11 +105,11 @@ const clearPlatformUser = () => {
   try {
     localStorage.removeItem(PLATFORM_USER_KEY)
   } catch {
-    // nada que borrar
+    // nothing to delete
   }
 }
 
-// Token guardado al arrancar: el de la cookie en una tienda, el del superadmin en la plataforma
+// Token stored at startup: the cookie one in a store, the superadmin's on the platform
 const storedToken = (): string | null => {
   if (IS_PLATFORM) {
     return loadPlatformUser()?.token ?? null
@@ -118,7 +118,7 @@ const storedToken = (): string | null => {
   return token && !isExpired(token) ? token : null
 }
 
-// Refresh token guardado (sin vencer): el de la cookie en una tienda, el del superadmin en la plataforma
+// Stored refresh token (not expired): the cookie one in a store, the superadmin's on the platform
 const storedRefreshToken = (): string | null => {
   const token = IS_PLATFORM ? loadPlatformUser()?.refreshToken ?? null : getCookie(REFRESH_TOKEN_COOKIE)
   return token && !isExpired(token) ? token : null
@@ -128,7 +128,7 @@ const LOGIN_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/login` : "/auth/login"
 const REFRESH_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/refresh` : "/auth/refresh"
 const LOGOUT_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/auth/logout` : "/auth/logout"
 
-// Login que despues vuelve a la pagina indicada (por defecto, la actual)
+// Login that then goes back to the given page (by default, the current one)
 export function loginUrl(next: string = window.location.pathname + window.location.search): string {
   return next === "/" || next.startsWith("/login") ? "/login" : `/login?next=${encodeURIComponent(next)}`
 }
@@ -139,16 +139,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<LoggedUser | null>(null)
   const [activeRole, setActiveRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  // El cliente HTTP lee el token de aca: se actualiza antes que el estado para que la proxima llamada ya lo use
+  // The HTTP client reads the token from here: it is updated before the state so the next call already uses it
   const tokenRef = useRef<string | null>(storedToken())
-  // Renovacion en curso: si fallan varias llamadas juntas, todas esperan la misma
+  // Renewal in progress: if several calls fail together, they all wait for the same one
   const refreshingRef = useRef<Promise<string | null> | null>(null)
-  // A donde ir despues de cerrar la sesion. Dura hasta llegar ahi: las rutas protegidas tambien redirigen al
-  // quedarse sin usuario, y mientras tanto van al mismo destino (si no, la ultima navegacion pisa a la otra)
+  // Where to go after logging out. Lasts until getting there: protected routes also redirect when
+  // left without a user, and in the meantime they go to the same destination (otherwise, the last navigation overrides the other)
   const [signedOutTo, setSignedOutTo] = useState<string | null>(null)
   const location = useLocation()
 
-  // Los datos cargados son del usuario que sale: el proximo no los tiene que ver
+  // The loaded data belongs to the user leaving: the next one must not see it
   const clearSession = useCallback(() => {
     tokenRef.current = null
     clearAuthCookie()
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient])
 
   const logout = useCallback((to: string = IS_PLATFORM ? "/login" : "/") => {
-    // Corta el refresh en el backend (si no, sirve hasta que vence). No se espera: se sale igual si falla
+    // Revokes the refresh token in the backend (otherwise it works until it expires). Not awaited: it logs out anyway if it fails
     const refreshToken = storedRefreshToken()
     if (refreshToken) {
       api.post(LOGOUT_PATH, { refreshToken }, { skipRefresh: true, skipSessionExpiry: true }).catch(() => {})
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSignedOutTo(to)
   }, [clearSession])
 
-  // Pide tokens nuevos con el refresh guardado. Los roles tambien vuelven al dia
+  // Requests new tokens with the stored refresh token. The roles are brought up to date too
   const refreshSession = useCallback((): Promise<string | null> => {
     if (refreshingRef.current) {
       return refreshingRef.current
@@ -197,8 +197,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return refreshingRef.current
   }, [])
 
-  // Un 401 de una llamada con token que no se pudo renovar: se cierra la sesion y se vuelve al login,
-  // que despues trae de vuelta aca
+  // A 401 from a call with a token that could not be renewed: the session is closed and it goes back to login,
+  // which then brings the user back here
   useEffect(() => {
     configureApiSession({
       getToken: () => tokenRef.current,
@@ -237,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Sin token de 1 hora (vencio) pero con refresh: se renueva antes de cargar el usuario
+    // No 1-hour token (it expired) but with a refresh token: it is renewed before loading the user
     if (!tokenRef.current && !storedRefreshToken()) {
       clearAuthCookie()
       setIsLoading(false)
@@ -253,7 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearAuthCookie()
           return
         }
-        // Un token que ya no vale al arrancar solo borra la sesion: el visitante sigue en la pagina que abrio
+        // A token that is no longer valid at startup only clears the session: the visitor stays on the page they opened
         const response = await api.get<User>("/auth/me", { skipSessionExpiry: true })
         if (!isMounted) {
           return
@@ -264,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: Number(me.id),
           name: me.name,
           email: me.email,
-          // Si /auth/me tuvo que renovar la sesion, el token vigente es el nuevo
+          // If /auth/me had to renew the session, the current token is the new one
           token: tokenRef.current ?? token,
           roles: me.roles,
         }

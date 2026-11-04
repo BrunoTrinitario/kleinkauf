@@ -11,10 +11,10 @@ interface AdminCsvDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-// Mismo limite que el backend (5 MB): un archivo mas grande ni se manda
+// Same limit as the backend (5 MB): a larger file is not even sent
 const MAX_CSV_BYTES = 5 * 1024 * 1024
 
-// Importar y exportar el catalogo en CSV (PRODUCTOS y PRECIOS: el archivo trae costos). Formato en docs/backend/products.md
+// Import and export the catalog as CSV (PRODUCTOS and PRECIOS: the file carries costs). Format in docs/backend/products.md
 export function AdminCsvDialog({ open, onOpenChange }: AdminCsvDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)

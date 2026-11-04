@@ -7,16 +7,16 @@ import { useCart, type NewCartItem } from "@/lib/cart"
 import { Button } from "@/components/ui/button"
 
 interface AddToCartButtonProps {
-  // price null = "consultar precio": no se puede comprar online
+  // price null = "consultar precio": cannot be bought online
   item: Omit<NewCartItem, "price"> & { price: number | null }
   availability: Availability
   className?: string
-  // En las tarjetas del listado: sin precio no se muestra nada (la tarjeta ya dice "Consultar precio").
-  // El boton es el mismo en todos lados (azul, tamano normal)
+  // On listing cards: without a price nothing is shown (the card already says "Consultar precio").
+  // The button is the same everywhere (blue, normal size)
   compact?: boolean
 }
 
-// Agotado o sin precio no se agrega (el backend igual lo rechazaria). El stock real lo confirma el pedido
+// Out of stock or without a price it is not added (the backend would reject it anyway). The order confirms the real stock
 export function AddToCartButton({ item, availability, className, compact = false }: AddToCartButtonProps) {
   const { add } = useCart()
   const navigate = useNavigate()

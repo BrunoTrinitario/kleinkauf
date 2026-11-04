@@ -4,14 +4,14 @@ import { IS_PLATFORM } from "./platform"
 import { strings } from "./strings"
 import { reportTenantError } from "./tenant-status"
 
-// Cliente unico para hablarle al gateway. El tenant lo reconoce el gateway por el Origin, que el navegador manda solo
+// Single client to talk to the gateway. The gateway recognizes the tenant by the Origin, which the browser sends on its own
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_PUBLIC ?? "http://localhost:3000"
 
 declare module "axios" {
   interface AxiosRequestConfig {
-    // Un 401 de esta llamada no cierra la sesion ni manda al login (ej. la carga inicial de /auth/me)
+    // A 401 from this call does not close the session or go to login (e.g. the initial /auth/me load)
     skipSessionExpiry?: boolean
-    // Un 401 de esta llamada no intenta renovar la sesion (la propia renovacion, o un reintento que ya la renovo)
+    // A 401 from this call does not try to renew the session (the renewal itself, or a retry that already renewed it)
     skipRefresh?: boolean
   }
 }
@@ -21,17 +21,17 @@ export const api = axios.create({
   timeout: 15000,
 })
 
-// Panel de la plataforma (superadmin): mismas reglas, rutas bajo /api/v1/platform
+// Platform dashboard (superadmin): same rules, routes under /api/v1/platform
 export const PLATFORM_PATH = "/platform"
 
-// Las imagenes se sirven sin tenant y fuera de /api/v1 (ver docs/backend/products.md)
+// Images are served without a tenant and outside /api/v1 (see docs/backend/products.md)
 export const productImageUrl = (fileName: string) => `${API_BASE_URL}/products/images/${fileName}`
 
 interface ApiSession {
   getToken: () => string | null
-  // Renueva la sesion con el refresh token: el token nuevo, o null si no se pudo (no hay, vencio o ya no vale)
+  // Renews the session with the refresh token: the new token, or null if it could not (there is none, it expired or is no longer valid)
   refresh: () => Promise<string | null>
-  // Un 401 de una llamada que llevaba el token y no se pudo renovar: la sesion se termino
+  // A 401 from a call that carried the token and could not be renewed: the session is over
   onSessionExpired: () => void
 }
 
@@ -41,7 +41,7 @@ let session: ApiSession = {
   onSessionExpired: () => {},
 }
 
-// Lo llama AuthProvider: el cliente no sabe de React, solo de donde sacar el token y a quien avisar
+// Called by AuthProvider: the client knows nothing about React, only where to get the token and whom to notify
 export function configureApiSession(next: ApiSession) {
   session = next
 }
@@ -59,7 +59,7 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(undefined, async (error) => {
-  // El token de 1 hora vencio: se renueva con el refresh y se repite la llamada una vez
+  // The 1-hour token expired: it is renewed with the refresh token and the call is repeated once
   const config = axios.isAxiosError(error) ? error.config : undefined
   if (
     config &&
@@ -80,16 +80,16 @@ api.interceptors.response.use(undefined, async (error) => {
   if (!IS_PLATFORM) {
     reportTenantError(error)
   }
-  // Rate limit del gateway (ventanas de 1 minuto): un solo aviso aunque fallen varias llamadas juntas.
-  // El id es el mismo mensaje que usa notifyError, asi una pantalla que tambien lo avisa no lo repite
+  // Gateway rate limit (1-minute windows): a single notice even if several calls fail together.
+  // The id is the same message notifyError uses, so a screen that also reports it does not repeat it
   if (axios.isAxiosError(error) && error.response?.status === 429) {
     toast.error(strings.errors.tooManyRequests, { id: strings.errors.tooManyRequests })
   }
   return Promise.reject(error)
 })
 
-// true si el error es un 401 que cierra la sesion: la pantalla no tiene que mostrar nada mas.
-// Sin token es un 401 del propio pedido (ej. credenciales invalidas en el login) y lo maneja la pantalla
+// true if the error is a 401 that closes the session: the screen does not have to show anything else.
+// Without a token it is a 401 of the request itself (e.g. invalid credentials on login) and the screen handles it
 export function isSessionExpired(error: unknown): boolean {
   return (
     axios.isAxiosError(error) &&

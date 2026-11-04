@@ -14,7 +14,7 @@ import type {
   TenantUsersUsage,
 } from "@/lib/types"
 
-// Panel de la plataforma (/api/v1/platform): solo SUPERADMIN, sin tienda
+// Platform dashboard (/api/v1/platform): SUPERADMIN only, no store
 export const platformKeys = {
   all: ["platform"] as const,
   dashboard: (range: PeriodRange) => [...platformKeys.all, "dashboard", range] as const,
@@ -36,7 +36,7 @@ export function usePlatformDashboard(range: PeriodRange, enabled: boolean) {
   })
 }
 
-// Cada servicio arma su parte del uso por tienda: si products falla, la tabla sale igual sin sus columnas
+// Each service builds its part of the per-store usage: if products fails, the table still shows without its columns
 export function usePlatformUsersUsage(enabled: boolean) {
   return useQuery({
     queryKey: platformKeys.usersUsage(),
@@ -63,7 +63,7 @@ export function usePlatformTenants(enabled: boolean) {
   })
 }
 
-// Un alta, baja o cambio de estado tambien cambia el resumen y el uso por tienda
+// A creation, deletion or status change also changes the overview and the per-store usage
 const invalidatePlatform = (queryClient: ReturnType<typeof useQueryClient>) =>
   queryClient.invalidateQueries({ queryKey: platformKeys.all })
 
@@ -102,7 +102,7 @@ export function useSuperadmins(enabled: boolean) {
   })
 }
 
-// 409: es el ultimo superadmin activo
+// 409: it is the last active superadmin
 export function useSetSuperadminActive() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -134,7 +134,7 @@ export function useBugReports(status: BugReportStatus, page: number, enabled: bo
   })
 }
 
-// Cambia de lista (pendientes / resueltos) y el contador de pendientes
+// Changes the list (pending / resolved) and the pending counter
 export function useSetBugReportResolved() {
   const queryClient = useQueryClient()
   return useMutation({

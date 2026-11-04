@@ -22,7 +22,7 @@ const NAV = [
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `text-sm transition-colors ${isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`
 
-// Header del panel de la plataforma: sin catalogo, roles de tienda ni configuracion de cuenta
+// Platform dashboard header: no catalog, store roles or account settings
 export function PlatformHeader() {
   const { user, logout } = useAuth()
 
@@ -64,7 +64,7 @@ export function PlatformHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {/* En mobile la navegacion va en este menu */}
+            {/* On mobile the navigation goes in this menu */}
             {NAV.map((item) => (
               <DropdownMenuItem key={item.to} asChild className="md:hidden">
                 <Link to={item.to}>

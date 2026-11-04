@@ -1,7 +1,7 @@
 /*
-Pedidos hechos o consultados desde este navegador, con el email del pedido: la consulta, el comprobante y la
-cancelacion piden numero + email (docs/backend/sales.md). Asi la pantalla del pedido abre sin volver a pedir el email.
-Vive en localStorage de la tienda (cada subdominio tiene el suyo) y guarda los ultimos MAX_KNOWN.
+Orders placed or looked up from this browser, with the order email: the lookup, the receipt and the
+cancellation require number + email (docs/backend/sales.md). This way the order screen opens without asking for the email again.
+Lives in the store's localStorage (each subdomain has its own) and keeps the last MAX_KNOWN.
  */
 
 const STORAGE_KEY = "kleinkauf.orders"
@@ -32,7 +32,7 @@ export function rememberOrder(number: string, email: string) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify([order, ...others].slice(0, MAX_KNOWN)))
   } catch {
-    // Sin localStorage la pantalla del pedido vuelve a pedir el email
+    // Without localStorage the order screen asks for the email again
   }
 }
 

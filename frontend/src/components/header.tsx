@@ -39,7 +39,7 @@ interface NavLinksProps {
   canManageUsers: boolean
   pendingReview: number
   lowStock: number
-  // En el menu lateral: uno debajo del otro y cada link cierra el menu
+  // In the side menu: one below the other and each link closes the menu
   vertical?: boolean
   onNavigate?: () => void
 }
@@ -57,7 +57,7 @@ function CountBadge({ count, label }: { count: number; label: string }) {
   )
 }
 
-// Links de la tienda y, aparte, los del panel (ej. "Combos" de la tienda y "Combos" del panel)
+// Store links and, separately, the dashboard ones (e.g. the store's "Combos" and the dashboard's "Combos")
 function NavLinks({
   hasBundles,
   showPanel,
@@ -116,7 +116,7 @@ function NavLinks({
   )
 }
 
-// Boton de menu (solo debajo de md) que abre la navegacion en un panel desde la izquierda
+// Menu button (only below md) that opens the navigation in a panel from the left
 function MobileNav(props: NavLinksProps) {
   const [open, setOpen] = useState(false)
   return (
@@ -143,7 +143,7 @@ export function Header() {
   const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
   const availableRoles = user?.roles.map(role => role.type) ?? []
   const { units } = useCart()
-  // "Combos" de la tienda solo si hay alguno para comprar (la misma consulta que la home, en cache)
+  // The store's "Combos" only if there is any to buy (the same query as the home page, cached)
   const hasBundles = (useCatalogBundles().data?.length ?? 0) > 0
 
   const getRoleBadgeColor = () => {
@@ -157,12 +157,12 @@ export function Header() {
     }
   }
 
-  // Los mismos criterios que las rutas protegidas de App.tsx (areas del rol activo)
+  // The same criteria as the protected routes in App.tsx (areas of the active role)
   const canManageProducts = PRODUCT_PANEL_AREAS.some((area) => can(area))
   const canManageUsers = can("USUARIOS")
-  // Contador de stock bajo junto a "Productos" (la misma consulta que la tarjeta del panel, en cache)
+  // Low stock counter next to "Productos" (the same query as the dashboard card, cached)
   const lowStock = useLowStock(isAuthenticated && can("STOCK")).data?.length ?? 0
-  // Ventas es solo del ADMINISTRADOR (no se delega todavia); el contador son los comprobantes para revisar
+  // Sales is ADMINISTRADOR-only (not delegable yet); the counter is the receipts to review
   const canManageSales = isAuthenticated && activeRole === "ADMINISTRADOR"
   const pendingReview = usePendingReviewCount(canManageSales).data ?? 0
 
@@ -187,7 +187,7 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Navegacion en fila desde md; en el celular va en el menu lateral (MobileNav) */}
+        {/* Navigation in a row from md; on phones it goes in the side menu (MobileNav) */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks {...navProps} />
         </nav>
@@ -339,7 +339,7 @@ export function Header() {
               <Button variant="outline" asChild>
                 <Link to="/login">{strings.auth.signIn}</Link>
               </Button>
-              {/* En el celular no entra junto al carrito y el login; el login tiene el link para crear la cuenta */}
+              {/* On phones it does not fit next to the cart and the login; the login has the link to create the account */}
               <Button className="hidden sm:inline-flex" asChild>
                 <Link to="/register">{strings.auth.registerNow}</Link>
               </Button>

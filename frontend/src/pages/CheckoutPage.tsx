@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 
-// Mismas reglas que sales (services/OrderValidation.java); si cambian, cambiar las dos
+// Same rules as sales (services/OrderValidation.java); if they change, change both
 const NAME_MAX = 100
 const EMAIL_MAX = 150
 const FIELD_MAX = 100
@@ -49,7 +49,7 @@ function validate(form: { name: string; email: string; phone: string; notes: str
   return null
 }
 
-// El 409 con texto lo responde products (o sales si la tienda no tiene datos de pago): se traduce lo conocido
+// The 409 with text comes from products (or from sales if the store has no payment details): known ones are translated
 function conflictMessage(error: unknown): string | null {
   if (!axios.isAxiosError(error) || error.response?.status !== 409) return null
   const data = error.response.data
@@ -62,7 +62,7 @@ function conflictMessage(error: unknown): string | null {
   return null
 }
 
-// Checkout (/checkout): datos del comprador y entrega. Invitado o con sesion (con sesion queda en "mis pedidos")
+// Checkout (/checkout): buyer and delivery details. Guest or with a session (with a session it shows in "my orders")
 export default function CheckoutPage() {
   const { user, isAuthenticated, activeRole } = useAuth()
   const { items, total, clear, applyPriceChanges } = useCart()
@@ -77,14 +77,14 @@ export default function CheckoutPage() {
   const [priceChanges, setPriceChanges] = useState<PriceChange[]>([])
   const [placed, setPlaced] = useState(false)
 
-  // Con sesion se completan nombre y email (se pueden cambiar: el pedido guarda los que se manden)
+  // With a session the name and email are filled in (they can be changed: the order stores whatever is sent)
   useEffect(() => {
     if (user) {
       setForm((prev) => ({ ...prev, name: prev.name || user.name, email: prev.email || user.email }))
     }
   }, [user])
 
-  // Al vaciar el carrito despues de hacer el pedido no se vuelve al carrito: se navega a la pantalla del pedido
+  // When the cart is emptied after placing the order it does not go back to the cart: it navigates to the order screen
   if (items.length === 0 && !placed) {
     return <Navigate to="/carrito" replace />
   }
@@ -130,7 +130,7 @@ export default function CheckoutPage() {
     } catch (err) {
       const changes = priceChangesOf(err)
       if (changes) {
-        // Se actualiza el carrito con los precios nuevos y se pide confirmar otra vez
+        // The cart is updated with the new prices and confirmation is asked again
         applyPriceChanges(changes)
         setPriceChanges(changes)
         setError(strings.checkout.pricesChanged)
@@ -161,7 +161,7 @@ export default function CheckoutPage() {
           <Card className="max-w-2xl">
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">{strings.checkout.notConfigured}</p>
-              {/* El administrador ve como resolverlo: los datos de cobro se cargan en el panel de ventas */}
+              {/* The administrator sees how to fix it: the payment details are entered in the sales dashboard */}
               {activeRole === "ADMINISTRADOR" ? (
                 <div className="space-y-3 border-t border-border pt-4">
                   <p className="text-sm">{strings.checkout.notConfiguredAdmin}</p>

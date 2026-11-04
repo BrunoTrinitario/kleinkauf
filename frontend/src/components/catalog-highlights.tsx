@@ -13,7 +13,7 @@ import { ProductModal } from "./product-modal"
 import { AddToCartButton } from "./add-to-cart-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
 
-// Franja de la home: en el celular se desliza de costado; desde sm, grilla. Sin items no se muestra
+// Home page strip: on phones it scrolls sideways; from sm, a grid. Not shown without items
 function Strip({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="space-y-4">
@@ -35,14 +35,14 @@ function StripLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-// Una sola fila en todos los anchos: en el celular cada tarjeta ocupa casi todo el ancho (se ve que hay mas a la
-// derecha), entran 2 desde sm y 4 en escritorio; el resto se ve deslizando o con las flechas
+// A single row at every width: on phones each card takes almost the whole width (you can tell there is more to the
+// right), 2 fit from sm and 4 on desktop; the rest is seen by swiping or with the arrows
 const stripRow = "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:gap-6 [scrollbar-width:none]"
 const stripItem = "grid w-[75%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]"
 
-// Fila con flechas que pasan de a una pantalla (4 tarjetas en escritorio). La ultima pantalla termina en el
-// ultimo item aunque queden menos de 4; desde ahi la flecha derecha vuelve al principio (y la izquierda, desde el
-// principio, va al final). Las flechas aparecen solo si hay mas items de los que entran
+// Row with arrows that move one screen at a time (4 cards on desktop). The last screen ends at the
+// last item even if fewer than 4 remain; from there the right arrow goes back to the start (and the left one, from the
+// start, goes to the end). The arrows only appear if there are more items than fit
 function Carousel({ children }: { children: ReactNode }) {
   const rowRef = useRef<HTMLDivElement>(null)
   const [overflows, setOverflows] = useState(false)
@@ -108,7 +108,7 @@ function Carousel({ children }: { children: ReactNode }) {
   )
 }
 
-// Destacados de la home, en el orden que eligio la tienda
+// Home page featured products, in the order the store chose
 export function FeaturedStrip() {
   const featured = useCatalogFeatured().data ?? []
   const [selected, setSelected] = useState<CatalogProduct | null>(null)
@@ -129,7 +129,7 @@ export function FeaturedStrip() {
   )
 }
 
-// Combos de la home con la misma tarjeta que /combos, en una fila como los destacados
+// Home page bundles with the same card as /combos, in a row like the featured products
 export function BundlesStrip() {
   const bundles = useCatalogBundles().data ?? []
 
@@ -151,7 +151,7 @@ export function BundlesStrip() {
   )
 }
 
-// Primera pagina del catalogo (orden por defecto) en grilla, como en /catalogo; al final, el link al catalogo completo
+// First catalog page (default sort) as a grid, like in /catalogo; at the end, the link to the full catalog
 export function CatalogStrip() {
   const products = useCatalogProducts({ page: 0 }).data?.items ?? []
   const [selected, setSelected] = useState<CatalogProduct | null>(null)
@@ -193,7 +193,7 @@ function ProductThumb({ image, className }: { image?: string | null; className: 
   )
 }
 
-// Foto del combo: con varios productos con imagen, un mosaico de hasta 4; si no, la imagen del combo
+// Bundle photo: with several products with an image, a mosaic of up to 4; otherwise, the bundle image
 function BundleCover({ bundle }: { bundle: CatalogBundle }) {
   const images = bundle.products.map((item) => item.image).filter((image): image is string => !!image).slice(0, 4)
   if (images.length < 2) {
@@ -217,8 +217,8 @@ function BundleCover({ bundle }: { bundle: CatalogBundle }) {
   )
 }
 
-// Tarjeta completa del combo (/combos): ahorro frente a comprar por separado, que incluye y agregar al carrito.
-// Tocar la foto abre el detalle: los productos con su foto, descripcion y precio suelto
+// Full bundle card (/combos): savings versus buying separately, what it includes and add to cart.
+// Tapping the photo opens the detail: the products with their photo, description and standalone price
 export function BundleCard({ bundle }: { bundle: CatalogBundle }) {
   const saving = savingOf(bundle)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -301,8 +301,8 @@ function BundleCartButton({ bundle, className }: { bundle: CatalogBundle; classN
   )
 }
 
-// Detalle del combo: cada producto con su foto, categoria, descripcion, cantidad y precio suelto, y al final la
-// cuenta de lo que sale por separado contra el precio del combo
+// Bundle detail: each product with its photo, category, description, quantity and standalone price, and at the end the
+// sum of what it costs separately against the bundle price
 function BundleDetailDialog({
   bundle,
   open,

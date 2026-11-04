@@ -40,8 +40,8 @@ export const strings = {
     terms: "Términos",
     demo: "Aplicación demo con control de acceso basado en roles",
   },
-  // Textos base de /privacidad y /terminos. Son generales para todas las tiendas: antes de usarlos en serio
-  // conviene que los revise un abogado (Ley 25.326 de Protección de Datos Personales)
+  // Base texts for /privacidad and /terminos. They are generic for every store: before using them for real
+  // a lawyer should review them (Argentine Personal Data Protection Law 25.326)
   legal: {
     updated: "Última actualización: 4 de noviembre de 2026",
     privacy: {
@@ -269,7 +269,7 @@ export const strings = {
     requestNew: "Pedir un link nuevo",
     error: "No se pudo cambiar la contraseña. Inténtalo de nuevo.",
   },
-  // Login del superadmin en la plataforma (sin tienda)
+  // Superadmin login on the platform (no store)
   storeUnavailable: {
     notFoundTitle: "Esta tienda no existe",
     notFoundHighlight: "no existe",
@@ -484,7 +484,7 @@ export const strings = {
     alreadyAccount: "¿Ya tienes una cuenta?",
     signIn: "Iniciar sesión",
   },
-  // Reglas de los datos de un usuario (lib/validation.ts)
+  // Rules for a user's data (lib/validation.ts)
   validation: {
     nameInvalid: "Ingresa un nombre de hasta 100 caracteres.",
     emailInvalid: "Ingresa un email válido, por ejemplo nombre@dominio.com.",
@@ -595,7 +595,7 @@ export const strings = {
     deleteCancel: "Cancelar",
     deleteQuestion: "¿Seguro que quieres eliminar a",
   },
-  // Disponibilidad publica: el catalogo nunca muestra el stock exacto
+  // Public availability: the catalog never shows the exact stock
   availability: {
     DISPONIBLE: "Disponible",
     POCAS_UNIDADES: "Pocas unidades",
@@ -1119,7 +1119,7 @@ export const strings = {
     receiptError: "No se pudo abrir el comprobante.",
     receiptPreviewTitle: (index: number) => `Comprobante ${index}`,
     actionsTitle: "Acciones",
-    // Lo que pasa con el pedido y que se espera de la tienda (no son los textos del comprador)
+    // What happens with the order and what is expected from the store (these are not the buyer texts)
     statusHelp: {
       PENDIENTE_PAGO: "Esperando que el comprador transfiera y suba el comprobante.",
       PAGO_EN_REVISION: "El comprador subió el comprobante: revísalo y valida o rechaza el pago.",

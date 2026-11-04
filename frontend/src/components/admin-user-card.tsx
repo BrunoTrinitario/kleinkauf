@@ -16,7 +16,7 @@ const roleLabels: Record<UserRole, string> = {
   ADMINISTRADOR: strings.roles.administrador,
 }
 
-// Orden fijo de los badges, del rol con mas permisos al de menos
+// Fixed badge order, from the role with the most permissions to the one with the fewest
 const ROLE_ORDER: UserRole[] = ["ADMINISTRADOR", "EMPLEADO", "CLIENTE"]
 
 const resolveRoles = (roles: RoleDto[] | undefined): UserRole[] => {
@@ -45,8 +45,8 @@ export function AdminUserCard({ user, onEdit, onDelete, disableDelete }: AdminUs
       <Badge className="bg-muted text-muted-foreground">{strings.roles.noRole}</Badge>
     )
 
-  // Siempre en una fila: los botones quedan a la derecha tambien en mobile.
-  // En mobile los roles van debajo del email; desde sm, al lado de los botones
+  // Always in one row: the buttons stay on the right on mobile too.
+  // On mobile the roles go below the email; from sm, next to the buttons
   return (
     <div className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">

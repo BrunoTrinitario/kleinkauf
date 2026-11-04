@@ -2,7 +2,7 @@ import type { OrderStatus } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { Badge } from "@/components/ui/badge"
 
-// Lo que espera al comprador va en azul, lo pago en neutro, rechazado en rojo y lo cerrado sin venta apagado
+// What awaits the buyer goes in blue, paid in neutral, rejected in red and closed without a sale dimmed
 const VARIANT: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
   PENDIENTE_PAGO: "default",
   PAGO_EN_REVISION: "outline",

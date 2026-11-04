@@ -8,8 +8,8 @@ interface StoreUnavailablePageProps {
   status: Exclude<TenantStatus, "ok">
 }
 
-// Se muestra en lugar de las rutas cuando el gateway dice que la tienda no existe o esta deshabilitada.
-// Volver a intentar recarga: una tienda que se vuelve a habilitar tarda hasta 1 minuto en verse (cache del gateway)
+// Shown instead of the routes when the gateway says the store does not exist or is disabled.
+// Retry reloads: a store that is enabled again takes up to 1 minute to show (gateway cache)
 export default function StoreUnavailablePage({ status }: StoreUnavailablePageProps) {
   const notFound = status === "not-found"
   const Icon = notFound ? Store : Ban

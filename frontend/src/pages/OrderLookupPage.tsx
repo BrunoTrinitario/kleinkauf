@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header"
 import { OrderLookupForm } from "@/components/order-lookup-form"
 import { Card, CardContent } from "@/components/ui/card"
 
-// Consulta de un pedido (/pedido) con numero + email: la usa el invitado, que no tiene "mis pedidos". Publica
+// Order lookup (/pedido) with number + email: used by guests, who have no "my orders". Public
 export default function OrderLookupPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">

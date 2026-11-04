@@ -25,22 +25,22 @@ import {
 import { X } from "lucide-react"
 
 interface AdminProductFormModalProps {
-  // null = alta de un producto nuevo; con producto = edicion
+  // null = creating a new product; with a product = editing
   product: Product | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  // Precio y costo piden el permiso PRECIOS: sin el, esos campos no se muestran
+  // Price and cost require the PRECIOS permission: without it, those fields are not shown
   canEditPrices: boolean
   onSaved: () => void
 }
 
-// Mismo limite que el backend (ProductService.MAX_IMAGE_BYTES)
+// Same limit as the backend (ProductService.MAX_IMAGE_BYTES)
 const MAX_IMAGE_BYTES = 1024 * 1024
 
 const textareaClass =
   "w-full min-h-[96px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
-// "" = sin dato (precio null = "Consultar precio")
+// "" = no value (price null = "Consultar precio")
 const toAmount = (value: string): number | null => (value.trim() === "" ? null : Number(value))
 
 export function AdminProductFormModal({
@@ -65,22 +65,22 @@ export function AdminProductFormModal({
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  // En edicion: metadatos, imagenes y (con PRECIOS) el costo, que no viene en el listado
+  // When editing: metadata, images and (with PRECIOS) the cost, which does not come in the listing
   const editing = open && isEdit
   const metadataQuery = useProductMetadata(product?.id, editing)
   const imagesQuery = useProductImages(product?.id, editing)
   const pricingQuery = useProductPricing(product?.id, editing && canEditPrices)
   const removeImage = useDeleteProductImage(product?.id)
   const images = (editing ? imagesQuery.data : undefined) ?? []
-  // Los datos cargados llenan el formulario una vez por apertura: un refresco no pisa lo que se esta editando
+  // The loaded data fills the form once per opening: a refetch does not overwrite what is being edited
   const filledFrom = useRef<{ metadata?: string; pricing?: string }>({})
 
 
-  // Vista previa de las imagenes elegidas que todavia no se subieron (se liberan al cambiar)
+  // Preview of the chosen images not uploaded yet (released when they change)
   const previews = useMemo(() => pendingFiles.map((file) => URL.createObjectURL(file)), [pendingFiles])
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews])
 
-  // Al abrir: vacio para un alta, o los datos del producto para editar
+  // On open: empty for a new product, or the product's data for editing
   useEffect(() => {
     if (!open) return
     setName(product?.name ?? "")
@@ -98,7 +98,7 @@ export function AdminProductFormModal({
     filledFrom.current = {}
   }, [product, open])
 
-  // Sin metadatos (o si fallan) quedan los valores por defecto
+  // Without metadata (or if it fails) the defaults remain
   useEffect(() => {
     if (!open || !product || !metadataQuery.data || filledFrom.current.metadata === product.id) return
     filledFrom.current.metadata = product.id
@@ -129,7 +129,7 @@ export function AdminProductFormModal({
     setPendingFiles((prev) => [...prev, ...files])
   }
 
-  // Quitar una imagen ya guardada es inmediato (como antes en la edicion)
+  // Removing an already saved image is immediate (as it used to be when editing)
   const handleRemoveImage = async (image: ProductImage) => {
     if (!product) return
     try {
@@ -164,14 +164,14 @@ export function AdminProductFormModal({
 
       if (product) {
         productId = product.id
-        // El stock no se edita aca: cambia con movimientos de stock
+        // Stock is not edited here: it changes with stock movements
         await api.put(`/products/${productId}`, basic)
         const pricingChanged = price !== initialPricing.price || cost !== initialPricing.cost
         if (canEditPrices && pricingChanged) {
           await api.put(`/products/${productId}/pricing`, { price: toAmount(price), cost: toAmount(cost) })
         }
       } else {
-        // El stock inicial queda registrado como movimiento de entrada
+        // The initial stock is recorded as an entry movement
         const response = await api.post("/products", {
           ...basic,
           stock,

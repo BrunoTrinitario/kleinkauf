@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-// Producto al que se le carga el movimiento (sirve el del listado o el de stock bajo)
+// Product the movement is entered for (the one from the listing or from low stock works)
 export interface StockTarget {
   id: string
   name: string
@@ -23,13 +23,13 @@ interface AdminStockDialogProps {
 
 const TYPES: StockMovementType[] = ["ENTRADA", "SALIDA", "AJUSTE"]
 
-// Registrar un movimiento y ver el historial (area STOCK). El stock solo cambia asi (ver docs/backend/products.md)
+// Record a movement and see the history (STOCK area). Stock only changes this way (see docs/backend/products.md)
 export function AdminStockDialog({ product, open, onOpenChange }: AdminStockDialogProps) {
   const [type, setType] = useState<StockMovementType>("ENTRADA")
   const [quantity, setQuantity] = useState("")
   const [reason, setReason] = useState("")
   const [error, setError] = useState<string | null>(null)
-  // El stock del listado no se actualiza hasta que vuelve la lista: se usa el que devuelve el movimiento
+  // The listing stock is not updated until the list comes back: the one returned by the movement is used
   const [currentStock, setCurrentStock] = useState<number | null>(null)
   const history = useStockMovements(product?.id, open)
   const register = useRegisterMovement(product?.id)

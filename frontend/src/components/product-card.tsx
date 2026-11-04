@@ -9,8 +9,8 @@ interface ProductCardProps {
   onClick: () => void
 }
 
-// Tarjeta del listado: la imagen y los datos abren el detalle; abajo, agregar al carrito sin abrirlo.
-// Son dos controles separados (un boton no puede ir dentro de otro)
+// Listing card: the image and the data open the detail; below, add to cart without opening it.
+// They are two separate controls (a button cannot go inside another one)
 export function ProductCard({ product, onClick }: ProductCardProps) {
   const primaryImage = product.images?.[0]
   const imageUrl = primaryImage ? productImageUrl(primaryImage) : null

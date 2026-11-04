@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-// Pide el area USUARIOS, que solo tiene el ADMINISTRADOR (RequireArea en App.tsx)
+// Requires the USUARIOS area, which only ADMINISTRADOR has (RequireArea in App.tsx)
 export default function AdminUsersPage() {
   const { user } = useAuth()
   const [searchInput, setSearchInput] = useState("")
@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [selectedDeleteUser, setSelectedDeleteUser] = useState<User | null>(null)
 
-  // Un filtro nuevo arranca desde la primera pagina
+  // A new filter starts from the first page
   useEffect(() => {
     setPage(0)
   }, [searchQuery, roleFilter])
@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  // La lista se recarga despues de guardar (bien o mal): trae los roles con sus permisos reales
+  // The list is reloaded after saving (successfully or not): it brings the roles with their real permissions
   const handleSaveUser = async (updatedUser: User) => {
     const existingUser = users.find((item) => item.id === updatedUser.id)
     if (!existingUser) {
@@ -89,7 +89,7 @@ export default function AdminUsersPage() {
       setIsEditOpen(false)
       setSelectedUser(null)
     } catch (err) {
-      // 409: era el ultimo ADMINISTRADOR de la tienda y se le queria sacar el rol
+      // 409: it was the store's last ADMINISTRADOR and the role was being removed
       notifyError(err, strings.errors.saveUser, { conflict: strings.adminUsers.lastAdmin })
     }
   }
@@ -97,7 +97,7 @@ export default function AdminUsersPage() {
   const handleDeleteUser = async (target: User) => {
     try {
       await deleteUser.mutateAsync(target.id)
-      // Si era el ultimo de la pagina se vuelve a la anterior (la actual se recarga sola)
+      // If it was the last one on the page it goes back to the previous one (the current one reloads on its own)
       if (users.length === 1 && page > 0) {
         setPage(page - 1)
       }
@@ -106,7 +106,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  // El usuario nuevo puede caer en otra pagina segun el orden: se recarga la actual
+  // The new user may land on another page depending on the order: the current one is reloaded
   const handleCreateUser = async (payload: NewUserDto) => {
     setCreateError(null)
     try {

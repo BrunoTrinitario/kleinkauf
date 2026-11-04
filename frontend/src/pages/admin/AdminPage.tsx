@@ -3,7 +3,7 @@ import { Headline } from "@/components/highlight"
 import { Header } from "@/components/header"
 import { AdminDashboard } from "@/components/admin-dashboard"
 
-// Solo ADMINISTRADOR: lo controla la ruta (RequireRole en App.tsx)
+// ADMINISTRADOR only: checked by the route (RequireRole in App.tsx)
 export default function AdminPage() {
   return (
     <div className="min-h-screen bg-background">

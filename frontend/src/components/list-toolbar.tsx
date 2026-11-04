@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
-// Buscador y filtros de los listados (catalogo y paneles): siempre en una fila, sin card
+// Search box and filters of the listings (catalog and dashboards): always in one row, without a card
 
 export function ListToolbar({ children }: { children: ReactNode }) {
   return <div className="flex flex-col sm:flex-row gap-4">{children}</div>
@@ -30,7 +30,7 @@ export function SearchField({ value, onChange, placeholder }: SearchFieldProps) 
   )
 }
 
-// Los selects van juntos a la derecha del buscador
+// The selects go together to the right of the search box
 export function FilterGroup({ children }: { children: ReactNode }) {
   return <div className="flex gap-2">{children}</div>
 }

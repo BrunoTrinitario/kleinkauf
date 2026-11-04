@@ -5,7 +5,7 @@ import type { Page, Product, ProductMetadata } from "@/lib/types"
 import { normalizeMetadata } from "@/lib/types"
 import { catalogKeys } from "./catalog"
 
-// Productos del panel (/api/v1/products): con stock exacto, piden un area del panel
+// Dashboard products (/api/v1/products): with exact stock, they require a dashboard area
 export const productKeys = {
   all: ["products"] as const,
   list: (params: ProductListParams) => [...productKeys.all, "list", params] as const,
@@ -19,7 +19,7 @@ export const productKeys = {
 
 export type StockMovementType = "ENTRADA" | "SALIDA" | "AJUSTE"
 
-// quantity es la diferencia aplicada: negativa en una SALIDA y en un AJUSTE que baja
+// quantity is the applied difference: negative on a SALIDA and on an AJUSTE that lowers the stock
 export interface StockMovement {
   id: number
   productId: number
@@ -33,9 +33,9 @@ export interface StockMovement {
 
 export interface NewStockMovement {
   type: StockMovementType
-  // ENTRADA y SALIDA: unidades (> 0). AJUSTE: el stock contado (>= 0)
+  // ENTRADA and SALIDA: units (> 0). AJUSTE: the counted stock (>= 0)
   quantity: number
-  // Obligatorio en AJUSTE
+  // Required on AJUSTE
   reason?: string
 }
 
@@ -46,7 +46,7 @@ export interface LowStockProduct {
   minStock: number
 }
 
-// Resultado de importar: con errores (400) no se importa nada. row 0 = el archivo entero, 1 = los encabezados
+// Import result: with errors (400) nothing is imported. row 0 = the whole file, 1 = the headers
 export interface ImportResult {
   created: number
   updated: number
@@ -70,7 +70,7 @@ export interface ProductPricing {
   cost: number | null
 }
 
-// Un cambio de productos se ve en el panel y en el catalogo publico (categorias con su cantidad incluidas)
+// A product change shows in the dashboard and in the public catalog (categories with their count included)
 export function invalidateProducts(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: productKeys.all }),
@@ -93,7 +93,7 @@ export function useAdminProducts(params: ProductListParams, enabled: boolean) {
   })
 }
 
-// Sin metadatos el backend responde vacio: se usan los valores por defecto
+// Without metadata the backend responds empty: the defaults are used
 export function useProductMetadata(id: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: productKeys.metadata(id ?? ""),
@@ -114,7 +114,7 @@ export function useProductImages(id: string | undefined, enabled: boolean) {
   })
 }
 
-// El costo no viene en el listado: solo con el permiso PRECIOS
+// The cost does not come in the listing: only with the PRECIOS permission
 export function useProductPricing(id: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: productKeys.pricing(id ?? ""),
@@ -141,7 +141,7 @@ export function useStockMovements(id: string | undefined, enabled: boolean) {
   })
 }
 
-// Del menor stock al mayor. Tambien da el contador del menu
+// Lowest stock to highest. Also provides the menu counter
 export function useLowStock(enabled: boolean) {
   return useQuery({
     queryKey: productKeys.lowStock(),
@@ -150,7 +150,7 @@ export function useLowStock(enabled: boolean) {
   })
 }
 
-// Cambia el stock del listado, el stock bajo y la disponibilidad del catalogo. 409: la salida deja el stock negativo
+// Changes the listing stock, the low stock and the catalog availability. 409: the SALIDA leaves the stock negative
 export function useRegisterMovement(productId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -160,9 +160,9 @@ export function useRegisterMovement(productId: string | undefined) {
   })
 }
 
-// --- Destacados (area PRODUCTOS) ---
+// --- Featured (PRODUCTOS area) ---
 
-// En el orden en que se muestran en la home: primero por orden, los que no tienen al final por nombre
+// In the order they are shown on the home page: first by order, those without one last by name
 export function useFeaturedProducts(enabled: boolean) {
   return useQuery({
     queryKey: productKeys.featured(),
@@ -174,7 +174,7 @@ export function useFeaturedProducts(enabled: boolean) {
 const putFeatured = (id: string, featured: boolean, order?: number) =>
   api.put(`/products/${id}/featured`, { featured, order })
 
-// Un destacado nuevo va al final: su orden es la cantidad que ya hay
+// A new featured product goes last: its order is the count that already exists
 export function useSetFeatured() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -184,8 +184,8 @@ export function useSetFeatured() {
   })
 }
 
-// El backend no devuelve el orden guardado, solo la lista ordenada: se guarda 0, 1, 2... en el orden pedido.
-// Van todos, no solo los que se movieron: uno sin orden quedaria al final (los sin orden van despues)
+// The backend does not return the stored order, only the sorted list: 0, 1, 2... is stored in the requested order.
+// All of them are sent, not just the ones that moved: one without an order would end up last (unordered ones go after)
 export function useReorderFeatured() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -196,9 +196,9 @@ export function useReorderFeatured() {
   })
 }
 
-// --- Importar y exportar CSV (PRODUCTOS y PRECIOS) ---
+// --- CSV import and export (PRODUCTOS and PRECIOS) ---
 
-// El archivo viene del backend (con BOM y ";"): se descarga tal cual, con el nombre que manda
+// The file comes from the backend (with BOM and ";"): it is downloaded as is, with the name it sends
 async function downloadCsv(path: string, fallbackName: string) {
   const response = await api.get<Blob>(path, { responseType: "blob" })
   const disposition = String(response.headers["content-disposition"] ?? "")
@@ -214,7 +214,7 @@ async function downloadCsv(path: string, fallbackName: string) {
 export const exportProducts = () => downloadCsv("/products/export", "productos.csv")
 export const downloadImportTemplate = () => downloadCsv("/products/import/template", "plantilla-productos.csv")
 
-// Con errores el backend responde 400 con el mismo formato: se devuelve como resultado, no como falla
+// With errors the backend responds 400 with the same format: it is returned as a result, not as a failure
 export function useImportProducts() {
   const queryClient = useQueryClient()
   return useMutation({

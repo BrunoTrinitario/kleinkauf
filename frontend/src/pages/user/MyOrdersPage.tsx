@@ -13,8 +13,8 @@ import { PaginationControls } from "@/components/pagination-controls"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-// "Mis pedidos" (/mis-pedidos): los pedidos hechos con la sesion iniciada. El detalle es la pantalla del pedido,
-// con el email del pedido (la consulta va por numero + email)
+// "My orders" (/mis-pedidos): the orders placed while logged in. The detail is the order screen,
+// with the order email (the lookup goes by number + email)
 export default function MyOrdersPage() {
   const { isAuthenticated } = useAuth()
   const [page, setPage] = useState(0)

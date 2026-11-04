@@ -9,7 +9,7 @@ interface AdminLowStockCardProps {
   onRegister: (product: LowStockProduct) => void
 }
 
-// Productos con stock igual o menor a su minimo (area STOCK). Sin ninguno no se muestra
+// Products with stock equal to or below their minimum (STOCK area). Not shown if there are none
 export function AdminLowStockCard({ products, onRegister }: AdminLowStockCardProps) {
   if (products.length === 0) return null
 

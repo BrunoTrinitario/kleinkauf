@@ -5,12 +5,12 @@ import { SUPERADMIN_ROLE } from "@/lib/platform"
 import type { UserRole } from "@/lib/types"
 
 /*
-Rutas protegidas: envuelven rutas hijas (<Outlet />). La UI oculta lo que no se puede usar; el backend igual valida.
-Sin sesion se va al login con la pagina de vuelta; con sesion pero sin el rol o el area, a la home.
-Mientras se carga la sesion no se muestra nada (para no redirigir antes de saber quien es).
+Protected routes: they wrap child routes (<Outlet />). The UI hides what cannot be used; the backend validates anyway.
+Without a session it goes to login with the return page; with a session but without the role or the area, to the home page.
+While the session is loading nothing is shown (so as not to redirect before knowing who it is).
  */
 
-// Al cerrar la sesion (a mano o por vencimiento) va a donde dijo logout; si no, al login con la pagina de vuelta
+// When the session closes (manually or by expiry) it goes where logout said; otherwise, to login with the return page
 function useLoginRedirect() {
   const location = useLocation()
   const { signedOutTo } = useAuth()
@@ -24,21 +24,21 @@ export function RequireAuth() {
   return isAuthenticated ? <Outlet /> : <Navigate to={login} replace />
 }
 
-// Rol activo exacto (ej. el panel de la tienda es solo del ADMINISTRADOR, no por areas)
+// Exact active role (e.g. the store dashboard is ADMINISTRADOR-only, not by areas)
 export function RequireRole({ role }: { role: UserRole }) {
   const { activeRole, isLoading } = useAuth()
   if (isLoading) return null
   return activeRole === role ? <Outlet /> : <Navigate to="/" replace />
 }
 
-// Alcanza con una de las areas del rol activo (ej. el panel de productos abre con cualquiera de las suyas)
+// One of the active role's areas is enough (e.g. the products dashboard opens with any of its own)
 export function RequireArea({ anyOf }: { anyOf: PermissionArea[] }) {
   const { can, isLoading } = useAuth()
   if (isLoading) return null
   return anyOf.some((area) => can(area)) ? <Outlet /> : <Navigate to="/" replace />
 }
 
-// Panel de la plataforma: solo superadmins; cualquier otro (o sin sesion) va al login de la plataforma
+// Platform dashboard: superadmins only; anyone else (or without a session) goes to the platform login
 export function RequireSuperadmin() {
   const { user, isLoading } = useAuth()
   const login = useLoginRedirect()

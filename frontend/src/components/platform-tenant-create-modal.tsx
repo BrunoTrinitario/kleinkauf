@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-// Mismo formato que valida kleinkaufusers (TenantService.IDENTIFIER). Los reservados los rechaza el backend
+// Same format kleinkaufusers validates (TenantService.IDENTIFIER). Reserved ones are rejected by the backend
 const IDENTIFIER_PATTERN = /^[a-z][a-z0-9-]{1,28}[a-z0-9]$/
 
 const isValidIdentifier = (identifier: string) => IDENTIFIER_PATTERN.test(identifier)
@@ -43,7 +43,7 @@ export function PlatformTenantCreateModal({
   const nameError = ownerName.length > 0 && !isValidName(ownerName)
   const emailError = ownerEmail.trim() !== "" && !isValidEmail(ownerEmail)
 
-  // La tienda queda en <identificador>.<host de la plataforma>, con el mismo esquema
+  // The store lives at <identifier>.<platform host>, with the same scheme
   const urlPreview = `${window.location.protocol}//${identifier || "mitienda"}.${window.location.host}`
 
   const canCreate = useMemo(
@@ -103,7 +103,7 @@ export function PlatformTenantCreateModal({
                 maxLength={30}
                 autoComplete="off"
                 aria-invalid={identifierError}
-                // Se escribe siempre en minusculas, como lo guarda el backend
+                // Always written in lowercase, the way the backend stores it
                 onChange={(event) => setIdentifier(event.target.value.toLowerCase())}
               />
               <p className={`text-xs ${identifierError ? "text-destructive" : "text-muted-foreground"}`}>

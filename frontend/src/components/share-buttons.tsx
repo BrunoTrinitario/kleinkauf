@@ -13,7 +13,7 @@ async function copyWithClipboardApi(text: string): Promise<boolean> {
   }
 }
 
-// Plan B: sin permiso para el portapapeles (o sin la API) se copia seleccionando un textarea oculto
+// Plan B: without clipboard permission (or without the API) it copies by selecting a hidden textarea
 function copyWithTextarea(text: string): boolean {
   const textarea = document.createElement("textarea")
   textarea.value = text
@@ -31,7 +31,7 @@ function copyWithTextarea(text: string): boolean {
   }
 }
 
-// Compartir un producto: WhatsApp y copiar el link (el de /share, con vista previa)
+// Share a product: WhatsApp and copy the link (the /share one, with a preview)
 export function ShareButtons({ slug, name }: { slug: string; name: string }) {
   const url = productShareUrl(slug)
 

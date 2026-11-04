@@ -10,7 +10,7 @@ export interface LoginUserDto {
   password: string
 }
 
-// token: el de sesion (1 hora). refreshToken: lo renueva sin volver a pedir la contrasena (7 dias)
+// token: the session one (1 hour). refreshToken: renews it without asking for the password again (7 days)
 export interface LoggedUser {
   name: string
   id: number
@@ -35,7 +35,7 @@ export interface ProfileFormState {
   password: string
 }
 
-// Tienda vista desde el panel de la plataforma (/api/v1/platform/admin/tenants)
+// Store as seen from the platform dashboard (/api/v1/platform/admin/tenants)
 export interface PlatformTenant {
   id: number
   identifier: string
@@ -53,7 +53,7 @@ export interface NewTenantDto {
   ownerPassword: string
 }
 
-// Panel de la plataforma (GET /api/v1/platform/admin/dashboard). period = primer dia del periodo
+// Platform dashboard (GET /api/v1/platform/admin/dashboard). period = first day of the period
 export type PeriodGroupBy = "DAY" | "WEEK" | "MONTH"
 
 export interface PlatformDashboard {
@@ -66,7 +66,7 @@ export interface PlatformDashboard {
   }
 }
 
-// Uso por tienda: users (/platform/admin/usage) y products (/platform/products/usage), juntos por schema
+// Per-store usage: users (/platform/admin/usage) and products (/platform/products/usage), joined by schema
 export interface TenantUsersUsage {
   id: number
   identifier: string
@@ -93,15 +93,15 @@ export interface Superadmin {
   lastLogin: string | null
 }
 
-// Reporte de bug que manda alguien desde el footer de una tienda (POST /api/v1/bug-reports)
+// Bug report someone sends from a store's footer (POST /api/v1/bug-reports)
 export interface NewBugReport {
   description: string
   email?: string
   pageUrl: string
 }
 
-// Reporte en el panel de la plataforma. store/storeUrl: null si se mando sin tienda.
-// userId/reporterName: el usuario si tenia la sesion abierta. resolvedAt: null = pendiente
+// Report in the platform dashboard. store/storeUrl: null if it was sent without a store.
+// userId/reporterName: the user if they had an open session. resolvedAt: null = pending
 export interface BugReport {
   id: number
   store: string | null
@@ -118,12 +118,12 @@ export interface BugReport {
 
 export type BugReportStatus = "pending" | "resolved" | "all"
 
-// pending: cuantos quedan sin resolver en total, sea cual sea el filtro
+// pending: how many remain unresolved in total, whatever the filter
 export interface BugReportPage extends Page<BugReport> {
   pending: number
 }
 
-// Producto del panel (GET /api/v1/products): con stock exacto
+// Dashboard product (GET /api/v1/products): with exact stock
 export interface Product {
   id: string
   name: string
@@ -147,13 +147,13 @@ export interface ProductMetadata {
   weight: number
 }
 
-// Catalogo publico (/api/v1/catalog): disponibilidad en vez de stock, price null = consultar
+// Public catalog (/api/v1/catalog): availability instead of stock, price null = price on request
 export type Availability = "DISPONIBLE" | "POCAS_UNIDADES" | "AGOTADO"
 
 export type CatalogSort = "name" | "price_asc" | "price_desc"
 
 export interface CatalogProduct {
-  // Lo usa el carrito para armar el pedido (el link y la pagina van por slug)
+  // Used by the cart to build the order (the link and the page go by slug)
   id: number
   slug: string
   name: string
@@ -169,7 +169,7 @@ export interface CatalogProductDetail extends CatalogProduct {
   metadata: ProductMetadata | null
 }
 
-// Pagina de un listado del backend (catalogo, usuarios y productos del panel). page empieza en 0
+// A page of a backend listing (catalog, dashboard users and products). page starts at 0
 export interface Page<T> {
   items: T[]
   page: number
@@ -180,8 +180,8 @@ export interface Page<T> {
 
 export type CatalogPage = Page<CatalogProduct>
 
-// Combo del catalogo publico (/catalog/bundles): listPrice es la suma de sus productos (para mostrar el ahorro),
-// null si alguno no tiene precio. image: la primera imagen del primer producto que tenga
+// Public catalog bundle (/catalog/bundles): listPrice is the sum of its products (to show the savings),
+// null if any has no price. image: the first image of the first product that has one
 export interface CatalogBundle {
   id: number
   name: string
@@ -192,8 +192,8 @@ export interface CatalogBundle {
   products: CatalogBundleProduct[]
 }
 
-// Producto dentro de un combo. price: el del producto suelto (null = consultar); image: su primera imagen.
-// Opcionales porque un catalogo cacheado antes de sumarlos puede no traerlos (dura hasta una hora)
+// Product inside a bundle. price: the standalone product's (null = price on request); image: its first image.
+// Optional because a catalog cached before they were added may not include them (lasts up to an hour)
 export interface CatalogBundleProduct {
   slug: string
   name: string
@@ -209,7 +209,7 @@ export interface CatalogCategory {
   products: number
 }
 
-// Producto sin metadatos cargados: campos vacios (no un "Unknown" que se guardaria como dato real)
+// Product without metadata: empty fields (not an "Unknown" that would be stored as real data)
 export const defaultProductMetadata: ProductMetadata = {
   material: "",
   color: "",
@@ -220,7 +220,7 @@ export const defaultProductMetadata: ProductMetadata = {
   weight: 0,
 }
 
-// Completa con vacio lo que venga en null (filas viejas de la base)
+// Fills with empty values whatever comes as null (old database rows)
 export function normalizeMetadata(data: Partial<ProductMetadata> | null | undefined): ProductMetadata {
   return {
     material: data?.material ?? "",
@@ -234,7 +234,7 @@ export function normalizeMetadata(data: Partial<ProductMetadata> | null | undefi
 }
 
 
-// Ventas (/api/v1/sales, docs/backend/sales.md). Las fechas llegan sin zona (hora del servidor): formatServerDateTime
+// Sales (/api/v1/sales, docs/backend/sales.md). Dates arrive without a zone (server time): formatServerDateTime
 export type OrderItemType = "PRODUCT" | "BUNDLE"
 
 export type OrderStatus =
@@ -256,7 +256,7 @@ export type PaymentMethod = "EFECTIVO" | "TRANSFERENCIA" | "DEBITO" | "CREDITO" 
 
 export const PAYMENT_METHODS: PaymentMethod[] = ["EFECTIVO", "TRANSFERENCIA", "DEBITO", "CREDITO", "OTRO"]
 
-// Datos para transferir. alias o cbu pueden venir en null
+// Transfer details. alias or cbu may come as null
 export interface PaymentDetails {
   alias: string | null
   cbu: string | null
@@ -264,7 +264,7 @@ export interface PaymentDetails {
   bank: string | null
 }
 
-// GET /sales/checkout: sin paymentConfigured no se puede comprar
+// GET /sales/checkout: without paymentConfigured nothing can be bought
 export interface CheckoutInfo {
   paymentConfigured: boolean
   payment: PaymentDetails | null
@@ -306,7 +306,7 @@ export interface CreatedOrder {
   payment: PaymentDetails | null
 }
 
-// 409 de POST /sales/orders cuando cambio algun precio (el pedido no se crea)
+// 409 from POST /sales/orders when some price changed (the order is not created)
 export interface PriceChange {
   type: OrderItemType
   id: number
@@ -321,7 +321,7 @@ export interface OrderHistoryEntry {
   reason: string | null
 }
 
-// El pedido visto por el comprador (lookup, comprobante y cancelar). payment solo mientras se puede subir el comprobante
+// The order as seen by the buyer (lookup, receipt and cancel). payment only while the receipt can be uploaded
 export interface Order {
   number: string
   status: OrderStatus
@@ -339,7 +339,7 @@ export interface Order {
   receipts: number
 }
 
-// Renglon de "mis pedidos" (y de la lista del panel de ventas)
+// Row of "my orders" (and of the sales dashboard list)
 export interface OrderSummary {
   number: string
   status: OrderStatus
@@ -353,7 +353,7 @@ export interface OrderSummary {
   createdAt: string
 }
 
-// Panel de ventas (solo ADMINISTRADOR). Precio de lista null = el producto era "a consultar"; costo null = sin cargar
+// Sales dashboard (ADMINISTRADOR only). List price null = the product was "a consultar"; cost null = not set
 export interface AdminOrderItem {
   type: OrderItemType
   id: number
@@ -365,7 +365,7 @@ export interface AdminOrderItem {
   subtotal: number
 }
 
-// userId null = el comprador invitado o el sistema (vencimiento)
+// userId null = the guest buyer or the system (expiry)
 export interface AdminOrderHistoryEntry extends OrderHistoryEntry {
   userId: number | null
 }
@@ -377,7 +377,7 @@ export interface OrderReceipt {
   createdAt: string
 }
 
-// buyer puede venir vacio en una venta del local (consumidor final)
+// buyer may come empty in an in-store sale (final consumer)
 export interface AdminOrder {
   number: string
   status: OrderStatus
@@ -399,12 +399,12 @@ export interface AdminOrder {
   receipts: OrderReceipt[]
 }
 
-// Filtros de GET /sales/admin/orders. from / to: yyyy-MM-dd (dias de la tienda, inclusive)
+// Filters of GET /sales/admin/orders. from / to: yyyy-MM-dd (store days, inclusive)
 export interface AdminOrderFilters {
   status?: OrderStatus | ""
   channel?: OrderChannel | ""
   paymentMethod?: PaymentMethod | ""
-  // true = solo las ventas del local que se hicieron sin stock suficiente
+  // true = only the in-store sales made without enough stock
   stockReview?: boolean
   q?: string
   from?: string
@@ -412,7 +412,7 @@ export interface AdminOrderFilters {
   page: number
 }
 
-// Datos para cobrar. Los vacios se guardan como null; expirationHours null = 48
+// Payment collection details. Empty ones are stored as null; expirationHours null = 48
 export interface SalesSettings {
   alias: string | null
   cbu: string | null
@@ -421,8 +421,8 @@ export interface SalesSettings {
   expirationHours: number | null
 }
 
-// POST /sales/admin/orders: venta del local ya cobrada. price: precio cobrado (null = el actual; obligatorio si el
-// producto es "a consultar"). discount: monto en pesos sobre el subtotal. buyer opcional (consumidor final)
+// POST /sales/admin/orders: in-store sale already charged. price: price charged (null = the current one; required if the
+// product is "a consultar"). discount: amount in pesos over the subtotal. buyer optional (final consumer)
 export interface NewLocalSale {
   items: { type: OrderItemType; id: number; quantity: number; price: number | null }[]
   discount: number | null
