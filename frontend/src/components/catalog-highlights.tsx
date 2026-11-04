@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { ArrowRight, ImageIcon } from "lucide-react"
+import { ArrowRight, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react"
 import type { CatalogBundle, CatalogProduct } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { productImageUrl } from "@/lib/api"
@@ -12,10 +12,6 @@ import { Button } from "./ui/button"
 import { ProductModal } from "./product-modal"
 import { AddToCartButton } from "./add-to-cart-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
-
-// Cuantos destacados y combos entran en las franjas de la home (el resto, en /catalogo y /combos)
-const FEATURED_IN_HOME = 8
-const BUNDLES_IN_HOME = 8
 
 // Franja de la home: en el celular se desliza de costado; desde sm, grilla. Sin items no se muestra
 function Strip({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
@@ -40,26 +36,94 @@ function StripLink({ to, children }: { to: string; children: ReactNode }) {
 }
 
 // Una sola fila en todos los anchos: en el celular cada tarjeta ocupa casi todo el ancho (se ve que hay mas a la
-// derecha), entran 2 desde sm y 4 en escritorio; el resto se ve deslizando
-const stripRow = "-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:gap-6"
+// derecha), entran 2 desde sm y 4 en escritorio; el resto se ve deslizando o con las flechas
+const stripRow = "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:gap-6 [scrollbar-width:none]"
 const stripItem = "grid w-[75%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]"
+
+// Fila con flechas que pasan de a una pantalla (4 tarjetas en escritorio). La ultima pantalla termina en el
+// ultimo item aunque queden menos de 4; desde ahi la flecha derecha vuelve al principio (y la izquierda, desde el
+// principio, va al final). Las flechas aparecen solo si hay mas items de los que entran
+function Carousel({ children }: { children: ReactNode }) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const [overflows, setOverflows] = useState(false)
+
+  useEffect(() => {
+    const row = rowRef.current
+    if (!row) return
+    const update = () => setOverflows(row.scrollWidth > row.clientWidth + 1)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(row)
+    return () => observer.disconnect()
+  }, [children])
+
+  const move = (direction: 1 | -1) => {
+    const row = rowRef.current
+    const first = row?.firstElementChild as HTMLElement | null
+    if (!row || !first) return
+    const style = getComputedStyle(row)
+    const gap = parseFloat(style.columnGap) || 0
+    const visible = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const itemStep = first.offsetWidth + gap
+    const perPage = Math.max(1, Math.round((visible + gap) / itemStep))
+    const maxScroll = row.scrollWidth - row.clientWidth
+    const atStart = row.scrollLeft <= 1
+    const atEnd = row.scrollLeft >= maxScroll - 1
+
+    if (direction === 1 && atEnd) row.scrollTo({ left: 0, behavior: "smooth" })
+    else if (direction === -1 && atStart) row.scrollTo({ left: maxScroll, behavior: "smooth" })
+    else row.scrollBy({ left: direction * perPage * itemStep, behavior: "smooth" })
+  }
+
+  const arrow = "absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full shadow-md sm:inline-flex"
+
+  return (
+    <div className="relative">
+      <div ref={rowRef} className={stripRow}>
+        {children}
+      </div>
+      {overflows ? (
+        <>
+          <Button
+            variant="outline"
+            size="icon"
+            className={`${arrow} -left-3`}
+            onClick={() => move(-1)}
+            aria-label={strings.home.previous}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className={`${arrow} -right-3`}
+            onClick={() => move(1)}
+            aria-label={strings.home.next}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </>
+      ) : null}
+    </div>
+  )
+}
 
 // Destacados de la home, en el orden que eligio la tienda
 export function FeaturedStrip() {
-  const featured = (useCatalogFeatured().data ?? []).slice(0, FEATURED_IN_HOME)
+  const featured = useCatalogFeatured().data ?? []
   const [selected, setSelected] = useState<CatalogProduct | null>(null)
 
   if (featured.length === 0) return null
 
   return (
     <Strip title={strings.home.featuredTitle}>
-      <div className={stripRow}>
+      <Carousel>
         {featured.map((product) => (
           <div key={product.slug} className={stripItem}>
             <ProductCard product={product} onClick={() => setSelected(product)} />
           </div>
         ))}
-      </div>
+      </Carousel>
       <ProductModal product={selected} open={selected !== null} onOpenChange={(open) => !open && setSelected(null)} />
     </Strip>
   )
@@ -76,13 +140,13 @@ export function BundlesStrip() {
       title={strings.home.bundlesTitle}
       action={<StripLink to="/combos">{strings.home.allBundles}</StripLink>}
     >
-      <div className={stripRow}>
-        {bundles.slice(0, BUNDLES_IN_HOME).map((bundle) => (
+      <Carousel>
+        {bundles.map((bundle) => (
           <div key={bundle.id} className={stripItem}>
             <BundleCard bundle={bundle} />
           </div>
         ))}
-      </div>
+      </Carousel>
     </Strip>
   )
 }

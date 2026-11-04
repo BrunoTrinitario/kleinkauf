@@ -144,6 +144,8 @@ export const strings = {
     allBundles: "Ver combos",
   },
   catalogPage: {
+    previous: "Anteriores",
+    next: "Siguientes",
     title: "Catálogo",
     highlight: "Catálogo",
     subtitle: "Busca por nombre o filtra por categoría.",
