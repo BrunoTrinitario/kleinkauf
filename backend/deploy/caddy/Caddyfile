@@ -21,6 +21,11 @@ api.{$PLATFORM_DOMAIN} {
 	reverse_proxy gateway-service:3000
 }
 
+#www no es una tienda (es un identificador reservado): va al dominio de la plataforma
+www.{$PLATFORM_DOMAIN} {
+	redir https://{$PLATFORM_DOMAIN}{uri} permanent
+}
+
 #Las tiendas: cualquier otro host. No va como *.{$PLATFORM_DOMAIN} porque ese comodin tapa a api. y Caddy no le
 #saca certificado propio; el /check de abajo es el que limita los hosts a <tienda>.{$PLATFORM_DOMAIN}
 https:// {
