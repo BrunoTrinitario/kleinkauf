@@ -222,6 +222,8 @@ export type OrderChannel = "ONLINE" | "LOCAL"
 
 export type PaymentMethod = "EFECTIVO" | "TRANSFERENCIA" | "DEBITO" | "CREDITO" | "OTRO"
 
+export const PAYMENT_METHODS: PaymentMethod[] = ["EFECTIVO", "TRANSFERENCIA", "DEBITO", "CREDITO", "OTRO"]
+
 // Datos para transferir. alias o cbu pueden venir en null
 export interface PaymentDetails {
   alias: string | null
@@ -369,6 +371,9 @@ export interface AdminOrder {
 export interface AdminOrderFilters {
   status?: OrderStatus | ""
   channel?: OrderChannel | ""
+  paymentMethod?: PaymentMethod | ""
+  // true = solo las ventas del local que se hicieron sin stock suficiente
+  stockReview?: boolean
   q?: string
   from?: string
   to?: string
@@ -382,4 +387,17 @@ export interface SalesSettings {
   holder: string | null
   bank: string | null
   expirationHours: number | null
+}
+
+// POST /sales/admin/orders: venta del local ya cobrada. price: precio cobrado (null = el actual; obligatorio si el
+// producto es "a consultar"). discount: monto en pesos sobre el subtotal. buyer opcional (consumidor final)
+export interface NewLocalSale {
+  items: { type: OrderItemType; id: number; quantity: number; price: number | null }[]
+  discount: number | null
+  paymentMethod: PaymentMethod
+  status: "PAGADO" | "ENTREGADO"
+  buyer: Partial<Buyer> | null
+  deliveryType: DeliveryType
+  address?: Address
+  notes?: string
 }
