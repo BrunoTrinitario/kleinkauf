@@ -24,6 +24,24 @@ export function useUpdateProfile() {
   })
 }
 
+/*
+Recupero de contrasena (sin sesion). Pedir el mail responde lo mismo exista o no el email. El link del mail lleva a
+/reset-password?token=: vale 15 minutos y una sola vez (401 si vencio o ya se uso)
+ */
+export function useRequestPasswordReset() {
+  return useMutation({
+    mutationFn: (email: string) => api.post("/auth/forgot-password", { email }),
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: ({ token, newPassword }: { token: string; newPassword: string }) =>
+      // Un 401 es el link vencido o usado, no la sesion: no se renueva ni se cierra la sesion abierta
+      api.post(`/auth/forgot-password/${encodeURIComponent(token)}`, { newPassword }, { skipRefresh: true, skipSessionExpiry: true }),
+  })
+}
+
 // 409 si es el ultimo ADMINISTRADOR de la tienda
 export function useDeleteAccount() {
   return useMutation({

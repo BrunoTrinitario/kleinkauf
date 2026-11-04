@@ -19,14 +19,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -134,12 +138,51 @@ class TenantTokenTest {
 		user.setEmail("ana@mail.com");
 		user.setPassword("hash");
 		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+		String refresh = jwtUtil.generateRefreshToken(1L, "tienda_a", "hash");
+		String tokenId = jwtUtil.getTokenId(refresh);
+		when(cacheUtil.isRefreshTokenActive("tienda_a", 1L, tokenId)).thenReturn(true);
 
-		var session = userService.refresh(jwtUtil.generateRefreshToken(1L, "tienda_a", "hash"));
+		var session = userService.refresh(refresh);
 
 		assertEquals(TokenConstants.ACCESS, jwtUtil.getType(session.token()));
 		assertEquals(TokenConstants.REFRESH, jwtUtil.getType(session.refreshToken()));
 		assertEquals("tienda_a", jwtUtil.getTenant(session.token()));
+		// Rota: el viejo queda unos segundos y el nuevo se guarda por 7 dias
+		verify(cacheUtil).retireRefreshToken(eq("tienda_a"), eq(1L), eq(tokenId), any());
+		verify(cacheUtil).saveRefreshToken("tienda_a", 1L, jwtUtil.getTokenId(session.refreshToken()),
+				Duration.ofMillis(JwtUtil.REFRESH_TOKEN_MILLIS));
+		assertNotEquals(tokenId, jwtUtil.getTokenId(session.refreshToken()));
+	}
+
+	// Despues del logout (o de rotarlo y pasar la gracia) el refresh ya no esta en Redis
+	@Test
+	void refresh_cortado_respondeUnauthorized() {
+		JwtUtil jwtUtil = realJwtUtil();
+		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
+		TenantContext.setCurrentTenant("tienda_a");
+
+		ApiException ex = assertThrows(ApiException.class,
+				() -> userService.refresh(jwtUtil.generateRefreshToken(1L, "tienda_a", "hash")));
+
+		assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
+		verify(userRepository, never()).findById(any());
+	}
+
+	@Test
+	void logout_borraElRefreshDeEsaSesion() {
+		JwtUtil jwtUtil = realJwtUtil();
+		ReflectionTestUtils.setField(userService, "jwtUtil", jwtUtil);
+		TenantContext.setCurrentTenant("tienda_a");
+		String refresh = jwtUtil.generateRefreshToken(1L, "tienda_a", "hash");
+
+		userService.logout(refresh);
+		// Uno de otra tienda o un token de sesion no borran nada
+		userService.logout(jwtUtil.generateRefreshToken(1L, "tienda_b", "hash"));
+		userService.logout(jwtUtil.generateAccessToken(1L, "ana@mail.com", "Ana", "tienda_a"));
+		userService.logout(null);
+
+		verify(cacheUtil).deleteRefreshToken("tienda_a", 1L, jwtUtil.getTokenId(refresh));
+		verify(cacheUtil, times(1)).deleteRefreshToken(any(), any(), any());
 	}
 
 	// Ni un token de sesion, ni uno de otra tienda, ni uno de antes de cambiar la contrasena
@@ -152,6 +195,7 @@ class TenantTokenTest {
 		user.setId(1L);
 		user.setPassword("hash-nuevo");
 		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+		when(cacheUtil.isRefreshTokenActive(eq("tienda_a"), eq(1L), any())).thenReturn(true);
 
 		for (String token : java.util.List.of(
 				jwtUtil.generateAccessToken(1L, "ana@mail.com", "Ana", "tienda_a"),

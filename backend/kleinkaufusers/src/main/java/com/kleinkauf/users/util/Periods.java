@@ -23,7 +23,7 @@ Series por periodo de los paneles: parametros from, to (yyyy-MM-dd, inclusive) y
 Sin fechas: los ultimos 30 dias hasta hoy, por dia. La semana empieza el lunes.
 Se devuelven todos los periodos del rango, tambien los que tienen 0.
 Tope de MAX_PERIODS periodos para que un rango de anios por dia no arme una respuesta enorme.
-(sales tiene su propia version en ReportService, con los dias en la zona de la tienda.)
+Los dias son en la zona de los paneles (DashboardTime). sales tiene su propia version en ReportService.
  */
 public final class Periods {
 

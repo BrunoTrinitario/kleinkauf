@@ -10,6 +10,8 @@ import ProductPage from "@/pages/ProductPage"
 import CatalogPage from "@/pages/CatalogPage"
 import BundlesPage from "@/pages/BundlesPage"
 import LegalPage from "@/pages/LegalPage"
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage"
+import ResetPasswordPage from "@/pages/ResetPasswordPage"
 import LoginPage from "@/pages/LoginPage"
 import RegisterPage from "@/pages/RegisterPage"
 import AdminPage from "@/pages/admin/AdminPage"
@@ -62,6 +64,9 @@ function StoreRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      {/* Recupero de contrasena: el link del mail lleva a /reset-password?token= */}
+      <Route path="/recuperar" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/catalogo" element={<CatalogPage />} />
       <Route path="/combos" element={<BundlesPage />} />
       <Route path="/productos/:slug" element={<ProductPage />} />

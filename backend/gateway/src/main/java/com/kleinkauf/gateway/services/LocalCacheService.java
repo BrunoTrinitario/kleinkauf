@@ -37,7 +37,7 @@ public class LocalCacheService {
 
     /*
     Cuenta las requests del identificador en la ventana del minuto actual y devuelve el total.
-    Antes nunca incrementaba (siempre devolvia 1), asi que el rate limit no funcionaba.
+    Solo si Redis no responde (RateLimitCounter): el contador normal esta en Redis, compartido entre gateways.
      */
     public int rateLimitCache(String requestIdentifier ){
         long window = clock.millis() / 60_000;
