@@ -34,7 +34,7 @@ class CorsConfigTest {
     };
 
     @Test
-    void origenDeUnTenant_sigueYAgregaLosHeadersCors() {
+    void tenantOrigin_passesAndAddsCorsHeaders() {
         when(tenantService.isCorsAllowed(ORIGIN)).thenReturn(Mono.just(true));
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/api/v1/products/all").header(HttpHeaders.ORIGIN, ORIGIN));
@@ -46,7 +46,7 @@ class CorsConfigTest {
     }
 
     @Test
-    void origenDesconocido_respondeForbiddenYNoSigue() {
+    void unknownOrigin_respondsForbiddenAndStops() {
         when(tenantService.isCorsAllowed(ORIGIN)).thenReturn(Mono.just(false));
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/api/v1/products/all").header(HttpHeaders.ORIGIN, ORIGIN));
@@ -58,7 +58,7 @@ class CorsConfigTest {
     }
 
     @Test
-    void preflightDeUnTenant_respondeSinSeguir() {
+    void tenantPreflight_respondsWithoutPassing() {
         when(tenantService.isCorsAllowed(ORIGIN)).thenReturn(Mono.just(true));
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.options("http://gateway/api/v1/products/all")
@@ -72,7 +72,7 @@ class CorsConfigTest {
     }
 
     @Test
-    void frontendDeLaPlataforma_sePermiteSinBuscarTenant() {
+    void platformFrontend_isAllowedWithoutLookingUpTenant() {
         ReflectionTestUtils.setField(filter, "platformUrl", "http://localhost:3000");
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.post("http://gateway/api/v1/platform/tenants").header(HttpHeaders.ORIGIN, "http://localhost:3000"));
@@ -85,8 +85,8 @@ class CorsConfigTest {
     }
 
     @Test
-    void subdominioDeLaPlataforma_sePermiteAunqueLaTiendaNoExista() {
-        // TenantGatewayFilter responde 404 despues: el navegador tiene que poder leerlo
+    void platformSubdomain_isAllowedEvenIfStoreDoesNotExist() {
+        // TenantGatewayFilter responds 404 afterwards: the browser must be able to read it
         ReflectionTestUtils.setField(filter, "platformUrl", "http://localhost:2999");
         String origin = "http://no-existe.localhost:2999";
         MockServerWebExchange exchange = MockServerWebExchange.from(
@@ -100,7 +100,7 @@ class CorsConfigTest {
     }
 
     @Test
-    void otroPuertoOEsquemaOIdentificadorInvalido_noEsSubdominioDeLaPlataforma() {
+    void otherPortOrSchemeOrInvalidIdentifier_isNotPlatformSubdomain() {
         ReflectionTestUtils.setField(filter, "platformUrl", "http://localhost:2999");
         for (String origin : new String[]{
                 "http://tienda.localhost:3000",
@@ -122,7 +122,7 @@ class CorsConfigTest {
     }
 
     @Test
-    void sinOrigin_noEsCorsYNoConsultaTenants() {
+    void withoutOrigin_isNotCorsAndDoesNotQueryTenants() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/api/v1/products/all"));
 

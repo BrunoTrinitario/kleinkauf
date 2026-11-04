@@ -6,9 +6,9 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.util.function.Predicate;
 
 /*
-Decide que errores cuentan como falla del servicio remoto para Resilience4j.
-Un 4xx es un error del pedido (ej: tenant inexistente), no que users este caido,
-asi que no abre el circuito ni se reintenta. Tampoco se reintenta con el circuito abierto.
+Decides which errors count as a failure of the remote service for Resilience4j.
+A 4xx is a request error (e.g. unknown tenant), not users being down,
+so it does not open the circuit and is not retried. It is not retried with the circuit open either.
  */
 public class RemoteFailurePredicate implements Predicate<Throwable> {
 

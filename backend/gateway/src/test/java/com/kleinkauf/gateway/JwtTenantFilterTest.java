@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-// El token tiene que ser del tenant de la request (los ids de usuario se repiten entre tenants)
+// The token must belong to the request's tenant (user ids repeat across tenants)
 class JwtTenantFilterTest {
 
     private static final String SECRET = "MiSuperSecretoUltraSeguro123456789";
@@ -38,7 +38,7 @@ class JwtTenantFilterTest {
     }
 
     @Test
-    void tokenDelMismoTenant_pasaConElUsuario() {
+    void tokenFromSameTenant_passesWithTheUser() {
         MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a", token(7L, "tienda_a"));
 
         run(exchange);
@@ -47,7 +47,7 @@ class JwtTenantFilterTest {
     }
 
     @Test
-    void tokenDeOtroTenant_respondeUnauthorized() {
+    void tokenFromAnotherTenant_respondsUnauthorized() {
         MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_b", token(7L, "tienda_a"));
 
         run(exchange);
@@ -56,9 +56,9 @@ class JwtTenantFilterTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
     }
 
-    // El token del mail de recuperacion de contrasena no sirve para entrar
+    // The password recovery email token does not work to log in
     @Test
-    void tokenDeRecuperacion_respondeUnauthorized() {
+    void recoveryToken_respondsUnauthorized() {
         MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a",
                 token(7L, "tienda_a", TokenConstants.PASSWORD_RESET));
 
@@ -71,9 +71,9 @@ class JwtTenantFilterTest {
         assertEquals("7", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
     }
 
-    // El refresh solo sirve para POST /auth/refresh, no para entrar
+    // The refresh token only works for POST /auth/refresh, not to log in
     @Test
-    void tokenDeRefresh_respondeUnauthorized() {
+    void refreshToken_respondsUnauthorized() {
         MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a",
                 token(7L, "tienda_a", TokenConstants.REFRESH));
 
@@ -84,7 +84,7 @@ class JwtTenantFilterTest {
     }
 
     @Test
-    void tokenViejoSinTenant_respondeUnauthorized() {
+    void oldTokenWithoutTenant_respondsUnauthorized() {
         MockServerWebExchange exchange = tenantRequest("/api/v1/products/5/pricing", "tienda_a", token(7L, null));
 
         run(exchange);
@@ -93,37 +93,37 @@ class JwtTenantFilterTest {
     }
 
     @Test
-    void plataforma_soloAceptaTokensDePublic() {
-        MockServerWebExchange deTienda = platformRequest(token(1L, "tienda_a"));
-        run(deTienda);
-        assertEquals(HttpStatus.UNAUTHORIZED, deTienda.getResponse().getStatusCode());
+    void platform_onlyAcceptsPublicTokens() {
+        MockServerWebExchange fromStore = platformRequest(token(1L, "tienda_a"));
+        run(fromStore);
+        assertEquals(HttpStatus.UNAUTHORIZED, fromStore.getResponse().getStatusCode());
 
-        MockServerWebExchange dePlataforma = platformRequest(token(1L, "public"));
-        run(dePlataforma);
+        MockServerWebExchange fromPlatform = platformRequest(token(1L, "public"));
+        run(fromPlatform);
         assertEquals("1", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
     }
 
     @Test
-    void crearPedido_loginOpcional() {
-        // Invitado: pasa sin usuario
-        MockServerWebExchange invitado = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/sales/orders")
+    void createOrder_optionalLogin() {
+        // Guest: passes without a user
+        MockServerWebExchange guest = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/sales/orders")
                 .header(Headers.FORWARDED_HOST, "tienda_a"));
-        run(invitado);
+        run(guest);
         assertNull(forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
 
-        // Logueado: pasa con el usuario para asociarle el pedido
+        // Logged in: passes with the user so the order is linked to them
         run(orderRequest("tienda_a", token(7L, "tienda_a")));
         assertEquals("7", forwarded.get().getRequest().getHeaders().getFirst(Headers.USER_ID));
 
-        // Token invalido o de otra tienda: 401 (no se crea como invitado sin avisar)
-        MockServerWebExchange deOtraTienda = orderRequest("tienda_b", token(7L, "tienda_a"));
-        run(deOtraTienda);
+        // Invalid token or one from another store: 401 (it is not silently created as a guest)
+        MockServerWebExchange fromAnotherStore = orderRequest("tienda_b", token(7L, "tienda_a"));
+        run(fromAnotherStore);
         assertNull(forwarded.get());
-        assertEquals(HttpStatus.UNAUTHORIZED, deOtraTienda.getResponse().getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, fromAnotherStore.getResponse().getStatusCode());
     }
 
     @Test
-    void consultaDePedido_ignoraElToken() {
+    void orderLookup_ignoresTheToken() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/sales/orders/lookup")
                 .header(Headers.FORWARDED_HOST, "tienda_a")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token(7L, "tienda_a")));
@@ -145,7 +145,7 @@ class JwtTenantFilterTest {
         }).block();
     }
 
-    // Simula lo que deja TenantGatewayFilter (corre antes): el schema en X-Forwarded-Host
+    // Simulates what TenantGatewayFilter leaves (runs before): the schema in X-Forwarded-Host
     private static MockServerWebExchange tenantRequest(String path, String schema, String token) {
         return MockServerWebExchange.from(MockServerHttpRequest.get("http://gateway" + path)
                 .header(Headers.FORWARDED_HOST, schema)

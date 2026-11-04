@@ -21,20 +21,20 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /*
-CORS por tenant: solo se permiten los origenes que pertenecen a un tenant.
-Reemplaza a CorsWebFilter porque su CorsConfigurationSource es sincronico y obligaba
-a hacer block() dentro del event loop; aca el origen se valida de forma reactiva y
-despues se aplica la misma logica que CorsWebFilter.
-Corre antes que los filtros que cortan la request (rate limit 429, tenant 404/403, JWT 401): si corriera
-despues, esas respuestas saldrian sin headers CORS y el navegador las veria como un error de red, sin el codigo.
-Va despues de ClientHeadersFilter (-200), aunque solo lee el Origin.
+Per-tenant CORS: only origins that belong to a tenant are allowed.
+Replaces CorsWebFilter because its CorsConfigurationSource is synchronous and forced
+a block() inside the event loop; here the origin is validated reactively and
+then the same logic as CorsWebFilter is applied.
+Runs before the filters that cut the request short (rate limit 429, tenant 404/403, JWT 401): if it ran
+after them, those responses would go out without CORS headers and the browser would see a network error, without the status code.
+Goes after ClientHeadersFilter (-200), although it only reads the Origin.
  */
 @Component
 @Order(-150)
 @RequiredArgsConstructor
 public class CorsConfig implements WebFilter {
 
-    // Identificador de una tienda: el mismo patron que TenantService.IDENTIFIER en users
+    // A store identifier: the same pattern as TenantService.IDENTIFIER in users
     private static final Pattern TENANT_LABEL = Pattern.compile("^[a-z][a-z0-9-]{1,28}[a-z0-9]$");
 
     private final TenantService tenantService;
@@ -52,9 +52,9 @@ public class CorsConfig implements WebFilter {
         }
 
         String origin = Parser.getBaseUrlFromRequest(exchange);
-        // El frontend de la plataforma (alta de tenants, panel del superadmin) no es un tenant.
-        // Un subdominio de la plataforma tambien se permite aunque la tienda no exista o este borrada:
-        // TenantGatewayFilter responde 404 y el frontend tiene que poder leerlo para mostrar "esta tienda no existe"
+        // The platform frontend (tenant sign-up, superadmin dashboard) is not a tenant.
+        // A platform subdomain is also allowed even if the store does not exist or is deleted:
+        // TenantGatewayFilter responds 404 and the frontend must be able to read it to show "this store does not exist"
         Mono<Boolean> isAllowed = origin.equals(platformUrl) || isPlatformSubdomain(origin)
                 ? Mono.just(true)
                 : tenantService.isCorsAllowed(origin);
@@ -69,7 +69,7 @@ public class CorsConfig implements WebFilter {
                 });
     }
 
-    // <identificador>.<host de la plataforma> con el mismo esquema y puerto (ej. http://mitienda.localhost:2999)
+    // <identifier>.<platform host> with the same scheme and port (e.g. http://mitienda.localhost:2999)
     private boolean isPlatformSubdomain(String origin) {
         if (platformUrl == null) {
             return false;

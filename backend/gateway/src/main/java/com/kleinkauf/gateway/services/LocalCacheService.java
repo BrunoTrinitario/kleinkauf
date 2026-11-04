@@ -18,7 +18,7 @@ public class LocalCacheService {
 
     private Clock clock = Clock.systemUTC();
 
-    // El tenant se busca por la URL del frontend (Origin), igual que en users
+    // The tenant is looked up by the frontend URL (Origin), same as in users
     public void saveTenant(String url, TenantDto tenantDto) {
         tenantCache.put("tenant:url:"+url, tenantDto);
     }
@@ -36,15 +36,15 @@ public class LocalCacheService {
     }
 
     /*
-    Cuenta las requests del identificador en la ventana del minuto actual y devuelve el total.
-    Solo si Redis no responde (RateLimitCounter): el contador normal esta en Redis, compartido entre gateways.
+    Counts the identifier's requests in the current minute's window and returns the total.
+    Only if Redis does not answer (RateLimitCounter): the normal counter is in Redis, shared between gateways.
      */
     public int rateLimitCache(String requestIdentifier ){
         long window = clock.millis() / 60_000;
         return rateLimitCache.asMap().merge(requestIdentifier + ":" + window, 1, Integer::sum);
     }
 
-    // Para tests
+    // For tests
     void setClock(Clock clock) {
         this.clock = clock;
     }

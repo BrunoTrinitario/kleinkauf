@@ -6,26 +6,26 @@ public class PermittedUrls {
 
     public static String INTERNAL_PATH = "/api/internal";
 
-    // Rutas de la plataforma (alta de tenants y panel del superadmin): no pertenecen a ningun tenant
+    // Platform routes (tenant sign-up and superadmin dashboard): they do not belong to any tenant
     public static String PLATFORM_PATH = "/api/v1/platform/";
 
     public static boolean isPlatformPath(String path) {
         return path.startsWith(PLATFORM_PATH);
     }
 
-    // Imagenes de productos: archivos publicos con nombre aleatorio, guardados fuera de cualquier tenant.
-    // El navegador no manda Origin al cargar un <img>, asi que no se puede resolver el tenant
+    // Product images: public files with a random name, stored outside any tenant.
+    // The browser does not send Origin when loading an <img>, so the tenant cannot be resolved
     public static String PRODUCT_IMAGES_PATH = "/products/images/";
 
-    // WebSocket de observability: el navegador no puede mandar el JWT en el handshake, entra con un ticket
+    // Observability WebSocket: the browser cannot send the JWT in the handshake, it gets in with a ticket
     public static String WS_PATH = "/ws";
 
-    // Link para compartir un producto (WhatsApp, Instagram): /share/{identificador}/products/{slug}.
-    // El crawler no manda Origin: la tienda sale del identificador de la ruta (ver TenantGatewayFilter)
+    // Link to share a product (WhatsApp, Instagram): /share/{identifier}/products/{slug}.
+    // The crawler does not send Origin: the store comes from the identifier in the path (see TenantGatewayFilter)
     public static final java.util.regex.Pattern SHARE_PATH =
             java.util.regex.Pattern.compile("^/share/([a-z][a-z0-9-]{1,28}[a-z0-9])/products/[^/]+$");
 
-    // Rutas que no pertenecen a ningun tenant: el gateway no lo busca ni agrega el header
+    // Routes that do not belong to any tenant: the gateway neither looks it up nor adds the header
     public static boolean isTenantlessPath(String path) {
         return isPlatformPath(path) || path.startsWith(PRODUCT_IMAGES_PATH);
     }
@@ -40,7 +40,7 @@ public class PermittedUrls {
                 "POST:/api/v1/platform/tenants",
                 "POST:/api/v1/platform/auth/login",
                 "POST:/api/v1/platform/auth/refresh",
-                // Cerrar sesion: corta el refresh que manda (el token de 1 hora puede estar vencido)
+                // Logout: revokes the refresh token it sends (the 1-hour token may have expired)
                 "POST:/api/v1/auth/logout",
                 "POST:/api/v1/platform/auth/logout",
                 "GET:/api/v1/products/{id}/metadata",
@@ -62,13 +62,13 @@ public class PermittedUrls {
     }
 
     /*
-    Rutas publicas en las que el login es opcional: si viene un token valido el gateway pasa el usuario
-    (crear un pedido logueado lo asocia al usuario). Tienen que estar tambien en getExcludedPaths.
+    Public routes where login is optional: if a valid token comes in, the gateway passes the user on
+    (creating an order while logged in links it to the user). They must also be in getExcludedPaths.
      */
     public static List<String> getOptionalAuthPaths() {
         return List.of(
                 "POST:/api/v1/sales/orders",
-                // Reportar un bug: con la sesion abierta queda quien lo mando
+                // Reporting a bug: with an open session it records who sent it
                 "POST:/api/v1/bug-reports"
         );
     }
@@ -88,19 +88,19 @@ public class PermittedUrls {
             String allowedMethod = null;
             String allowedPath = allowed;
 
-            // Si la regla tiene formato METHOD:/ruta
+            // If the rule has the METHOD:/path format
             if (allowed.contains(":")) {
                 String[] parts = allowed.split(":", 2);
                 allowedMethod = parts[0].toUpperCase();
                 allowedPath = parts[1];
             }
 
-            // Si tiene método, debe coincidir exactamente
+            // If it has a method, it must match exactly
             if (allowedMethod != null && !allowedMethod.equalsIgnoreCase(method)) {
                 continue;
             }
 
-            // Convertir placeholders a regex. {code}: un segmento (ej. numero de pedido K7QM-4X2P)
+            // Convert placeholders to regex. {code}: one segment (e.g. order number K7QM-4X2P)
             String regex = allowedPath
                     .replace("{id}", "\\d+")
                     .replace("{code}", "[^/]+")

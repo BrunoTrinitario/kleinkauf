@@ -38,7 +38,7 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void tenantHabilitado_pasaElSchemaAlMicroservicio() {
+    void enabledTenant_passesSchemaToMicroservice() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(true)));
         MockServerWebExchange exchange = request("/api/v1/products/all");
 
@@ -48,7 +48,7 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void tenantInexistenteOBorrado_respondeNotFound() {
+    void unknownOrDeletedTenant_respondsNotFound() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.empty());
         MockServerWebExchange exchange = request("/api/v1/products/all");
 
@@ -60,7 +60,7 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void tenantDeshabilitado_respondeForbidden() {
+    void disabledTenant_respondsForbidden() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(false)));
         MockServerWebExchange exchange = request("/api/v1/products/all");
 
@@ -72,7 +72,7 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void usersCaido_respondeElErrorDeUsers() {
+    void usersDown_respondsWithUsersError() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.error(
                 WebClientResponseException.create(503, "Service Unavailable", null, null, null)));
         MockServerWebExchange exchange = request("/api/v1/products/all");
@@ -83,7 +83,7 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void rutasDePlataforma_noBuscanTenantNiAgreganElHeader() {
+    void platformRoutes_doNotLookUpTenantOrAddHeader() {
         MockServerWebExchange exchange = request("/api/v1/platform/tenants");
 
         run(exchange);
@@ -93,9 +93,9 @@ class TenantGatewayFilterTest {
         verifyNoInteractions(tenantService);
     }
 
-    // El navegador no manda Origin al cargar un <img>: las imagenes no pueden depender del tenant
+    // The browser does not send Origin when loading an <img>: images cannot depend on the tenant
     @Test
-    void imagenesDeProductos_sinOrigin_noBuscanTenant() {
+    void productImages_withoutOrigin_doNotLookUpTenant() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/products/images/abc_123.png"));
 
@@ -107,10 +107,10 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void losErroresDeLosServiciosNoSeConviertenEn503() {
+    void serviceErrorsAreNotTurnedInto503() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(true)));
         MockServerWebExchange exchange = request("/api/v1/products/all");
-        IllegalStateException downstream = new IllegalStateException("fallo en products");
+        IllegalStateException downstream = new IllegalStateException("products failure");
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
                 () -> filter.filter(exchange, e -> Mono.error(downstream)).block());
@@ -118,9 +118,9 @@ class TenantGatewayFilterTest {
         assertEquals(downstream, thrown);
     }
 
-    // El crawler de WhatsApp no manda Origin: la tienda del link para compartir sale de la ruta, con platform.url
+    // WhatsApp's crawler does not send Origin: the store for the share link comes from the path, with platform.url
     @Test
-    void linkParaCompartir_buscaLaTiendaPorLaRuta() {
+    void shareLink_looksUpStoreByPath() {
         when(tenantService.getTenant("http://tienda-a.localhost:2999")).thenReturn(Mono.just(tenant(true)));
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/share/tienda-a/products/mesa-de-roble"));
@@ -131,7 +131,7 @@ class TenantGatewayFilterTest {
     }
 
     @Test
-    void linkParaCompartirDeUnaTiendaDeshabilitada_respondeForbidden() {
+    void shareLinkOfDisabledStore_respondsForbidden() {
         when(tenantService.getTenant("http://tienda-a.localhost:2999")).thenReturn(Mono.just(tenant(false)));
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/share/tienda-a/products/mesa-de-roble"));
@@ -142,9 +142,9 @@ class TenantGatewayFilterTest {
         assertEquals(HttpStatus.FORBIDDEN, exchange.getResponse().getStatusCode());
     }
 
-    // El panel del superadmin abre el WS desde el frontend de la plataforma: no hay tienda que buscar
+    // The superadmin dashboard opens the WS from the platform frontend: there is no store to look up
     @Test
-    void wsDesdeLaPlataforma_noBuscaTenant() {
+    void wsFromPlatform_doesNotLookUpTenant() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("http://gateway/ws?ticket=abc").header(HttpHeaders.ORIGIN, PLATFORM_ORIGIN));
 
@@ -155,9 +155,9 @@ class TenantGatewayFilterTest {
         verifyNoInteractions(tenantService);
     }
 
-    // Desde una tienda se resuelve como cualquier request: observability compara el tenant con el del ticket
+    // From a store it is resolved like any request: observability compares the tenant with the ticket's
     @Test
-    void wsDesdeUnaTienda_pasaElSchema() {
+    void wsFromStore_passesTheSchema() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.just(tenant(true)));
         MockServerWebExchange exchange = request("/ws");
 

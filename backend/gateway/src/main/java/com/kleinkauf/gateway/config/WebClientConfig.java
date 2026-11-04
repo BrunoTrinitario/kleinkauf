@@ -9,7 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-    // Con el registro de observaciones: las llamadas a users propagan el traceId y tienen metricas
+    // With the observation registry: calls to users propagate the traceId and have metrics
     @Bean
     @LoadBalanced
     public WebClient.Builder loadBalancedWebClientBuilder(ObservationRegistry observationRegistry) {

@@ -14,7 +14,7 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
-    // Puerto de gestion (/health, /ready, /metrics): interno, sin login. Va antes que la cadena general
+    // Management port (/health, /ready, /metrics): internal, no login. Goes before the general chain
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityWebFilterChain managementFilterChain(ServerHttpSecurity http) {
@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    // JwtFilter, TenantGatewayFilter, etc. son WebFilter @Component: WebFlux los registra solos
+    // JwtFilter, TenantGatewayFilter, etc. are @Component WebFilters: WebFlux registers them on its own
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
         return http
