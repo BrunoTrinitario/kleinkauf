@@ -11,7 +11,8 @@ interface AddToCartButtonProps {
   item: Omit<NewCartItem, "price"> & { price: number | null }
   availability: Availability
   className?: string
-  // En las tarjetas del listado: boton chico y, sin precio, nada (la tarjeta ya dice "Consultar precio")
+  // En las tarjetas del listado: sin precio no se muestra nada (la tarjeta ya dice "Consultar precio").
+  // El boton es el mismo en todos lados (azul, tamano normal)
   compact?: boolean
 }
 
@@ -42,8 +43,6 @@ export function AddToCartButton({ item, availability, className, compact = false
     <Button
       onClick={handleAdd}
       disabled={soldOut}
-      size={compact ? "sm" : "default"}
-      variant={compact ? "outline" : "default"}
       className={className}
       aria-label={compact ? `${soldOut ? strings.cart.outOfStock : strings.cart.add}: ${item.name}` : undefined}
     >
