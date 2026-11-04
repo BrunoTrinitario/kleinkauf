@@ -18,7 +18,10 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
-import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes } from "lucide-react"
+import { useCart } from "@/lib/cart"
+import { CATALOG_PATH } from "@/lib/catalog-url"
+import { useCatalogBundles } from "@/api/catalog"
+import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "CLIENTE", label: strings.roles.cliente, icon: User },
@@ -29,6 +32,9 @@ const roles: { value: UserRole; label: string; icon: typeof User }[] = [
 export function Header() {
   const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
   const availableRoles = user?.roles.map(role => role.type) ?? []
+  const { units } = useCart()
+  // "Combos" de la tienda solo si hay alguno para comprar (la misma consulta que la home, en cache)
+  const hasBundles = (useCatalogBundles().data?.length ?? 0) > 0
 
   const getRoleBadgeColor = () => {
     switch (activeRole) {
@@ -58,9 +64,20 @@ export function Header() {
 
         {/* Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to={CATALOG_PATH} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             {strings.nav.catalog}
           </Link>
+          {hasBundles && (
+            <Link to="/combos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {strings.nav.bundles}
+            </Link>
+          )}
+          {/* Lo del panel va aparte de lo de la tienda (ej. "Combos" de la tienda y "Combos" del panel) */}
+          {isAuthenticated && (canManageProducts || canManageUsers) && (
+            <span className="flex items-center gap-2 border-l border-border pl-6 text-xs uppercase tracking-wider text-muted-foreground">
+              {strings.nav.panel}
+            </span>
+          )}
           {isAuthenticated && canManageProducts && (
             <Link
               to="/admin/products"
@@ -92,6 +109,16 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="relative" asChild>
+            <Link to="/carrito" aria-label={strings.cart.open(units)} title={strings.cart.open(units)}>
+              <ShoppingCart className="h-5 w-5" />
+              {units > 0 ? (
+                <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-primary px-1 text-center text-[11px] font-medium leading-5 text-primary-foreground">
+                  {units}
+                </span>
+              ) : null}
+            </Link>
+          </Button>
           {isAuthenticated ? (
             <>
               {/* User Menu */}
@@ -193,6 +220,12 @@ export function Header() {
                   )}
                   
                   <DropdownMenuItem asChild>
+                    <Link to="/mis-pedidos">
+                      <ShoppingBag className="mr-2 h-4 w-4" />
+                      {strings.myOrders.nav}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/user/settings">
                       <Settings className="mr-2 h-4 w-4" />
                       {strings.auth.settings}
@@ -210,7 +243,8 @@ export function Header() {
               <Button variant="outline" asChild>
                 <Link to="/login">{strings.auth.signIn}</Link>
               </Button>
-              <Button asChild>
+              {/* En el celular no entra junto al carrito y el login; el login tiene el link para crear la cuenta */}
+              <Button className="hidden sm:inline-flex" asChild>
                 <Link to="/register">{strings.auth.registerNow}</Link>
               </Button>
             </div>

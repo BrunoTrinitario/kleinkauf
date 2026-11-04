@@ -121,6 +121,8 @@ export type Availability = "DISPONIBLE" | "POCAS_UNIDADES" | "AGOTADO"
 export type CatalogSort = "name" | "price_asc" | "price_desc"
 
 export interface CatalogProduct {
+  // Lo usa el carrito para armar el pedido (el link y la pagina van por slug)
+  id: number
   slug: string
   name: string
   category: string
@@ -155,7 +157,19 @@ export interface CatalogBundle {
   listPrice: number | null
   availability: Availability
   image: string | null
-  products: { slug: string; name: string; quantity: number }[]
+  products: CatalogBundleProduct[]
+}
+
+// Producto dentro de un combo. price: el del producto suelto (null = consultar); image: su primera imagen.
+// Opcionales porque un catalogo cacheado antes de sumarlos puede no traerlos (dura hasta una hora)
+export interface CatalogBundleProduct {
+  slug: string
+  name: string
+  quantity: number
+  category?: string | null
+  description?: string | null
+  price?: number | null
+  image?: string | null
 }
 
 export interface CatalogCategory {
@@ -187,3 +201,120 @@ export function normalizeMetadata(data: Partial<ProductMetadata> | null | undefi
   }
 }
 
+
+// Ventas (/api/v1/sales, docs/backend/sales.md). Las fechas llegan sin zona (hora del servidor): formatServerDateTime
+export type OrderItemType = "PRODUCT" | "BUNDLE"
+
+export type OrderStatus =
+  | "PENDIENTE_PAGO"
+  | "PAGO_EN_REVISION"
+  | "RECHAZADO"
+  | "PAGADO"
+  | "EN_PREPARACION"
+  | "LISTO"
+  | "ENTREGADO"
+  | "CANCELADO"
+  | "VENCIDO"
+
+export type DeliveryType = "RETIRO" | "ENVIO"
+
+export type OrderChannel = "ONLINE" | "LOCAL"
+
+export type PaymentMethod = "EFECTIVO" | "TRANSFERENCIA" | "DEBITO" | "CREDITO" | "OTRO"
+
+// Datos para transferir. alias o cbu pueden venir en null
+export interface PaymentDetails {
+  alias: string | null
+  cbu: string | null
+  holder: string | null
+  bank: string | null
+}
+
+// GET /sales/checkout: sin paymentConfigured no se puede comprar
+export interface CheckoutInfo {
+  paymentConfigured: boolean
+  payment: PaymentDetails | null
+  expirationHours: number
+  deliveryTypes: DeliveryType[]
+  maxLines: number
+  maxQuantity: number
+}
+
+export interface Buyer {
+  name: string
+  email: string
+  phone: string
+}
+
+export interface Address {
+  street: string
+  number: string
+  apartment?: string | null
+  city: string
+  province: string
+  postalCode: string
+}
+
+export interface NewOrder {
+  items: { type: OrderItemType; id: number; quantity: number; price: number }[]
+  buyer: Buyer
+  deliveryType: DeliveryType
+  address?: Address
+  notes?: string
+}
+
+// 201 de POST /sales/orders
+export interface CreatedOrder {
+  number: string
+  status: OrderStatus
+  total: number
+  expiresAt: string | null
+  payment: PaymentDetails | null
+}
+
+// 409 de POST /sales/orders cuando cambio algun precio (el pedido no se crea)
+export interface PriceChange {
+  type: OrderItemType
+  id: number
+  name: string
+  expectedPrice: number
+  currentPrice: number | null
+}
+
+export interface OrderHistoryEntry {
+  status: OrderStatus
+  createdAt: string
+  reason: string | null
+}
+
+// El pedido visto por el comprador (lookup, comprobante y cancelar). payment solo mientras se puede subir el comprobante
+export interface Order {
+  number: string
+  status: OrderStatus
+  createdAt: string
+  expiresAt: string | null
+  buyer: Buyer
+  deliveryType: DeliveryType
+  address: Address | null
+  notes: string | null
+  items: { type: OrderItemType; id: number; name: string; quantity: number; unitPrice: number; subtotal: number }[]
+  discount: number
+  total: number
+  payment: PaymentDetails | null
+  history: OrderHistoryEntry[]
+  receipts: number
+}
+
+// Renglon de "mis pedidos" (y de la lista del panel de ventas)
+export interface OrderSummary {
+  number: string
+  status: OrderStatus
+  channel: OrderChannel
+  paymentMethod: PaymentMethod | null
+  buyerName: string
+  buyerEmail: string
+  units: number
+  total: number
+  stockReview: boolean
+  createdAt: string
+}

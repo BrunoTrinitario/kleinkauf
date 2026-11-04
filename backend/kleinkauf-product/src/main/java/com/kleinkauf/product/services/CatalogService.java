@@ -132,7 +132,12 @@ public class CatalogService {
 
     static CatalogBundleDto toDto(Bundle bundle) {
         List<CatalogBundleProductDto> products = bundle.getProducts().stream()
-                .map(bp -> new CatalogBundleProductDto(bp.getProduct().getSlug(), bp.getProduct().getName(), bp.getQuantity()))
+                .map(bp -> {
+                    Product p = bp.getProduct();
+                    List<String> images = images(p);
+                    return new CatalogBundleProductDto(p.getSlug(), p.getName(), bp.getQuantity(), p.getCategory(),
+                            p.getDescription(), p.getPrice(), images.isEmpty() ? null : images.get(0));
+                })
                 .toList();
         String image = bundle.getProducts().stream()
                 .flatMap(bp -> images(bp.getProduct()).stream())
