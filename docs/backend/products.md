@@ -580,11 +580,13 @@ Combos que se pueden comprar (ver [reglas](#conceptos-y-reglas)), por nombre.
 ```json
 [ { "id": 3, "name": "Comedor completo", "price": 450000.00, "listPrice": 520000.00,
     "availability": "DISPONIBLE", "image": "3f2a..._1730.png",
-    "products": [ { "slug": "mesa", "name": "Mesa", "quantity": 1 } ] } ]
+    "products": [ { "slug": "mesa", "name": "Mesa", "quantity": 1, "category": "Comedor",
+                    "description": "Mesa de roble", "price": 400000.00, "image": "3f2a..._1730.png" } ] } ]
 ```
 
 `listPrice` sirve para mostrar el ahorro; `image` es la primera imagen del primer producto que tenga. Un combo
-solo está `DISPONIBLE` o `AGOTADO`.
+solo está `DISPONIBLE` o `AGOTADO`. Cada producto trae lo necesario para el detalle del combo: `price` es el del
+producto suelto (`null` = consultar) e `image` su primera imagen (`null` si no tiene).
 
 ## Link para compartir
 

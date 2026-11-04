@@ -157,7 +157,19 @@ export interface CatalogBundle {
   listPrice: number | null
   availability: Availability
   image: string | null
-  products: { slug: string; name: string; quantity: number }[]
+  products: CatalogBundleProduct[]
+}
+
+// Producto dentro de un combo. price: el del producto suelto (null = consultar); image: su primera imagen.
+// Opcionales porque un catalogo cacheado antes de sumarlos puede no traerlos (dura hasta una hora)
+export interface CatalogBundleProduct {
+  slug: string
+  name: string
+  quantity: number
+  category?: string | null
+  description?: string | null
+  price?: number | null
+  image?: string | null
 }
 
 export interface CatalogCategory {

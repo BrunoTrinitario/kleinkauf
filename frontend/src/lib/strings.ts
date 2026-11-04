@@ -62,6 +62,13 @@ export const strings = {
     listPrice: (amount: string) => `Por separado ${amount}`,
     saving: (amount: string) => `Ahorras ${amount}`,
     includes: "Incluye",
+    viewDetail: "Ver detalle",
+    detailDescription: "Los productos que trae el combo y lo que cuestan por separado.",
+    unitPrice: (price: string) => `${price} c/u`,
+    lineTotal: (quantity: number, price: string, total: string) => `${quantity} x ${price} = ${total}`,
+    viewProduct: "Ver producto",
+    separately: "Por separado",
+    bundlePrice: "Precio del combo",
   },
   share: {
     title: "Compartir",
