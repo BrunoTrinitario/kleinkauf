@@ -51,7 +51,7 @@ Venta del local: nace en PAGADO o ENTREGADO
 | `PAGADO` | El administrador validó el pago | Descontado | **Sí** | No | No |
 | `EN_PREPARACION` | Se está armando | Descontado | Sí | No | No |
 | `LISTO` | Para retirar o despachar | Descontado | Sí | No | No |
-| `ENTREGADO` | Final | Descontado | Sí | No | No |
+| `ENTREGADO` | Final (una venta del local todavía se puede anular) | Descontado | Sí | No | No |
 | `CANCELADO` | Final (con motivo) | Devuelto | No | No | — |
 | `VENCIDO` | Final: pasó el plazo sin comprobante | Devuelto | No | No | — |
 
@@ -62,7 +62,7 @@ Cambios del administrador (`PUT /admin/orders/{number}/status`):
 | Validar → `PAGADO` | `PENDIENTE_PAGO`, `PAGO_EN_REVISION`, `RECHAZADO` | Suma a vendidos en products. Se puede validar sin comprobante (pagó por otro medio) |
 | Rechazar → `RECHAZADO` | `PAGO_EN_REVISION` | **Motivo obligatorio.** El plazo para subir otro comprobante vuelve a correr |
 | Avanzar → `EN_PREPARACION`, `LISTO`, `ENTREGADO` | Un estado pago anterior | Se pueden saltear pasos; nunca hacia atrás |
-| Cancelar → `CANCELADO` | Cualquier estado no final | **Motivo obligatorio.** Devuelve el stock; si estaba pago, lo resta de vendidos. El reintegro del dinero es aparte |
+| Cancelar → `CANCELADO` | Cualquier estado no final, y `ENTREGADO` si es una venta del local | **Motivo obligatorio.** Devuelve el stock; si estaba pago, lo resta de vendidos. El reintegro del dinero es aparte |
 
 Cualquier otro cambio responde 409. Cada cambio queda en el historial con fecha, usuario y motivo.
 
@@ -98,7 +98,7 @@ Un pedido sin comprobante vence a las `expirationHours` (48 por defecto) y devue
 3. **Preparar y entregar:** avanzar a `EN_PREPARACION`, `LISTO`, `ENTREGADO`.
 4. **Vender en el local:** `POST /api/v1/sales/admin/orders`. Si faltaba stock, la venta sale con `stockReview` y
    conviene revisar el stock del producto (`GET /api/v1/sales/admin/orders?stockReview=true`).
-5. **Anular** cualquier pedido no final: cancelar con motivo.
+5. **Anular** cualquier pedido no final, o una venta del local ya entregada: cancelar con motivo.
 6. **Ver reportes:** `GET /api/v1/sales/admin/reports/summary` y `/products`.
 
 ## Tienda (checkout)

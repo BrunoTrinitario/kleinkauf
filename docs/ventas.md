@@ -154,9 +154,10 @@ POST /api/v1/sales/admin/orders
 | Validar → `PAGADO` | `PENDIENTE_PAGO`, `PAGO_EN_REVISION`, `RECHAZADO` | Suma el pedido al contador de vendidos. Se puede validar sin comprobante si pagó por otro medio |
 | Rechazar → `RECHAZADO` | `PAGO_EN_REVISION` | **Motivo obligatorio.** El plazo para subir otro comprobante corre de nuevo desde el rechazo |
 | Avanzar → `EN_PREPARACION`, `LISTO`, `ENTREGADO` | Un estado pago anterior | Se pueden saltear pasos (`PAGADO → ENTREGADO`); nunca hacia atrás |
-| Cancelar → `CANCELADO` | Cualquier estado no final | **Motivo obligatorio.** Devuelve el stock; si ya estaba pago, lo resta de vendidos. La devolución del dinero se arregla por fuera |
+| Cancelar → `CANCELADO` | Cualquier estado no final, y `ENTREGADO` si es una venta del local | **Motivo obligatorio.** Devuelve el stock; si ya estaba pago, lo resta de vendidos. La devolución del dinero se arregla por fuera |
 
-- Cualquier otro cambio responde **409**. `ENTREGADO`, `CANCELADO` y `VENCIDO` son finales.
+- Cualquier otro cambio responde **409**. `ENTREGADO`, `CANCELADO` y `VENCIDO` son finales, con una excepción: una
+  venta del local entregada se puede anular (ver [Venta del local](#venta-del-local)). Un pedido online entregado no.
 - Primero se actualiza products y después se guarda el pedido: si products no responde, **503** y el pedido no
   cambia (se puede reintentar; products no aplica nada dos veces).
 - El pedido tiene control optimista (`@Version`): si otro lo cambió mientras tanto (otro administrador, el comprador
@@ -190,7 +191,8 @@ POST /api/v1/sales/admin/orders
   queda en 0), el pedido queda con `stockReview: true` y el motivo del historial dice qué productos faltaron.
 - Queda con el precio de lista y el cobrado de cada ítem, canal `LOCAL`, sin vencimiento, y suma a vendidos al
   crearse. El historial registra `PAGADO` (y `ENTREGADO` si corresponde) con el administrador.
-- **Anular:** se cancela con motivo como cualquier pedido. Vuelve **todo lo vendido** al stock (también lo que se
+- **Anular:** se cancela con motivo como cualquier pedido, **también si ya está `ENTREGADO`** (una venta cargada por
+  error o devuelta en el mostrador; `OrderStatus.canChangeTo(target, channel)`). Vuelve **todo lo vendido** al stock (también lo que se
   había ajustado: la mercadería existe aunque el sistema dijera que no) y se resta de vendidos.
 
 ### Reportes
@@ -273,7 +275,7 @@ Venta del local: nace en PAGADO o ENTREGADO
 | `PAGADO` | El administrador validó el pago | Descontado | **Sí** |
 | `EN_PREPARACION` | Se está armando | Descontado | Sí |
 | `LISTO` | Listo para retirar o despachar | Descontado | Sí |
-| `ENTREGADO` | Entregado. Estado final | Descontado | Sí |
+| `ENTREGADO` | Entregado. Estado final (una venta del local todavía se puede anular) | Descontado | Sí |
 | `CANCELADO` | Lo canceló el comprador o el administrador (con motivo). Estado final | Devuelto | No (si estaba pagado, deja de contar) |
 | `VENCIDO` | Pasó el plazo sin comprobante. Estado final | Devuelto | No |
 

@@ -9,6 +9,7 @@ import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.sales.entities.Order;
 import com.kleinkauf.sales.entities.OrderItem;
 import com.kleinkauf.sales.entities.OrderStatus;
+import com.kleinkauf.sales.entities.SalesChannel;
 import com.kleinkauf.sales.entities.SalesSettings;
 import com.kleinkauf.sales.repositories.OrderRepository;
 import com.kleinkauf.sales.services.OrderStatusService;
@@ -179,6 +180,26 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
+	void anularVentaDelLocalEntregada_devuelveStockYRestaDeVendidos() throws ApiException {
+		Order order = order(OrderStatus.ENTREGADO);
+		order.setChannel(SalesChannel.LOCAL);
+
+		service.change(order, OrderStatus.CANCELADO, ADMIN, "Se cargo por error");
+
+		verify(productsClient).release(NUMBER);
+		verify(productsClient).unmarkSold(eq(NUMBER), any());
+		assertEquals(OrderStatus.CANCELADO, order.getStatus());
+	}
+
+	@Test
+	void ventaDelLocalEntregada_soloSePuedeCancelar() {
+		assertTrue(OrderStatus.ENTREGADO.canChangeTo(OrderStatus.CANCELADO, SalesChannel.LOCAL));
+		assertFalse(OrderStatus.ENTREGADO.canChangeTo(OrderStatus.CANCELADO, SalesChannel.ONLINE));
+		assertFalse(OrderStatus.ENTREGADO.canChangeTo(OrderStatus.LISTO, SalesChannel.LOCAL));
+		assertFalse(OrderStatus.CANCELADO.canChangeTo(OrderStatus.CANCELADO, SalesChannel.LOCAL));
+	}
+
+	@Test
 	void comprador_cancelaHastaQueSeValidaElPago() throws ApiException {
 		Order pendiente = order(OrderStatus.PAGO_EN_REVISION);
 		service.cancelByBuyer(pendiente, null);
@@ -218,6 +239,7 @@ class OrderStatusServiceTest {
 		item.setUnitPrice(new BigDecimal("100.00"));
 		item.setSubtotal(new BigDecimal("200.00"));
 		order.addItem(item);
+		order.setChannel(SalesChannel.ONLINE);
 		order.changeStatus(status, null, null);
 		return order;
 	}

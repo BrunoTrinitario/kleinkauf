@@ -100,9 +100,14 @@ function SalesBlock({ rangeKey, enabled }: { rangeKey: RangeKey; enabled: boolea
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{s.title}</CardTitle>
-        <CardDescription>{s.description}</CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle>{s.title}</CardTitle>
+          <CardDescription>{s.description}</CardDescription>
+        </div>
+        <Link to="/admin/reports" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
+          {s.reports}
+        </Link>
       </CardHeader>
       <CardContent className="space-y-6">
         {data ? (

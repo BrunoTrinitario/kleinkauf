@@ -18,6 +18,8 @@ import AdminBundlesPage from "@/pages/admin/AdminBundlesPage"
 import AdminUsersPage from "@/pages/admin/AdminUsersPage"
 import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
 import AdminOrderPage from "@/pages/admin/AdminOrderPage"
+import AdminLocalSalePage from "@/pages/admin/AdminLocalSalePage"
+import AdminReportsPage from "@/pages/admin/AdminReportsPage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import MyOrdersPage from "@/pages/user/MyOrdersPage"
 import CartPage from "@/pages/CartPage"
@@ -77,6 +79,8 @@ function StoreRoutes() {
         <Route element={<RequireRole role="ADMINISTRADOR" />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/orders/new" element={<AdminLocalSalePage />} />
+          <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>

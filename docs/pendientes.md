@@ -9,12 +9,21 @@ implementarla.
 **Resumen:** el backend de los dos paneles, las ventas, la observabilidad (también los canales de la tienda) y la
 auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta (salvo el recupero de contraseña), el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
-y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el seguimiento de los
-pedidos; del panel de ventas faltan la venta del local y los reportes, y falta el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
+y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el panel de ventas;
+falta el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
 presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
 
+- **Panel de ventas completo** (B7): la lista de pedidos suma los filtros por medio de pago y "stock para revisar";
+  el historial muestra el nombre de quien hizo cada cambio (`GET /users/{id}`, `Usuario #id` si se borró); **venta
+  del local** en `/admin/orders/new` (productos y combos, precio cobrado, descuento, medio de pago, entregado o
+  pagado, comprador y entrega opcionales, aviso cuando falta stock) y **reportes** en `/admin/reports` (rango, día /
+  semana / mes, canal y medio de pago, totales con ticket promedio, gráfico, desglose y ranking por unidades,
+  facturado o ganancia).
+- **Una venta del local entregada no se podía anular**: `ENTREGADO` es final y el cancelar respondía 409, aunque
+  [ventas.md](ventas.md) decía que se anula como cualquier pedido. Ahora sales permite `ENTREGADO → CANCELADO` solo
+  para el canal `LOCAL` (devuelve el stock y resta de vendidos); los pedidos online entregados siguen siendo finales.
 - **Seguimiento de pedidos** (B7, primera parte): "Ventas" en el menú del `ADMINISTRADOR`, con el contador de
   comprobantes para revisar. Lista en `/admin/orders` (búsqueda, estado, canal y fechas en la URL), detalle en
   `/admin/orders/{número}` (ítems con precio de lista, cobrado y costo, ganancia, comprador, entrega, historial y
@@ -129,16 +138,6 @@ esto ya está.
 - Recupero de contraseña: pedir el mail con `POST /auth/forgot-password` y la página `/reset-password?token=`, que
   es a donde lleva el mail, con el `POST /auth/forgot-password/{token}`. El token vale 15 minutos. **Para más
   adelante.**
-
-### B7. Panel de ventas (solo `ADMINISTRADOR`)
-
-Hecho: lista de pedidos con filtros (`/admin/orders`), detalle con historial y comprobantes, botones de transición
-según la máquina de estados de [ventas.md](ventas.md) y configuración de cobro (alias, CBU y plazo). Falta:
-
-1. Filtros por medio de pago y por "stock para revisar" en la lista.
-2. Venta del local (mostrador).
-3. Reportes: período, ranking, ganancia, canal y medio de pago.
-4. Mostrar el nombre del usuario en el historial (hoy muestra `Usuario #id`).
 
 ### B8. Observabilidad y auditoría
 
@@ -267,7 +266,7 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## Orden sugerido
 
-1. **B7**: panel de ventas. Ya están B0 a B6, A2 y A3 (falta solo el recupero de contraseña de B1).
-2. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma.
-3. **Decidir y planificar C1**, la próxima etapa de ventas.
-4. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
+1. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. Ya están B0 a B7, A2 y A3 (falta solo el
+   recupero de contraseña de B1).
+2. **Decidir y planificar C1**, la próxima etapa de ventas.
+3. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
