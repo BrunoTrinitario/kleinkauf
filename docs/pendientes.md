@@ -9,12 +9,20 @@ implementarla.
 **Resumen:** el backend de los dos paneles, las ventas, la observabilidad (también los canales de la tienda) y la
 auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta (salvo el recupero de contraseña), el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
-y combos), usuarios y permisos, el resumen de la tienda, ajustes y el panel de la plataforma; falta el panel de ventas
-y el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
+y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el seguimiento de los
+pedidos; del panel de ventas faltan la venta del local y los reportes, y falta el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
 presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
 
+- **Seguimiento de pedidos** (B7, primera parte): "Ventas" en el menú del `ADMINISTRADOR`, con el contador de
+  comprobantes para revisar. Lista en `/admin/orders` (búsqueda, estado, canal y fechas en la URL), detalle en
+  `/admin/orders/{número}` (ítems con precio de lista, cobrado y costo, ganancia, comprador, entrega, historial y
+  comprobantes para ver o descargar) y los cambios de estado de [ventas.md](ventas.md) con confirmación y motivo.
+  "Datos de cobro" (alias, CBU, titular, banco y plazo) en un diálogo; la lista avisa si faltan, y el checkout le
+  ofrece al administrador cargarlos en vez de solo decir que la tienda no vende online.
+- **Descargar un comprobante daba 500**: la lectura corría en una transacción `readOnly` y el registro de auditoría
+  (insert en `outbox_events`) fallaba. Ahora la transacción admite escritura.
 - **Panel de la tienda** en el backend: `GET /api/v1/products/dashboard` y `GET /api/v1/users/dashboard`, solo
   `ADMINISTRADOR`. Se borró `/users/stats` y [panel-admin.md](panel-admin.md) pasó a documentación.
 - **Canales WS de la tienda**: `store.activity` (pedidos, comprobantes, movimientos y stock bajo), `store.usage`
@@ -124,12 +132,13 @@ esto ya está.
 
 ### B7. Panel de ventas (solo `ADMINISTRADOR`)
 
-1. Lista de pedidos con filtros.
-2. Detalle con historial y comprobantes.
-3. Botones de transición según la máquina de estados de [ventas.md](ventas.md).
-4. Venta del local (mostrador).
-5. Configuración de ventas: alias, CBU y plazo.
-6. Reportes: período, ranking, ganancia, canal y medio de pago.
+Hecho: lista de pedidos con filtros (`/admin/orders`), detalle con historial y comprobantes, botones de transición
+según la máquina de estados de [ventas.md](ventas.md) y configuración de cobro (alias, CBU y plazo). Falta:
+
+1. Filtros por medio de pago y por "stock para revisar" en la lista.
+2. Venta del local (mostrador).
+3. Reportes: período, ranking, ganancia, canal y medio de pago.
+4. Mostrar el nombre del usuario en el historial (hoy muestra `Usuario #id`).
 
 ### B8. Observabilidad y auditoría
 

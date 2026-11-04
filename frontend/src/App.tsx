@@ -15,6 +15,8 @@ import AdminPage from "@/pages/admin/AdminPage"
 import AdminProductsPage from "@/pages/admin/AdminProductsPage"
 import AdminBundlesPage from "@/pages/admin/AdminBundlesPage"
 import AdminUsersPage from "@/pages/admin/AdminUsersPage"
+import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
+import AdminOrderPage from "@/pages/admin/AdminOrderPage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import MyOrdersPage from "@/pages/user/MyOrdersPage"
 import CartPage from "@/pages/CartPage"
@@ -69,6 +71,8 @@ function StoreRoutes() {
         {/* El panel de la tienda es solo del ADMINISTRADOR (docs/panel-admin.md); usuarios pide USUARIOS, que no se delega */}
         <Route element={<RequireRole role="ADMINISTRADOR" />}>
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>
           <Route path="/admin/products" element={<AdminProductsPage />} />

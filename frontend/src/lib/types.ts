@@ -318,3 +318,68 @@ export interface OrderSummary {
   stockReview: boolean
   createdAt: string
 }
+
+// Panel de ventas (solo ADMINISTRADOR). Precio de lista null = el producto era "a consultar"; costo null = sin cargar
+export interface AdminOrderItem {
+  type: OrderItemType
+  id: number
+  name: string
+  quantity: number
+  listPrice: number | null
+  unitPrice: number
+  unitCost: number | null
+  subtotal: number
+}
+
+// userId null = el comprador invitado o el sistema (vencimiento)
+export interface AdminOrderHistoryEntry extends OrderHistoryEntry {
+  userId: number | null
+}
+
+export interface OrderReceipt {
+  id: number
+  contentType: string
+  size: number
+  createdAt: string
+}
+
+// buyer puede venir vacio en una venta del local (consumidor final)
+export interface AdminOrder {
+  number: string
+  status: OrderStatus
+  channel: OrderChannel
+  paymentMethod: PaymentMethod | null
+  buyer: Partial<Buyer> | null
+  userId: number | null
+  deliveryType: DeliveryType
+  address: Address | null
+  notes: string | null
+  items: AdminOrderItem[]
+  discount: number
+  total: number
+  stockReview: boolean
+  expiresAt: string | null
+  createdAt: string
+  updatedAt: string
+  history: AdminOrderHistoryEntry[]
+  receipts: OrderReceipt[]
+}
+
+// Filtros de GET /sales/admin/orders. from / to: yyyy-MM-dd (dias de la tienda, inclusive)
+export interface AdminOrderFilters {
+  status?: OrderStatus | ""
+  channel?: OrderChannel | ""
+  q?: string
+  from?: string
+  to?: string
+  page: number
+}
+
+// Datos para cobrar. Los vacios se guardan como null; expirationHours null = 48
+export interface SalesSettings {
+  alias: string | null
+  cbu: string | null
+  holder: string | null
+  bank: string | null
+  expirationHours: number | null
+}

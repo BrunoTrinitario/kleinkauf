@@ -126,6 +126,7 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 - [x] Cancelar el pedido mientras no esté validado el pago
 - [x] "Mis pedidos" del cliente logueado, con paginación
 - [x] Estados del pedido legibles (pendiente, en revisión, rechazado con motivo, pagado, en preparación, listo, entregado, cancelado, vencido)
+- [x] Sin datos de cobro, el checkout avisa que la tienda no vende online; al `ADMINISTRADOR` le ofrece cargarlos
 
 ### 5. Panel de la tienda: productos **[listo]**
 Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
@@ -161,13 +162,17 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [x] Cada bloque carga por separado: si un servicio falla, el resto del panel sigue
 - [x] Gráficos con períodos en cero incluidos
 
-### 8. Panel de la tienda: ventas **[plan: ventas, etapas 1–3]** (solo `ADMINISTRADOR`)
-- [ ] Lista de pedidos con filtros (estado, canal, medio de pago, "stock para revisar", fechas) y búsqueda por número o email
-- [ ] Detalle del pedido: ítems, historial de estados y comprobantes (descarga)
-- [ ] Cambios de estado según las transiciones válidas: validar / rechazar con motivo, preparar, listo, entregar, cancelar con motivo
+### 8. Panel de la tienda: ventas **[seguimiento de pedidos listo; faltan venta del local y reportes]** (solo `ADMINISTRADOR`)
+- [x] Lista de pedidos en `/admin/orders` con filtros (estado, canal, fechas) y búsqueda por número o email, en la URL;
+  atajo a los comprobantes para revisar y contador en el menú ("Ventas") — falta filtrar por medio de pago y por
+  "stock para revisar" (hoy se marca con un ícono en la fila)
+- [x] Detalle del pedido en `/admin/orders/{número}`: ítems con precio de lista, cobrado y costo, ganancia, comprador,
+  entrega, historial (con el usuario) y comprobantes (ver en un diálogo o descargar)
+- [x] Cambios de estado según las transiciones válidas: validar / rechazar con motivo, preparar, listo, entregar, cancelar con motivo
 - [ ] **Venta del local (mostrador)**: buscar productos, cambiar precio de un ítem, descuento, medio de pago, estado inicial, comprador opcional
 - [ ] Avisos de venta sin stock suficiente (ajuste automático)
-- [ ] Configuración de ventas: alias, CBU, titular, banco y plazo de vencimiento
+- [x] Configuración de ventas: alias, CBU, titular, banco y plazo de vencimiento ("Datos de cobro" en la lista de
+  pedidos, que avisa si faltan)
 - [ ] Reportes: totales por período, ranking de productos, ganancia, desglose por canal y medio de pago — el resumen
   de `/admin` ya los muestra; falta la pantalla de reportes del panel de ventas
 - [ ] Contador de vendidos en productos y orden "más vendidos" en el catálogo — falta: el frontend no muestra
