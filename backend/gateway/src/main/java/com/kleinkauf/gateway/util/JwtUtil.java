@@ -6,6 +6,7 @@
 package com.kleinkauf.gateway.util;
 
 import com.kleinkauf.common.constants.TenantConstants;
+import com.kleinkauf.common.constants.TokenConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -95,6 +96,11 @@ public class JwtUtil {
     public String getTenant(String token) {
         Claims claims = getClaims(token);
         return claims != null ? claims.get(TenantConstants.TOKEN_CLAIM, String.class) : null;
+    }
+
+    public String getType(String token) {
+        Claims claims = getClaims(token);
+        return claims != null ? claims.get(TokenConstants.TYPE_CLAIM, String.class) : null;
     }
 
 }
