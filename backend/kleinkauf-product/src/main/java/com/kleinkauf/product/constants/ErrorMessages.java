@@ -20,6 +20,7 @@ public class ErrorMessages {
     public static String BUNDLE_PRODUCTS_REQUIRED = "The bundle needs at least one product";
     public static String BUNDLE_PRODUCT_REPEATED = "A product can only appear once in the bundle";
     public static String INVALID_BUNDLE_QUANTITY = "Each product needs an id and a quantity greater than zero";
+    public static String INVALID_BUNDLE_DISCOUNT = "The discount is required: a percentage between 0 and 100 or an amount of zero or greater";
     public static String INVALID_PRICE = "Price and cost must be zero or greater";
     public static String INVALID_STOCK_MOVEMENT_TYPE = "The movement type is required (ENTRADA, SALIDA or AJUSTE)";
     public static String INVALID_STOCK_QUANTITY = "The quantity must be greater than zero (zero or greater for AJUSTE)";

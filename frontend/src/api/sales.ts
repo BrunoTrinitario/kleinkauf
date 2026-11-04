@@ -3,7 +3,19 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { api } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import { normalizeOrderNumber } from "@/lib/known-orders"
-import type { CheckoutInfo, CreatedOrder, NewOrder, Order, OrderSummary, Page, PriceChange } from "@/lib/types"
+import type {
+  AdminOrder,
+  AdminOrderFilters,
+  CheckoutInfo,
+  CreatedOrder,
+  NewOrder,
+  Order,
+  OrderStatus,
+  OrderSummary,
+  Page,
+  PriceChange,
+  SalesSettings,
+} from "@/lib/types"
 
 // Compra online (/api/v1/sales, docs/backend/sales.md). Lo del comprador va por numero + email, sin login
 export const salesKeys = {
@@ -11,6 +23,11 @@ export const salesKeys = {
   checkout: () => [...salesKeys.all, "checkout"] as const,
   order: (number: string, email: string) => [...salesKeys.all, "order", normalizeOrderNumber(number), email] as const,
   mine: (page: number) => [...salesKeys.all, "mine", page] as const,
+  admin: () => [...salesKeys.all, "admin"] as const,
+  adminList: (filters: AdminOrderFilters) => [...salesKeys.admin(), "list", filters] as const,
+  adminOrder: (number: string) => [...salesKeys.admin(), "order", normalizeOrderNumber(number)] as const,
+  pendingReview: () => [...salesKeys.admin(), "pending-review"] as const,
+  settings: () => [...salesKeys.admin(), "settings"] as const,
 }
 
 // Datos para transferir, plazo y topes. paymentConfigured false = la tienda todavia no vende online
@@ -106,5 +123,111 @@ export function useMyOrders(page: number, enabled: boolean) {
     enabled,
     placeholderData: keepPreviousData,
     meta: { errorMessage: strings.myOrders.loadError },
+  })
+}
+
+/*
+Panel de ventas (solo ADMINISTRADOR, docs/ventas.md). Las keys cuelgan de ["sales"], asi un cambio de estado tambien
+actualiza el resumen del panel (/admin) y "mis pedidos".
+ */
+
+const ADMIN_PAGE_SIZE = 20
+
+export function useAdminOrders(filters: AdminOrderFilters) {
+  return useQuery({
+    queryKey: salesKeys.adminList(filters),
+    queryFn: () =>
+      api
+        .get<Page<OrderSummary>>("/sales/admin/orders", {
+          params: {
+            status: filters.status || undefined,
+            channel: filters.channel || undefined,
+            q: filters.q || undefined,
+            from: filters.from || undefined,
+            to: filters.to || undefined,
+            page: filters.page,
+            size: ADMIN_PAGE_SIZE,
+          },
+        })
+        .then((response) => response.data),
+    placeholderData: keepPreviousData,
+  })
+}
+
+// Comprobantes por revisar: el contador del menu. Se vuelve a mirar cada minuto
+export function usePendingReviewCount(enabled: boolean) {
+  return useQuery({
+    queryKey: salesKeys.pendingReview(),
+    queryFn: () =>
+      api
+        .get<Page<OrderSummary>>("/sales/admin/orders", { params: { status: "PAGO_EN_REVISION", size: 1 } })
+        .then((response) => response.data.totalItems),
+    enabled,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useAdminOrder(number: string) {
+  return useQuery({
+    queryKey: salesKeys.adminOrder(number),
+    queryFn: () =>
+      api
+        .get<AdminOrder>(`/sales/admin/orders/${encodeURIComponent(normalizeOrderNumber(number))}`)
+        .then((response) => response.data),
+    enabled: !!number,
+  })
+}
+
+/*
+Validar, rechazar, avanzar o cancelar. reason es obligatorio para RECHAZADO y CANCELADO.
+409: el cambio no corresponde o alguien lo cambio mientras tanto. 503: products no respondio (el pedido no cambio)
+ */
+export function useChangeOrderStatus(number: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ status, reason }: { status: OrderStatus; reason?: string }) =>
+      api
+        .put<AdminOrder>(`/sales/admin/orders/${encodeURIComponent(normalizeOrderNumber(number))}/status`, {
+          status,
+          reason: reason?.trim() || null,
+        })
+        .then((response) => response.data),
+    onSuccess: (order) => {
+      queryClient.setQueryData(salesKeys.adminOrder(order.number), order)
+      queryClient.invalidateQueries({ queryKey: salesKeys.all })
+      // Cancelar devuelve stock y validar suma vendidos: cambia el catalogo y el stock del panel
+      queryClient.invalidateQueries({ queryKey: ["catalog"] })
+      queryClient.invalidateQueries({ queryKey: ["products"] })
+    },
+  })
+}
+
+// El comprobante pide el token: se baja como blob y se muestra o descarga desde una URL local
+export async function fetchReceipt(number: string, id: number): Promise<Blob> {
+  const response = await api.get<Blob>(
+    `/sales/admin/orders/${encodeURIComponent(normalizeOrderNumber(number))}/receipts/${id}`,
+    { responseType: "blob" }
+  )
+  return response.data
+}
+
+export function useSalesSettings(enabled = true) {
+  return useQuery({
+    queryKey: salesKeys.settings(),
+    queryFn: () => api.get<SalesSettings>("/sales/admin/settings").then((response) => response.data),
+    enabled,
+  })
+}
+
+// Cambia lo que ve el checkout (datos para transferir y plazo)
+export function useUpdateSalesSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (settings: SalesSettings) =>
+      api.put<SalesSettings>("/sales/admin/settings", settings).then((response) => response.data),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(salesKeys.settings(), settings)
+      queryClient.invalidateQueries({ queryKey: salesKeys.checkout() })
+    },
   })
 }

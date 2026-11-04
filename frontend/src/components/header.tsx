@@ -5,6 +5,7 @@ import type { UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { PRODUCT_PANEL_AREAS } from "@/lib/permissions"
 import { useLowStock } from "@/api/products"
+import { usePendingReviewCount } from "@/api/sales"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -21,7 +22,7 @@ import {
 import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
-import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag } from "lucide-react"
+import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "CLIENTE", label: strings.roles.cliente, icon: User },
@@ -52,6 +53,9 @@ export function Header() {
   const canManageUsers = can("USUARIOS")
   // Contador de stock bajo junto a "Productos" (la misma consulta que la tarjeta del panel, en cache)
   const lowStock = useLowStock(isAuthenticated && can("STOCK")).data?.length ?? 0
+  // Ventas es solo del ADMINISTRADOR (no se delega todavia); el contador son los comprobantes para revisar
+  const canManageSales = isAuthenticated && activeRole === "ADMINISTRADOR"
+  const pendingReview = usePendingReviewCount(canManageSales).data ?? 0
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-card">
@@ -73,10 +77,27 @@ export function Header() {
             </Link>
           )}
           {/* Lo del panel va aparte de lo de la tienda (ej. "Combos" de la tienda y "Combos" del panel) */}
-          {isAuthenticated && (canManageProducts || canManageUsers) && (
+          {isAuthenticated && (canManageProducts || canManageUsers || canManageSales) && (
             <span className="flex items-center gap-2 border-l border-border pl-6 text-xs uppercase tracking-wider text-muted-foreground">
               {strings.nav.panel}
             </span>
+          )}
+          {canManageSales && (
+            <Link
+              to="/admin/orders"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {strings.adminOrders.nav}
+              {pendingReview > 0 ? (
+                <span
+                  className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
+                  aria-label={strings.adminOrders.navBadge(pendingReview)}
+                  title={strings.adminOrders.navBadge(pendingReview)}
+                >
+                  {pendingReview}
+                </span>
+              ) : null}
+            </Link>
           )}
           {isAuthenticated && canManageProducts && (
             <Link
@@ -180,6 +201,17 @@ export function Header() {
                         <Link to="/admin">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           {strings.auth.dashboard}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/orders">
+                          <Receipt className="mr-2 h-4 w-4" />
+                          {strings.adminOrders.menu}
+                          {pendingReview > 0 ? (
+                            <span className="ml-auto rounded-full bg-destructive px-1.5 text-[11px] font-medium leading-5 text-white">
+                              {pendingReview}
+                            </span>
+                          ) : null}
                         </Link>
                       </DropdownMenuItem>
                     </>

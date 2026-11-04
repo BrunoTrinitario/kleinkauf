@@ -137,7 +137,6 @@ export default function AdminUsersPage() {
           title={strings.adminUsers.title}
           highlight="Usuarios"
           subtitle={strings.adminUsers.subtitle}
-          backTo="/admin"
           action={
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
