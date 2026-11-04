@@ -4,6 +4,7 @@ import com.kleinkauf.common.audit.AuditLog;
 import com.kleinkauf.common.dto.RoleDto;
 import com.kleinkauf.common.security.PermissionArea;
 import com.kleinkauf.common.servlet.security.CustomUserDetails;
+import com.kleinkauf.product.dto.BasicUpdateDto;
 import com.kleinkauf.product.dto.FullProductDto;
 import com.kleinkauf.product.dto.ImageDto;
 import com.kleinkauf.product.dto.MetaDataDto;
@@ -105,17 +106,20 @@ class ProductServiceTest {
 
 	@Test
 	void deleteProductById_existingProduct_deletesAndReturnsTrue() throws ApiException {
-		when(productRepository.existsById(10L)).thenReturn(true);
+		Product product = product(10L, "Lampara", "decoracion", "Lampara de techo", 2);
+		when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+		when(productFactory.getFullProductInfo(product)).thenReturn(fullProductDto(10L));
 
 		boolean deleted = productService.deleteProductById(10L);
 
 		assertTrue(deleted);
+		verify(fileManager).deleteImage("/images/10.jpg");
 		verify(productRepository).deleteById(10L);
 	}
 
 	@Test
 	void deleteProductById_missingProduct_throwsApiException() {
-		when(productRepository.existsById(10L)).thenReturn(false);
+		when(productRepository.findById(10L)).thenReturn(Optional.empty());
 
 		ApiException exception = assertThrows(ApiException.class, () -> productService.deleteProductById(10L));
 
@@ -347,14 +351,15 @@ class ProductServiceTest {
 
 
 	@Test
-	void saveImages_savesFilesAndPersistsGeneratedPaths() throws ApiException {
+	void saveImages_savesFilesAndPersistsGeneratedPaths() throws Exception {
 		Product product = product(60L, "Banco", "living", "Banco auxiliar", 1);
-		List<MultipartFile> files = List.of(org.mockito.Mockito.mock(MultipartFile.class), org.mockito.Mockito.mock(MultipartFile.class));
+		List<MultipartFile> files = List.of(imageFile(PNG), imageFile(JPG));
 		List<ProductImage> finalImages = List.of(
 				image(5L, product, "/generated/one.jpg", 0),
 				image(6L, product, "/generated/two.jpg", 1)
 		);
 
+		when(productRepository.existsById(60L)).thenReturn(true);
 		when(fileManager.SaveAllImages(files)).thenReturn(List.of("/generated/one.jpg", "/generated/two.jpg"));
 		when(productRepository.findById(60L)).thenReturn(Optional.of(product));
 		when(productImageRepository.findByProduct_Id(60L)).thenReturn(List.of()).thenReturn(finalImages);
@@ -364,6 +369,91 @@ class ProductServiceTest {
 		assertTrue(result);
 		verify(fileManager).SaveAllImages(files);
 		verify(productImageRepository, times(2)).save(any(ProductImage.class));
+	}
+
+	// Un archivo que no es imagen (aunque se llame .png) no se guarda, y no se guarda ninguno
+	@Test
+	void saveImages_archivoQueNoEsImagen_respondeUnsupportedMediaType() throws Exception {
+		when(productRepository.existsById(60L)).thenReturn(true);
+		List<MultipartFile> files = List.of(imageFile(PNG), imageFile("<svg onload=alert(1)>".getBytes()));
+
+		ApiException exception = assertThrows(ApiException.class, () -> productService.saveImages(60L, files));
+
+		assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, exception.getStatus());
+		verifyNoInteractions(fileManager);
+	}
+
+	@Test
+	void saveImages_productoInexistente_respondeNotFound() {
+		when(productRepository.existsById(60L)).thenReturn(false);
+
+		ApiException exception = assertThrows(ApiException.class, () -> productService.saveImages(60L, List.of()));
+
+		assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+	}
+
+	@Test
+	void tipoDeImagen_porSusPrimerosBytes() {
+		assertEquals("png", FileManager.imageExtension(PNG));
+		assertEquals("jpg", FileManager.imageExtension(JPG));
+		assertEquals("gif", FileManager.imageExtension("GIF89a".getBytes()));
+		assertEquals("webp", FileManager.imageExtension("RIFF\0\0\0\0WEBPVP8 ".getBytes()));
+		assertNull(FileManager.imageExtension("<svg></svg>".getBytes()));
+		assertNull(FileManager.imageExtension(new byte[0]));
+		assertNull(FileManager.imageExtension(null));
+	}
+
+	// PUT /products/{id}: lo que viene en null no cambia
+	@Test
+	void updateProduct_soloLoQueViene() throws ApiException {
+		Product product = product(5L, "Mesa", "living", "Mesa de roble", 3);
+		product.setMinStock(2);
+		when(productRepository.findById(5L)).thenReturn(Optional.of(product));
+
+		productService.updateProduct(5L, new BasicUpdateDto(null, "comedor", null, null));
+
+		assertEquals("Mesa", product.getName());
+		assertEquals("comedor", product.getCategory());
+		assertEquals("Mesa de roble", product.getDescription());
+		assertEquals(2, product.getMinStock());
+	}
+
+	// El nombre es unico tambien contra los borrados: antes chocaba con la constraint y respondia 500
+	@Test
+	void nombreDeOtroProducto_oDeUnoBorrado_respondeConflict() {
+		Product product = product(5L, "Mesa", "living", "Mesa de roble", 3);
+		when(productRepository.findById(5L)).thenReturn(Optional.of(product));
+		when(productRepository.existsByName("Silla")).thenReturn(true);
+		when(productRepository.existsByName("Banco")).thenReturn(false);
+		when(productRepository.existsByNameIncludingDeleted("Banco")).thenReturn(true);
+
+		ApiException renombrar = assertThrows(ApiException.class,
+				() -> productService.updateProduct(5L, new BasicUpdateDto("Silla", null, null, null)));
+		ApiException crearConBorrado = assertThrows(ApiException.class,
+				() -> productService.createProduct(new NewProductDto("Banco", null, null, 0, 0, null, null)));
+
+		assertEquals(HttpStatus.CONFLICT, renombrar.getStatus());
+		assertEquals(HttpStatus.CONFLICT, crearConBorrado.getStatus());
+		assertEquals("The name belongs to a deleted product", crearConBorrado.getMessage());
+		verify(productRepository, never()).save(any(Product.class));
+	}
+
+	@Test
+	void nombreVacio_respondeBadRequest() {
+		ApiException exception = assertThrows(ApiException.class,
+				() -> productService.createProduct(new NewProductDto("  ", null, null, 0, 0, null, null)));
+
+		assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+	}
+
+	private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0};
+	private static final byte[] JPG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0};
+
+	private static MultipartFile imageFile(byte[] bytes) throws java.io.IOException {
+		MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+		org.mockito.Mockito.lenient().when(file.getSize()).thenReturn((long) bytes.length);
+		org.mockito.Mockito.lenient().when(file.getBytes()).thenReturn(bytes);
+		return file;
 	}
 
 	private static Product product(Long id, String name, String category, String description, int stock) {

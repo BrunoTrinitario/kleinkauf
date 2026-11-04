@@ -8,6 +8,7 @@ import com.kleinkauf.product.dto.bundles.UpdateBundlePriceDto;
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.product.services.BundleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public class BundleController {
 
     @PostMapping
     public ResponseEntity<BundleDto> createBundle(@RequestBody NewBundleDto dto) throws ApiException {
-        return ResponseEntity.ok(bundleService.createBundle(dto));
+        return new ResponseEntity<>(bundleService.createBundle(dto), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}")

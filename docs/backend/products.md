@@ -104,22 +104,23 @@ curl -X POST http://localhost:3000/api/v1/products \
   -d '{"name":"Mesa ratona","category":"Mesas","description":"Mesa baja de roble","stock":4,"minStock":2,"price":85000,"cost":52000}'
 ```
 
-Respuesta **200** (no 201): `FullProductDto`.
+Respuesta **201**: `FullProductDto`.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
-| 409 | Nombre usado por otro producto activo | `The Product name is already in use` |
+| 400 | Sin nombre o de más de 255 caracteres | `The product name is required (up to 255 characters)` |
+| 409 | Nombre usado por otro producto | `The Product name is already in use` |
+| 409 | Nombre de un producto **borrado** (el nombre es único también contra ellos) | `The name belongs to a deleted product` |
 | 400 | Precio o costo negativos | `Price and cost must be zero or greater` |
 | 400 | Stock inicial negativo | `The quantity must be greater than zero (zero or greater for AJUSTE)` |
 | 400 | Stock mínimo negativo | `The minimum stock must be zero or greater` |
-| 500 | Nombre de un producto **borrado** (choca con el único de la base) | Mensaje de la excepción |
 
 ### PUT /api/v1/products/{id}
 
 **Acceso:** `PRODUCTOS`
 
-Cambia nombre, categoría, descripción y stock mínimo. **Reemplaza los cuatro**: los que no se manden quedan vacíos
-(`minStock` en 0). El stock no se toca acá.
+Cambia nombre, categoría, descripción y stock mínimo. Los campos que no se mandan (o van en `null`) **no cambian**:
+se puede mandar solo lo que se edita. Para vaciar la categoría o la descripción, mandar `""`. El stock no se toca acá.
 
 ```json
 { "name": "Mesa ratona", "category": "Mesas", "description": "Mesa baja de roble", "minStock": 2 }
@@ -130,8 +131,10 @@ Respuesta **200**: `FullProductDto`.
 | Código | Cuándo | Mensaje |
 |---|---|---|
 | 404 | No existe | `Product not found` |
+| 400 | Nombre vacío o de más de 255 caracteres | `The product name is required (up to 255 characters)` |
+| 409 | Nombre de otro producto | `The Product name is already in use` |
+| 409 | Nombre de un producto borrado | `The name belongs to a deleted product` |
 | 400 | Stock mínimo negativo | `The minimum stock must be zero or greater` |
-| 500 | Nombre repetido (no se valida antes) | Mensaje de la excepción |
 
 ### DELETE /api/v1/products/{id}
 
@@ -217,7 +220,10 @@ Respuesta **200**: `FullProductDto`. Error: 404 `Product not found`.
 
 **Acceso:** `PRODUCTOS` · `multipart/form-data`
 
-Sube una o más imágenes (campo `files`), que se agregan al final.
+Sube una o más imágenes (campo `files`), que se agregan al final. Se acepta JPG, PNG, WEBP y GIF: el tipo sale de los
+primeros bytes del archivo (no del nombre ni del `Content-Type`) y se guarda con esa extensión, que decide con qué
+`Content-Type` se sirve. SVG no se acepta (puede traer scripts). Se valida todo antes de guardar: si una falla no se
+guarda ninguna.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/products/12/images \
@@ -229,7 +235,9 @@ Respuesta **200**: `true`.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
+| 404 | El producto no existe | `Product not found` |
 | 413 | Alguna imagen pesa más de 1 MB | `Each image must be 1 MB or smaller` |
+| 415 | Algún archivo no es JPG, PNG, WEBP ni GIF | `Only JPG, PNG, WEBP or GIF images are allowed` |
 | 413 | El request supera 10 MB o un archivo 5 MB | `The file exceeds the maximum upload size` |
 
 ### DELETE /api/v1/products/images/{imageId}
@@ -442,7 +450,7 @@ Todos los combos, también los deshabilitados. Respuesta **200**: lista de `Bund
 
 **Acceso:** cualquier área del panel
 
-Respuesta **200**: `BundleDto`, o **200 con el cuerpo vacío** si no existe.
+Respuesta **200**: `BundleDto`. Error: 404 `Bundle not found`.
 
 ### POST /api/v1/bundles
 
@@ -460,7 +468,7 @@ nada.
 Con descuento, en lugar de `price` va `"pricingType": "PERCENT"` (o `"AMOUNT"`) y `"discount": 15`; sin
 `pricingType` es precio fijo.
 
-Respuesta **200** (no 201): `BundleDto` con sus productos. Errores:
+Respuesta **201**: `BundleDto` con sus productos. Errores:
 
 - 400 `The bundle name is required (up to 255 characters)`
 - 400 `The bundle needs at least one product`
@@ -528,7 +536,7 @@ Saca un producto: body `{ "productId": 15 }`. Respuesta **200**: `true`.
 
 **Acceso:** `COMBOS`
 
-Borra el combo (de verdad). Respuesta **200**: `true` (también si no existe).
+Borra el combo (de verdad). Respuesta **200**: `true`. Error: 404 `Bundle not found`.
 
 ## Catálogo público
 
@@ -759,13 +767,9 @@ desarrollo.
 
 ## Límites conocidos
 
-- Crear un producto con el nombre de uno **borrado**, o renombrar uno con un nombre usado, responde 500 (choca con
-  el único de la base; el alta solo mira los activos y la edición no mira).
-- `PUT /products/{id}` reemplaza los cuatro campos: mandar solo uno borra los otros.
-- Combos: agregar un producto a un combo o con un producto inexistente responde 500; `GET /bundles/{id}`,
-  `PUT /bundles/{id}` y `DELETE /bundles/{id}` responden 200 aunque no exista.
-- Las imágenes se guardan siempre como `.png` y no se valida que sean imágenes (solo el tamaño).
-- Los altas responden 200 en vez de 201.
+- Las imágenes que se subieron antes de validar el tipo quedaron todas como `.png`, aunque sean JPG: el navegador
+  las muestra igual.
+- Subir imágenes responde 200 con `true` y no 201 con las imágenes: el frontend vuelve a pedir la lista.
 
 ## Para limpiar
 

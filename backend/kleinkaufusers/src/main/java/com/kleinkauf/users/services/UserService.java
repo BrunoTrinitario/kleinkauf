@@ -157,7 +157,8 @@ public class UserService {
         name = name.trim();
         email = UserValidator.normalizeEmail(email);
         if (userExistsByEmail(email)){
-            throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.BAD_REQUEST);
+            // 409, como en el alta de superadmins
+            throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.CONFLICT);
         }
         password = passwordEncoder.encode(password);
         User newUser = new User();
@@ -199,8 +200,9 @@ public class UserService {
 
     @Transactional
     public FullUserDto addRoleToUser(Long id, String role) throws ApiException {
+        // Rol que viene como parametro (?roleName=): 400, como en el listado. 404 queda para lo que va en la ruta
         if (!RoleUtility.existsRole(role)){
-            throw new ApiException(ErrorMessages.INVALID_ROLE,HttpStatus.NOT_FOUND);
+            throw new ApiException(ErrorMessages.INVALID_ROLE,HttpStatus.BAD_REQUEST);
         }
         User user = userRepository.findById(id).orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
         Role roleEntity = roleRepository.existDeletedRole(id, role).orElse(null);
@@ -226,8 +228,9 @@ public class UserService {
     }
 
     public boolean deleteRoleFromUser(Long id, String role) throws ApiException {
+        // Rol que viene como parametro (?roleName=): 400, como en el listado. 404 queda para lo que va en la ruta
         if (!RoleUtility.existsRole(role)){
-            throw new ApiException(ErrorMessages.INVALID_ROLE,HttpStatus.NOT_FOUND);
+            throw new ApiException(ErrorMessages.INVALID_ROLE,HttpStatus.BAD_REQUEST);
         }
         User rawUser = this.userRepository.findById(id).orElse(null);
         if (rawUser != null && userHasRole(id, role)){
@@ -267,16 +270,39 @@ public class UserService {
     public LoggedUser login(String email, String password) throws ApiException {
         User rawUser = this.userRepository.findByEmailIgnoreCase(UserValidator.normalizeEmail(email)).orElse(null);
         if (rawUser != null && passwordEncoder.matches(password, rawUser.getPassword())){
-            String token = jwtUtil.generateAccessToken(rawUser.getId(),rawUser.getEmail(),rawUser.getName(), currentTenant());
-            List<RoleDto> roleList = this.getUserRoles(rawUser.getId());
             rawUser.setLastLogin(LocalDateTime.now());
             userRepository.saveAndFlush(rawUser);
-            CachedUser cu = new CachedUser(rawUser.getId(), TenantContext.getCurrentTenant(), this.getUserRoles(rawUser.getId()));
-            cacheUtil.saveOrUpdateUserCache(cu);
-            return new LoggedUser(rawUser.getName(), rawUser.getId(), rawUser.getEmail(), token, roleList);
+            return session(rawUser);
         }else{
             throw new ApiException(ErrorMessages.INVALID_CREDENTIALS,HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    /*
+    Renueva la sesion con el refresh token: devuelve tokens nuevos (el refresh tambien) y los roles al dia.
+    No sirve si es de otro tenant, si el usuario se borro o si la contrasena cambio despues de entrar.
+     */
+    public LoggedUser refresh(String refreshToken) throws ApiException {
+        Long id = refreshToken == null ? null : jwtUtil.getUserId(refreshToken);
+        if (id == null || !currentTenant().equals(jwtUtil.getTenant(refreshToken))
+                || !TokenConstants.REFRESH.equals(jwtUtil.getType(refreshToken))) {
+            throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
+        }
+        User user = this.userRepository.findById(id).orElse(null);
+        if (user == null || !JwtUtil.passwordFingerprint(user.getPassword()).equals(jwtUtil.getPasswordFingerprint(refreshToken))) {
+            throw new ApiException(ErrorMessages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
+        }
+        return session(user);
+    }
+
+    // Tokens nuevos y roles del usuario (tambien quedan en la cache de Redis que leen los otros servicios)
+    private LoggedUser session(User user) {
+        String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getName(), currentTenant());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId(), currentTenant(), user.getPassword());
+        List<RoleDto> roleList = this.getUserRoles(user.getId());
+        CachedUser cu = new CachedUser(user.getId(), TenantContext.getCurrentTenant(), roleList);
+        cacheUtil.saveOrUpdateUserCache(cu);
+        return new LoggedUser(user.getName(), user.getId(), user.getEmail(), token, refreshToken, roleList);
     }
 
     public List<RoleDto> getUserRoles(Long id){
@@ -301,15 +327,12 @@ public class UserService {
         String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant(), u.getPassword());
         String url = resetPasswordLink(jwt);
 
-        try{
-            mailService.sendMail(
-                    u.getEmail(),
-                    MailConstants.FORGOT_SUBJECT,
-                    MailConstants.FORGOT_MAIL_CONTENT(url)
-            );
-        }catch (Exception e){
-            //implementar estrategia de caida para mailer
-        }
+        // Si el mail falla queda en el log (MailService); la respuesta es la misma, para no decir si el email existe
+        mailService.sendMail(
+                u.getEmail(),
+                MailConstants.FORGOT_SUBJECT,
+                MailConstants.FORGOT_MAIL_CONTENT(url)
+        );
         return true;
     }
 

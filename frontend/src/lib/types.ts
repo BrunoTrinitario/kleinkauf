@@ -10,11 +10,13 @@ export interface LoginUserDto {
   password: string
 }
 
+// token: el de sesion (1 hora). refreshToken: lo renueva sin volver a pedir la contrasena (7 dias)
 export interface LoggedUser {
   name: string
   id: number
   email: string
   token: string
+  refreshToken?: string
   roles: RoleDto[]
 }
 

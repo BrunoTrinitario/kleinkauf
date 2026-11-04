@@ -50,6 +50,18 @@ class BundleServiceTest {
 	@InjectMocks
 	private BundleService bundleService;
 
+	// Un combo que no existe: 404 (antes, GET devolvia 200 con cuerpo vacio y DELETE 200)
+	@Test
+	void comboInexistente_respondeNotFound() {
+		when(bundleRepository.findById(9L)).thenReturn(Optional.empty());
+
+		assertEquals(HttpStatus.NOT_FOUND,
+				assertThrows(ApiException.class, () -> bundleService.getBundleById(9L)).getStatus());
+		assertEquals(HttpStatus.NOT_FOUND,
+				assertThrows(ApiException.class, () -> bundleService.deleteBundleById(9L)).getStatus());
+		verify(bundleRepository, never()).delete(any());
+	}
+
 	@Test
 	void crearCombo_conNombrePrecioYProductos() throws ApiException {
 		when(productRepository.findAllById(anyIterable()))

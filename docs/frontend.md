@@ -5,7 +5,7 @@ backend ([referencia por servicio](backend/README.md), [tenants](tenants.md), [p
 [panel-admin](panel-admin.md), [auditoría](auditoria.md), [observabilidad](observabilidad.md)) y del frontend actual.
 
 Leyenda: **[listo]** el backend ya lo expone · **[plan]** está planificado y todavía no existe en el backend ·
-☑ ya existe en el frontend actual (Next.js) y se reescribe · **[x]** hecho en `frontend/` (revisado contra el código el
+☑ existía en el frontend anterior (Next.js, ya reemplazado) y se reescribió · **[x]** hecho en `frontend/` (revisado contra el código el
 2026-11-04; lo que está a medias sigue sin marcar, con una nota de lo que falta).
 
 ---
@@ -198,7 +198,8 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
   (`tsc -b && vite build`); falta revisar que los tipos cubran todas las respuestas
 - [ ] Tests de las reglas de permisos del cliente y de los flujos principales (login, alta de tienda, carga de producto)
 - [ ] Accesibilidad básica: foco, etiquetas, contraste
-- [ ] Pipeline de build y despliegue de los archivos estáticos
+- [x] Pipeline de build y despliegue de los archivos estáticos: un push a `deploy/frontend` compila la imagen (`tsc -b` y
+  `vite build`, servido por nginx) y la despliega ([deploy.md](../deploy.md)). Falta un CI que corra el build en cada push a `main`
 
 ---
 

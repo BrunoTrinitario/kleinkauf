@@ -4,6 +4,7 @@ import com.kleinkauf.product.dto.*;
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.product.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,7 +59,7 @@ public class ProductController {
     }
     @PostMapping
     public ResponseEntity<FullProductDto> createProduct(@RequestBody NewProductDto dto) throws ApiException {
-        return ResponseEntity.ok(productService.createProduct(dto));
+        return new ResponseEntity<>(productService.createProduct(dto), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}/images")

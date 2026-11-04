@@ -32,7 +32,7 @@ Los filtros corren en este orden. Cada uno puede cortar la request; lo que respo
 | 3 | `RequestFilter` | Rate limit por tipo de ruta, IP y origen (ver abajo) | **429**, cuerpo vacío |
 | 4 | `MsFilter` | `/api/internal/**`: valida el token interno (`X-Internal-Token`) | **401**, cuerpo vacío |
 | 5 | `TenantGatewayFilter` | Busca la tienda por el `Origin` y agrega `X-Forwarded-Host: <schema>`. Se saltea en `/api/v1/platform/**`, `/products/images/**` y el `/ws` del frontend de la plataforma | **404** `The tenant was not found.` (no existe o está borrada) · **403** `The tenant is disabled.` · **503** `Error de respuesta` si users no responde |
-| 6 | `JwtFilter` | En las rutas con login valida el `Authorization: Bearer`, que no sea un token de recuperación de contraseña (claim `type`), que el claim `tenant` del token sea el schema de la request (`public` en `/api/v1/platform/**`) y agrega `X-User-Id`. En las públicas agrega `X-Open-Path: true`; en las de login opcional, si viene token lo valida igual | **401**, cuerpo vacío (sin token, vencido, inválido o de otra tienda) |
+| 6 | `JwtFilter` | En las rutas con login valida el `Authorization: Bearer`, que sea un token de sesión (claim `type`: ni el de recuperación de contraseña ni el refresh), que el claim `tenant` del token sea el schema de la request (`public` en `/api/v1/platform/**`) y agrega `X-User-Id`. En las públicas agrega `X-Open-Path: true`; en las de login opcional, si viene token lo valida igual | **401**, cuerpo vacío (sin token, vencido, inválido o de otra tienda) |
 | 7 | `ActivityFilter` | Marca `activity:<tenant>:<userId>` en Redis (TTL 5 min, como mucho cada 30 s por usuario). No frena la request | — |
 | — | Ruteo | Manda la request al servicio | **503** si el servicio no está en Eureka |
 
@@ -64,9 +64,9 @@ segmento y `{any}` cualquier cosa.
 
 | Ruta |
 |---|
-| `/api/v1/auth/login`, `/api/v1/auth/register` |
+| `/api/v1/auth/login`, `/api/v1/auth/register`, `POST /api/v1/auth/refresh` |
 | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/forgot-password/{any}` |
-| `POST /api/v1/platform/tenants`, `POST /api/v1/platform/auth/login` |
+| `POST /api/v1/platform/tenants`, `POST /api/v1/platform/auth/login`, `POST /api/v1/platform/auth/refresh` |
 | `GET /api/v1/products/{id}/metadata` |
 | `GET /api/v1/catalog/products`, `GET /api/v1/catalog/featured`, `GET /api/v1/catalog/products/{any}`, `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/bundles` |
 | `GET /api/v1/sales/checkout`, `POST /api/v1/sales/orders`, `POST /api/v1/sales/orders/lookup`, `POST /api/v1/sales/orders/{code}/receipt`, `POST /api/v1/sales/orders/{code}/cancel` |
@@ -83,12 +83,13 @@ token el pedido o el reporte queda asociado al usuario, y un token inválido res
 
 ## Rate limit
 
-Ventanas de **1 minuto** por tipo de ruta, IP (o `X-Forwarded-For`) y `Origin`. Se cuenta en memoria
+Ventanas de **1 minuto** por tipo de ruta, IP de la conexión y `Origin`. El `X-Forwarded-For` que mande el cliente no
+cuenta; detrás de Caddy, `server.forward-headers-strategy=framework` arma la IP de la conexión con el que pone Caddy. Se cuenta en memoria
 (Caffeine), así que con varias instancias del gateway cada una cuenta lo suyo.
 
 | Tipo | Rutas | Límite por minuto | Propiedad |
 |---|---|---|---|
-| login | `/api/v1/auth/login`, `/api/v1/platform/auth/login` | 5 | `limit.login` |
+| login | `/api/v1/auth/login`, `/api/v1/platform/auth/login` y los dos `/auth/refresh` | 5 | `limit.login` |
 | signup | `/api/v1/platform/tenants`, `/api/v1/auth/register`, `/api/v1/auth/forgot-password/**`, `/api/v1/bug-reports` (mandan mails o le llegan a los superadmins) | 3 | `limit.signup` |
 | order | `/api/v1/sales/orders` (crear) | 5 | `limit.order` |
 | lookup | `/api/v1/sales/orders/lookup`, `/api/v1/sales/orders/{code}/cancel` | 10 | `limit.lookup` |
@@ -142,6 +143,7 @@ Con el límite en 5 pasan 5 requests y la sexta recibe **429** con el cuerpo vac
 
 - Las respuestas que corta el gateway (401, 404/403 de la tienda, 429) tienen el cuerpo vacío o en texto: el
   frontend tiene que decidir por el código.
-- El rate limit es por instancia (memoria) y usa `X-Forwarded-For` si viene. En el server no se puede inventar porque
-  Caddy lo reescribe con la IP real; sin Caddy delante, el cliente podría mandar cualquier valor y saltearse el límite.
-- `X-Client-Ip` es la IP de la conexión: detrás de un proxy sería la del proxy.
+- El rate limit es por instancia (memoria): con varias instancias del gateway cada una cuenta lo suyo.
+- La IP del rate limit y de `X-Client-Ip` es la de la conexión. Detrás de otro proxy que no sea Caddy hay que dejar
+  `server.forward-headers-strategy=framework` (si no, sería la del proxy) y que el proxy pise el `X-Forwarded-For` del
+  cliente.

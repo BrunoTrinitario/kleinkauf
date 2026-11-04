@@ -1,5 +1,6 @@
 package com.kleinkauf.product.services;
 
+import java.io.IOException;
 import com.kleinkauf.common.audit.AuditLog;
 import com.kleinkauf.common.security.PermissionArea;
 import com.kleinkauf.product.constants.ErrorMessages;
@@ -191,26 +192,31 @@ public class ProductService {
         fileManager.deleteImage(path);
     }
 
+    // Los campos en null no cambian (BasicUpdateDto)
     public FullProductDto updateProduct(Long id, BasicUpdateDto updatedData) throws ApiException{
-        validateMinStock(updatedData.minStock());
+        if (updatedData.minStock() != null) validateMinStock(updatedData.minStock());
         Product product = productRepository.findById(id).orElse(null);
         if (product == null){
             throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
-        }else{
-            product.setName(updatedData.name());
-            product.setCategory(updatedData.category());
-            product.setDescription(updatedData.description());
-            product.setMinStock(updatedData.minStock());
-            productRepository.save(product);
-            catalogCache.invalidate();
         }
+        if (updatedData.name() != null) {
+            String name = validateName(updatedData.name());
+            if (!name.equals(product.getName())) {
+                validateNameAvailable(name);
+                product.setName(name);
+            }
+        }
+        if (updatedData.category() != null) product.setCategory(updatedData.category());
+        if (updatedData.description() != null) product.setDescription(updatedData.description());
+        if (updatedData.minStock() != null) product.setMinStock(updatedData.minStock());
+        productRepository.save(product);
+        catalogCache.invalidate();
         return productFactory.getFullProductInfo(product);
     }
 
     public FullProductDto createProduct(NewProductDto updatedData) throws ApiException{
-        if (this.productRepository.existsByName(updatedData.name())) {
-            throw new ApiException(ErrorMessages.PRODUCT_NAME_IN_USE, HttpStatus.CONFLICT);
-        }
+        String name = validateName(updatedData.name());
+        validateNameAvailable(name);
         // Sin el permiso PRECIOS el precio y el costo se ignoran (el producto se crea sin ellos)
         boolean canSetPrices = SecurityUtil.hasPermission(PermissionArea.PRECIOS);
         BigDecimal price = canSetPrices ? updatedData.price() : null;
@@ -221,7 +227,7 @@ public class ProductService {
         }
         validateMinStock(updatedData.minStock());
         Product product = new Product();
-        product.setName(updatedData.name());
+        product.setName(name);
         product.setCategory(updatedData.category());
         product.setDescription(updatedData.description());
         product.setStock(updatedData.stock());
@@ -276,6 +282,24 @@ public class ProductService {
         }
     }
 
+    private static String validateName(String name) throws ApiException {
+        if (name == null || name.isBlank() || name.trim().length() > 255) {
+            throw new ApiException(ErrorMessages.PRODUCT_NAME_REQUIRED, HttpStatus.BAD_REQUEST);
+        }
+        return name.trim();
+    }
+
+    // El nombre es unico en la tabla, tambien contra los productos borrados (soft delete): sin esto, el insert
+    // o el update chocaban con la constraint y respondian 500
+    private void validateNameAvailable(String name) throws ApiException {
+        if (productRepository.existsByName(name)) {
+            throw new ApiException(ErrorMessages.PRODUCT_NAME_IN_USE, HttpStatus.CONFLICT);
+        }
+        if (productRepository.existsByNameIncludingDeleted(name)) {
+            throw new ApiException(ErrorMessages.PRODUCT_NAME_OF_DELETED, HttpStatus.CONFLICT);
+        }
+    }
+
     private void validateMinStock(int minStock) throws ApiException {
         if (minStock < 0) {
             throw new ApiException(ErrorMessages.INVALID_MIN_STOCK, HttpStatus.BAD_REQUEST);
@@ -322,10 +346,23 @@ public class ProductService {
     }
 
     public boolean saveImages(Long productId, List<MultipartFile> files) throws ApiException {
-        // El limite general de subida es 5 MB (por el CSV); las imagenes siguen en 1 MB
+        if (!productRepository.existsById(productId)) {
+            throw new ApiException(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        // Se valida todo antes de guardar: si una falla no queda ninguna a medias. Primero el tamano de todas
+        // (el limite general de subida es 5 MB, por el CSV; las imagenes siguen en 1 MB) y despues el tipo
         for (MultipartFile file : files) {
             if (file.getSize() > MAX_IMAGE_BYTES) {
                 throw new ApiException(ErrorMessages.IMAGE_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE);
+            }
+        }
+        for (MultipartFile file : files) {
+            try {
+                if (FileManager.imageExtension(file.getBytes()) == null) {
+                    throw new ApiException(ErrorMessages.INVALID_IMAGE, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+                }
+            } catch (IOException e) {
+                throw new ApiException(ErrorMessages.INVALID_IMAGE, HttpStatus.BAD_REQUEST);
             }
         }
         List<String> imagesPaths = fileManager.SaveAllImages(files);

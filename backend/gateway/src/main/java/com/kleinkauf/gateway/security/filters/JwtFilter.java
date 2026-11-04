@@ -70,8 +70,10 @@ public class JwtFilter implements WebFilter {
                 return ResponseUtil.unauthorized(exchange);
             }
 
-            // El token del mail de recuperacion de contrasena no sirve para entrar (ver TokenConstants)
-            if (TokenConstants.PASSWORD_RESET.equals(jwtUtil.getType(token))) {
+            // Solo se entra con el token de sesion: ni el del mail de recuperacion ni el refresh (ver TokenConstants).
+            // Sin tipo: los de sesion anteriores al claim, que vencen solos
+            String type = jwtUtil.getType(token);
+            if (type != null && !TokenConstants.ACCESS.equals(type)) {
                 return ResponseUtil.unauthorized(exchange);
             }
 

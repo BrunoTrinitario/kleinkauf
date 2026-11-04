@@ -30,12 +30,21 @@ public class PlatformService {
     // Login del superadmin: mismo login que las tiendas pero en public y exige el rol SUPERADMIN
     public LoggedUser login(String email, String password) throws ApiException {
         requirePlatformContext();
-        LoggedUser user = userService.login(email, password);
+        return requireSuperadmin(userService.login(email, password), ErrorMessages.INVALID_CREDENTIALS);
+    }
+
+    // Renovar la sesion del superadmin: si lo desactivaron ya no tiene el rol, y no se renueva
+    public LoggedUser refresh(String refreshToken) throws ApiException {
+        requirePlatformContext();
+        return requireSuperadmin(userService.refresh(refreshToken), ErrorMessages.INVALID_TOKEN);
+    }
+
+    private static LoggedUser requireSuperadmin(LoggedUser user, String error) throws ApiException {
         boolean isSuperadmin = user.roles().stream()
                 .map(RoleDto::getType)
                 .anyMatch(RolesType.SUPERADMIN.name()::equals);
         if (!isSuperadmin) {
-            throw new ApiException(ErrorMessages.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
+            throw new ApiException(error, HttpStatus.UNAUTHORIZED);
         }
         return user;
     }

@@ -231,20 +231,17 @@ Cada punto se planifica con preguntas antes de implementarlo, como ventas.
   (caché local → Redis reactivo → users), sin `.block()`.
 - ~~**`getTenant` del gateway lee Redis de forma bloqueante**~~ **Resuelto:** `CacheUtil.getTenantByUrl`
   usa un `ReactiveRedisTemplate` con los mismos serializers que el `redisTemplate` de `kleinkauf-common`.
-- **users migra el schema en cada conexión:** su `TenantDataSource.prepareSchema` corre `runMigration`
-  (levanta un `EntityManagerFactory`) cada vez que se pide una conexión de un tenant. Products solo lo hace
-  si el schema no existe. Se mantuvo el comportamiento, pero es costoso.
-- **Tests que ya fallaban:** los `contextLoads` de users y products y el `UserServiceTest` de users necesitan
-  Postgres levantado; dos tests de `ProductServiceTest` (`deleteProductById_*`) no coinciden con `ProductService`
-  (el test mockea `existsById` y el servicio usa `findById`).
+- ~~**users migra el schema en cada conexión**~~ **Resuelto:** migra todas las tiendas al arrancar, como products, y
+  después solo crea el schema de una tienda nueva.
+- ~~**Tests que ya fallaban**~~ **Resuelto:** los que levantan la app corren con Testcontainers (Postgres y Redis
+  reales) y se arreglaron `ProductServiceTest.deleteProductById_*` y `UserServiceTest`.
 - **Ventas sin eventos:** si una vuelta atrás en products también falla (devolver stock o restar vendidos), queda
   logueado con el número del pedido para corregirlo a mano. Y si al cancelar se devuelve el stock pero otro cambió el
   pedido al mismo tiempo, el stock vuelve y el pedido sigue activo (validarlo después da error). Lo resuelve el outbox.
 - **Bases de desarrollo de la etapa 1 de ventas:** `order_items.list_price` quedó `NOT NULL`; para vender productos
   "a consultar" en el local hay que sacarlo a mano (ver [docs/ventas.md](docs/ventas.md)).
-- **Rate limit por `X-Forwarded-For`:** ese header lo puede mandar el cliente, así que se puede esquivar el límite
-  (también el del alta de tenants) cambiándolo en cada request. Si el gateway queda expuesto directo a internet,
-  conviene tomar la IP de la conexión o confiar en el header solo detrás de un proxy propio.
+- ~~**Rate limit por `X-Forwarded-For`**~~ **Resuelto:** usa la IP de la conexión; detrás de Caddy la arma
+  `server.forward-headers-strategy=framework` con el header que pone Caddy.
 - **Tokens anteriores al alta de tenants:** no tienen el claim `tenant`, así que todos los usuarios tienen que volver
   a iniciar sesión una vez.
 - **Tenants creados a mano antes del alta:** siguen funcionando con la `url` que tengan cargada; su identificador en el

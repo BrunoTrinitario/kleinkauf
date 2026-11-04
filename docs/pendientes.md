@@ -1,6 +1,6 @@
 # Pendientes
 
-_Última actualización: 2026-11-04 (revisión contra el código después del renombre a KleinKauf)_
+_Última actualización: 2026-11-04 (seguridad, reportes de problemas y deuda técnica)_
 
 Lista de lo que queda por hacer, armada comparando la documentación ([MVP.md](../MVP.md), `docs/` y la referencia
 por servicio en [docs/backend/](backend/README.md)) con el código. Cada tarea tiene el flujo previsto para
@@ -10,10 +10,42 @@ implementarla.
 auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta (salvo el recupero de contraseña), el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
 y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el panel de ventas;
-falta el tiempo real. En el backend quedan algunos ajustes de plataforma y la deuda técnica. La **gestión
-presencial** todavía no tiene decisiones tomadas.
+falta el tiempo real. En el backend quedan los ajustes de plataforma (A1) y, de la deuda técnica, solo lo que hay que
+decidir. La **gestión presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
+
+- **Deuda técnica (D)**, salvo lo que hay que decidir:
+  - products: crear o renombrar con el nombre de un producto (también borrado) responde 409 y no 500; el nombre se
+    valida (obligatorio, hasta 255). `PUT /products/{id}` cambia solo lo que se manda. `GET` y `DELETE /bundles/{id}`
+    responden 404 si el combo no existe. Las imágenes se validan por sus primeros bytes (JPG, PNG, WEBP o GIF, 415 si
+    no) y se guardan con su extensión.
+  - Respuestas: `POST /products` y `POST /bundles` responden 201; un email repetido da 409 también en las tiendas; un
+    rol inexistente da 400 si viene como parámetro y 404 si viene en la ruta.
+  - El mail del recupero que falla queda en el log como `ERROR` (`MailService`).
+  - **Refresh token**: el login devuelve un `refreshToken` de 7 días y `POST /auth/refresh` (y el de la plataforma)
+    renueva la sesión; el frontend lo hace solo ante un 401. Deja de servir si cambia la contraseña.
+  - Rate limit: usa la IP de la conexión y no el `X-Forwarded-For` del cliente; detrás de Caddy la arma
+    `forward-headers-strategy`.
+  - users migra el schema de cada tienda al arrancar (como products) y no en la primera request de cada una.
+  - Tests: los que levantan la app corren con **Testcontainers** (Postgres y Redis reales; sin Docker se saltean) y
+    en UTC; se arreglaron `ProductServiceTest.deleteProductById_*` y `UserServiceTest`, que estaba desactualizado.
+    Pasan los 471 tests del backend.
+  - **Prueba de punta a punta** (`backend/deploy/e2e/e2e.mjs`): alta de tienda, sesión y refresh, productos e
+    imágenes, catálogo, pedido como invitado, reporte de un problema y panel de la plataforma, contra todo levantado.
+    Ver el README.
+  - README (orden de arranque, bases de `init.sql` y cómo crear las que falten) y [frontend.md](frontend.md) al día.
+- **Seguridad de la API**: el gateway responde 404 en las rutas que no rutea (antes 401) y ya no expone
+  `/api/internal/tenants/**`; los JWT llevan su tipo (`access`, `refresh`, `password`), así un token de sesión no
+  cambia la contraseña y el del mail no sirve para entrar; el link de recupero se usa una sola vez; registro,
+  recupero y reportes tienen el límite de 3 por minuto; users pide el token interno en todo `/api/internal/**`;
+  products rechaza lo que no tiene regla propia en vez de dejarlo abierto.
+- **Reportar un problema**: link en el footer de las tiendas (`POST /api/v1/bug-reports`, con o sin sesión) y lista
+  en el panel de la plataforma (`/bug-reports`) para marcarlos resueltos.
+- **Privacidad y términos**: páginas `/privacidad` y `/terminos` con links en el footer (textos base, para que los
+  revise un abogado).
+- **Server**: headers de seguridad en Caddy (la CSP en Report-Only) y el backup diario armado pero sin activar
+  ([deploy.md](../deploy.md)).
 
 - **Panel de ventas completo** (B7): la lista de pedidos suma los filtros por medio de pago y "stock para revisar";
   el historial muestra el nombre de quien hizo cada cambio (`GET /users/{id}`, `Usuario #id` si se borró); **venta
@@ -210,37 +242,12 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 ## D. Deuda técnica y prolijidad
 
-**Errores y reglas**
+Lo demás está resuelto (ver arriba). Queda:
 
-- **500 en vez de 4xx en products**: crear un producto con el nombre de uno borrado (`createProduct` usa
-  `existsByName`, que no ve los borrados) o renombrar con un nombre usado (`updateProduct` no lo valida). Y
-  `GET /bundles/{id}` (devuelve `null`) y
-  `DELETE /bundles/{id}` responden 200 aunque el combo no exista.
-- **`PUT /products/{id}` reemplaza los cuatro campos**: mandar solo uno borra los otros. Pasar a `PATCH` o documentar
-  que van todos.
-- **Imágenes**: se guardan siempre como `.png` y no se valida que sean imágenes (solo el tamaño).
-- **Respuestas inconsistentes**: `POST /products` y `POST /bundles` responden 200 en vez de 201; un email repetido da
-  400 en las tiendas y 409 en los superadmins; un rol inexistente da 400 o 404 según el endpoint.
-- **El mail del recupero puede fallar sin aviso**: `MailService` no captura los errores al mandar.
-
-**Seguridad**
-
-- **Rate limit esquivable con `X-Forwarded-For`** (`Parser.generateRequestIdentifier`), y es por instancia: confiar
-  en el header solo detrás de un proxy propio y, si no, usar la IP de la conexión. La IP de la auditoría ya usa la de
-  la conexión.
-- **`/api/internal/**` de users** no pide nada si se llama directo al puerto 3001 sin `X-internal-request`. Validar
-  el token interno siempre, sin depender de que el puerto no esté expuesto, como ya hace `HeaderAuthFilter` en
-  products.
-- **Sin refresh token**: a la hora hay que volver a loguearse.
-
-**Rendimiento y tests**
-
-- **users migra cada schema al arrancar aunque ya exista**: `DatabaseMultiTenantConnectionProvider` lo prepara una
-  sola vez por tienda y por instancia, pero `TenantDataSource.prepareSchema` de users llama siempre a `createSchema`,
-  que corre `runMigration`. Hacer como products: migrar solo si el schema no existe.
-- **Tests rotos**: `ProductServiceTest.deleteProductById_*` mockea `existsById` y el servicio usa `findById`; los
-  `contextLoads` necesitan Postgres. Conviene **Testcontainers**.
-- **Prueba de punta a punta con Docker**: todo junto, con Postgres y Redis reales.
+- **Refresh tokens sin revocación individual**: uno robado sirve hasta que vence (7 días) o hasta que el usuario cambia
+  la contraseña. Si hace falta, guardar los refresh emitidos para poder cortarlos uno por uno.
+- **Rate limit por instancia**: con más de un gateway, cada uno cuenta lo suyo (habría que contarlo en Redis).
+- **Un CI** que corra los tests del backend y el build del frontend en cada push a `main`.
 
 **Para decidir**
 
@@ -249,19 +256,6 @@ preguntas antes de implementarla, como se hizo con ventas.
 - Auditoría: exportar el historial a CSV y particionar `audit_events`.
 - Eureka con una sola instancia, sin réplica.
 
-**Documentación y repo**
-
-- [frontend.md](frontend.md) tiene todo sin tildar y habla del "frontend actual (Next.js)".
-- README desactualizado: "sin Docker" no lista sales ni observability en el orden de arranque, dice que `init.sql`
-  crea solo `users` y `products` (crea las cuatro bases) y que Docker levanta "los tres servicios".
-- Archivo suelto `backend/eureka/nul`, sin trackear: es basura de una redirección en Windows y se puede borrar.
-- Carpetas viejas del renombre en `backend/` (`com.decor.product`, `decor-common`, `decor-observability`,
-  `decor-sales`, `decorusers`), ignoradas por git: solo tienen compilados y se pueden borrar. Las imágenes subidas que
-  estaban en `com.decor.product/uploads` ya se movieron a `kleinkauf-product/uploads`.
-- **`init.sql` solo corre con el volumen nuevo**: un volumen de Postgres creado antes de ventas u observabilidad no
-  tiene las bases `sales` ni `observability`, y sales queda reiniciándose. Contarlo en el README (crearlas a mano o
-  borrar el volumen) o crearlas al arrancar si no existen.
-
 ---
 
 ## Orden sugerido
@@ -269,4 +263,4 @@ preguntas antes de implementarla, como se hizo con ventas.
 1. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. Ya están B0 a B7, A2 y A3 (falta solo el
    recupero de contraseña de B1).
 2. **Decidir y planificar C1**, la próxima etapa de ventas.
-3. La deuda técnica (D) se intercala. Lo más barato y útil: los tests y la migración de users.
+3. De la deuda técnica (D) queda decidir observabilidad, auditoría y Eureka, y sumar un CI.

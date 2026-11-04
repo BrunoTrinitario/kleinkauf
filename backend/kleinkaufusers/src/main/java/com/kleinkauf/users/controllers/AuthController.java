@@ -39,6 +39,12 @@ public class AuthController {
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.OK);
     }
 
+    // Renueva la sesion con el refresh token del login (publico: el token de 1 hora puede estar vencido)
+    @PostMapping("/refresh")
+    public ResponseEntity<LoggedUser> refresh(@RequestBody RefreshTokenDto dto) throws ApiException {
+        return ResponseEntity.ok(userService.refresh(dto == null ? null : dto.refreshToken()));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<LoggedUser> Register(@RequestBody NewUserDto userData) throws ApiException {
         userService.createUser(userData.name(), userData.email(), userData.password(), Set.of("CLIENTE"));

@@ -86,12 +86,26 @@ docker compose -f backend/deploy/docker-compose.bd.yml up -d
 ```
 
 Levanta PostgreSQL (`localhost:5432`, usuario y contraseña `postgres`) y Redis (`localhost:6379`).
-El script `backend/deploy/init.sql` crea las bases `users` y `products`; las tablas las genera Hibernate al arrancar.
+El script `backend/deploy/init.sql` crea las bases `users`, `products`, `sales` y `observability`; las tablas las genera
+Hibernate al arrancar.
+
+`init.sql` solo corre la primera vez, con el volumen de Postgres vacío. Si el volumen es de antes de que existiera
+alguna de esas bases (por ejemplo, de antes de ventas u observabilidad), el servicio que la usa queda reiniciándose.
+Para crear las que falten sin perder datos:
+
+```bash
+for db in users products sales observability; do
+  docker exec postgres-dev psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='$db'" | grep -q 1 \
+    || docker exec postgres-dev psql -U postgres -c "CREATE DATABASE $db"
+done
+```
+
+(O borrar el volumen con `docker compose -f backend/deploy/docker-compose.bd.yml down -v`, que borra todos los datos.)
 
 ### 2. Backend
 
-**Con Docker (recomendado):** un solo comando levanta PostgreSQL, Redis, Eureka, los tres servicios y carga el seed
-de desarrollo:
+**Con Docker (recomendado):** un solo comando levanta PostgreSQL, Redis, Eureka, los cinco servicios (users, products,
+sales, observability y gateway) y carga el seed de desarrollo:
 
 ```bash
 docker compose -f backend/deploy/docker-compose.dev.yml up -d
@@ -125,10 +139,12 @@ como build compuesto. Levantá primero la base y Redis (`docker compose -f backe
 y después los servicios **en este orden**, cada uno en su terminal:
 
 ```bash
-cd backend/eureka            && ./gradlew bootRun   # 1. descubrimiento  (8761)
-cd backend/kleinkaufusers    && ./gradlew bootRun   # 2. usuarios        (3001)
-cd backend/kleinkauf-product && ./gradlew bootRun   # 3. productos       (3002)
-cd backend/gateway           && ./gradlew bootRun   # 4. gateway         (3000)
+cd backend/eureka                  && ./gradlew bootRun   # 1. descubrimiento  (8761)
+cd backend/kleinkaufusers          && ./gradlew bootRun   # 2. usuarios        (3001)
+cd backend/kleinkauf-product       && ./gradlew bootRun   # 3. productos       (3002)
+cd backend/kleinkauf-sales         && ./gradlew bootRun   # 4. ventas          (3003)
+cd backend/kleinkauf-observability && ./gradlew bootRun   # 5. observabilidad  (3004)
+cd backend/gateway                 && ./gradlew bootRun   # 6. gateway         (3000)
 ```
 
 (En Windows usá `gradlew.bat bootRun`.)
@@ -138,6 +154,24 @@ cambiá los secretos (`jwt.secret`, `api.internal.key`, contraseñas de base de 
 
 Para crear el primer superadmin de la plataforma, definí las variables de entorno `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`
 (ver `platform.superadmin.*` en `kleinkaufusers`) antes de arrancar `kleinkaufusers`.
+
+### Tests
+
+Cada servicio corre los suyos con `./gradlew test` (en Windows, `gradlew.bat test`). Los que levantan la app entera
+(`@SpringBootTest`) usan **Testcontainers**: arrancan Postgres y Redis en Docker solos, así que no hace falta tener la
+base levantada. Sin Docker esos tests se saltean y el resto corre igual.
+
+**Prueba de punta a punta** (`backend/deploy/e2e/e2e.mjs`): con todo levantado por el compose de desarrollo, recorre
+por la API el alta de una tienda, la sesión (login, refresh), productos e imágenes, el catálogo, un pedido como
+invitado, un reporte de problema y el panel de la plataforma. Crea una tienda nueva y la borra al terminar; sale con
+código 1 si algo falla:
+
+```bash
+docker compose -f backend/deploy/docker-compose.dev.yml --profile e2e up e2e
+```
+
+Contra otro entorno se corre con Node 22 y las variables `GATEWAY_URL`, `PLATFORM_URL`, `STORE_SCHEME`,
+`STORE_DOMAIN` y, para probar la plataforma y borrar la tienda, `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`.
 
 ### 3. Frontend
 
@@ -193,7 +227,9 @@ kleinkauf/
 
 ### Ramas
 
-- `main`: el proyecto completo (backend + frontend).
+- `main`: el proyecto completo (backend + frontend). Se trabaja acá.
+- `deploy/backend` y `deploy/frontend`: lo que está en el server. Un push a cualquiera de las dos lo despliega
+  (ver [deploy.md](deploy.md)); se actualizan mergeando `main`.
 - `develop` y `frontend`: ramas de trabajo previas, ya integradas en `main`.
 
 ---
