@@ -24,6 +24,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  // Viene de /reset-password despues de cambiar la contrasena
+  const passwordChanged = searchParams.get("contrasena") === "cambiada"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,6 +74,11 @@ export default function LoginPage() {
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {passwordChanged && !error && (
+                <div className="bg-muted text-foreground text-sm px-4 py-3 rounded-md">
+                  {strings.login.passwordChanged}
+                </div>
+              )}
               {error && (
                 <div className="bg-destructive/10 text-destructive text-sm px-4 py-3 rounded-md">
                   {error}
@@ -93,9 +100,17 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  {strings.login.passwordLabel}
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="password" className="text-sm font-medium text-foreground">
+                    {strings.login.passwordLabel}
+                  </label>
+                  {/* La plataforma no tiene recupero: el gateway solo lo atiende desde una tienda */}
+                  {!IS_PLATFORM && (
+                    <Link to="/recuperar" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+                      {strings.login.forgotPassword}
+                    </Link>
+                  )}
+                </div>
                 <div className="relative">
                   <Input
                     id="password"

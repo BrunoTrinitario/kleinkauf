@@ -7,13 +7,20 @@ por servicio en [docs/backend/](backend/README.md)) con el código. Cada tarea t
 implementarla.
 
 **Resumen:** el backend de los dos paneles, las ventas, la observabilidad (también los canales de la tienda) y la
-auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta (salvo el recupero de contraseña), el
+auditoría está hecho. Lo que más falta es el **frontend**: hoy cubre la cuenta, el
 catálogo con destacados, combos y página de producto, la compra online, el panel de productos (stock, destacados, CSV
 y combos), usuarios y permisos, el resumen de la tienda, ajustes, el panel de la plataforma y el panel de ventas;
 falta el tiempo real. En el backend quedan los ajustes de plataforma (A1) y, de la deuda técnica, solo lo que hay que
 decidir. La **gestión presencial** todavía no tiene decisiones tomadas.
 
 ### Resuelto desde la versión anterior
+
+- **Recupero de contraseña** (B1): "¿Olvidaste tu contraseña?" en el login de las tiendas lleva a `/recuperar`, que pide
+  el mail; el link lleva a `/reset-password?token=`, que pide la nueva y vuelve al login. Si el link venció o ya se
+  usó, ofrece pedir otro. Para que lleguen los mails, el server necesita `MAIL_USERNAME` y `MAIL_PASSWORD` (ver el
+  `TODO`).
+- **Caché de roles**: `CachedUser` no guardaba los roles y en Redis quedaba `"null"`, así que products, sales y el
+  gateway le pedían los roles a users en cada request (y con users caído, 403). Lo encontró la prueba de punta a punta.
 
 - **Deuda técnica (D)**, salvo lo que hay que decidir:
   - products: crear o renombrar con el nombre de un producto (también borrado) responde 409 y no 500; el nombre se
@@ -165,12 +172,6 @@ decidir. La **gestión presencial** todavía no tiene decisiones tomadas.
 Sigue el orden de [frontend.md](frontend.md). Lo de abajo es lo que no existe en `frontend/src`. El backend de todo
 esto ya está.
 
-### B1. Cuenta
-
-- Recupero de contraseña: pedir el mail con `POST /auth/forgot-password` y la página `/reset-password?token=`, que
-  es a donde lleva el mail, con el `POST /auth/forgot-password/{token}`. El token vale 15 minutos. **Para más
-  adelante.**
-
 ### B8. Observabilidad y auditoría
 
 1. Hook `useLiveChannel`: pide un ticket (un solo uso, 30 s), conecta a `/ws?ticket=`, manda ping cada 30 s,
@@ -260,7 +261,6 @@ Lo demás está resuelto (ver arriba). Queda:
 
 ## Orden sugerido
 
-1. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. Ya están B0 a B7, A2 y A3 (falta solo el
-   recupero de contraseña de B1).
+1. **B8 y A1**: tiempo real en los paneles y los ajustes de plataforma. Ya están B0 a B7, A2 y A3.
 2. **Decidir y planificar C1**, la próxima etapa de ventas.
 3. De la deuda técnica (D) queda decidir observabilidad, auditoría y Eureka, y sumar un CI.

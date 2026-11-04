@@ -95,7 +95,8 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 
 ### 2. Cuenta y sesión en la tienda **[listo]**
 - [x] Login ☑ y registro como `CLIENTE` ☑
-- [ ] Recupero de contraseña: pedir el mail y pantalla `/reset-password?token=` (el link del mail lleva ahí; el token vale 15 min y se manda a `POST /api/v1/auth/forgot-password/{token}`)
+- [x] Recupero de contraseña: `/recuperar` pide el mail (link "¿Olvidaste tu contraseña?" en el login) y `/reset-password?token=`
+  elige la nueva; si el link venció o ya se usó, ofrece pedir otro. Solo en las tiendas
 - [x] Perfil: cambiar nombre y contraseña ☑, borrar la propia cuenta con confirmación
 - [x] Sesión vencida: volver al login conservando la página de destino
 - [x] Menú de usuario con los roles y logout

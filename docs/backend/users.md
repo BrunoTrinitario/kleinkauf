@@ -88,7 +88,8 @@ URL de su tienda con el email y la contraseña que cargó.
 3. La página `/reset-password` **del frontend** lee el token, pide la contraseña nueva y llama a
    `POST /api/v1/auth/forgot-password/{token}` con `{ "newPassword": "..." }`.
 
-> La página `/reset-password` todavía no existe en el frontend.
+En el frontend: "¿Olvidaste tu contraseña?" en el login lleva a `/recuperar`, que pide el mail. Solo en las tiendas: el
+gateway no atiende `/api/v1/auth/**` sin tienda, así que la plataforma no tiene recupero.
 
 Si el mail no se puede mandar, el error se ignora (no hay reintentos). El servidor de mail se configura con
 `spring.mail.*`.
