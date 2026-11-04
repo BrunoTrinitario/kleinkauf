@@ -97,15 +97,17 @@ se necesita; Astro es excelente para contenido y flojo para un panel tan interac
 
 ### 3. Catálogo público **[listo]**
 - [ ] Home (`/`) como vidriera corta: buscador y categorías que llevan al catálogo, **productos destacados**
-  (`/catalog/featured`, en su orden) en una fila y unos pocos combos
+  (`/catalog/featured`, en su orden) en una fila y los combos (con la misma tarjeta que `/combos`) en otra fila igual
 - [ ] Listado paginado (24 por página) en `/catalogo`, con búsqueda `q`, filtro por categoría y orden (nombre / precio ↑ /
   precio ↓) en la URL (`?q=&categoria=&orden=&pagina=`)
 - [ ] Categorías con su cantidad de productos
 - [ ] Detalle por **slug** (URL compartible), con imágenes, metadatos (material, color, estilo, medidas) ☑
 - [ ] Disponibilidad: `DISPONIBLE`, `POCAS_UNIDADES`, `AGOTADO` (el catálogo nunca muestra stock exacto ni costo)
 - [ ] Producto sin precio → "Consultar"
-- [ ] **Combos** en `/combos`: precio, precio de lista (ahorro), disponibilidad, productos que incluye y agregar al
-  carrito
+- [ ] **Combos** en `/combos`: precio, precio de lista (ahorro), disponibilidad, productos que incluye (miniatura,
+  precio suelto y cantidad, con link a cada producto) y agregar al carrito; la foto es un mosaico de los productos.
+  Tocar la foto abre el detalle: cada producto con foto, categoría, descripción y subtotal, y la cuenta de lo que sale por
+  separado contra el precio del combo
 - [ ] Botón para compartir el link (WhatsApp, copiar) y vista previa Open Graph (ver Stack)
 - [ ] Imágenes con carga diferida y tamaño controlado
 
@@ -133,7 +135,10 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] Alerta de **stock bajo** (listado y contador en el menú)
 - [ ] **Importar CSV** (`PRODUCTOS` + `PRECIOS`): descargar plantilla, subir archivo, mostrar `{created, updated}` o la **tabla de errores por fila**; límites de 5.000 filas / 5 MB
 - [ ] **Exportar CSV**
-- [ ] **Combos** (`COMBOS`): crear, habilitar/deshabilitar, cambiar precio, agregar / quitar productos (también en lote), borrar
+- [ ] **Combos** (`COMBOS`): crear el combo completo en un solo paso (nombre, productos con imagen, precio, cantidad y
+  subtotal, y al final el precio, con la suma de los productos a la vista), habilitar/deshabilitar, cambiar precio,
+  agregar / quitar productos y cambiar cantidades, borrar. Cada combo muestra miniaturas de sus productos y los input
+  numéricos no tienen flechas (`no-spinner` en `index.css`)
 
 ### 6. Panel de la tienda: usuarios y permisos **[listo]** (solo `ADMINISTRADOR`)
 - [ ] Lista de usuarios con sus roles ☑

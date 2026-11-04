@@ -43,8 +43,7 @@ export const strings = {
     heroHighlight: "buscas",
     search: "Buscar",
     categoriesLabel: "Categorías",
-    allBundles: (count: number) => (count === 1 ? "Ver el combo" : `Ver los ${count} combos`),
-    viewCatalog: "Ver todo el catálogo",
+    allBundles: "Ver combos",
   },
   catalogPage: {
     title: "Catálogo",
@@ -58,7 +57,6 @@ export const strings = {
     empty: "Por ahora no hay combos.",
   },
   bundleCard: {
-    productsCount: (count: number) => (count === 1 ? "1 producto" : `${count} productos`),
     listPrice: (amount: string) => `Por separado ${amount}`,
     saving: (amount: string) => `Ahorras ${amount}`,
     includes: "Incluye",

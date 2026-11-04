@@ -9,12 +9,11 @@ import { useCatalogBundles, useCatalogFeatured } from "@/api/catalog"
 import { ProductCard } from "./product-card"
 import { ProductModal } from "./product-modal"
 import { AddToCartButton } from "./add-to-cart-button"
-import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
 
 // Cuantos destacados y combos entran en las franjas de la home (el resto, en /catalogo y /combos)
 const FEATURED_IN_HOME = 8
-const BUNDLES_IN_HOME = 3
+const BUNDLES_IN_HOME = 8
 
 // Franja de la home: en el celular se desliza de costado; desde sm, grilla. Sin items no se muestra
 function Strip({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
@@ -38,10 +37,10 @@ function StripLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-// Las tarjetas ocupan casi todo el ancho en el celular (se ve que hay mas a la derecha) y se alinean al deslizar
-const scrollRow =
-  "-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0"
-const scrollItem = "w-[75%] shrink-0 snap-start sm:w-auto"
+// Una sola fila en todos los anchos: en el celular cada tarjeta ocupa casi todo el ancho (se ve que hay mas a la
+// derecha), entran 2 desde sm y 4 en escritorio; el resto se ve deslizando
+const stripRow = "-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:gap-6"
+const stripItem = "grid w-[75%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]"
 
 // Destacados de la home, en el orden que eligio la tienda
 export function FeaturedStrip() {
@@ -52,13 +51,9 @@ export function FeaturedStrip() {
 
   return (
     <Strip title={strings.home.featuredTitle}>
-      {/* Una sola fila en todos los anchos: entran 4 en escritorio y el resto se ve deslizando */}
-      <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:gap-6">
+      <div className={stripRow}>
         {featured.map((product) => (
-          <div
-            key={product.slug}
-            className="grid w-[75%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]"
-          >
+          <div key={product.slug} className={stripItem}>
             <ProductCard product={product} onClick={() => setSelected(product)} />
           </div>
         ))}
@@ -68,7 +63,7 @@ export function FeaturedStrip() {
   )
 }
 
-// Unos pocos combos en la home, compactos; el detalle y el boton de compra estan en /combos
+// Combos de la home con la misma tarjeta que /combos, en una fila como los destacados
 export function BundlesStrip() {
   const bundles = useCatalogBundles().data ?? []
 
@@ -77,12 +72,12 @@ export function BundlesStrip() {
   return (
     <Strip
       title={strings.home.bundlesTitle}
-      action={<StripLink to="/combos">{strings.home.allBundles(bundles.length)}</StripLink>}
+      action={<StripLink to="/combos">{strings.home.allBundles}</StripLink>}
     >
-      <div className={`${scrollRow} sm:grid-cols-3`}>
+      <div className={stripRow}>
         {bundles.slice(0, BUNDLES_IN_HOME).map((bundle) => (
-          <div key={bundle.id} className={scrollItem}>
-            <CompactBundleCard bundle={bundle} />
+          <div key={bundle.id} className={stripItem}>
+            <BundleCard bundle={bundle} />
           </div>
         ))}
       </div>
@@ -92,31 +87,6 @@ export function BundlesStrip() {
 
 const savingOf = (bundle: CatalogBundle) =>
   bundle.listPrice != null && bundle.listPrice > bundle.price ? bundle.listPrice - bundle.price : null
-
-function CompactBundleCard({ bundle }: { bundle: CatalogBundle }) {
-  const saving = savingOf(bundle)
-  return (
-    <Link
-      to={`/combos#combo-${bundle.id}`}
-      className="flex h-full items-center gap-4 rounded-lg border border-border bg-card p-3 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
-    >
-      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-        {bundle.image ? (
-          <img src={productImageUrl(bundle.image)} alt="" className="h-full w-full object-cover" loading="lazy" />
-        ) : null}
-      </div>
-      <div className="min-w-0 space-y-0.5">
-        <p className="truncate font-medium leading-tight">{bundle.name}</p>
-        <p className="text-sm">{formatPrice(bundle.price, strings.price.ask)}</p>
-        {saving != null ? (
-          <p className="text-xs text-cyan-edge">{strings.bundleCard.saving(formatPrice(saving, ""))}</p>
-        ) : (
-          <p className="text-xs text-muted-foreground">{strings.bundleCard.productsCount(bundle.products.length)}</p>
-        )}
-      </div>
-    </Link>
-  )
-}
 
 function ProductThumb({ image, className }: { image?: string | null; className: string }) {
   return (
@@ -155,7 +125,7 @@ function BundleCover({ bundle }: { bundle: CatalogBundle }) {
 }
 
 // Tarjeta completa del combo (/combos): ahorro frente a comprar por separado, que incluye y agregar al carrito.
-// "Ver detalle" abre los productos con su foto, descripcion y precio suelto
+// Tocar la foto abre el detalle: los productos con su foto, descripcion y precio suelto
 export function BundleCard({ bundle }: { bundle: CatalogBundle }) {
   const saving = savingOf(bundle)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -221,12 +191,7 @@ export function BundleCard({ bundle }: { bundle: CatalogBundle }) {
             ))}
           </ul>
         </div>
-        <div className="flex gap-2 pt-1">
-          <Button variant="outline" className="flex-1" onClick={() => setDetailOpen(true)}>
-            {strings.bundleCard.viewDetail}
-          </Button>
-          <BundleCartButton bundle={bundle} className="flex-1" />
-        </div>
+        <BundleCartButton bundle={bundle} className="w-full" />
       </div>
       <BundleDetailDialog bundle={bundle} open={detailOpen} onOpenChange={setDetailOpen} />
     </article>

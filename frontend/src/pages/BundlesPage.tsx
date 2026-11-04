@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header"
 import { BundleCard } from "@/components/catalog-highlights"
 import { Button } from "@/components/ui/button"
 
-// Combos que se pueden comprar (/combos). Desde la home se llega a uno con /combos#combo-{id}. Publica
+// Combos que se pueden comprar (/combos). Un link a /combos#combo-{id} baja a ese combo. Publica
 export default function BundlesPage() {
   const bundlesQuery = useCatalogBundles()
   const bundles = bundlesQuery.data ?? []
