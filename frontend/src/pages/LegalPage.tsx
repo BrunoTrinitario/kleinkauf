@@ -8,11 +8,11 @@ interface LegalPageProps {
   document: "privacy" | "terms"
 }
 
-// Privacidad (/privacidad) y terminos (/terminos), enlazados desde el footer. Publicas
+// Privacy (/privacidad) and terms (/terminos), linked from the footer. Public
 export default function LegalPage({ document: kind }: LegalPageProps) {
   const content = strings.legal[kind]
 
-  // Al pasar de una a otra desde el footer, arrancar desde arriba
+  // When going from one to the other from the footer, start from the top
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [kind])

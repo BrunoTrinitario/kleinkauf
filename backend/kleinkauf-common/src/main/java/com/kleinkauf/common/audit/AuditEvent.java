@@ -4,11 +4,11 @@ import java.time.Instant;
 import java.util.Map;
 
 /*
-Un registro de auditoria (formato en docs/auditoria.md). Viaja como JSON por la outbox y Redis Streams
-(stream kleinkauf:audit) hasta observability, que lo guarda.
-- tenant: el schema de la tienda, o "public" para la plataforma.
-- actor: null si no hay usuario logueado (alta de tienda por autoservicio). El nombre lo completa observability.
-- changes: solo los campos que cambiaron (en un alta, los que tienen valor).
+An audit record (format in docs/auditoria.md). Travels as JSON through the outbox and Redis Streams
+(stream kleinkauf:audit) to observability, which stores it.
+- tenant: the store's schema, or "public" for the platform.
+- actor: null if there is no logged-in user (self-service store sign-up). Observability fills in the name.
+- changes: only the fields that changed (on a create, the ones that have a value).
  */
 public record AuditEvent(
         String id,

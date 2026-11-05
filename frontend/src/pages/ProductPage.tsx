@@ -11,11 +11,11 @@ import { ProductDetail } from "@/components/product-detail"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft } from "lucide-react"
 
-// Pagina de un producto (/productos/:slug): es el link que se comparte (ver lib/share.ts). Publica
+// Product page (/productos/:slug): it is the link that gets shared (see lib/share.ts). Public
 export default function ProductPage() {
   const { slug = "" } = useParams()
   const navigate = useNavigate()
-  // key "default" = es la primera pagina que se abrio en esta pestana (no hay a donde volver dentro de la tienda)
+  // key "default" = it is the first page opened in this tab (there is nowhere to go back to inside the store)
   const cameFromStore = useLocation().key !== "default"
   const detail = useCatalogProduct(slug, slug !== "")
   const product = detail.data
@@ -25,7 +25,7 @@ export default function ProductPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="container mx-auto flex-1 px-4 py-8 space-y-6">
-        {/* Desde la tienda vuelve a donde estaba (el catalogo con sus filtros); desde un link compartido, al catalogo */}
+        {/* From the store it goes back to where it was (the catalog with its filters); from a shared link, to the catalog */}
         {cameFromStore ? (
           <button
             type="button"

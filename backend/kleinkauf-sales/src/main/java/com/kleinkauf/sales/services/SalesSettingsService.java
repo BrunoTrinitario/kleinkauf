@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 
 /*
-Configuracion de ventas de la tienda (datos para transferir y plazo de vencimiento).
-Mientras no se configure, se usan los valores por defecto y no se pueden crear pedidos.
+The store's sales settings (transfer details and expiry deadline).
+Until they are configured, the defaults are used and orders cannot be created.
  */
 @Service
 public class SalesSettingsService {
@@ -59,7 +59,7 @@ public class SalesSettingsService {
         return toDto(repository.save(settings));
     }
 
-    // Para recibir transferencias hace falta el titular y el alias o el CBU
+    // To receive transfers the holder and the alias or the CBU are needed
     public static boolean isPaymentConfigured(SalesSettings settings) {
         return settings.getHolder() != null && (settings.getAlias() != null || settings.getCbu() != null);
     }

@@ -11,8 +11,8 @@ import { PaginationControls } from "./pagination-controls"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { FilterGroup, FilterSelect, ListToolbar, SearchField } from "./list-toolbar"
 
-// Listado del catalogo con los filtros en la URL (lib/catalog-url.ts). La busqueda se escribe con replace (cada tecla
-// no deja una entrada en el historial); categoria, orden y pagina con push, para que atras los deshaga
+// Catalog listing with the filters in the URL (lib/catalog-url.ts). The search is written with replace (each keystroke
+// does not leave a history entry); category, sort and page with push, so back undoes them
 export function ProductCatalog() {
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -26,14 +26,14 @@ export function ProductCatalog() {
     setSearchParams(new URLSearchParams(catalogSearch({ ...filters, ...changes })), { replace })
   }
 
-  // Lo escrito pasa a la URL cuando se deja de tipear; una busqueda nueva arranca desde la primera pagina
+  // What is typed goes to the URL when typing stops; a new search starts from the first page
   useEffect(() => {
     if (debouncedSearch !== searchQuery) {
       updateFilters({ q: debouncedSearch, page: 0 }, true)
     }
   }, [debouncedSearch])
 
-  // La URL cambio por afuera (atras, o un link con ?q=): el buscador muestra lo que dice la URL
+  // The URL changed from outside (back, or a link with ?q=): the search box shows what the URL says
   useEffect(() => {
     setSearchInput((current) => (current.trim() === searchQuery ? current : searchQuery))
   }, [searchQuery])

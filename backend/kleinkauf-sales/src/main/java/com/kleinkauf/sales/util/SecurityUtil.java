@@ -6,7 +6,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 public class SecurityUtil {
 
-    // Id del usuario logueado (lo arma HeaderAuthFilter con el header del gateway); null si no hay
+    // Id of the logged-in user (built by HeaderAuthFilter from the gateway header); null if there is none
     public static Long currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof CustomUserDetails user) {

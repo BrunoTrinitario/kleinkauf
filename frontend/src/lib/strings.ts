@@ -6,11 +6,14 @@ export const strings = {
     name: "KleinKauf",
   },
   nav: {
+    home: "Inicio",
     catalog: "Catálogo",
     products: "Productos",
     bundles: "Combos",
     users: "Usuarios",
     panel: "Panel",
+    openMenu: "Abrir menú",
+    menuDescription: "Secciones de la tienda y del panel",
   },
   auth: {
     signIn: "Iniciar sesión",
@@ -33,14 +36,14 @@ export const strings = {
     noRole: "Sin rol",
   },
   footer: {
-    platform: "Tienda online",
+    poweredBy: "Powered by",
     reportBug: "Reportar un problema",
     privacy: "Privacidad",
     terms: "Términos",
     demo: "Aplicación demo con control de acceso basado en roles",
   },
-  // Textos base de /privacidad y /terminos. Son generales para todas las tiendas: antes de usarlos en serio
-  // conviene que los revise un abogado (Ley 25.326 de Protección de Datos Personales)
+  // Base texts for /privacidad and /terminos. They are generic for every store: before using them for real
+  // a lawyer should review them (Argentine Personal Data Protection Law 25.326)
   legal: {
     updated: "Última actualización: 4 de noviembre de 2026",
     privacy: {
@@ -141,10 +144,10 @@ export const strings = {
     featuredTitle: "Destacados",
     bundlesTitle: "Combos",
     bundlesDescription: "Productos que se llevan juntos, a mejor precio.",
-    heroTitle: "Encuentra lo que buscas",
-    heroHighlight: "buscas",
-    search: "Buscar",
-    categoriesLabel: "Categorías",
+    catalogTitle: "Catálogo",
+    allProducts: "Ver todos",
+    previous: "Anteriores",
+    next: "Siguientes",
     allBundles: "Ver combos",
   },
   catalogPage: {
@@ -268,7 +271,7 @@ export const strings = {
     requestNew: "Pedir un link nuevo",
     error: "No se pudo cambiar la contraseña. Inténtalo de nuevo.",
   },
-  // Login del superadmin en la plataforma (sin tienda)
+  // Superadmin login on the platform (no store)
   storeUnavailable: {
     notFoundTitle: "Esta tienda no existe",
     notFoundHighlight: "no existe",
@@ -485,7 +488,7 @@ export const strings = {
     alreadyAccount: "¿Ya tienes una cuenta?",
     signIn: "Iniciar sesión",
   },
-  // Reglas de los datos de un usuario (lib/validation.ts)
+  // Rules for a user's data (lib/validation.ts)
   validation: {
     nameInvalid: "Ingresa un nombre de hasta 100 caracteres.",
     emailInvalid: "Ingresa un email válido, por ejemplo nombre@dominio.com.",
@@ -596,7 +599,7 @@ export const strings = {
     deleteCancel: "Cancelar",
     deleteQuestion: "¿Seguro que quieres eliminar a",
   },
-  // Disponibilidad publica: el catalogo nunca muestra el stock exacto
+  // Public availability: the catalog never shows the exact stock
   availability: {
     DISPONIBLE: "Disponible",
     POCAS_UNIDADES: "Pocas unidades",
@@ -851,6 +854,18 @@ export const strings = {
   userSettings: {
     title: "Configuración de cuenta",
     subtitle: "Actualiza tu información personal.",
+    photoTitle: "Foto de perfil",
+    photoDescription: "Se ve arriba a la derecha cuando entrás. Se guarda apenas la subís.",
+    photoUpload: "Subir foto",
+    photoChange: "Cambiar foto",
+    photoUploading: "Subiendo...",
+    photoDelete: "Quitar",
+    photoHint: "PNG, JPG, WEBP o GIF de hasta 1 MB.",
+    photoInvalid: "La foto tiene que ser PNG, JPG, WEBP o GIF.",
+    photoTooLarge: "La foto puede pesar hasta 1 MB.",
+    photoSaved: "Foto guardada.",
+    photoDeleted: "Foto quitada.",
+    photoError: "No se pudo guardar la foto.",
     profileTitle: "Tu perfil",
     loading: "Cargando...",
     noData: "No hay datos para mostrar.",
@@ -1120,7 +1135,7 @@ export const strings = {
     receiptError: "No se pudo abrir el comprobante.",
     receiptPreviewTitle: (index: number) => `Comprobante ${index}`,
     actionsTitle: "Acciones",
-    // Lo que pasa con el pedido y que se espera de la tienda (no son los textos del comprador)
+    // What happens with the order and what is expected from the store (these are not the buyer texts)
     statusHelp: {
       PENDIENTE_PAGO: "Esperando que el comprador transfiera y suba el comprobante.",
       PAGO_EN_REVISION: "El comprador subió el comprobante: revísalo y valida o rechaza el pago.",
@@ -1276,6 +1291,51 @@ export const strings = {
     rankingEmpty: "Todavía no hay productos vendidos en este período.",
     withoutCostShort: (units: number) => (units === 1 ? "1 sin costo" : `${units} sin costo`),
   },
+  adminStore: {
+    title: "Mi tienda",
+    highlight: "tienda",
+    subtitle: "El nombre, los colores y el ícono que ven tus clientes.",
+    menu: "Configurar tienda",
+    loading: "Cargando la configuración...",
+    loadError: "No se pudo cargar la configuración de la tienda.",
+    nameTitle: "Nombre",
+    nameDescription: "Aparece arriba a la izquierda y en la pestaña del navegador.",
+    nameLabel: "Nombre de la tienda",
+    nameHint: "Si lo dejás vacío se usa el nombre de la dirección de la tienda.",
+    nameTooLong: (max: number) => `El nombre puede tener hasta ${max} caracteres.`,
+    themeTitle: "Colores",
+    themeDescription: "Cambia los botones y los resaltados. Mientras elegís, la página ya muestra cómo queda.",
+    themes: {
+      OCEAN: "Océano",
+      FOREST: "Bosque",
+      TERRACOTTA: "Terracota",
+      GRAPE: "Uva",
+      ROSE: "Rosa",
+      GRAPHITE: "Grafito",
+      NIGHT: "Noche (oscuro)",
+    } as Record<string, string>,
+    iconTitle: "Ícono",
+    iconDescription: "Tu logo o una imagen cuadrada. Se guarda apenas lo subís.",
+    iconAlt: "Ícono de la tienda",
+    iconUpload: "Subir ícono",
+    iconChange: "Cambiar",
+    iconDelete: "Quitar",
+    iconHint: "PNG, JPG, WEBP o GIF de hasta 1 MB. Mejor si es cuadrado.",
+    iconInvalid: "El ícono tiene que ser PNG, JPG, WEBP o GIF.",
+    iconTooLarge: "El ícono puede pesar hasta 1 MB.",
+    iconSaved: "Ícono guardado.",
+    iconDeleted: "Ícono quitado.",
+    iconError: "No se pudo guardar el ícono.",
+    showInHeader: "Mostrarlo junto al nombre",
+    showInHeaderHint: "Arriba a la izquierda, en todas las páginas.",
+    showAsFavicon: "Usarlo como ícono de la pestaña",
+    showAsFaviconHint: "Si no, la pestaña muestra el ícono de KleinKauf.",
+    noIconNote: "Estas opciones se aplican cuando subas un ícono.",
+    save: "Guardar cambios",
+    saving: "Guardando...",
+    saved: "Configuración guardada.",
+    saveError: "No se pudo guardar la configuración.",
+  },
   salesSettings: {
     title: "Datos de cobro",
     description: "Lo que ve el comprador para transferir. Hace falta el titular y el alias o el CBU.",
@@ -1300,7 +1360,7 @@ export const strings = {
     loadError: "No se pudieron cargar los datos de cobro.",
     saveError: "No se pudieron guardar los datos de cobro.",
   },
-  // Estado de la conexion en vivo (WebSocket) de los paneles
+  // Status of the panels' live connection (WebSocket)
   live: {
     connecting: "Conectando...",
     live: "En vivo",

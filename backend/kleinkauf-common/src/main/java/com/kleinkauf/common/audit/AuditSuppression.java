@@ -3,9 +3,9 @@ package com.kleinkauf.common.audit;
 import java.util.function.Supplier;
 
 /*
-Apaga el registro automatico de las entidades mientras corre una operacion masiva que se registra entera
-con AuditLog (ej. la importacion de un CSV: una entrada con el resumen y no una por producto).
-Lo que se registra a mano con AuditLog sale igual.
+Turns off automatic entity recording while a bulk operation runs that is recorded as a whole
+with AuditLog (e.g. a CSV import: one entry with the summary instead of one per product).
+What is recorded manually with AuditLog still goes out.
  */
 public final class AuditSuppression {
 

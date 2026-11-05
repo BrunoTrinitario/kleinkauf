@@ -8,13 +8,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /*
-Como se escriben los valores en la auditoria y que campos no van nunca.
+How values are written in the audit and which fields never go in.
  */
 public final class AuditValues {
 
     static final int MAX_LENGTH = 500;
 
-    // Partes de nombre que delatan un dato sensible: no se guardan aunque no esten marcados con @AuditIgnore
+    // Name fragments that give away sensitive data: never stored, even if not marked with @AuditIgnore
     private static final Set<String> SENSITIVE = Set.of("password", "token", "secret");
 
     private static final Map<String, Boolean> IGNORED_FIELDS = new ConcurrentHashMap<>();
@@ -48,7 +48,7 @@ public final class AuditValues {
                 Field field = c.getDeclaredField(property);
                 return field.isAnnotationPresent(AuditIgnore.class);
             } catch (NoSuchFieldException ignored) {
-                // Puede estar en la superclase
+                // May be in the superclass
             }
         }
         return false;

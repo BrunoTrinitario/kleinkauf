@@ -1,7 +1,7 @@
 package com.kleinkauf.product.entities;
 
-// Como sale el precio de un combo. FIXED: el precio guardado. PERCENT y AMOUNT: se calcula sobre la suma de sus
-// productos (BundleFactory.price), asi sigue al precio de los productos sin tener que actualizar el combo
+// How a bundle's price is set. FIXED: the stored price. PERCENT and AMOUNT: computed over the sum of its
+// products (BundleFactory.price), so it follows the products' price without having to update the bundle
 public enum BundlePricingType {
     FIXED,
     PERCENT,

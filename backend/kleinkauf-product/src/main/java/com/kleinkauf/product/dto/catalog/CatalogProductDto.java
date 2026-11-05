@@ -5,7 +5,7 @@ import java.util.List;
 
 // price null = 'consultar precio'
 public record CatalogProductDto(
-        // Lo usa el carrito para armar el pedido
+        // Used by the cart to build the order
         Long id,
         String slug,
         String name,

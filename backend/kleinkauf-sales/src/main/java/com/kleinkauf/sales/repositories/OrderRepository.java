@@ -24,8 +24,8 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Page<Order> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
 
     /*
-    Ventas para los reportes: pedidos en los estados que cuentan como venta, con fecha de pago en [from, to).
-    channel y paymentMethod null = todos. Pedidos pagos antes de la etapa 3 no tienen paid_at: se usa created_at.
+    Sales for the reports: orders in the statuses that count as a sale, with payment date in [from, to).
+    channel and paymentMethod null = all. Orders paid before stage 3 have no paid_at: created_at is used.
      */
     @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.items "
             + "WHERE o.status IN :statuses "
@@ -38,7 +38,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
                           @Param("channel") SalesChannel channel,
                           @Param("paymentMethod") PaymentMethod paymentMethod);
 
-    // Numeros de los pedidos que vencieron sin comprobante (indice idx_orders_expiration)
+    // Numbers of the orders that expired without a receipt (index idx_orders_expiration)
     @Query("SELECT o.number FROM Order o WHERE o.status IN :statuses AND o.expiresAt < :now")
     List<String> findExpiredNumbers(@Param("statuses") Collection<OrderStatus> statuses, @Param("now") LocalDateTime now);
 }

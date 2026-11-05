@@ -31,7 +31,7 @@ public class JwtFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
 
-        // Puerto de gestion (/health, /ready, /metrics): interno, sin login
+        // Management port (/health, /ready, /metrics): internal, no login
         if (ManagementRequests.isManagement(exchange)) {
             return chain.filter(exchange);
         }
@@ -42,7 +42,7 @@ public class JwtFilter implements WebFilter {
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
         if (PermittedUrls.isPermitted(method, path) || method.equals("OPTIONS")) {
-            // Login opcional (ej. crear un pedido): con token se valida igual que en las rutas privadas
+            // Optional login (e.g. creating an order): with a token it is validated just like on private routes
             if (PermittedUrls.isOptionalAuth(method, path) && authHeader != null && authHeader.startsWith("Bearer ")) {
                 return authenticate(exchange, chain, path, authHeader.substring(7));
             }
@@ -63,21 +63,21 @@ public class JwtFilter implements WebFilter {
         return authenticate(exchange, chain, path, authHeader.substring(7));
     }
 
-    // Valida el token y pasa el usuario al microservicio en X-User-Id
+    // Validates the token and passes the user to the microservice in X-User-Id
     private Mono<Void> authenticate(ServerWebExchange exchange, WebFilterChain chain, String path, String token) {
         try {
             if (!jwtUtil.validateToken(token)) {
                 return ResponseUtil.unauthorized(exchange);
             }
 
-            // Solo se entra con el token de sesion: ni el del mail de recuperacion ni el refresh (ver TokenConstants).
-            // Sin tipo: los de sesion anteriores al claim, que vencen solos
+            // Only the session token gets in: neither the recovery email one nor the refresh token (see TokenConstants).
+            // No type: session tokens from before the claim, which expire on their own
             String type = jwtUtil.getType(token);
             if (type != null && !TokenConstants.ACCESS.equals(type)) {
                 return ResponseUtil.unauthorized(exchange);
             }
 
-            // Los ids de usuario se repiten entre tenants: el token tiene que ser del tenant de la request
+            // User ids repeat across tenants: the token must belong to the request's tenant
             if (!expectedTenant(exchange, path).equals(jwtUtil.getTenant(token))) {
                 return ResponseUtil.unauthorized(exchange);
             }
@@ -107,7 +107,7 @@ public class JwtFilter implements WebFilter {
         }
     }
 
-    // Plataforma: public. Tienda: el schema que puso TenantGatewayFilter (corre antes, Order 2)
+    // Platform: public. Store: the schema set by TenantGatewayFilter (runs before, Order 2)
     private String expectedTenant(ServerWebExchange exchange, String path) {
         if (PermittedUrls.isPlatformPath(path)) {
             return TenantConstants.PUBLIC;

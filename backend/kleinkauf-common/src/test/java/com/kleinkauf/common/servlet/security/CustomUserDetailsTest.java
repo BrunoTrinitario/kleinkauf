@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CustomUserDetailsTest {
 
     @Test
-    void rolesYPermisosDeLaUnionDeSusMascaras() {
+    void rolesAndPermissionsFromTheUnionOfTheirMasks() {
         CustomUserDetails user = new CustomUserDetails(1L, List.of(
                 new RoleDto("EMPLEADO", PermissionArea.STOCK.bit()),
                 new RoleDto("CLIENTE", PermissionArea.PRECIOS.bit())));
@@ -28,7 +28,7 @@ class CustomUserDetailsTest {
     }
 
     @Test
-    void mascaraCompleta_todasLasAreas() {
+    void fullMask_allAreas() {
         CustomUserDetails admin = new CustomUserDetails(1L, List.of(new RoleDto("ADMINISTRADOR", PermissionArea.ALL)));
 
         for (PermissionArea area : PermissionArea.values()) {

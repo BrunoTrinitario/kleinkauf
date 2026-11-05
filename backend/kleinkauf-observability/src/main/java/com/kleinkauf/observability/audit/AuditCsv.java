@@ -11,12 +11,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /*
-El historial de auditoria en CSV (GET .../audit/export), para abrirlo en Excel o Google Sheets:
-- UTF-8 con BOM (si no, Excel rompe los acentos) y una fila por evento, de lo mas nuevo a lo mas viejo.
-- La fecha en audit.export.zone (Argentina por defecto), sin zona: es la hora que vio el que hizo el cambio.
-- cambios: "campo: antes -> despues", separados por "; ".
-- Los textos que empiezan con = + - @ llevan un ' adelante: si no, Excel los toma como formula (un nombre de producto
-  como "=HYPERLINK(...)" se ejecutaria al abrir el archivo).
+The audit history as CSV (GET .../audit/export), to open in Excel or Google Sheets:
+- UTF-8 with BOM (otherwise Excel breaks the accents) and one row per event, newest to oldest.
+- The date in audit.export.zone (Argentina by default), without a zone: it is the time the person who made the change saw.
+- cambios (changes) column: "campo: antes -> despues", separated by "; ".
+- Texts starting with = + - @ get a leading ': otherwise Excel takes them as a formula (a product name
+  like "=HYPERLINK(...)" would run when the file is opened).
  */
 @Component
 public class AuditCsv {
@@ -66,7 +66,7 @@ public class AuditCsv {
         return value == null ? "(vacio)" : String.valueOf(value);
     }
 
-    // Entre comillas si hace falta; las comillas se duplican
+    // Quoted if needed; quotes are doubled
     static String text(String value) {
         if (value == null || value.isEmpty()) {
             return "";

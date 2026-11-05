@@ -6,11 +6,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// Rutas que el gateway deja pasar sin JWT
+// Routes the gateway lets through without a JWT
 class PermittedUrlsTest {
 
     @Test
-    void catalogoPublico() {
+    void publicCatalog() {
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/featured"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/products/5/metadata"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/products"));
@@ -18,9 +18,9 @@ class PermittedUrlsTest {
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/categories"));
     }
 
-    // Muestran el stock exacto (y los combos cuantos se pueden armar): son del panel, el publico usa el catalogo
+    // They show the exact stock (and for bundles how many can be put together): they belong to the dashboard, the public uses the catalog
     @Test
-    void lecturasConStockExacto_pidenLogin() {
+    void readsWithExactStock_requireLogin() {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/featured"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/5"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/search"));
@@ -29,7 +29,7 @@ class PermittedUrlsTest {
     }
 
     @Test
-    void plataforma_altaYLoginPublicos_panelPideLogin() {
+    void platform_signUpAndLoginPublic_dashboardRequiresLogin() {
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/tenants"));
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/auth/login"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/tenants"));
@@ -40,26 +40,26 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPlatformPath("/api/v1/products/all"));
     }
 
-    // Muestran el stock exacto: son del panel, no del catalogo
-    // Renovar la sesion: publico, el token de 1 hora puede estar vencido
+    // They show the exact stock: they belong to the dashboard, not the catalog
+    // Renewing the session: public, the 1-hour token may have expired
     @Test
-    void refresh_esPublico() {
+    void refresh_isPublic() {
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/auth/refresh"));
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/auth/refresh"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/auth/refresh"));
     }
 
-    // Cerrar sesion: publico, solo lleva el refresh
+    // Logout: public, it only carries the refresh token
     @Test
-    void logout_esPublico() {
+    void logout_isPublic() {
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/auth/logout"));
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/platform/auth/logout"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/auth/logout"));
     }
 
-    // Reportar un bug: publico y con login opcional (con sesion queda quien lo mando)
+    // Reporting a bug: public and with optional login (with a session it records who sent it)
     @Test
-    void reportarUnBug_publicoConLoginOpcional() {
+    void reportBug_publicWithOptionalLogin() {
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/bug-reports"));
         assertTrue(PermittedUrls.isOptionalAuth("POST", "/api/v1/bug-reports"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/bug-reports"));
@@ -67,7 +67,7 @@ class PermittedUrlsTest {
     }
 
     @Test
-    void wsSinJwt_ticketDeObservabilityPideLogin() {
+    void wsWithoutJwt_observabilityTicketRequiresLogin() {
         assertTrue(PermittedUrls.isPermitted("GET", "/ws"));
         assertFalse(PermittedUrls.isPermitted("POST", "/ws"));
         assertFalse(PermittedUrls.isPermitted("GET", "/ws/otra"));
@@ -75,9 +75,9 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/platform/observability/overview"));
     }
 
-    // Link para compartir: lo abre un crawler, sin login ni Origin (la tienda va en la ruta)
+    // Share link: opened by a crawler, without login or Origin (the store goes in the path)
     @Test
-    void linkParaCompartir() {
+    void shareLink() {
         assertTrue(PermittedUrls.isPermitted("GET", "/share/mi-tienda/products/mesa-de-roble"));
         assertFalse(PermittedUrls.isPermitted("POST", "/share/mi-tienda/products/mesa-de-roble"));
         assertFalse(PermittedUrls.isPermitted("GET", "/share/mi-tienda/products/mesa/otra"));
@@ -88,7 +88,7 @@ class PermittedUrlsTest {
     }
 
     @Test
-    void listadosDelPanelPidenLogin() {
+    void dashboardListingsRequireLogin() {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/all"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/users"));
@@ -96,7 +96,24 @@ class PermittedUrlsTest {
     }
 
     @Test
-    void checkout_publico_misPedidosYPanelPidenLogin() {
+    void userAvatars_publicToRead_uploadAndDeleteRequireLogin() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/users/avatars/abc_123.png"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/users/avatars/abc_123.png"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/auth/me/avatar"));
+        assertFalse(PermittedUrls.isPermitted("DELETE", "/api/v1/auth/me/avatar"));
+    }
+
+    @Test
+    void storeSettings_publicReadsConfig_editingRequiresLogin() {
+        assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/store"));
+        assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/store/settings"));
+        assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/store/settings"));
+        assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/store/settings/icon"));
+        assertFalse(PermittedUrls.isPermitted("DELETE", "/api/v1/store/settings/icon"));
+    }
+
+    @Test
+    void checkout_public_myOrdersAndDashboardRequireLogin() {
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/catalog/bundles"));
         assertTrue(PermittedUrls.isPermitted("GET", "/api/v1/sales/checkout"));
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders"));
@@ -106,30 +123,30 @@ class PermittedUrlsTest {
         assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/sales/admin/settings"));
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders/K7QM-4X2P/receipt"));
         assertTrue(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders/K7QM-4X2P/cancel"));
-        // {code} es un solo segmento: no abre otras rutas que terminen igual
+        // {code} is a single segment: it does not open other routes that end the same way
         assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/sales/admin/orders/K7QM-4X2P/cancel"));
         assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/sales/orders/a/b/cancel"));
         assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/sales/admin/orders"));
         assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/sales/admin/orders/K7QM-4X2P/status"));
 
-        // Solo crear el pedido toma el usuario si viene logueado
+        // Only creating the order takes the user if logged in
         assertTrue(PermittedUrls.isOptionalAuth("POST", "/api/v1/sales/orders"));
         assertFalse(PermittedUrls.isOptionalAuth("POST", "/api/v1/sales/orders/lookup"));
         assertFalse(PermittedUrls.isOptionalAuth("GET", "/api/v1/sales/checkout"));
     }
 
     @Test
-    void marcarDestacadoPideLogin() {
+    void markFeaturedRequiresLogin() {
         assertFalse(PermittedUrls.isPermitted("PUT", "/api/v1/products/5/featured"));
     }
 
     @Test
-    void costoYStockPidenLogin() {
+    void costAndStockRequireLogin() {
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/5/pricing"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/stock/low"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/5/stock/movements"));
         assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/products"));
-        // El CSV incluye el costo
+        // The CSV includes the cost
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/export"));
         assertFalse(PermittedUrls.isPermitted("GET", "/api/v1/products/import/template"));
         assertFalse(PermittedUrls.isPermitted("POST", "/api/v1/products/import"));

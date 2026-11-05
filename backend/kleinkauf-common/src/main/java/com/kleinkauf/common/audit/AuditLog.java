@@ -5,10 +5,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Map;
 
 /*
-Registro a mano de lo que no es un alta, cambio o baja de una entidad @Audited (docs/auditoria.md):
-lecturas sensibles, cambios de estado, importaciones y lo que se escribe con SQL directo.
-Va a la outbox con JdbcTemplate: dentro de una transaccion se suma a ella (misma conexion que los cambios);
-fuera de una, se escribe en el momento.
+Manual recording of what is not a create, update or delete of an @Audited entity (docs/auditoria.md):
+sensitive reads, status changes, imports and whatever is written with plain SQL.
+Goes to the outbox with JdbcTemplate: inside a transaction it joins it (same connection as the changes);
+outside one, it is written right away.
  */
 public class AuditLog {
 
@@ -29,7 +29,7 @@ public class AuditLog {
         }
     }
 
-    // Lectura sensible (ver el costo, exportar, descargar un comprobante)
+    // Sensitive read (seeing the cost, exporting, downloading a receipt)
     public void read(String entity, Object entityId) {
         record(AuditEvent.READ, entity, entityId, Map.of());
     }

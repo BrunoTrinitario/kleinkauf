@@ -15,10 +15,10 @@ import java.util.HashSet;
 import java.util.List;
 
 /*
-Crea al dueno de un tenant nuevo dentro de su schema.
-La request de alta corre en el schema public y Hibernate fija el tenant al abrir la sesion,
-por eso se abre una sesion propia con el schema del tenant nuevo. Al pedir la conexion,
-TenantDataSource crea el schema y sus tablas.
+Creates the owner of a new tenant inside its schema.
+The sign-up request runs in the public schema and Hibernate fixes the tenant when the session is opened,
+so a separate session is opened with the new tenant's schema. When the connection is requested,
+TenantDataSource creates the schema and its tables.
  */
 @Component
 public class TenantOwnerCreator {

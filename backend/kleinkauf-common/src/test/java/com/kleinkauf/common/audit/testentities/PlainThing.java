@@ -4,7 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 
-// Sin @Audited: no tiene que aparecer en la auditoria
+// Without @Audited: must not show up in the audit
 @Entity
 public class PlainThing {
 

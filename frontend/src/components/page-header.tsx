@@ -8,9 +8,9 @@ interface PageHeaderProps {
   title: string
   highlight: string
   subtitle: string
-  // Ruta a la que vuelve la flecha (ej. /admin). Sin ella no se muestra
+  // Route the arrow goes back to (e.g. /admin). Not shown without it
   backTo?: string
-  // Accion principal de la pagina (ej. "+ Crear producto"): a la derecha, fuera de cualquier card
+  // Main page action (e.g. "+ Crear producto"): on the right, outside any card
   action?: ReactNode
 }
 

@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
-El mail de recupero lleva un link a la pagina del frontend de la tienda (no a la API): ahi se pide la contrasena
-nueva y el frontend llama a POST /api/v1/auth/forgot-password/{token}.
+The recovery email carries a link to the store's frontend page (not to the API): there the new password is
+requested and the frontend calls POST /api/v1/auth/forgot-password/{token}.
  */
 @ExtendWith(MockitoExtension.class)
 class ForgotPasswordLinkTest {
@@ -62,7 +62,7 @@ class ForgotPasswordLinkTest {
 	}
 
 	@Test
-	void elLinkVaALaPaginaDeLaTienda() throws Exception {
+	void linkGoesToTheStorePage() throws Exception {
 		TenantContext.setCurrentTenant("mi_tienda");
 		withUser();
 		when(jdbcTemplate.queryForList(anyString(), eq(String.class), eq("mi_tienda")))
@@ -74,7 +74,7 @@ class ForgotPasswordLinkTest {
 	}
 
 	@Test
-	void sinTienda_elLinkVaALaPlataforma() throws Exception {
+	void withoutStore_linkGoesToThePlatform() throws Exception {
 		withUser();
 		when(jdbcTemplate.queryForList(anyString(), eq(String.class), eq("public"))).thenReturn(List.of());
 
@@ -84,7 +84,7 @@ class ForgotPasswordLinkTest {
 	}
 
 	@Test
-	void emailDesconocido_noMandaNada() throws Exception {
+	void unknownEmail_sendsNothing() throws Exception {
 		assertFalse(userService.forgotPasswordRequest(new EmailDto("nadie@mail.com")));
 		verify(mailService, never()).sendMail(anyString(), anyString(), anyString());
 	}

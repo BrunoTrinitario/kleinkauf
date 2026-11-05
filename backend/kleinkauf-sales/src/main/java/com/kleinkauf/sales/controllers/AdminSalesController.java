@@ -18,7 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// Pedidos y configuracion de ventas: solo ADMINISTRADOR (ver SecurityConfig)
+// Orders and sales settings: ADMINISTRADOR only (see SecurityConfig)
 @RestController
 @RequestMapping("/api/v1/sales/admin")
 public class AdminSalesController {
@@ -29,7 +29,7 @@ public class AdminSalesController {
     @Autowired
     private SalesSettingsService settingsService;
 
-    // from / to: yyyy-MM-dd. q: numero de pedido o parte del email
+    // from / to: yyyy-MM-dd. q: order number or part of the email
     @GetMapping("/orders")
     public ResponseEntity<PageDto<OrderSummaryDto>> list(
             @RequestParam(required = false) String status,
@@ -46,7 +46,7 @@ public class AdminSalesController {
         return ResponseEntity.ok(adminOrderService.list(filter, page, size));
     }
 
-    // Venta del local (ya cobrada)
+    // In-store sale (already charged)
     @PostMapping("/orders")
     public ResponseEntity<AdminOrderDto> createLocal(@RequestBody LocalOrderDto dto) throws ApiException {
         return new ResponseEntity<>(adminOrderService.createLocal(dto), HttpStatus.CREATED);
@@ -57,7 +57,7 @@ public class AdminSalesController {
         return ResponseEntity.ok(adminOrderService.get(number));
     }
 
-    // Validar, rechazar, avanzar o cancelar (ver OrderStatus.canChangeTo)
+    // Validate, reject, advance or cancel (see OrderStatus.canChangeTo)
     @PutMapping("/orders/{number}/status")
     public ResponseEntity<AdminOrderDto> changeStatus(@PathVariable String number, @RequestBody StatusUpdateDto dto) throws ApiException {
         return ResponseEntity.ok(adminOrderService.changeStatus(number, dto));

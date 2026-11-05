@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
 /*
-Numeros en formato argentino para el CSV: '.' separa miles y ',' es el decimal.
-15.000 = quince mil, 15.000,50 = quince mil con cincuenta, 15,5 = quince y medio.
-Si hay puntos tienen que separar grupos de 3 digitos: '15.5' es un error y no se interpreta como 155.
+Numbers in Argentine format for the CSV: '.' separates thousands and ',' is the decimal mark.
+15.000 = fifteen thousand, 15.000,50 = fifteen thousand fifty cents, 15,5 = fifteen and a half.
+If there are dots they must separate groups of 3 digits: '15.5' is an error and is not read as 155.
  */
 public class ArgentineNumbers {
 
@@ -20,7 +20,7 @@ public class ArgentineNumbers {
         return new BigDecimal(trimmed.replace(".", "").replace(',', '.'));
     }
 
-    // Sin separador de miles para que se pueda volver a importar sin ambiguedad: 15000,5
+    // Without a thousands separator so it can be imported again without ambiguity: 15000,5
     public static String format(BigDecimal value) {
         return value == null ? "" : value.toPlainString().replace('.', ',');
     }

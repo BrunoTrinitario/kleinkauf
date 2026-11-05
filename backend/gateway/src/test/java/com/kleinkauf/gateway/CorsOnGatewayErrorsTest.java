@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// Las respuestas que corta el gateway (401, 404/403 de la tienda, 429) tienen que salir con los headers CORS:
-// sin ellos el navegador las ve como un error de red y el frontend no puede leer el codigo
+// Responses the gateway cuts short (401, store 404/403, 429) must go out with the CORS headers:
+// without them the browser sees a network error and the frontend cannot read the status code
 class CorsOnGatewayErrorsTest {
 
     private static final String PLATFORM_URL = "http://localhost:2999";
@@ -35,7 +35,7 @@ class CorsOnGatewayErrorsTest {
     private final TenantService tenantService = mock(TenantService.class);
 
     @Test
-    void corsCorreDespuesDeLimpiarHeadersYAntesDeLosFiltrosQueCortan() {
+    void corsRunsAfterCleaningHeadersAndBeforeTheShortCircuitingFilters() {
         int cors = order(CorsConfig.class);
 
         assertTrue(order(ClientHeadersFilter.class) < cors);
@@ -45,7 +45,7 @@ class CorsOnGatewayErrorsTest {
     }
 
     @Test
-    void sinToken_elUnauthorizedSaleConHeadersCors() {
+    void withoutToken_unauthorizedGoesOutWithCorsHeaders() {
         JwtUtil jwtUtil = new JwtUtil();
         ReflectionTestUtils.setField(jwtUtil, "secret", "MiSuperSecretoUltraSeguro123456789");
         jwtUtil.init();
@@ -58,7 +58,7 @@ class CorsOnGatewayErrorsTest {
     }
 
     @Test
-    void tiendaInexistente_elNotFoundSaleConHeadersCors() {
+    void unknownStore_notFoundGoesOutWithCorsHeaders() {
         when(tenantService.getTenant(ORIGIN)).thenReturn(Mono.empty());
         TenantGatewayFilter tenantFilter = new TenantGatewayFilter();
         ReflectionTestUtils.setField(tenantFilter, "tenantService", tenantService);

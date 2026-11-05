@@ -23,8 +23,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
-Endpoints con {id} en la ruta: el id de la URL tiene que llegar al servicio
-(antes los parametros se llamaban userId y Spring respondia 500).
+Endpoints with {id} in the path: the id from the URL must reach the service
+(the parameters used to be called userId and Spring responded 500).
  */
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -45,7 +45,7 @@ class UserControllerTest {
 	}
 
 	@Test
-	void giveRoleToUser_usaElIdDeLaRuta() throws Exception {
+	void giveRoleToUser_usesThePathId() throws Exception {
 		mockMvc.perform(post("/api/v1/users/{id}/roles", USER_ID).param("roleName", "EMPLEADO"))
 				.andExpect(status().isOk());
 
@@ -53,7 +53,7 @@ class UserControllerTest {
 	}
 
 	@Test
-	void removeRoleFromUser_usaElIdDeLaRuta() throws Exception {
+	void removeRoleFromUser_usesThePathId() throws Exception {
 		mockMvc.perform(delete("/api/v1/users/{id}/roles", USER_ID).param("roleName", "EMPLEADO"))
 				.andExpect(status().isOk());
 
@@ -61,7 +61,7 @@ class UserControllerTest {
 	}
 
 	@Test
-	void updateUser_usaElIdDeLaRuta() throws Exception {
+	void updateUser_usesThePathId() throws Exception {
 		mockMvc.perform(patch("/api/v1/users/{id}", USER_ID)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"name\":\"Ana\",\"password\":\"secreta\"}"))
@@ -71,7 +71,7 @@ class UserControllerTest {
 	}
 
 	@Test
-	void getUserRoles_usaElIdDeLaRuta() throws Exception {
+	void getUserRoles_usesThePathId() throws Exception {
 		when(userService.getUserRoles(USER_ID)).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 1)));
 
 		mockMvc.perform(get("/api/v1/users/{id}/roles", USER_ID))

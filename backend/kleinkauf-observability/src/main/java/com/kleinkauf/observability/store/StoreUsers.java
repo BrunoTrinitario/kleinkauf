@@ -17,9 +17,9 @@ import java.util.Comparator;
 import java.util.List;
 
 /*
-Usuarios conectados de una tienda: las keys activity:<tenant>:<userId> que marca el gateway (vencen a los 5
-minutos) con la hora de su ultima request. Se recorren con SCAN solo las de la tienda y los nombres salen de
-ActorNames (users, con cache).
+A store's online users: the activity:<tenant>:<userId> keys marked by the gateway (expire after 5
+minutes) with the time of their last request. Only the store's keys are iterated with SCAN and the names come from
+ActorNames (users, cached).
  */
 @Slf4j
 @Component
@@ -35,9 +35,9 @@ public class StoreUsers {
         this.names = names;
     }
 
-    // null si no se pudo leer Redis
+    // null if Redis could not be read
     public StoreUsersDto connected(String tenant) {
-        // El tenant va en el patron del SCAN: solo con forma de schema (sin * ni ?)
+        // The tenant goes in the SCAN pattern: only if shaped like a schema (no * or ?)
         if (!AuditStore.validSchema(tenant)) {
             return new StoreUsersDto(0, List.of());
         }
@@ -56,7 +56,7 @@ public class StoreUsers {
         for (int i = 0; i < keys.size(); i++) {
             Long userId = userId(keys.get(i));
             Instant lastActivity = epochMillis(values == null ? null : values.get(i));
-            // Vencio entre el SCAN y la lectura, o no tiene la forma esperada
+            // Expired between the SCAN and the read, or does not have the expected shape
             if (userId == null || lastActivity == null) continue;
             users.add(new ConnectedUser(userId, names.name(userId, tenant), lastActivity));
         }

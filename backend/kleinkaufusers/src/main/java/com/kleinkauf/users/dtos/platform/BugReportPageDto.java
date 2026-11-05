@@ -2,7 +2,7 @@ package com.kleinkauf.users.dtos.platform;
 
 import java.util.List;
 
-// Pagina de reportes (mismo formato que el resto de los listados). pending: cuantos quedan sin resolver en total
+// A page of reports (same format as the other listings). pending: how many remain unresolved in total
 public record BugReportPageDto(
         List<BugReportDto> items,
         int page,

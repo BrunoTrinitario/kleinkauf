@@ -2,7 +2,7 @@ package com.kleinkauf.users.dtos;
 
 import java.util.List;
 
-// Pagina del listado de usuarios del panel (mismo formato que el catalogo de products)
+// A page of the dashboard user listing (same format as the products catalog)
 public record UserPageDto(
         List<FullUserDto> items,
         int page,

@@ -13,10 +13,10 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 /*
-Primer filtro: borra los headers que solo puede poner el gateway. Si un cliente los manda
-(ej. X-User-Id o X-Forwarded-Host) llegarian tal cual a los microservicios, que confian en ellos.
-Pone X-Client-Ip con la IP de la conexion, para la auditoria (docs/auditoria.md). Es la de la conexion y no
-la de X-Forwarded-For, que la puede inventar el cliente; detras de un proxy habria que tomarla del proxy.
+First filter: removes the headers only the gateway may set. If a client sends them
+(e.g. X-User-Id or X-Forwarded-Host) they would reach the microservices as is, and those trust them.
+Sets X-Client-Ip with the connection's IP, for the audit (docs/auditoria.md). It is the connection's and not
+the one in X-Forwarded-For, which the client can make up; behind a proxy it would have to be taken from the proxy.
  */
 @Component
 @Order(-200)
@@ -37,7 +37,7 @@ public class ClientHeadersFilter implements WebFilter {
                 .headers(headers -> {
                     INTERNAL_HEADERS.forEach(headers::remove);
                     InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
-                    // Detras de un proxy (forward-headers-strategy) la direccion viene sin resolver: getAddress() es null
+                    // Behind a proxy (forward-headers-strategy) the address comes unresolved: getAddress() is null
                     if (remote != null) {
                         headers.set(Headers.CLIENT_IP, remote.getHostString());
                     }

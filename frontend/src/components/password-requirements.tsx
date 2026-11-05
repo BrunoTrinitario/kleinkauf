@@ -6,7 +6,7 @@ interface PasswordRequirementsProps {
   password: string
 }
 
-// Lista de requisitos de la contrasena que se van tildando mientras se escribe
+// List of password requirements that get ticked while typing
 export function PasswordRequirements({ password }: PasswordRequirementsProps) {
   const checks = checkPassword(password)
   const requirements = [
@@ -27,7 +27,7 @@ export function PasswordRequirements({ password }: PasswordRequirementsProps) {
           </span>
         </div>
       ))}
-      {/* El maximo casi nunca se alcanza: solo se avisa si se pasa */}
+      {/* The maximum is almost never reached: it is only flagged if exceeded */}
       {!checks.maxLength ? (
         <p className="text-xs text-destructive">{strings.validation.passwordTooLong}</p>
       ) : null}

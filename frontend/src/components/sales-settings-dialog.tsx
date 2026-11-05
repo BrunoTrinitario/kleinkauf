@@ -23,7 +23,7 @@ const toForm = (settings: SalesSettings | undefined): Form => ({
   expirationHours: settings?.expirationHours != null ? String(settings.expirationHours) : "",
 })
 
-// Mismas reglas que SalesSettingsService (docs/ventas.md, "Configuracion de ventas")
+// Same rules as SalesSettingsService (docs/ventas.md, "Configuracion de ventas")
 function validate(form: Form): string | null {
   if (form.alias && !/^[A-Za-z0-9.-]{6,20}$/.test(form.alias)) return strings.salesSettings.invalidAlias
   if (form.cbu && !/^\d{22}$/.test(form.cbu)) return strings.salesSettings.invalidCbu
@@ -36,7 +36,7 @@ function validate(form: Form): string | null {
   return null
 }
 
-// Datos para transferir y plazo para pagar (solo ADMINISTRADOR). Sin titular y alias o CBU el checkout no vende
+// Transfer details and payment deadline (ADMINISTRADOR only). Without a holder and an alias or CBU the checkout does not sell
 export function SalesSettingsDialog({ open, onOpenChange }: SalesSettingsDialogProps) {
   const settings = useSalesSettings(open)
   const update = useUpdateSalesSettings()

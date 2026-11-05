@@ -57,7 +57,7 @@ class CollectorTest {
     }
 
     @Test
-    void armaLaSaludPorServicio() {
+    void buildsHealthPerService() {
         when(probe.probe(PRODUCTS_1)).thenReturn(up(PRODUCTS_1, 100));
         when(probe.probe(PRODUCTS_2)).thenReturn(new Result(PRODUCTS_2, ServiceHealthDto.DOWN,
                 Map.of("db", "DOWN"), null, null));
@@ -66,7 +66,7 @@ class CollectorTest {
 
         ServiceHealthDto users = overview.services().get(0);
         ServiceHealthDto products = overview.services().get(1);
-        // users no tiene instancias en eureka: figura abajo
+        // users has no instances in eureka: it shows as down
         assertThat(users.status()).isEqualTo(ServiceHealthDto.DOWN);
         assertThat(users.instances()).isEmpty();
         assertThat(products.status()).isEqualTo(ServiceHealthDto.DEGRADED);
@@ -76,7 +76,7 @@ class CollectorTest {
     }
 
     @Test
-    void lasTasasAparecenDesdeLaSegundaLectura() {
+    void ratesAppearFromTheSecondReading() {
         when(probe.probe(PRODUCTS_1)).thenReturn(up(PRODUCTS_1, 100), up(PRODUCTS_1, 300));
         when(probe.probe(PRODUCTS_2)).thenReturn(up(PRODUCTS_2, 50), up(PRODUCTS_2, 150));
 
@@ -85,13 +85,13 @@ class CollectorTest {
         ServiceTrafficDto second = collector.collect().traffic().get(1);
 
         assertThat(first.requestsPerSecond()).isNull();
-        // (200 + 100) requests en 10 s entre las dos instancias
+        // (200 + 100) requests in 10 s between the two instances
         assertThat(second.requestsPerSecond()).isEqualTo(30.0);
         assertThat(second.instances()).isEqualTo(2);
     }
 
     @Test
-    void laSaludSeMandaSoloSiCambioYElTraficoSiempre() {
+    void healthIsSentOnlyIfChangedAndTrafficAlways() {
         when(probe.probe(PRODUCTS_1)).thenReturn(up(PRODUCTS_1, 1), up(PRODUCTS_1, 2),
                 new Result(PRODUCTS_1, ServiceHealthDto.DOWN, Map.of(), "Sin respuesta de /ready: ConnectException", null));
         when(probe.probe(PRODUCTS_2)).thenReturn(up(PRODUCTS_2, 1));
@@ -106,7 +106,7 @@ class CollectorTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void elTraficoPorTiendaSaleSoloDelGatewayDesdeLaSegundaLectura() {
+    void perStoreTrafficComesOnlyFromTheGatewayFromTheSecondReading() {
         Target gateway = new Target("gateway-microservice", "g1", "http://10.0.0.3:9000");
         when(discovery.targets()).thenReturn(List.of(PRODUCTS_1, gateway));
         when(probe.probe(PRODUCTS_1)).thenReturn(withTenant(PRODUCTS_1, 0), withTenant(PRODUCTS_1, 999));
@@ -118,9 +118,9 @@ class CollectorTest {
 
         ArgumentCaptor<Map<String, Traffic.TenantRates>> rates = ArgumentCaptor.forClass(Map.class);
         verify(storeFeeds, times(2)).update(rates.capture());
-        // Primera lectura: todavia no hay tasas
+        // First reading: no rates yet
         assertThat(rates.getAllValues().get(0)).isNull();
-        // 50 requests en 10 s; las de products no suman
+        // 50 requests in 10 s; the products ones do not add up
         assertThat(rates.getAllValues().get(1)).containsEntry("demo", new Traffic.TenantRates(5.0, 0.0, 0.0));
     }
 

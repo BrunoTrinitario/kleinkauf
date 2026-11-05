@@ -4,6 +4,7 @@ import { PRODUCT_PANEL_AREAS } from "@/lib/permissions"
 import { RequireArea, RequireAuth, RequireRole, RequireSuperadmin } from "@/components/route-guards"
 import { useTenantStatus } from "@/lib/tenant-status"
 import { useCatalogCategories } from "@/api/catalog"
+import { useStoreBranding } from "@/lib/store-branding"
 import StoreUnavailablePage from "@/pages/StoreUnavailablePage"
 import HomePage from "@/pages/HomePage"
 import ProductPage from "@/pages/ProductPage"
@@ -24,6 +25,7 @@ import AdminLocalSalePage from "@/pages/admin/AdminLocalSalePage"
 import AdminReportsPage from "@/pages/admin/AdminReportsPage"
 import AdminActivityPage from "@/pages/admin/AdminActivityPage"
 import AdminAuditPage from "@/pages/admin/AdminAuditPage"
+import AdminStorePage from "@/pages/admin/AdminStorePage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import MyOrdersPage from "@/pages/user/MyOrdersPage"
 import CartPage from "@/pages/CartPage"
@@ -37,8 +39,8 @@ import PlatformDashboardPage from "@/pages/platform/PlatformDashboardPage"
 import PlatformSuperadminsPage from "@/pages/platform/PlatformSuperadminsPage"
 import PlatformTenantsPage from "@/pages/platform/PlatformTenantsPage"
 
-// Plataforma (localhost:2999): login del superadmin, resumen, estado, tiendas, superadmins, auditoria y reportes de bugs.
-// Sin catalogo ni registro
+// Platform (localhost:2999): superadmin login, overview, status, stores, superadmins, audit and bug reports.
+// No catalog or sign-up
 function PlatformRoutes() {
   return (
     <Routes>
@@ -58,9 +60,11 @@ function PlatformRoutes() {
 }
 
 function StoreRoutes() {
-  // Consulta publica y en cache que hace cualquier pagina de la tienda: si la tienda no existe o esta
-  // deshabilitada, el gateway lo dice al abrir (tambien en el login, que no llama a la API hasta enviar)
+  // Public, cached query that any store page makes: if the store does not exist or is
+  // disabled, the gateway says so on load (also on the login page, which does not call the API until submitting)
   useCatalogCategories()
+  // Store color theme, tab title and favicon
+  useStoreBranding()
   const tenantStatus = useTenantStatus()
   if (tenantStatus !== "ok") {
     return <StoreUnavailablePage status={tenantStatus} />
@@ -71,7 +75,7 @@ function StoreRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      {/* Recupero de contrasena: el link del mail lleva a /reset-password?token= */}
+      {/* Password recovery: the email link goes to /reset-password?token= */}
       <Route path="/recuperar" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/catalogo" element={<CatalogPage />} />
@@ -79,7 +83,7 @@ function StoreRoutes() {
       <Route path="/productos/:slug" element={<ProductPage />} />
       <Route path="/privacidad" element={<LegalPage document="privacy" />} />
       <Route path="/terminos" element={<LegalPage document="terms" />} />
-      {/* Compra online: publica (invitado o con sesion). El pedido se consulta con numero + email */}
+      {/* Online purchase: public (guest or with a session). The order is looked up with number + email */}
       <Route path="/carrito" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/pedido" element={<OrderLookupPage />} />
@@ -87,7 +91,7 @@ function StoreRoutes() {
       <Route element={<RequireAuth />}>
         <Route path="/user/settings" element={<SettingsPage />} />
         <Route path="/mis-pedidos" element={<MyOrdersPage />} />
-        {/* El panel de la tienda es solo del ADMINISTRADOR (docs/panel-admin.md); usuarios pide USUARIOS, que no se delega */}
+        {/* The store dashboard is ADMINISTRADOR-only (docs/panel-admin.md); users requires USUARIOS, which is not delegable */}
         <Route element={<RequireRole role="ADMINISTRADOR" />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
@@ -96,6 +100,7 @@ function StoreRoutes() {
           <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
           <Route path="/admin/actividad" element={<AdminActivityPage />} />
           <Route path="/admin/auditoria" element={<AdminAuditPage />} />
+          <Route path="/admin/store" element={<AdminStorePage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>
           <Route path="/admin/products" element={<AdminProductsPage />} />

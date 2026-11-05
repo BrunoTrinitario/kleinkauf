@@ -5,8 +5,8 @@ import com.kleinkauf.sales.entities.DeliveryType;
 import java.util.List;
 
 /*
-Lo que necesita la tienda para mostrar el checkout. paymentConfigured false: la tienda todavia
-no cargo los datos para transferir y no se pueden crear pedidos.
+What the store needs to show the checkout. paymentConfigured false: the store has not
+entered the transfer details yet and orders cannot be created.
  */
 public record CheckoutDto(
         boolean paymentConfigured,

@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /*
-Catalogo publico (sin login): productos paginados con busqueda, categoria y orden, destacados, detalle por
-slug, categorias y combos. No expone stock exacto ni costo. Las respuestas se cachean en Redis (CatalogCacheService).
+Public catalog (no login): paginated products with search, category and sort, featured products, detail by
+slug, categories and bundles. Does not expose exact stock or cost. Responses are cached in Redis (CatalogCacheService).
  */
 @Service
 public class CatalogService {
@@ -95,7 +95,7 @@ public class CatalogService {
         return detail;
     }
 
-    // Destacados para la home, en el orden que eligio el administrador (los sin orden al final, por nombre)
+    // Featured products for the home page, in the order the administrator chose (unordered ones last, by name)
     public List<CatalogProductDto> featured() {
         return cache.get("featured",
                 objectMapper.getTypeFactory().constructCollectionType(List.class, CatalogProductDto.class),
@@ -111,7 +111,7 @@ public class CatalogService {
                 () -> catalogRepository.categories());
     }
 
-    // Combos habilitados con precio y con todos sus productos vigentes (los demas no se pueden comprar)
+    // Enabled bundles with a price and all their products still available (the others cannot be bought)
     public List<CatalogBundleDto> bundles() {
         return cache.get("bundles",
                 objectMapper.getTypeFactory().constructCollectionType(List.class, CatalogBundleDto.class),
@@ -150,7 +150,7 @@ public class CatalogService {
                 BundleFactory.listPrice(bundle.getProducts()), availability, image, products);
     }
 
-    // Las imagenes y los metadatos son lazy: se leen dentro de una transaccion
+    // Images and metadata are lazy: they are read inside a transaction
     private <T> T inTransaction(Supplier<T> work) {
         TransactionTemplate template = new TransactionTemplate(transactionManager);
         template.setReadOnly(true);

@@ -4,12 +4,12 @@ import { api, API_BASE_URL, PLATFORM_PATH } from "@/lib/api"
 import { IS_PLATFORM } from "@/lib/platform"
 
 /*
-Tiempo real de los paneles (docs/backend/observability.md#websocket). Una conexion por pagina:
-1. Pide un ticket con el JWT (sirve una vez y vence en 30 s): el JWT nunca va en la URL.
-2. Conecta a /ws?ticket=, se suscribe a los canales y manda ping cada 30 s.
-3. Si se corta, pide otro ticket y reconecta con espera creciente (2 s, 4 s... hasta 30 s).
-4. Si el ticket responde 403 o el servidor cierra con 1008 (perdio el rol), no reintenta: "denied".
-El WS solo trae lo nuevo: lo anterior lo carga cada pagina por REST.
+Real time for the panels (docs/backend/observability.md#websocket). One connection per page:
+1. Requests a ticket with the JWT (single use, expires in 30 s): the JWT never goes in the URL.
+2. Connects to /ws?ticket=, subscribes to the channels and pings every 30 s.
+3. If it drops, requests another ticket and reconnects with a growing wait (2 s, 4 s... up to 30 s).
+4. If the ticket answers 403 or the server closes with 1008 (the role was lost), it does not retry: "denied".
+The WS only brings what is new: each page loads the past over REST.
  */
 
 export type LiveStatus = "connecting" | "live" | "reconnecting" | "denied"
@@ -18,7 +18,7 @@ const TICKET_PATH = IS_PLATFORM ? `${PLATFORM_PATH}/observability/ws-ticket` : "
 const WS_URL = `${API_BASE_URL.replace(/^http/, "ws")}/ws`
 const PING_MS = 30_000
 const MAX_RETRY_MS = 30_000
-// Cerrado por el servidor porque ya no tiene el rol
+// Closed by the server because the user no longer has the role
 const ACCESS_REVOKED = 1008
 
 export function useLiveChannels(
@@ -27,7 +27,7 @@ export function useLiveChannels(
   enabled = true
 ): LiveStatus {
   const [status, setStatus] = useState<LiveStatus>("connecting")
-  // El ultimo onEvent sin reconectar cada vez que la pagina se vuelve a dibujar
+  // The latest onEvent, without reconnecting every time the page re-renders
   const onEventRef = useRef(onEvent)
   onEventRef.current = onEvent
   const channelsKey = channels.join(",")
@@ -79,7 +79,7 @@ export function useLiveChannels(
             onEventRef.current(parsed.channel, parsed.data)
           }
         } catch {
-          // Un mensaje ilegible no corta la conexion
+          // An unreadable message does not drop the connection
         }
       }
       socket.onclose = (event) => {

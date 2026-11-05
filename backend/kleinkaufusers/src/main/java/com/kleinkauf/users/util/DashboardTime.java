@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 /*
-Dias de los paneles (altas de tiendas y de usuarios). Las fechas se guardan con LocalDateTime.now() en la zona del
-servidor (UTC en Docker), pero un "dia" es en users.dashboard.zone (Argentina por defecto): una tienda creada el lunes
-a las 22 hs en Argentina es del lunes, aunque en UTC ya sea martes. Como SalesTime en sales.
+Dashboard days (store and user sign-ups). Dates are stored with LocalDateTime.now() in the server's
+zone (UTC in Docker), but a "day" is in users.dashboard.zone (Argentina by default): a store created on Monday
+at 10 pm in Argentina belongs to Monday, even though in UTC it is already Tuesday. Like SalesTime in sales.
  */
 @Component
 public class DashboardTime {
@@ -24,7 +24,7 @@ public class DashboardTime {
         this(ZoneId.of(zone), ZoneId.systemDefault());
     }
 
-    // Para tests: la zona del servidor fija
+    // For tests: fixed server zone
     public DashboardTime(ZoneId zone, ZoneId serverZone) {
         this.zone = zone;
         this.serverZone = serverZone;
@@ -34,12 +34,12 @@ public class DashboardTime {
         return LocalDate.now(zone);
     }
 
-    // Inicio del dia en la hora del servidor (para comparar con lo guardado)
+    // Start of the day in server time (to compare with what is stored)
     public LocalDateTime startOfDay(LocalDate day) {
         return day.atStartOfDay(zone).withZoneSameInstant(serverZone).toLocalDateTime();
     }
 
-    // Dia de una fecha guardada
+    // Day of a stored date
     public LocalDate dayOf(LocalDateTime stored) {
         return stored.atZone(serverZone).withZoneSameInstant(zone).toLocalDate();
     }

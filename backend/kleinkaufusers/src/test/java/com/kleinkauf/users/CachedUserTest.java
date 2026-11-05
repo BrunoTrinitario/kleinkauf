@@ -16,12 +16,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Los roles que users deja en Redis: los leen products, sales y el gateway en vez de preguntarle a users
+// The roles users leaves in Redis: products, sales and the gateway read them instead of asking users
 class CachedUserTest {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void guardaLosRolesEnRedis() {
+	void storesTheRolesInRedis() {
 		RedisTemplate<String, Object> redisTemplate = mock(RedisTemplate.class);
 		HashOperations<String, Object, Object> hash = mock(HashOperations.class);
 		when(redisTemplate.opsForHash()).thenReturn(hash);
@@ -33,7 +33,7 @@ class CachedUserTest {
 		cacheUtil.saveOrUpdateUserCache(cached);
 
 		assertEquals(1, cached.getRoles().size());
-		// Antes quedaba "null": el constructor no guardaba los roles
+		// It used to hold "null": the constructor did not store the roles
 		verify(hash).put("user:7:mi_tienda", "roles", "[{\"type\":\"ADMINISTRADOR\",\"permissions\":31}]");
 		verify(redisTemplate).expire("user:7:mi_tienda", Duration.ofHours(1));
 	}

@@ -28,7 +28,7 @@ class SlugsTest {
 	}
 
 	@Test
-	void siYaExisteAgregaUnNumero() {
+	void ifItAlreadyExistsAddsANumber() {
 		Set<String> used = Set.of("mesa", "mesa-2");
 
 		assertEquals("mesa-3", Slugs.unique("Mesa", used::contains));
@@ -36,17 +36,17 @@ class SlugsTest {
 	}
 
 	@Test
-	void disponibilidadSinStockExacto() {
+	void availabilityWithoutExactStock() {
 		assertEquals(Availability.AGOTADO, Availability.of(0, 3));
 		assertEquals(Availability.POCAS_UNIDADES, Availability.of(3, 3));
 		assertEquals(Availability.POCAS_UNIDADES, Availability.of(1, 3));
 		assertEquals(Availability.DISPONIBLE, Availability.of(4, 3));
-		// Sin stock minimo nunca es 'pocas unidades'
+		// Without minimum stock it is never 'pocas unidades'
 		assertEquals(Availability.DISPONIBLE, Availability.of(1, 0));
 	}
 
 	@Test
-	void backfill_completaLosSlugsQueFaltanSinRepetir() throws Exception {
+	void backfill_fillsMissingSlugsWithoutRepeating() throws Exception {
 		DriverManagerDataSource ds = new DriverManagerDataSource("jdbc:h2:mem:backfill;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1");
 		try (Connection conn = ds.getConnection(); Statement st = conn.createStatement()) {
 			st.execute("CREATE SCHEMA tienda_a");

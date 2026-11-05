@@ -40,8 +40,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
-Permisos de /api/v1/platform/** con el SecurityConfig y el HeaderAuthFilter reales de users.
-Los roles salen de RoleRepository (mock) segun el X-User-Id que agrega el gateway.
+Permissions of /api/v1/platform/** with users' real SecurityConfig and HeaderAuthFilter.
+Roles come from RoleRepository (mock) according to the X-User-Id added by the gateway.
  */
 @WebMvcTest(controllers = {PlatformController.class, BugReportController.class})
 @Import({SecurityConfig.class, PlatformSecurityTest.TenantConfig.class})
@@ -85,7 +85,7 @@ class PlatformSecurityTest {
 	@MockitoBean
 	private BugReportService bugReportService;
 
-	// Lo pide el CommandLineRunner de KleinKaufusersApplication
+	// Required by KleinKaufusersApplication's CommandLineRunner
 	@MockitoBean
 	private UserService userService;
 
@@ -96,7 +96,7 @@ class PlatformSecurityTest {
 	}
 
 	@Test
-	void altaYLoginSonPublicos() throws Exception {
+	void signUpAndLoginArePublic() throws Exception {
 		mockMvc.perform(json(post("/api/v1/platform/tenants"),
 						"{\"identifier\":\"mi-tienda\",\"ownerName\":\"Ana\",\"ownerEmail\":\"a@a.com\",\"ownerPassword\":\"x\"}"))
 				.andExpect(status().isCreated());
@@ -104,9 +104,9 @@ class PlatformSecurityTest {
 				.andExpect(status().isOk());
 	}
 
-	// Reportar un bug: publico, y con sesion el controller recibe el usuario del gateway
+	// Reporting a bug: public, and with a session the controller receives the user from the gateway
 	@Test
-	void reportarUnBug_esPublico() throws Exception {
+	void reportBug_isPublic() throws Exception {
 		String body = "{\"description\":\"El carrito no suma bien\"}";
 		mockMvc.perform(json(post("/api/v1/bug-reports"), body)).andExpect(status().isCreated());
 		verify(bugReportService).create(any(), isNull(), isNull());
@@ -116,7 +116,7 @@ class PlatformSecurityTest {
 	}
 
 	@Test
-	void reportesDeBugs_soloSuperadmin() throws Exception {
+	void bugReports_superadminOnly() throws Exception {
 		mockMvc.perform(get("/api/v1/platform/admin/bug-reports")).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/platform/admin/bug-reports"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, get("/api/v1/platform/admin/bug-reports"))).andExpect(status().isOk());
@@ -128,14 +128,14 @@ class PlatformSecurityTest {
 	}
 
 	@Test
-	void panelDeTenants_soloSuperadmin() throws Exception {
+	void tenantsDashboard_superadminOnly() throws Exception {
 		mockMvc.perform(get("/api/v1/platform/admin/tenants")).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/platform/admin/tenants"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, get("/api/v1/platform/admin/tenants"))).andExpect(status().isOk());
 	}
 
 	@Test
-	void accionesDelSuperadmin() throws Exception {
+	void superadminActions() throws Exception {
 		mockMvc.perform(as(ADMINISTRADOR, json(put("/api/v1/platform/admin/tenants/7/enabled"), "{\"enabled\":false}")))
 				.andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, json(put("/api/v1/platform/admin/tenants/7/enabled"), "{\"enabled\":false}")))
@@ -150,7 +150,7 @@ class PlatformSecurityTest {
 	}
 
 	@Test
-	void panelYUso_soloSuperadmin() throws Exception {
+	void dashboardAndUsage_superadminOnly() throws Exception {
 		for (String path : new String[]{"/api/v1/platform/admin/dashboard", "/api/v1/platform/admin/usage"}) {
 			mockMvc.perform(get(path)).andExpect(status().isForbidden());
 			mockMvc.perform(as(ADMINISTRADOR, get(path))).andExpect(status().isForbidden());
@@ -159,7 +159,7 @@ class PlatformSecurityTest {
 	}
 
 	@Test
-	void gestionDeSuperadmins_soloSuperadmin() throws Exception {
+	void superadminManagement_superadminOnly() throws Exception {
 		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/platform/admin/superadmins"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, get("/api/v1/platform/admin/superadmins"))).andExpect(status().isOk());
 
@@ -171,7 +171,7 @@ class PlatformSecurityTest {
 				.andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, json(put("/api/v1/platform/admin/superadmins/3/active"), "{\"active\":false}")))
 				.andExpect(status().isOk());
-		// El id del que hace el cambio sale del X-User-Id, para no dejarlo desactivarse a si mismo
+		// The id of whoever makes the change comes from X-User-Id, so they cannot deactivate themselves
 		verify(superadminService).setActive(3L, false, SUPERADMIN);
 	}
 

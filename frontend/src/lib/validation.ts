@@ -1,15 +1,15 @@
-// Reglas de los datos de un usuario. Son las mismas que valida el backend
-// (kleinkaufusers, util/UserValidator.java); si cambian, cambiar las dos.
+// Rules for a user's data. They are the same the backend validates
+// (kleinkaufusers, util/UserValidator.java); if they change, change both.
 
 export const NAME_MAX_LENGTH = 100
 export const EMAIL_MAX_LENGTH = 254
 export const PASSWORD_MIN_LENGTH = 8
-// bcrypt ignora lo que pasa de 72 bytes
+// bcrypt ignores anything past 72 bytes
 export const PASSWORD_MAX_BYTES = 72
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Reporte de un bug (kleinkaufusers, entities/BugReport.java)
+// Bug report (kleinkaufusers, entities/BugReport.java)
 export const BUG_REPORT_MIN_LENGTH = 10
 export const BUG_REPORT_MAX_LENGTH = 2000
 

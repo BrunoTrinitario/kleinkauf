@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// El panel de usuarios de la tienda es solo del ADMINISTRADOR: un empleado no entra aunque tenga todas las areas
+// The store users dashboard is ADMINISTRADOR-only: an employee cannot get in even with every area
 @WebMvcTest(controllers = UserController.class)
 @Import({SecurityConfig.class, UserDashboardSecurityTest.TenantConfig.class, GlobalExceptionHandler.class})
 class UserDashboardSecurityTest {
@@ -79,7 +79,7 @@ class UserDashboardSecurityTest {
 	}
 
 	@Test
-	void panelDeUsuarios_soloAdministrador() throws Exception {
+	void usersDashboard_administratorOnly() throws Exception {
 		mockMvc.perform(get("/api/v1/users/dashboard")).andExpect(status().isForbidden());
 		mockMvc.perform(as(EMPLEADO, get("/api/v1/users/dashboard"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMINISTRADOR, get("/api/v1/users/dashboard")

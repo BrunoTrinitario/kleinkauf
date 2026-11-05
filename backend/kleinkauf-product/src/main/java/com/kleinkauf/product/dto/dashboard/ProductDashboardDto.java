@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /*
-GET /api/v1/products/dashboard: panel de la tienda (solo ADMINISTRADOR, docs/panel-admin.md).
-Siempre al dia: no se guarda en cache.
+GET /api/v1/products/dashboard: store dashboard (ADMINISTRADOR only, docs/panel-admin.md).
+Always up to date: not cached.
  */
 public record ProductDashboardDto(
         Products products,
@@ -17,7 +17,7 @@ public record ProductDashboardDto(
 
     public record Products(
             long total,
-            // De mayor a menor; los sin categoria van con category null
+            // Highest to lowest; those without a category go with category null
             List<CategoryCount> byCategory,
             long withoutPrice,
             long withoutImages,
@@ -29,10 +29,10 @@ public record ProductDashboardDto(
     }
 
     public record Stock(
-            // Mismo criterio que GET /products/stock/low: minStock > 0 y stock <= minStock
+            // Same criterion as GET /products/stock/low: minStock > 0 and stock <= minStock
             long low,
             long outOfStock,
-            // Suma de stock x costo / precio de los que tienen stock; los que no tienen costo / precio se cuentan aparte
+            // Sum of stock x cost / price of those with stock; those without cost / price are counted separately
             BigDecimal inventoryAtCost,
             BigDecimal inventoryAtPrice,
             long excludedWithoutCost,
@@ -41,7 +41,7 @@ public record ProductDashboardDto(
     ) {
     }
 
-    // productName incluye los productos borrados: el movimiento sigue siendo historia
+    // productName includes deleted products: the movement is still history
     public record RecentMovement(
             Long id,
             Long productId,

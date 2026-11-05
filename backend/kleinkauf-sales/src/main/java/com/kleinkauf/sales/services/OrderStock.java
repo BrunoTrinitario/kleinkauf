@@ -16,11 +16,11 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.util.List;
 
 /*
-Stock y contador de vendidos de un pedido en products (ver ProductsClient).
-- Los 4xx de products (sin stock, sin precio, no disponible) llegan con su mensaje y status.
-- El resto (red, 5xx, circuito abierto) responde 503: products no se pudo actualizar y hay que reintentar.
-Las variantes "quietly" se usan para volver atras: si fallan, se loguea para corregirlo a mano
-(los movimientos de stock tienen el numero del pedido como referencia).
+An order's stock and sold counter in products (see ProductsClient).
+- products' 4xx (no stock, no price, not available) arrive with their message and status.
+- The rest (network, 5xx, open circuit) responds 503: products could not be updated and it must be retried.
+The "quietly" variants are used to roll back: if they fail, it is logged so it can be fixed manually
+(stock movements carry the order number as reference).
  */
 @Slf4j
 @Component
@@ -30,8 +30,8 @@ public class OrderStock {
     private ProductsClient productsClient;
 
     /*
-    Reserva todo o nada. Si products no responde la reserva pudo haberse hecho: se devuelve por las dudas
-    (products ignora la devolucion de una reserva que no existe y rechaza la que llegue despues).
+    Reserves all or nothing. If products does not answer the reservation may have been made: it is released just in case
+    (products ignores the release of a reservation that does not exist and rejects the one arriving later).
      */
     public ReservationDto reserve(String number, List<ReservationItemDto> items, boolean local) throws ApiException {
         try {

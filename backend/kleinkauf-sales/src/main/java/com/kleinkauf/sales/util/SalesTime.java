@@ -8,10 +8,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 /*
-Fechas de la tienda. Los pedidos se guardan con LocalDateTime.now() en la zona del servidor
-(UTC con bootRun), pero un "dia" para la tienda es en su zona (sales.reports.zone, Argentina por defecto):
-una venta del lunes a las 22 hs en Argentina es del lunes, aunque en UTC ya sea martes.
-Lo usan los reportes y los filtros de fecha de la lista de pedidos.
+Store dates. Orders are stored with LocalDateTime.now() in the server's zone
+(UTC with bootRun), but a "day" for the store is in its zone (sales.reports.zone, Argentina by default):
+a sale on Monday at 10 pm in Argentina belongs to Monday, even though in UTC it is already Tuesday.
+Used by the reports and the date filters of the order list.
  */
 @Component
 public class SalesTime {
@@ -31,12 +31,12 @@ public class SalesTime {
         return LocalDate.now(zone);
     }
 
-    // Inicio del dia de la tienda, en la hora del servidor (para comparar con lo guardado)
+    // Start of the store day, in server time (to compare with what is stored)
     public LocalDateTime startOfDay(LocalDate day) {
         return day.atStartOfDay(zone).withZoneSameInstant(serverZone).toLocalDateTime();
     }
 
-    // Dia de la tienda de una fecha guardada
+    // Store day of a stored date
     public LocalDate dayOf(LocalDateTime stored) {
         return stored.atZone(serverZone).withZoneSameInstant(zone).toLocalDate();
     }

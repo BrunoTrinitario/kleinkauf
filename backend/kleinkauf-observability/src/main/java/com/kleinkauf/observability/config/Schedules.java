@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /*
-Tareas periodicas. observability.scheduling.enabled=false las apaga (los tests las llaman a mano).
-Un error en una vuelta se loguea y la siguiente corre igual.
+Periodic tasks. observability.scheduling.enabled=false turns them off (tests call them manually).
+An error in one round is logged and the next one runs anyway.
  */
 @Slf4j
 @Component

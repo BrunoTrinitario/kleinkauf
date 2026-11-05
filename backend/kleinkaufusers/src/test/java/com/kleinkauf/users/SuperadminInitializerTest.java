@@ -38,7 +38,7 @@ class SuperadminInitializerTest {
 	private SuperadminInitializer initializer;
 
 	@Test
-	void sinConfiguracion_noCreaNada() {
+	void withoutConfiguration_createsNothing() {
 		config("", "");
 
 		initializer.run(null);
@@ -47,7 +47,7 @@ class SuperadminInitializerTest {
 	}
 
 	@Test
-	void siYaExiste_noLoVuelveACrear() {
+	void ifItAlreadyExists_doesNotCreateItAgain() {
 		config("root@kleinkauf.com", "clave");
 		when(userRepository.existsByEmailIgnoreCase("root@kleinkauf.com")).thenReturn(true);
 
@@ -58,7 +58,7 @@ class SuperadminInitializerTest {
 	}
 
 	@Test
-	void creaElSuperadminConSuRol() {
+	void createsTheSuperadminWithItsRole() {
 		config("root@kleinkauf.com", "clave");
 		when(userRepository.existsByEmailIgnoreCase("root@kleinkauf.com")).thenReturn(false);
 		when(passwordEncoder.encode("clave")).thenReturn("hash");

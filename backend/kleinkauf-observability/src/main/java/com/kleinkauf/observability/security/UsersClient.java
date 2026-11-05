@@ -20,9 +20,9 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 
 /*
-Roles y nombre de un usuario en users, protegido con Resilience4j (instancia "users" en application.properties).
-Los superadmins estan en public: sin X-Forwarded-Host users busca ahi.
-El fallback esta en @Retry porque es el aspecto mas externo (igual que en sales).
+A user's roles and name in users, protected with Resilience4j ("users" instance in application.properties).
+Superadmins are in public: without X-Forwarded-Host users looks there.
+The fallback is on @Retry because it is the outermost aspect (same as in sales).
  */
 @Slf4j
 @Component
@@ -41,7 +41,7 @@ public class UsersClient {
         this.restTemplate = restTemplate;
     }
 
-    // null si users no respondio
+    // null if users did not answer
     @CircuitBreaker(name = "users")
     @Retry(name = "users", fallbackMethod = "getUserRolesFallback")
     public List<RoleDto> getUserRoles(Long userId, String tenant) {
@@ -64,7 +64,7 @@ public class UsersClient {
         return headers;
     }
 
-    // Nombre del usuario (para la auditoria). null si no existe o users no respondio
+    // The user's name (for the audit). null if it does not exist or users did not answer
     @CircuitBreaker(name = "users")
     @Retry(name = "users", fallbackMethod = "getUserNameFallback")
     public String getUserName(Long userId, String tenant) {

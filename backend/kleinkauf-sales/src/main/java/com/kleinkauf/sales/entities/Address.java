@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Direccion de envio (solo con DeliveryType.ENVIO)
+// Shipping address (only with DeliveryType.ENVIO)
 @Embeddable
 @Getter
 @Setter
@@ -20,7 +20,7 @@ public class Address {
     @Column(name = "address_number", length = 100)
     private String number;
 
-    // Piso / departamento (opcional)
+    // Floor / apartment (optional)
     @Column(name = "address_apartment", length = 100)
     private String apartment;
 

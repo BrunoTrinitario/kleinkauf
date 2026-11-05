@@ -19,7 +19,7 @@ public class TenantService {
     @Autowired
     public LocalCacheService localCacheService;
 
-    // url: el Origin de la request (cada tenant tiene su URL de frontend)
+    // url: the request's Origin (each tenant has its own frontend URL)
     public Mono<TenantDto> getTenant(String url) {
 
         TenantDto cached = localCacheService.getTenant(url);
@@ -27,7 +27,7 @@ public class TenantService {
             return Mono.just(cached);
         }
 
-        // Si no esta en Redis (o Redis falla) se consulta a users
+        // If it is not in Redis (or Redis fails) users is queried
         return cacheUtil.getTenantByUrl(url)
                 .onErrorResume(ex -> Mono.empty())
                 .switchIfEmpty(Mono.defer(() -> tenantClient.getTenantByUrl(url)))
@@ -35,15 +35,15 @@ public class TenantService {
     }
 
     /*
-    Indica si el origen pertenece a un tenant: cache local, despues Redis y por ultimo users.
-    Todo reactivo para no bloquear el event loop. Solo se cachean los origenes permitidos.
+    Tells whether the origin belongs to a tenant: local cache, then Redis and finally users.
+    All reactive so as not to block the event loop. Only allowed origins are cached.
      */
     public Mono<Boolean> isCorsAllowed(String url) {
         if (localCacheService.existsUrl(url)) {
             return Mono.just(true);
         }
 
-        // Si Redis falla se consulta a users directamente
+        // If Redis fails users is queried directly
         return cacheUtil.existsTenantByUrl(url)
                 .onErrorReturn(false)
                 .flatMap(cached -> cached ? Mono.just(true) : tenantClient.isCorsAllowed(url))

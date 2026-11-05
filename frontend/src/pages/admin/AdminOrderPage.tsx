@@ -23,12 +23,12 @@ const DELIVERY_STEPS: OrderStatus[] = ["EN_PREPARACION", "LISTO", "ENTREGADO"]
 const NEEDS_REASON: OrderStatus[] = ["RECHAZADO", "CANCELADO"]
 
 /*
-Los cambios que puede hacer el administrador desde el estado actual (el mismo criterio que OrderStatus.canChangeTo en
-sales): validar mientras no se pago, rechazar un comprobante en revision, avanzar la entrega sin volver atras (se
-pueden saltear pasos) y cancelar cualquier pedido que no este cerrado
+The changes the administrator can make from the current status (the same criterion as OrderStatus.canChangeTo in
+sales): validate while unpaid, reject a receipt under review, advance the delivery without going back (steps
+can be skipped) and cancel any order that is not closed
  */
 function availableChanges(status: OrderStatus, channel: OrderChannel): OrderStatus[] {
-  // Una venta del local entregada se puede anular (se cargo por error o la devolvieron)
+  // A delivered in-store sale can be voided (entered by mistake or returned)
   if (status === "ENTREGADO" && channel === "LOCAL") return ["CANCELADO"]
   if (FINAL.includes(status)) return []
   const changes: OrderStatus[] = []
@@ -42,10 +42,10 @@ function availableChanges(status: OrderStatus, channel: OrderChannel): OrderStat
   return changes
 }
 
-// Detalle de un pedido en el panel de ventas (/admin/orders/:number, solo ADMINISTRADOR)
+// Order detail in the sales dashboard (/admin/orders/:number, ADMINISTRADOR only)
 export default function AdminOrderPage() {
   const { number = "" } = useParams()
-  // La flecha vuelve a la lista con los filtros con los que se entro (vienen en el estado del link)
+  // The arrow goes back to the list with the filters it was entered with (they come in the link state)
   const listSearch = (useLocation().state as { listSearch?: string } | null)?.listSearch ?? ""
   const listPath = `/admin/orders${listSearch}`
   const order = useAdminOrder(number)
@@ -226,7 +226,7 @@ function statusErrorMessage(error: unknown) {
   return getErrorMessage(error, strings.adminOrder.changeError, { badRequest: strings.adminOrder.reasonMissing })
 }
 
-// Confirmacion de cada cambio, con el motivo (obligatorio para rechazar o cancelar; lo ve el comprador)
+// Confirmation of each change, with the reason (required to reject or cancel; the buyer sees it)
 function StatusDialog({ number, target, onClose }: { number: string; target: OrderStatus | null; onClose: () => void }) {
   const change = useChangeOrderStatus(number)
   const order = useAdminOrder(number)
@@ -261,7 +261,7 @@ function StatusDialog({ number, target, onClose }: { number: string; target: Ord
       onClose()
     } catch (err) {
       setError(statusErrorMessage(err))
-      // Si el pedido cambio por otro lado, se recarga para que los botones muestren lo que corresponde
+      // If the order changed elsewhere, it is reloaded so the buttons show what applies
       if (axios.isAxiosError(err) && err.response?.status === 409) order.refetch()
     }
   }
@@ -377,7 +377,7 @@ function ItemsCard({ order }: { order: AdminOrder }) {
 const RECEIPT_EXTENSION: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "application/pdf": "pdf" }
 
 function ReceiptsCard({ order }: { order: AdminOrder }) {
-  // El mas nuevo arriba: es el que hay que revisar
+  // Newest on top: it is the one to review
   const receipts = [...order.receipts].reverse()
   const [preview, setPreview] = useState<{ index: number; receipt: OrderReceipt; url: string } | null>(null)
   const [loadingId, setLoadingId] = useState<number | null>(null)

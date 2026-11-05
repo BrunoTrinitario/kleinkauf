@@ -22,7 +22,7 @@ interface BugReportDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-// "Reportar un problema" del footer. Con la sesion abierta no pide email: el backend usa el de la cuenta
+// "Report a problem" from the footer. With an open session it does not ask for an email: the backend uses the account's
 export function BugReportDialog({ open, onOpenChange }: BugReportDialogProps) {
   const { user } = useAuth()
   const createReport = useCreateBugReport()

@@ -9,10 +9,10 @@ import org.hibernate.annotations.ColumnDefault;
 import java.time.LocalDateTime;
 
 /*
-Reserva de stock de un pedido de sales, por numero de pedido (reference).
-Hace idempotentes a reservar y devolver: si sales reintenta, el stock no se mueve dos veces.
-Si llega la devolucion antes que la reserva (timeout en sales), queda RELEASED y la reserva
-que llegue despues se rechaza.
+Stock reservation for a sales order, by order number (reference).
+Makes reserve and release idempotent: if sales retries, the stock does not move twice.
+If the release arrives before the reservation (timeout in sales), it stays RELEASED and the reservation
+that arrives later is rejected.
  */
 @Entity
 @Table(name = "stock_reservations")
@@ -37,12 +37,12 @@ public class StockReservation {
     @Column(nullable = false)
     private Status status;
 
-    // Si el pedido ya sumo al contador de vendidos (para no sumar ni restar dos veces)
+    // Whether the order was already added to the sold counter (so it is not added or subtracted twice)
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean sold;
 
-    // Venta del local: productos a los que les falto stock y se ajustaron (separados por coma); null si no falto
+    // In-store sale: products that ran short of stock and were adjusted (comma separated); null if nothing was short
     @Column(length = 1000)
     private String shortages;
 

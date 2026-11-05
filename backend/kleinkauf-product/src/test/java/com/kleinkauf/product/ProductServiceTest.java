@@ -200,7 +200,7 @@ class ProductServiceTest {
 		SecurityContextHolder.clearContext();
 	}
 
-	// Usuario logueado con la mascara de permisos que le da users
+	// Logged-in user with the permission mask users gives them
 	private static void loggedInWith(int permissions) {
 		CustomUserDetails user = new CustomUserDetails(1L, List.of(new RoleDto("EMPLEADO", permissions)));
 		SecurityContextHolder.getContext().setAuthentication(
@@ -208,7 +208,7 @@ class ProductServiceTest {
 	}
 
 	@Test
-	void createProduct_sinPermisoPrecios_ignoraPrecioYCosto() throws ApiException {
+	void createProduct_withoutPreciosPermission_ignoresPriceAndCost() throws ApiException {
 		loggedInWith(PermissionArea.PRODUCTOS.bit());
 		when(productRepository.existsByName("Silla")).thenReturn(false);
 		when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
@@ -223,7 +223,7 @@ class ProductServiceTest {
 		ArgumentCaptor<Product> saved = ArgumentCaptor.forClass(Product.class);
 		verify(productRepository).save(saved.capture());
 		assertNull(saved.getValue().getPrice());
-		// Ni siquiera se valida: un costo negativo no da error porque se ignora
+		// It is not even validated: a negative cost gives no error because it is ignored
 		assertNull(saved.getValue().getCost());
 	}
 
@@ -262,7 +262,7 @@ class ProductServiceTest {
 		assertEquals(new BigDecimal("9000.00"), savedProduct.getCost());
 		verify(productRepository).existsByName("Silla");
 		verify(stockService).registerInitialStock(savedProduct);
-		// Slug para el link del catalogo
+		// Slug for the catalog link
 		assertEquals("silla", savedProduct.getSlug());
 		verify(catalogCache).invalidate();
 	}
@@ -371,9 +371,9 @@ class ProductServiceTest {
 		verify(productImageRepository, times(2)).save(any(ProductImage.class));
 	}
 
-	// Un archivo que no es imagen (aunque se llame .png) no se guarda, y no se guarda ninguno
+	// A file that is not an image (even if named .png) is not saved, and none is saved
 	@Test
-	void saveImages_archivoQueNoEsImagen_respondeUnsupportedMediaType() throws Exception {
+	void saveImages_fileThatIsNotAnImage_respondsUnsupportedMediaType() throws Exception {
 		when(productRepository.existsById(60L)).thenReturn(true);
 		List<MultipartFile> files = List.of(imageFile(PNG), imageFile("<svg onload=alert(1)>".getBytes()));
 
@@ -384,7 +384,7 @@ class ProductServiceTest {
 	}
 
 	@Test
-	void saveImages_productoInexistente_respondeNotFound() {
+	void saveImages_unknownProduct_respondsNotFound() {
 		when(productRepository.existsById(60L)).thenReturn(false);
 
 		ApiException exception = assertThrows(ApiException.class, () -> productService.saveImages(60L, List.of()));
@@ -393,7 +393,7 @@ class ProductServiceTest {
 	}
 
 	@Test
-	void tipoDeImagen_porSusPrimerosBytes() {
+	void imageType_byItsFirstBytes() {
 		assertEquals("png", FileManager.imageExtension(PNG));
 		assertEquals("jpg", FileManager.imageExtension(JPG));
 		assertEquals("gif", FileManager.imageExtension("GIF89a".getBytes()));
@@ -403,9 +403,9 @@ class ProductServiceTest {
 		assertNull(FileManager.imageExtension(null));
 	}
 
-	// PUT /products/{id}: lo que viene en null no cambia
+	// PUT /products/{id}: what comes as null does not change
 	@Test
-	void updateProduct_soloLoQueViene() throws ApiException {
+	void updateProduct_onlyWhatIsSent() throws ApiException {
 		Product product = product(5L, "Mesa", "living", "Mesa de roble", 3);
 		product.setMinStock(2);
 		when(productRepository.findById(5L)).thenReturn(Optional.of(product));
@@ -418,28 +418,28 @@ class ProductServiceTest {
 		assertEquals(2, product.getMinStock());
 	}
 
-	// El nombre es unico tambien contra los borrados: antes chocaba con la constraint y respondia 500
+	// The name is unique against deleted ones too: it used to hit the constraint and respond 500
 	@Test
-	void nombreDeOtroProducto_oDeUnoBorrado_respondeConflict() {
+	void nameOfAnotherProduct_orOfADeletedOne_respondsConflict() {
 		Product product = product(5L, "Mesa", "living", "Mesa de roble", 3);
 		when(productRepository.findById(5L)).thenReturn(Optional.of(product));
 		when(productRepository.existsByName("Silla")).thenReturn(true);
 		when(productRepository.existsByName("Banco")).thenReturn(false);
 		when(productRepository.existsByNameIncludingDeleted("Banco")).thenReturn(true);
 
-		ApiException renombrar = assertThrows(ApiException.class,
+		ApiException rename = assertThrows(ApiException.class,
 				() -> productService.updateProduct(5L, new BasicUpdateDto("Silla", null, null, null)));
-		ApiException crearConBorrado = assertThrows(ApiException.class,
+		ApiException createWithDeleted = assertThrows(ApiException.class,
 				() -> productService.createProduct(new NewProductDto("Banco", null, null, 0, 0, null, null)));
 
-		assertEquals(HttpStatus.CONFLICT, renombrar.getStatus());
-		assertEquals(HttpStatus.CONFLICT, crearConBorrado.getStatus());
-		assertEquals("The name belongs to a deleted product", crearConBorrado.getMessage());
+		assertEquals(HttpStatus.CONFLICT, rename.getStatus());
+		assertEquals(HttpStatus.CONFLICT, createWithDeleted.getStatus());
+		assertEquals("The name belongs to a deleted product", createWithDeleted.getMessage());
 		verify(productRepository, never()).save(any(Product.class));
 	}
 
 	@Test
-	void nombreVacio_respondeBadRequest() {
+	void emptyName_respondsBadRequest() {
 		ApiException exception = assertThrows(ApiException.class,
 				() -> productService.createProduct(new NewProductDto("  ", null, null, 0, 0, null, null)));
 

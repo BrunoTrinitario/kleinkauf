@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// Reservas de stock de los pedidos: solo otros microservicios con token interno (ver HeaderAuthFilter)
+// Stock reservations for orders: only other microservices with an internal token (see HeaderAuthFilter)
 @RestController
 @RequestMapping("/api/internal/products/reservations")
 public class InternalStockController {

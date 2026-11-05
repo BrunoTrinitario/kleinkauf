@@ -15,12 +15,12 @@ import java.util.List;
 public interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
     List<StockMovement> findByProduct_IdOrderByCreatedAtDescIdDesc(Long productId);
 
-    // [productId, quantity] de los movimientos de un pedido. Solo ids: el producto puede estar borrado
+    // [productId, quantity] of an order's movements. Ids only: the product may be deleted
     @Query("SELECT m.product.id, m.quantity FROM StockMovement m WHERE m.reference = :reference AND m.type = :type")
     List<Object[]> findQuantitiesByReference(@Param("reference") String reference, @Param("type") StockMovementType type);
 
-    // Ultimos movimientos de la tienda para el panel (el nombre lo agrega DashboardService).
-    // Solo el id del producto (sin cargarlo): puede estar borrado
+    // The store's latest movements for the dashboard (DashboardService adds the name).
+    // Only the product id (without loading it): it may be deleted
     @Query("SELECT new com.kleinkauf.product.repositories.StockMovementRepository$MovementRow("
             + "m.id, m.product.id, m.type, m.quantity, m.stockAfter, m.reason, m.reference, m.userId, m.createdAt) "
             + "FROM StockMovement m ORDER BY m.createdAt DESC, m.id DESC")

@@ -1,11 +1,11 @@
 package com.kleinkauf.common.constants;
 
 /*
-Tipo de JWT, en el claim "type". Los firma users con el mismo secreto, asi que sin el tipo un token de
-recuperacion de contrasena serviria para entrar y uno de sesion para cambiar la contrasena sin saber la actual.
-El gateway solo deja entrar con los de sesion (access); users solo cambia la contrasena con uno de recuperacion y
-solo renueva la sesion con uno de refresh (POST /auth/refresh).
-Los tokens de sesion de antes de este claim no lo tienen: el gateway los sigue aceptando hasta que vencen.
+JWT type, in the "type" claim. Users signs them all with the same secret, so without the type a password
+recovery token would work to log in, and a session token to change the password without knowing the current one.
+The gateway only lets session (access) tokens in; users only changes the password with a recovery token and
+only renews the session with a refresh token (POST /auth/refresh).
+Session tokens issued before this claim existed do not have it: the gateway keeps accepting them until they expire.
  */
 public final class TokenConstants {
     public static final String TYPE_CLAIM = "type";

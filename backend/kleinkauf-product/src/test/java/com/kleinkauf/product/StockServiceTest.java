@@ -62,7 +62,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void entrada_sumaStockYRegistraElMovimiento() throws ApiException {
+	void entrada_addsStockAndRecordsTheMovement() throws ApiException {
 		Product product = productWithStock(10);
 		mockSaves(product);
 
@@ -73,13 +73,13 @@ class StockServiceTest {
 		assertEquals(15, result.stockAfter());
 		assertEquals("Compra", result.reason());
 		verify(productRepository).save(product);
-		// Panel en vivo: el movimiento y el chequeo de stock bajo con el stock de antes
+		// Live dashboard: the movement and the low stock check with the stock from before
 		verify(stockEvents).movement(eq(product), any());
 		verify(stockEvents).lowIfCrossed(product, 10);
 	}
 
 	@Test
-	void salida_restaStock() throws ApiException {
+	void salida_subtractsStock() throws ApiException {
 		Product product = productWithStock(10);
 		mockSaves(product);
 
@@ -91,7 +91,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void salidaMayorAlStock_respondeConflictoYNoGuardaNada() {
+	void salidaGreaterThanStock_respondsConflictAndSavesNothing() {
 		Product product = productWithStock(3);
 		when(productRepository.findByIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
 
@@ -105,7 +105,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void ajuste_fijaElStockContadoYGuardaLaDiferencia() throws ApiException {
+	void adjustment_setsTheCountedStockAndStoresTheDifference() throws ApiException {
 		Product product = productWithStock(10);
 		mockSaves(product);
 
@@ -117,7 +117,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void ajusteACero_esValido() throws ApiException {
+	void adjustmentToZero_isValid() throws ApiException {
 		Product product = productWithStock(2);
 		mockSaves(product);
 
@@ -127,8 +127,8 @@ class StockServiceTest {
 	}
 
 	@Test
-	void datosInvalidos_respondenBadRequestSinTocarElProducto() {
-		List<NewStockMovementDto> invalidos = List.of(
+	void invalidData_respondBadRequestWithoutTouchingTheProduct() {
+		List<NewStockMovementDto> invalid = List.of(
 				new NewStockMovementDto(null, 5, "x"),
 				new NewStockMovementDto(StockMovementType.ENTRADA, 0, "x"),
 				new NewStockMovementDto(StockMovementType.SALIDA, -2, "x"),
@@ -137,7 +137,7 @@ class StockServiceTest {
 				new NewStockMovementDto(StockMovementType.AJUSTE, 5, " ")
 		);
 
-		for (NewStockMovementDto dto : invalidos) {
+		for (NewStockMovementDto dto : invalid) {
 			ApiException ex = assertThrows(ApiException.class, () -> stockService.registerMovement(PRODUCT_ID, dto));
 			assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus(), dto.toString());
 		}
@@ -145,7 +145,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void productoInexistente_respondeNotFound() {
+	void unknownProduct_respondsNotFound() {
 		when(productRepository.findByIdForUpdate(PRODUCT_ID)).thenReturn(Optional.empty());
 
 		ApiException ex = assertThrows(ApiException.class,
@@ -155,7 +155,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void elMovimientoGuardaElUsuarioLogueado() throws ApiException {
+	void movementStoresTheLoggedInUser() throws ApiException {
 		CustomUserDetails user = new CustomUserDetails(42L, List.of(new RoleDto("EMPLEADO", 0)));
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
@@ -168,7 +168,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void stockInicial_registraUnaEntrada() {
+	void initialStock_recordsAnEntrada() {
 		Product product = productWithStock(9);
 		ArgumentCaptor<StockMovement> captor = ArgumentCaptor.forClass(StockMovement.class);
 
@@ -181,14 +181,14 @@ class StockServiceTest {
 	}
 
 	@Test
-	void stockInicialCero_noRegistraNada() {
+	void zeroInitialStock_recordsNothing() {
 		stockService.registerInitialStock(productWithStock(0));
 
 		verifyNoInteractions(stockMovementRepository);
 	}
 
 	@Test
-	void stockBajo_devuelveLosProductosDelRepositorio() {
+	void lowStock_returnsTheRepositoryProducts() {
 		Product product = productWithStock(1);
 		product.setName("Lampara");
 		product.setMinStock(3);
@@ -198,7 +198,7 @@ class StockServiceTest {
 	}
 
 	@Test
-	void movimientosDeProductoInexistente_respondeNotFound() {
+	void movementsOfUnknownProduct_respondsNotFound() {
 		when(productRepository.existsById(PRODUCT_ID)).thenReturn(false);
 
 		ApiException ex = assertThrows(ApiException.class, () -> stockService.getMovements(PRODUCT_ID));

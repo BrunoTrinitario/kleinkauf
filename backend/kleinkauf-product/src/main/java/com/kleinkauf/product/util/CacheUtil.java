@@ -21,7 +21,7 @@ import java.util.Set;
 @Component
 public class CacheUtil {
 
-    // Uso por tenant del panel de la plataforma (users guarda el suyo en platform:usage:users)
+    // Per-tenant usage for the platform dashboard (users stores its own in platform:usage:users)
     private static final String PLATFORM_USAGE = "platform:usage:products";
 
     @Autowired
@@ -67,7 +67,7 @@ public class CacheUtil {
         return tenants;
     }
 
-    // Uso por tenant del panel de la plataforma (5 minutos). Si Redis falla devuelve null y se calcula igual
+    // Per-tenant usage for the platform dashboard (5 minutes). If Redis fails it returns null and it is computed anyway
     public List<ProductUsageDto> getPlatformUsage() {
         try {
             Object json = redisTemplate.opsForValue().get(PLATFORM_USAGE);

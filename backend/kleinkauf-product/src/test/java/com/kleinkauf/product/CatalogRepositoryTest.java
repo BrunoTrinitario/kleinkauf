@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Import;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// Consultas del catalogo contra H2 (modo PostgreSQL)
+// Catalog queries against H2 (PostgreSQL mode)
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:catalog;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
 		"spring.jpa.hibernate.ddl-auto=create-drop"
@@ -39,58 +39,58 @@ class CatalogRepositoryTest {
 	private TestEntityManager em;
 
 	@BeforeEach
-	void productos() {
+	void products() {
 		persist("Mesa de roble", "comedor", "Mesa rústica para 6", "150000");
 		persist("Silla", "comedor", "Silla de madera", "20000");
 		persist("Lampara", "iluminacion", "Lampara 100% algodon", null);
 		persist("Alfombra", "living", "Alfombra tejida", "50000");
-		Product borrado = persist("Banco", "comedor", "Banco", "1000");
+		Product deletedProduct = persist("Banco", "comedor", "Banco", "1000");
 		em.flush();
-		productRepository.deleteById(borrado.getId());
+		productRepository.deleteById(deletedProduct.getId());
 		em.flush();
 		em.clear();
 	}
 
 	@Test
-	void porNombre_sinLosBorrados() {
+	void byName_withoutDeleted() {
 		assertEquals(List.of("Alfombra", "Lampara", "Mesa de roble", "Silla"), names(ALL, CatalogSort.NAME));
 		assertEquals(4, catalogRepository.count(ALL));
 	}
 
 	@Test
-	void porPrecio_losConsultarAlFinalEnAmbasDirecciones() {
+	void byPrice_priceOnRequestLastInBothDirections() {
 		assertEquals(List.of("Silla", "Alfombra", "Mesa de roble", "Lampara"), names(ALL, CatalogSort.PRICE_ASC));
 		assertEquals(List.of("Mesa de roble", "Alfombra", "Silla", "Lampara"), names(ALL, CatalogSort.PRICE_DESC));
 	}
 
 	@Test
-	void busquedaEnNombreDescripcionYCategoriaSinMayusculas() {
+	void searchInNameDescriptionAndCategoryCaseInsensitive() {
 		assertEquals(List.of("Silla"), names(new Filter("MADERA", null), CatalogSort.NAME));
 		assertEquals(List.of("Mesa de roble", "Silla"), names(new Filter("comedor", null), CatalogSort.NAME));
 		assertEquals(List.of("Mesa de roble"), names(new Filter("ROBLE", null), CatalogSort.NAME));
-		// '%' se busca tal cual, no como comodin: solo la lampara tiene '%' en la descripcion
+		// '%' is searched literally, not as a wildcard: only the lamp has '%' in its description
 		assertEquals(List.of("Lampara"), names(new Filter("100%", null), CatalogSort.NAME));
 		assertEquals(List.of("Lampara"), names(new Filter("%", null), CatalogSort.NAME));
-		// Sin acentos no encuentra 'rústica' (decision: la busqueda distingue acentos)
+		// Without accents it does not find 'rústica' (decision: the search is accent-sensitive)
 		assertEquals(List.of(), names(new Filter("rustica", null), CatalogSort.NAME));
 	}
 
 	@Test
-	void filtroPorCategoria() {
+	void categoryFilter() {
 		assertEquals(List.of("Mesa de roble", "Silla"), names(new Filter(null, "Comedor"), CatalogSort.NAME));
 		assertEquals(2, catalogRepository.count(new Filter(null, "comedor")));
 		assertEquals(List.of("Silla"), names(new Filter("silla", "comedor"), CatalogSort.NAME));
 	}
 
 	@Test
-	void paginacion() {
+	void pagination() {
 		assertEquals(List.of("Alfombra", "Lampara"), catalogRepository.search(ALL, CatalogSort.NAME, 0, 2).stream().map(Product::getName).toList());
 		assertEquals(List.of("Mesa de roble", "Silla"), catalogRepository.search(ALL, CatalogSort.NAME, 1, 2).stream().map(Product::getName).toList());
 		assertTrue(catalogRepository.search(ALL, CatalogSort.NAME, 2, 2).isEmpty());
 	}
 
 	@Test
-	void masVendidos_primeroYEmpatesPorNombre() {
+	void bestSellers_firstAndTiesByName() {
 		sold("Silla", 7);
 		sold("Alfombra", 2);
 		sold("Lampara", 2);
@@ -99,7 +99,7 @@ class CatalogRepositoryTest {
 	}
 
 	@Test
-	void categoriasConCantidad_sinLosBorrados() {
+	void categoriesWithCount_withoutDeleted() {
 		assertEquals(List.of(
 				new CategoryDto("comedor", 2),
 				new CategoryDto("iluminacion", 1),
@@ -108,7 +108,7 @@ class CatalogRepositoryTest {
 	}
 
 	@Test
-	void buscarPorSlug() {
+	void findBySlug() {
 		assertEquals("Silla", productRepository.findBySlug("silla").orElseThrow().getName());
 		assertTrue(productRepository.findBySlug("banco").isEmpty());
 	}

@@ -12,14 +12,14 @@ class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
     @Test
-    void archivoDemasiadoGrande_responde413() {
+    void fileTooLarge_responds413() {
         ResponseEntity<?> response = handler.handleAll(new MaxUploadSizeExceededException(5 * 1024 * 1024));
 
         assertEquals(HttpStatus.PAYLOAD_TOO_LARGE, response.getStatusCode());
     }
 
     @Test
-    void apiException_respondeSuEstado() {
+    void apiException_respondsWithItsStatus() {
         ResponseEntity<?> response = handler.handleAll(new ApiException("no existe", HttpStatus.NOT_FOUND));
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());

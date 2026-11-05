@@ -27,9 +27,9 @@ public class FileManager {
     }
 
     /*
-    Extension de una imagen segun sus primeros bytes (no el nombre ni el Content-Type, que los elige el cliente):
-    png, jpg, webp o gif. null si no es ninguna (tampoco se acepta SVG: puede traer scripts).
-    La extension decide el Content-Type con el que se sirve en /products/images/.
+    An image's extension according to its first bytes (not the name or the Content-Type, which the client picks):
+    png, jpg, webp or gif. null if it is none of them (SVG is not accepted either: it can carry scripts).
+    The extension decides the Content-Type it is served with in /products/images/.
      */
     public static String imageExtension(byte[] bytes) {
         if (startsWith(bytes, 0, 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A)) return "png";

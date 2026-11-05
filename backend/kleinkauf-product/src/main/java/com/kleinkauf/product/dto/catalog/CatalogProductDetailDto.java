@@ -5,9 +5,9 @@ import com.kleinkauf.product.dto.MetaDataDto;
 import java.math.BigDecimal;
 import java.util.List;
 
-// Detalle para el link compartido (/catalog/products/{slug}); price null = 'consultar precio'
+// Detail for the shared link (/catalog/products/{slug}); price null = 'consultar precio'
 public record CatalogProductDetailDto(
-        // Lo usa el carrito para armar el pedido
+        // Used by the cart to build the order
         Long id,
         String slug,
         String name,

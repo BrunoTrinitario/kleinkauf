@@ -1,21 +1,19 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { ArrowRight, ImageIcon } from "lucide-react"
+import { ArrowRight, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react"
 import type { CatalogBundle, CatalogProduct } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { productImageUrl } from "@/lib/api"
 import { formatPrice } from "@/lib/utils"
-import { useCatalogBundles, useCatalogFeatured } from "@/api/catalog"
+import { CATALOG_PATH } from "@/lib/catalog-url"
+import { useCatalogBundles, useCatalogFeatured, useCatalogProducts } from "@/api/catalog"
 import { ProductCard } from "./product-card"
+import { Button } from "./ui/button"
 import { ProductModal } from "./product-modal"
 import { AddToCartButton } from "./add-to-cart-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
 
-// Cuantos destacados y combos entran en las franjas de la home (el resto, en /catalogo y /combos)
-const FEATURED_IN_HOME = 8
-const BUNDLES_IN_HOME = 8
-
-// Franja de la home: en el celular se desliza de costado; desde sm, grilla. Sin items no se muestra
+// Home page strip: on phones it scrolls sideways; from sm, a grid. Not shown without items
 function Strip({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="space-y-4">
@@ -37,33 +35,101 @@ function StripLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-// Una sola fila en todos los anchos: en el celular cada tarjeta ocupa casi todo el ancho (se ve que hay mas a la
-// derecha), entran 2 desde sm y 4 en escritorio; el resto se ve deslizando
-const stripRow = "-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:gap-6"
+// A single row at every width: on phones each card takes almost the full width (so it shows there is more to the
+// right), 2 fit from sm and 4 on desktop; the rest is reached by swiping or with the arrows
+const stripRow = "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:gap-6 [scrollbar-width:none]"
 const stripItem = "grid w-[75%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]"
 
-// Destacados de la home, en el orden que eligio la tienda
+// Row with arrows that move one screen at a time (4 cards on desktop). The last screen ends at the last item even
+// if fewer than 4 are left; from there the right arrow goes back to the start (and the left one, from the start,
+// goes to the end). The arrows only show up when there are more items than fit
+function Carousel({ children }: { children: ReactNode }) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const [overflows, setOverflows] = useState(false)
+
+  useEffect(() => {
+    const row = rowRef.current
+    if (!row) return
+    const update = () => setOverflows(row.scrollWidth > row.clientWidth + 1)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(row)
+    return () => observer.disconnect()
+  }, [children])
+
+  const move = (direction: 1 | -1) => {
+    const row = rowRef.current
+    const first = row?.firstElementChild as HTMLElement | null
+    if (!row || !first) return
+    const style = getComputedStyle(row)
+    const gap = parseFloat(style.columnGap) || 0
+    const visible = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const itemStep = first.offsetWidth + gap
+    const perPage = Math.max(1, Math.round((visible + gap) / itemStep))
+    const maxScroll = row.scrollWidth - row.clientWidth
+    const atStart = row.scrollLeft <= 1
+    const atEnd = row.scrollLeft >= maxScroll - 1
+
+    if (direction === 1 && atEnd) row.scrollTo({ left: 0, behavior: "smooth" })
+    else if (direction === -1 && atStart) row.scrollTo({ left: maxScroll, behavior: "smooth" })
+    else row.scrollBy({ left: direction * perPage * itemStep, behavior: "smooth" })
+  }
+
+  const arrow = "absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full shadow-md sm:inline-flex"
+
+  return (
+    <div className="relative">
+      <div ref={rowRef} className={stripRow}>
+        {children}
+      </div>
+      {overflows ? (
+        <>
+          <Button
+            variant="outline"
+            size="icon"
+            className={`${arrow} -left-3`}
+            onClick={() => move(-1)}
+            aria-label={strings.home.previous}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className={`${arrow} -right-3`}
+            onClick={() => move(1)}
+            aria-label={strings.home.next}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+// Home page featured products, in the order the store chose
 export function FeaturedStrip() {
-  const featured = (useCatalogFeatured().data ?? []).slice(0, FEATURED_IN_HOME)
+  const featured = useCatalogFeatured().data ?? []
   const [selected, setSelected] = useState<CatalogProduct | null>(null)
 
   if (featured.length === 0) return null
 
   return (
     <Strip title={strings.home.featuredTitle}>
-      <div className={stripRow}>
+      <Carousel>
         {featured.map((product) => (
           <div key={product.slug} className={stripItem}>
             <ProductCard product={product} onClick={() => setSelected(product)} />
           </div>
         ))}
-      </div>
+      </Carousel>
       <ProductModal product={selected} open={selected !== null} onOpenChange={(open) => !open && setSelected(null)} />
     </Strip>
   )
 }
 
-// Combos de la home con la misma tarjeta que /combos, en una fila como los destacados
+// Home page bundles with the same card as /combos, in a row like the featured products
 export function BundlesStrip() {
   const bundles = useCatalogBundles().data ?? []
 
@@ -74,13 +140,40 @@ export function BundlesStrip() {
       title={strings.home.bundlesTitle}
       action={<StripLink to="/combos">{strings.home.allBundles}</StripLink>}
     >
-      <div className={stripRow}>
-        {bundles.slice(0, BUNDLES_IN_HOME).map((bundle) => (
+      <Carousel>
+        {bundles.map((bundle) => (
           <div key={bundle.id} className={stripItem}>
             <BundleCard bundle={bundle} />
           </div>
         ))}
+      </Carousel>
+    </Strip>
+  )
+}
+
+// First catalog page (default order) in a grid, as in /catalogo; at the end, the link to the full catalog
+export function CatalogStrip() {
+  const products = useCatalogProducts({ page: 0 }).data?.items ?? []
+  const [selected, setSelected] = useState<CatalogProduct | null>(null)
+
+  if (products.length === 0) return null
+
+  return (
+    <Strip title={strings.home.catalogTitle}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {products.map((product) => (
+          <ProductCard key={product.slug} product={product} onClick={() => setSelected(product)} />
+        ))}
       </div>
+      <div className="flex justify-center pt-2">
+        <Button asChild variant="outline">
+          <Link to={CATALOG_PATH}>
+            {strings.home.allProducts}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+      <ProductModal product={selected} open={selected !== null} onOpenChange={(open) => !open && setSelected(null)} />
     </Strip>
   )
 }
@@ -100,7 +193,7 @@ function ProductThumb({ image, className }: { image?: string | null; className: 
   )
 }
 
-// Foto del combo: con varios productos con imagen, un mosaico de hasta 4; si no, la imagen del combo
+// Bundle photo: with several products with an image, a mosaic of up to 4; otherwise, the bundle image
 function BundleCover({ bundle }: { bundle: CatalogBundle }) {
   const images = bundle.products.map((item) => item.image).filter((image): image is string => !!image).slice(0, 4)
   if (images.length < 2) {
@@ -124,8 +217,8 @@ function BundleCover({ bundle }: { bundle: CatalogBundle }) {
   )
 }
 
-// Tarjeta completa del combo (/combos): ahorro frente a comprar por separado, que incluye y agregar al carrito.
-// Tocar la foto abre el detalle: los productos con su foto, descripcion y precio suelto
+// Full bundle card (/combos): savings versus buying separately, what it includes and add to cart.
+// Tapping the photo opens the detail: the products with their photo, description and standalone price
 export function BundleCard({ bundle }: { bundle: CatalogBundle }) {
   const saving = savingOf(bundle)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -208,8 +301,8 @@ function BundleCartButton({ bundle, className }: { bundle: CatalogBundle; classN
   )
 }
 
-// Detalle del combo: cada producto con su foto, categoria, descripcion, cantidad y precio suelto, y al final la
-// cuenta de lo que sale por separado contra el precio del combo
+// Bundle detail: each product with its photo, category, description, quantity and standalone price, and at the end the
+// sum of what it costs separately against the bundle price
 function BundleDetailDialog({
   bundle,
   open,

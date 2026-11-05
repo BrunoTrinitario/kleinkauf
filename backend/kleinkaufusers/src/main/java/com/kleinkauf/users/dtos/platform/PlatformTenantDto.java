@@ -2,7 +2,7 @@ package com.kleinkauf.users.dtos.platform;
 
 import java.time.OffsetDateTime;
 
-// Vista de un tenant para el alta y el panel del superadmin
+// View of a tenant for the sign-up and the superadmin dashboard
 public record PlatformTenantDto(
         Long id,
         String identifier,

@@ -10,22 +10,22 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Evento que un servicio publica en Redis Streams (stream kleinkauf:events) para observability, que lo reenvia en
-vivo por WebSocket (docs/observabilidad.md). En el stream cada evento es un registro con los campos
-type, tenant, at (UTC, ISO-8601) y data (JSON).
-tenant: el schema de la tienda, o "public" si es de la plataforma.
+Event a service publishes to Redis Streams (stream kleinkauf:events) for observability, which forwards it
+live over WebSocket (docs/observabilidad.md). In the stream each event is a record with the fields
+type, tenant, at (UTC, ISO-8601) and data (JSON).
+tenant: the store's schema, or "public" if it belongs to the platform.
  */
 public record KleinKaufEvent(String type, String tenant, Instant at, Map<String, Object> data) {
 
     public static final String STREAM = "kleinkauf:events";
 
-    // Tiendas (plataforma): altas, habilitar / deshabilitar y bajas
+    // Stores (platform): creation, enable / disable and deletion
     public static final String TENANT_CREATED = "tenant.created";
     public static final String TENANT_ENABLED = "tenant.enabled";
     public static final String TENANT_DISABLED = "tenant.disabled";
     public static final String TENANT_DELETED = "tenant.deleted";
 
-    // Actividad de una tienda (canal store.activity): pedidos y ventas del local (sales) y stock (products)
+    // A store's activity (store.activity channel): orders and in-store sales (sales) and stock (products)
     public static final String ORDER_CREATED = "order.created";
     public static final String ORDER_RECEIPT_UPLOADED = "order.receipt-uploaded";
     public static final String STOCK_MOVEMENT = "stock.movement";
@@ -39,8 +39,8 @@ public record KleinKaufEvent(String type, String tenant, Instant at, Map<String,
     private static final TypeReference<Map<String, Object>> DATA_TYPE = new TypeReference<>() {
     };
 
-    // Los datos pueden tener valores null (ej. un movimiento de stock sin motivo): Map.copyOf no los acepta y el
-    // NullPointerException tiraba abajo la operacion que publicaba el evento
+    // Data may contain null values (e.g. a stock movement without a reason): Map.copyOf does not accept them and the
+    // NullPointerException brought down the operation that published the event
     public KleinKaufEvent {
         data = data == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(data));
     }
@@ -58,7 +58,7 @@ public record KleinKaufEvent(String type, String tenant, Instant at, Map<String,
         return fields;
     }
 
-    // null si el registro no tiene la forma de un evento (lo escribio otro, o una version vieja)
+    // null if the record does not have the shape of an event (written by someone else, or an old version)
     public static KleinKaufEvent fromFields(Map<String, String> fields, ObjectMapper mapper) {
         String type = fields.get(FIELD_TYPE);
         String tenant = fields.get(FIELD_TENANT);

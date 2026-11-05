@@ -2,7 +2,7 @@ package com.kleinkauf.users.dtos.platform;
 
 import java.time.OffsetDateTime;
 
-// active = false: desactivado (deleted_at en el usuario y en su rol SUPERADMIN)
+// active = false: deactivated (deleted_at on the user and on their SUPERADMIN role)
 public record SuperadminDto(
         Long id,
         String name,

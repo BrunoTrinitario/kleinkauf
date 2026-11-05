@@ -18,12 +18,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByName(String name);
     boolean existsByName(String name);
 
-    // Bloquea la fila hasta terminar la transaccion para que dos movimientos de stock no se pisen
+    // Locks the row until the transaction ends so two stock movements do not overwrite each other
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
 
-    // Igual que findByIdForUpdate para varios productos; ordenados por id para que dos reservas no se traben
+    // Same as findByIdForUpdate for several products; ordered by id so two reservations do not deadlock
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id IN :ids ORDER BY p.id")
     List<Product> findAllByIdForUpdate(@Param("ids") Collection<Long> ids);
@@ -36,19 +36,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findAllByOrderByNameAsc();
 
-    // Incluye los borrados (soft delete): el nombre es unique en la tabla aunque el producto este borrado
+    // Includes deleted ones (soft delete): the name is unique in the table even if the product is deleted
     @Query(value = "SELECT COUNT(*) > 0 FROM product WHERE name = :name", nativeQuery = true)
     boolean existsByNameIncludingDeleted(@Param("name") String name);
 
-    // Igual que el nombre: el slug es unique aunque el producto este borrado
+    // Same as the name: the slug is unique even if the product is deleted
     @Query(value = "SELECT COUNT(*) > 0 FROM product WHERE slug = :slug", nativeQuery = true)
     boolean existsBySlugIncludingDeleted(@Param("slug") String slug);
 
     Optional<Product> findBySlug(String slug);
 
-    // Panel de la tienda (DashboardService)
+    // Store dashboard (DashboardService)
 
-    // [category, cantidad], de mayor a menor; los sin categoria en una fila con category null
+    // [category, count], highest to lowest; those without a category in a row with category null
     @Query("SELECT p.category, COUNT(p) FROM Product p GROUP BY p.category ORDER BY COUNT(p) DESC, p.category ASC NULLS LAST")
     List<Object[]> countByCategory();
 
@@ -74,7 +74,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     long countByStockGreaterThanAndPriceIsNull(int stock);
 
-    // [id, name] incluidos los borrados (soft delete): para nombrar movimientos viejos
+    // [id, name] including deleted ones (soft delete): to name old movements
     @Query(value = "SELECT id, name FROM product WHERE id IN (:ids)", nativeQuery = true)
     List<Object[]> findNamesIncludingDeleted(@Param("ids") Collection<Long> ids);
 }

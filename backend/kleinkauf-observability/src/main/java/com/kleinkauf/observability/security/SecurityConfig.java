@@ -17,13 +17,13 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // WS: se entra con el ticket (TicketHandshakeInterceptor)
+                        // WS: entered with the ticket (TicketHandshakeInterceptor)
                         .requestMatchers("/ws").permitAll()
-                        // Los errores de los controllers (400, 404) se responden por /error: si no, saldrian como 403
+                        // Controller errors (400, 404) are answered through /error: otherwise they would go out as 403
                         .requestMatchers("/error").permitAll()
-                        // Panel de la plataforma: solo el superadmin
+                        // Platform dashboard: superadmin only
                         .requestMatchers("/api/v1/platform/observability/**").hasRole(RolesService.SUPERADMIN)
-                        // Panel y auditoria de la tienda: solo el administrador
+                        // Store dashboard and audit: administrator only
                         .requestMatchers("/api/v1/observability/**").hasRole(RolesService.ADMINISTRADOR)
                         .anyRequest().denyAll()
                 )
@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    // Solo dentro de la cadena de seguridad: sin esto Spring Boot lo registraria tambien como filtro suelto
+    // Only inside the security chain: without this Spring Boot would also register it as a standalone filter
     @Bean
     public FilterRegistrationBean<HeaderAuthFilter> headerAuthFilterRegistration(HeaderAuthFilter filter) {
         FilterRegistrationBean<HeaderAuthFilter> registration = new FilterRegistrationBean<>(filter);

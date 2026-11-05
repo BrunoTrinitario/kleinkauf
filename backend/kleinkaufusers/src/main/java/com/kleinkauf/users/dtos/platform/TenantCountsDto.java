@@ -1,6 +1,6 @@
 package com.kleinkauf.users.dtos.platform;
 
-// total, enabled y disabled cuentan los tenants no borrados; deleted, los borrados (soft delete)
+// total, enabled and disabled count the non-deleted tenants; deleted, the deleted ones (soft delete)
 public record TenantCountsDto(
         long total,
         long enabled,

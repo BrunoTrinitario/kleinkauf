@@ -9,8 +9,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /*
-Historial de cambios de stock de un producto. No se modifica ni se borra:
-cada cambio es un movimiento nuevo.
+History of a product's stock changes. Never modified or deleted:
+each change is a new movement.
  */
 @Entity
 @Audited
@@ -31,7 +31,7 @@ public class StockMovement {
     @Column(nullable = false)
     private StockMovementType type;
 
-    // Diferencia aplicada al stock (positiva o negativa)
+    // Difference applied to the stock (positive or negative)
     @Column(nullable = false)
     private int quantity;
 
@@ -40,11 +40,11 @@ public class StockMovement {
 
     private String reason;
 
-    // Numero del pedido que reservo o devolvio el stock (null en los movimientos manuales)
+    // Number of the order that reserved or returned the stock (null in manual movements)
     @Column(length = 40)
     private String reference;
 
-    // Usuario que registro el movimiento (id del microservicio de usuarios)
+    // User who recorded the movement (id from the users microservice)
     @Column(name = "user_id")
     private Long userId;
 

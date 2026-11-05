@@ -36,8 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /*
-Valida contra H2 (modo PostgreSQL) el mapeo de los pedidos y las consultas del panel,
-que si estan mal solo fallan al arrancar el servicio o al usarlas.
+Validates against H2 (PostgreSQL mode) the order mapping and the dashboard queries,
+which if wrong only fail when the service starts or when they are used.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:sales;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
@@ -71,17 +71,17 @@ class OrderRepositoryTest {
 	private ReceiptStorage receiptStorage;
 
 	@Test
-	void vencidos_soloSinComprobanteYConElPlazoCumplido() {
+	void expired_onlyWithoutReceiptAndWithTheDeadlineMet() {
 		LocalDateTime now = LocalDateTime.of(2026, 11, 2, 12, 0);
-		Order vencido = order("AAAA-AAAA", "a@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now.minusDays(3));
-		vencido.setExpiresAt(now.minusMinutes(1));
-		Order rechazado = order("BBBB-BBBB", "b@mail.com", null, OrderStatus.RECHAZADO, SalesChannel.ONLINE, now.minusDays(3));
-		rechazado.setExpiresAt(now.minusHours(1));
-		Order enPlazo = order("CCCC-CCCC", "c@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now);
-		enPlazo.setExpiresAt(now.plusHours(1));
-		Order enRevision = order("DDDD-DDDD", "d@mail.com", null, OrderStatus.PAGO_EN_REVISION, SalesChannel.ONLINE, now.minusDays(3));
-		enRevision.setExpiresAt(now.minusHours(1));
-		List.of(vencido, rechazado, enPlazo, enRevision).forEach(em::persist);
+		Order expiredOrder = order("AAAA-AAAA", "a@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now.minusDays(3));
+		expiredOrder.setExpiresAt(now.minusMinutes(1));
+		Order rejectedOrder = order("BBBB-BBBB", "b@mail.com", null, OrderStatus.RECHAZADO, SalesChannel.ONLINE, now.minusDays(3));
+		rejectedOrder.setExpiresAt(now.minusHours(1));
+		Order withinDeadline = order("CCCC-CCCC", "c@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now);
+		withinDeadline.setExpiresAt(now.plusHours(1));
+		Order underReview = order("DDDD-DDDD", "d@mail.com", null, OrderStatus.PAGO_EN_REVISION, SalesChannel.ONLINE, now.minusDays(3));
+		underReview.setExpiresAt(now.minusHours(1));
+		List.of(expiredOrder, rejectedOrder, withinDeadline, underReview).forEach(em::persist);
 		em.flush();
 
 		List<String> numbers = orderRepository.findExpiredNumbers(
@@ -91,7 +91,7 @@ class OrderRepositoryTest {
 	}
 
 	@Test
-	void comprobantes_seGuardanConElPedido_yLaVersionSube() throws Exception {
+	void receipts_areSavedWithTheOrder_andTheVersionGoesUp() throws Exception {
 		Order order = order("AAAA-AAAA", "a@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, LocalDateTime.now());
 		em.persistAndFlush(order);
 		long version = order.getVersion();
@@ -112,7 +112,7 @@ class OrderRepositoryTest {
 	}
 
 	@Test
-	void guardaElPedidoConItemsHistorialYDireccion() throws Exception {
+	void savesTheOrderWithItemsHistoryAndAddress() throws Exception {
 		Order order = order("K7QM-4X2P", "ana@mail.com", 7L, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, LocalDateTime.now());
 		order.setDeliveryType(DeliveryType.ENVIO);
 		order.setAddress(new Address("Calle", "123", "2B", "CABA", "Buenos Aires", "1405"));
@@ -129,7 +129,7 @@ class OrderRepositoryTest {
 	}
 
 	@Test
-	void misPedidos_soloLosDelUsuario_masNuevosPrimero() {
+	void myOrders_onlyTheUsersOwn_newestFirst() {
 		em.persist(order("AAAA-AAAA", "ana@mail.com", 7L, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, LocalDateTime.now().minusDays(1)));
 		em.persist(order("BBBB-BBBB", "ana@mail.com", 7L, OrderStatus.PAGADO, SalesChannel.ONLINE, LocalDateTime.now()));
 		em.persist(order("CCCC-CCCC", "otro@mail.com", 8L, OrderStatus.PAGADO, SalesChannel.ONLINE, LocalDateTime.now()));
@@ -142,7 +142,7 @@ class OrderRepositoryTest {
 	}
 
 	@Test
-	void panel_filtraPorEstadoCanalFechasYBusqueda() throws Exception {
+	void dashboard_filtersByStatusChannelDatesAndSearch() throws Exception {
 		LocalDateTime now = LocalDateTime.of(2026, 11, 2, 12, 0);
 		em.persist(order("AAAA-AAAA", "ana@mail.com", null, OrderStatus.PENDIENTE_PAGO, SalesChannel.ONLINE, now.minusDays(3)));
 		em.persist(order("BBBB-BBBB", "juan_perez@mail.com", null, OrderStatus.PAGADO, SalesChannel.ONLINE, now));
@@ -155,18 +155,18 @@ class OrderRepositoryTest {
 
 		assertEquals(List.of("BBBB-BBBB"), numbers(filter("pagado", null, null, null, null, null, null)));
 		assertEquals(List.of("CCCC-CCCC"), numbers(filter(null, "LOCAL", "efectivo", true, null, null, null)));
-		// Rango inclusive por dia
+		// Inclusive range by day
 		assertEquals(List.of("AAAA-AAAA"), numbers(filter(null, null, null, null, "2026-10-30", "2026-10-30", null)));
 		assertEquals(2, numbers(filter(null, null, null, null, "2026-11-02", "2026-11-02", null)).size());
-		// Por numero exacto o parte del email; el '_' se busca tal cual
+		// By exact number or part of the email; '_' is searched literally
 		assertEquals(List.of("AAAA-AAAA"), numbers(filter(null, null, null, null, null, null, "aaaa-aaaa")));
 		assertEquals(List.of("BBBB-BBBB"), numbers(filter(null, null, null, null, null, null, "juan_")));
-		// Sin escapar, 'na_' coincidiria con 'ana@'
+		// Without escaping, 'na_' would match 'ana@'
 		assertTrue(numbers(filter(null, null, null, null, null, null, "na_")).isEmpty());
 	}
 
 	@Test
-	void panel_resumenSumaLasUnidades() throws Exception {
+	void dashboard_summaryAddsUpTheUnits() throws Exception {
 		em.persistAndFlush(order("AAAA-AAAA", "ana@mail.com", null, OrderStatus.PAGADO, SalesChannel.ONLINE, LocalDateTime.now()));
 		em.clear();
 

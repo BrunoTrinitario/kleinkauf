@@ -8,9 +8,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 /*
-Uso del catalogo publico para el panel de la tienda (canal store.usage, ver UsageKeys): visitas al listado y
-vistas del detalle de cada producto, contadas por dia en Redis. observability las lee.
-Es un HINCRBY por request; si Redis falla se loguea y el catalogo responde igual.
+Public catalog usage for the store dashboard (store.usage channel, see UsageKeys): listing visits and
+detail views of each product, counted per day in Redis. observability reads them.
+It is one HINCRBY per request; if Redis fails it is logged and the catalog responds anyway.
  */
 @Slf4j
 @Component
@@ -41,7 +41,7 @@ public class CatalogUsage {
         String key = UsageKeys.key(tenant, UsageKeys.today());
         try {
             Long count = template.opsForHash().increment(key, field, 1);
-            // La primera escritura del dia le pone el vencimiento
+            // The first write of the day sets the expiry
             if (count != null && count == 1) {
                 template.expire(key, UsageKeys.TTL);
             }

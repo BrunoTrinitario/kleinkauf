@@ -5,8 +5,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
 /*
-Las fechas se guardan como LocalDateTime en la hora del servidor (en Docker, UTC). Sin el offset, el navegador
-las lee como hora local y las muestra corridas: las respuestas de la plataforma las mandan con su offset.
+Dates are stored as LocalDateTime in server time (in Docker, UTC). Without the offset, the browser
+reads them as local time and shows them shifted: platform responses send them with their offset.
  */
 public final class Dates {
 

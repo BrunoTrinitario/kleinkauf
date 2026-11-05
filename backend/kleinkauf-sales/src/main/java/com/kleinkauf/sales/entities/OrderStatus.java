@@ -4,24 +4,24 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /*
-Estados del pedido (ver docs/ventas.md). Cuenta como venta desde PAGADO.
-El stock se reserva al crear el pedido y se devuelve en CANCELADO y VENCIDO.
+Order statuses (see docs/ventas.md). It counts as a sale from PAGADO on.
+Stock is reserved when the order is created and returned on CANCELADO and VENCIDO.
  */
 public enum OrderStatus {
-    // Creado, esperando el comprobante
+    // Created, awaiting the receipt
     PENDIENTE_PAGO,
-    // Subio el comprobante, lo revisa el administrador
+    // Receipt uploaded, the administrator reviews it
     PAGO_EN_REVISION,
-    // El comprobante no es valido; puede subir otro
+    // The receipt is not valid; another one can be uploaded
     RECHAZADO,
-    // El administrador valido el pago
+    // The administrator validated the payment
     PAGADO,
     EN_PREPARACION,
-    // Listo para retirar o despachar
+    // Ready for pickup or dispatch
     LISTO,
     ENTREGADO,
     CANCELADO,
-    // Paso el plazo sin comprobante
+    // The deadline passed without a receipt
     VENCIDO;
 
     private static final Set<OrderStatus> FINAL = EnumSet.of(ENTREGADO, CANCELADO, VENCIDO);
@@ -32,27 +32,27 @@ public enum OrderStatus {
         return FINAL.contains(this);
     }
 
-    // Cuenta como venta (stock descontado y contador de vendidos)
+    // Counts as a sale (stock deducted and sold counter)
     public boolean isPaid() {
         return PAID.contains(this);
     }
 
-    // Todavia no se valido el pago: el comprador lo puede cancelar
+    // The payment has not been validated yet: the buyer can cancel it
     public boolean isAwaitingPayment() {
         return AWAITING_PAYMENT.contains(this);
     }
 
-    // Se puede subir un comprobante (y vence si pasa el plazo)
+    // A receipt can be uploaded (and it expires if the deadline passes)
     public boolean acceptsReceipt() {
         return this == PENDIENTE_PAGO || this == RECHAZADO;
     }
 
     /*
-    Cambios que puede hacer el administrador:
-    - Validar (PAGADO) desde cualquier estado sin pagar: tambien sin comprobante, si pago por otro medio.
-    - Rechazar solo un comprobante en revision.
-    - Avanzar la entrega (PAGADO -> EN_PREPARACION -> LISTO -> ENTREGADO), salteando pasos si hace falta.
-    - Cancelar cualquier pedido que no este terminado.
+    Changes the administrator can make:
+    - Validate (PAGADO) from any unpaid status: also without a receipt, if they paid by other means.
+    - Reject only a receipt under review.
+    - Advance the delivery (PAGADO -> EN_PREPARACION -> LISTO -> ENTREGADO), skipping steps if needed.
+    - Cancel any order that is not finished.
      */
     public boolean canChangeTo(OrderStatus target) {
         if (isFinal() || target == this) return false;
@@ -66,8 +66,8 @@ public enum OrderStatus {
     }
 
     /*
-    Lo mismo, segun el canal: una venta del local entregada se puede anular (se cargo por error o la devolvieron).
-    Los pedidos online entregados siguen siendo finales.
+    The same, depending on the channel: a delivered in-store sale can be voided (entered by mistake or returned).
+    Delivered online orders stay final.
      */
     public boolean canChangeTo(OrderStatus target, SalesChannel channel) {
         if (this == ENTREGADO && target == CANCELADO) return channel == SalesChannel.LOCAL;

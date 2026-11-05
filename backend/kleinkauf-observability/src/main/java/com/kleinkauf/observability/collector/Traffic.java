@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /*
-Tasas entre dos lecturas de los contadores de una o mas instancias de un servicio.
-- Si un contador bajo, la instancia se reinicio: se toma lo de la lectura nueva entera.
-- Los percentiles salen del histograma de las requests entre las dos lecturas, con la misma
-  interpolacion que histogram_quantile de Prometheus. Sin requests en el intervalo no hay percentiles.
+Rates between two readings of the counters of one or more instances of a service.
+- If a counter went down, the instance restarted: the whole new reading is taken.
+- Percentiles come from the histogram of the requests between the two readings, with the same
+  interpolation as Prometheus' histogram_quantile. Without requests in the interval there are no percentiles.
  */
 public final class Traffic {
 
@@ -16,12 +16,12 @@ public final class Traffic {
                         double rateLimitedPerSecond, Double p50Ms, Double p95Ms, Double p99Ms) {
     }
 
-    // Lo que paso en una instancia entre dos lecturas
+    // What happened on an instance between two readings
     public record Delta(double requests, double errors5xx, double errors4xx, double rateLimited,
                         Map<Double, Double> buckets, Map<String, InstanceMetrics.TenantRequests> tenants) {
     }
 
-    // Requests y errores por segundo de una tienda
+    // Requests and errors per second of a store
     public record TenantRates(double requestsPerSecond, double errors4xxPerSecond, double errors5xxPerSecond) {
 
         public static final TenantRates ZERO = new TenantRates(0, 0, 0);
@@ -49,7 +49,7 @@ public final class Traffic {
                 tenants);
     }
 
-    // Por tienda, sumando las instancias. Las tiendas sin requests en el intervalo no aparecen (son 0)
+    // Per store, adding up the instances. Stores without requests in the interval do not appear (they are 0)
     public static Map<String, TenantRates> tenantRates(List<Delta> deltas, double seconds) {
         Map<String, InstanceMetrics.TenantRequests> totals = new TreeMap<>();
         for (Delta delta : deltas) {
@@ -80,7 +80,7 @@ public final class Traffic {
                 toMs(quantile(0.50, buckets)), toMs(quantile(0.95, buckets)), toMs(quantile(0.99, buckets)));
     }
 
-    // buckets acumulados (como en Prometheus): le -> requests con latencia <= le
+    // cumulative buckets (as in Prometheus): le -> requests with latency <= le
     static Double quantile(double q, Map<Double, Double> buckets) {
         if (buckets.isEmpty()) {
             return null;
@@ -98,7 +98,7 @@ public final class Traffic {
             double count = bucket.getValue();
             if (count >= rank) {
                 if (Double.isInfinite(le)) {
-                    // Cae en el ultimo bucket: lo mas que se puede decir es el limite anterior
+                    // Falls in the last bucket: the most that can be said is the previous bound
                     return previousLe;
                 }
                 double inBucket = count - previousCount;

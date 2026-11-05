@@ -17,8 +17,8 @@ import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
 /*
-Filtros de las consultas de auditoria. from y to son fechas con zona (ISO-8601, ej. 2026-11-02T03:00:00Z):
-el frontend sabe que es "un dia" para el que mira. to no se incluye.
+Audit query filters. from and to are dates with a zone (ISO-8601, e.g. 2026-11-02T03:00:00Z):
+the frontend knows what "a day" is for the viewer. to is exclusive.
  */
 final class AuditQueries {
 
@@ -33,8 +33,8 @@ final class AuditQueries {
     }
 
     /*
-    El historial filtrado en CSV, como descarga (auditoria-<nombre>-<fecha>.csv). Con mas de MAX_EXPORT_ROWS eventos
-    responde 400 en vez de cortarlo: un archivo incompleto parece completo
+    The filtered history as CSV, as a download (auditoria-<name>-<date>.csv). With more than MAX_EXPORT_ROWS events
+    it responds 400 instead of truncating it: an incomplete file looks complete
      */
     static ResponseEntity<byte[]> export(AuditStore audit, AuditCsv csv, String schema, AuditStore.Query query, String name) {
         if (audit.count(schema, query) > AuditStore.MAX_EXPORT_ROWS) {

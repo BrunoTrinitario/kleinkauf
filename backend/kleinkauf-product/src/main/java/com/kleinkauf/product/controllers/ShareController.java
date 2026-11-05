@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 
 /*
-Link para compartir un producto: el gateway recibe /share/{identificador}/products/{slug}, resuelve la tienda por
-el identificador (el crawler no manda Origin) y llega aca como /share/products/{slug} con el schema de la tienda.
-Publico y sin JSON: un HTML con Open Graph que redirige a la pagina del producto (ver SharePage).
+Link to share a product: the gateway receives /share/{identifier}/products/{slug}, resolves the store by
+the identifier (the crawler does not send Origin) and it arrives here as /share/products/{slug} with the store's schema.
+Public and not JSON: an HTML page with Open Graph that redirects to the product page (see SharePage).
  */
 @RestController
 public class ShareController {
@@ -28,11 +28,11 @@ public class ShareController {
     @Autowired
     private CatalogService catalogService;
 
-    // {identifier}: el identificador de la tienda (el schema con - en vez de _)
+    // {identifier}: the store identifier (the schema with - instead of _)
     @Value("${share.store-url:http://{identifier}.localhost:2999}")
     private String storeUrlTemplate;
 
-    // Gateway visto desde afuera: la imagen de og:image tiene que ser una URL absoluta
+    // Gateway as seen from outside: the og:image must be an absolute URL
     @Value("${share.public-url:http://localhost:3000}")
     private String publicUrl;
 
@@ -44,12 +44,12 @@ public class ShareController {
             return html(HttpStatus.OK, SharePage.product(product, storeUrl, publicUrl));
         } catch (ApiException e) {
             if (e.getStatus() != HttpStatus.NOT_FOUND) throw e;
-            // Producto borrado o link mal copiado: 404 para el crawler, la home de la tienda para la persona
+            // Deleted product or badly copied link: 404 for the crawler, the store's home page for the person
             return html(HttpStatus.NOT_FOUND, SharePage.store(storeUrl));
         }
     }
 
-    // Los crawlers guardan la vista previa: una hora alcanza para que un cambio de precio o foto se vea pronto
+    // Crawlers cache the preview: one hour is enough for a price or photo change to show soon
     private static ResponseEntity<String> html(HttpStatus status, String body) {
         return ResponseEntity.status(status)
                 .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())

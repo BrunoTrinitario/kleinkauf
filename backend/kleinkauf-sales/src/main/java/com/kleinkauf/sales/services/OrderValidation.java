@@ -8,7 +8,7 @@ import com.kleinkauf.sales.entities.Order;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-// Validaciones y armado de los datos del comprador y la entrega, comunes al pedido online y al del local
+// Validation and building of the buyer and delivery data, shared by the online order and the in-store one
 public class OrderValidation {
 
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
@@ -38,7 +38,7 @@ public class OrderValidation {
         return notes == null || notes.length() <= 500;
     }
 
-    // Copia el comprador al pedido; los campos vacios quedan en null (en el local son opcionales)
+    // Copies the buyer to the order; empty fields stay null (in the store they are optional)
     public static void setBuyer(Order order, BuyerDto buyer) {
         if (buyer == null) return;
         order.setBuyerName(trimToNull(buyer.name()));

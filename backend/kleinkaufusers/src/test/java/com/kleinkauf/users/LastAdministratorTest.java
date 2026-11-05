@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /*
-La tienda no se puede quedar sin ADMINISTRADOR: el ultimo no se borra (ni a si mismo con DELETE /auth/me ni desde
-el panel) ni pierde el rol. Contra una base real (H2) para que los borrados logicos no cuenten como administradores.
+The store cannot be left without an ADMINISTRADOR: the last one is not deleted (neither by themselves with DELETE /auth/me nor from
+the dashboard) nor does it lose the role. Against a real database (H2) so soft-deleted users do not count as administrators.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:last-admin;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
@@ -43,7 +43,7 @@ class LastAdministratorTest {
 	@Autowired
 	private RoleRepository roleRepository;
 
-	// Lo pide el CommandLineRunner de KleinKaufusersApplication; el servicio que se prueba se arma a mano
+	// Required by KleinKaufusersApplication's CommandLineRunner; the service under test is built by hand
 	@MockitoBean
 	private UserService springUserService;
 
@@ -58,7 +58,7 @@ class LastAdministratorTest {
 	}
 
 	@Test
-	void unicoAdministrador_noSePuedeBorrar() {
+	void onlyAdministrator_cannotBeDeleted() {
 		User owner = user("dueno@t.com", "ADMINISTRADOR", "EMPLEADO");
 		user("cliente@t.com", "CLIENTE");
 
@@ -70,7 +70,7 @@ class LastAdministratorTest {
 	}
 
 	@Test
-	void unicoAdministrador_noPierdeElRol() {
+	void onlyAdministrator_doesNotLoseTheRole() {
 		User owner = user("dueno@t.com", "ADMINISTRADOR", "EMPLEADO");
 
 		ApiException e = assertThrows(ApiException.class, () -> userService.deleteRoleFromUser(owner.getId(), "ADMINISTRADOR"));
@@ -80,25 +80,25 @@ class LastAdministratorTest {
 	}
 
 	@Test
-	void unicoAdministrador_puedePerderOtroRol() throws ApiException {
+	void onlyAdministrator_canLoseAnotherRole() throws ApiException {
 		User owner = user("dueno@t.com", "ADMINISTRADOR", "EMPLEADO");
 
 		assertTrue(userService.deleteRoleFromUser(owner.getId(), "EMPLEADO"));
 	}
 
 	@Test
-	void conOtroAdministrador_sePuedeBorrarOSacarElRol() throws ApiException {
+	void withAnotherAdministrator_canBeDeletedOrLoseTheRole() throws ApiException {
 		User owner = user("dueno@t.com", "ADMINISTRADOR");
 		User partner = user("socio@t.com", "ADMINISTRADOR");
 
 		assertTrue(userService.deleteRoleFromUser(partner.getId(), "ADMINISTRADOR"));
 		em.flush();
-		// Ahora el dueno es el unico
+		// Now the owner is the only one
 		assertThrows(ApiException.class, () -> userService.deleteUserById(owner.getId()));
 	}
 
 	@Test
-	void unAdministradorBorrado_noCuenta() {
+	void deletedAdministrator_doesNotCount() {
 		User owner = user("dueno@t.com", "ADMINISTRADOR");
 		User deleted = em.find(User.class, user("borrado@t.com", "ADMINISTRADOR").getId());
 		deleted.setDeletedAt(LocalDateTime.now());
@@ -111,7 +111,7 @@ class LastAdministratorTest {
 	}
 
 	@Test
-	void unCliente_seBorraAunqueHayaUnSoloAdministrador() throws ApiException {
+	void customer_isDeletedEvenIfThereIsOnlyOneAdministrator() throws ApiException {
 		user("dueno@t.com", "ADMINISTRADOR");
 		User client = user("cliente@t.com", "CLIENTE");
 
@@ -131,7 +131,7 @@ class LastAdministratorTest {
 			role.setUser(user);
 			em.persist(role);
 		}
-		// El servicio lo vuelve a leer de la base, con sus roles
+		// The service reads it again from the database, with its roles
 		em.flush();
 		em.clear();
 		return user;

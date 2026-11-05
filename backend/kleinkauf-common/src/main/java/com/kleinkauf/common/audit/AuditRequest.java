@@ -15,16 +15,16 @@ import java.util.List;
 import java.util.Set;
 
 /*
-Quien y desde donde: lo toma de la request en curso.
-- Se audita solo lo que hace una persona: una request con usuario o una publica (el alta por autoservicio).
-  Las llamadas internas entre servicios (ej. sales reservando stock en products) y lo que corre sin request
-  (tareas programadas, el arranque) no se registran: null.
-- El rol es el mas alto que tiene el usuario.
-- La IP la pone el gateway (X-Client-Ip, el cliente no puede mandarla: ClientHeadersFilter la borra).
+Who and from where: taken from the current request.
+- Only what a person does is audited: a request with a user or a public one (self-service sign-up).
+  Internal calls between services (e.g. sales reserving stock in products) and what runs without a request
+  (scheduled tasks, startup) are not recorded: null.
+- The role is the highest one the user has.
+- The IP is set by the gateway (X-Client-Ip; the client cannot send it: ClientHeadersFilter removes it).
  */
 public final class AuditRequest {
 
-    // De mas alto a mas bajo
+    // From highest to lowest
     static final List<String> ROLE_PRIORITY = List.of("SUPERADMIN", "ADMINISTRADOR", "EMPLEADO", "CLIENTE");
 
     public record Info(String tenant, AuditEvent.Actor actor, String ip, String traceId) {

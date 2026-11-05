@@ -2,13 +2,13 @@ import { useSyncExternalStore } from "react"
 import axios from "axios"
 
 /*
-Estado de la tienda que se abrio: el gateway corta cualquier request de una tienda que no existe (404) o que esta
-deshabilitada (403), con un texto propio (ver docs/backend/gateway.md). Cuando pasa, la app muestra una pagina
-en lugar de las rutas: ninguna pantalla de esa tienda puede andar.
+Status of the opened store: the gateway cuts off any request for a store that does not exist (404) or is
+disabled (403), with its own text (see docs/backend/gateway.md). When that happens, the app shows a page
+instead of the routes: no screen of that store can work.
  */
 export type TenantStatus = "ok" | "not-found" | "disabled"
 
-// Los textos literales del gateway (ErrorMessages): un 404/403 de otra cosa no cuenta
+// The gateway's literal texts (ErrorMessages): a 404/403 from something else does not count
 const NOT_FOUND = "tenant was not found"
 const DISABLED = "tenant is disabled"
 
@@ -21,7 +21,7 @@ const setStatus = (next: TenantStatus) => {
   listeners.forEach((listener) => listener())
 }
 
-// "ok" si el error no es de la tienda (ni siquiera un error HTTP)
+// "ok" if the error is not about the store (not even an HTTP error)
 function tenantStatusOf(error: unknown): TenantStatus {
   if (!axios.isAxiosError(error) || !error.response) return "ok"
   const body = typeof error.response.data === "string" ? error.response.data.toLowerCase() : ""
@@ -30,7 +30,7 @@ function tenantStatusOf(error: unknown): TenantStatus {
   return "ok"
 }
 
-// Lo llama el cliente HTTP con cada error (solo en las tiendas: la plataforma no tiene tienda)
+// Called by the HTTP client on every error (only in stores: the platform has no store)
 export function reportTenantError(error: unknown) {
   const next = tenantStatusOf(error)
   if (next !== "ok") {
@@ -38,7 +38,7 @@ export function reportTenantError(error: unknown) {
   }
 }
 
-// La pagina de tienda no disponible ya lo explica: las pantallas no tienen que avisarlo otra vez
+// The store unavailable page already explains it: screens do not have to report it again
 export function isTenantUnavailable(error: unknown): boolean {
   return tenantStatusOf(error) !== "ok"
 }

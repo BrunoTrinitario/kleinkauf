@@ -32,8 +32,13 @@ public class GatewayRoutes {
                         .path("/products/images/**")
                         .uri(productUrl))
 
-                // Link para compartir (Open Graph): la tienda va en la ruta y products no la necesita (ya la
-                // resolvio TenantGatewayFilter y llega como X-Forwarded-Host)
+                // User profile photos: served by users
+                .route("user-avatars", r -> r
+                        .path("/users/avatars/**")
+                        .uri(userUrl))
+
+                // Share link (Open Graph): the store goes in the path and products does not need it (TenantGatewayFilter
+                // already resolved it and it arrives as X-Forwarded-Host)
                 .route("share", r -> r
                         .path("/share/*/products/*")
                         .filters(f -> f.rewritePath("/share/[^/]+/products/(?<slug>[^/]+)", "/share/products/${slug}"))
@@ -47,6 +52,11 @@ public class GatewayRoutes {
                         .path("/api/v1/catalog/**")
                         .uri(productUrl))
 
+                // Store settings (name, theme, icon): stored by products
+                .route("store", r -> r
+                        .path("/api/v1/store/**")
+                        .uri(productUrl))
+
                 .route("sales", r -> r
                         .path("/api/v1/sales/**")
                         .uri(salesUrl))
@@ -57,25 +67,25 @@ public class GatewayRoutes {
                 .route("auth", r -> r
                         .path("/api/v1/auth/**")
                         .uri(userUrl))
-                // Reportar un bug desde el footer de una tienda (lo leen los superadmins)
+                // Reporting a bug from a store's footer (read by the superadmins)
                 .route("bug reports", r -> r
                         .path("/api/v1/bug-reports")
                         .uri(userUrl))
-                // Uso por tenant de products: antes que la ruta general de plataforma (order menor gana)
+                // Per-tenant usage from products: before the general platform route (lower order wins)
                 .route("platform products", r -> r
                         .order(-1)
                         .path("/api/v1/platform/products/**")
                         .uri(productUrl))
-                // Panel de observabilidad de la plataforma: tambien antes que la ruta general de plataforma
+                // Platform observability dashboard: also before the general platform route
                 .route("platform observability", r -> r
                         .order(-1)
                         .path("/api/v1/platform/observability/**")
                         .uri(observabilityUrl))
-                // Observabilidad y auditoria de la tienda (solo el administrador, lo valida observability)
+                // Store observability and audit (administrator only, validated by observability)
                 .route("observability", r -> r
                         .path("/api/v1/observability/**")
                         .uri(observabilityUrl))
-                // WebSocket del panel en tiempo real (se entra con un ticket, ver docs/observabilidad.md)
+                // Real-time dashboard WebSocket (entered with a ticket, see docs/observabilidad.md)
                 .route("observability ws", r -> r
                         .path("/ws")
                         .uri(observabilityWsUrl))

@@ -34,7 +34,7 @@ public class CacheUtil {
     @Value("${limit.minutes}")
     private int minutesLimit;
 
-    // Reactivo: se usa desde TenantGatewayFilter en cada request (por la URL del Origin). Vacio si no esta o no se puede leer
+    // Reactive: used from TenantGatewayFilter on every request (by the Origin URL). Empty if missing or unreadable
     public Mono<TenantDto> getTenantByUrl(String url) {
         String key = CacheKeys.TENANT_URL_CACHE + url;
         return reactiveJsonRedisTemplate.<String, Object>opsForHash().get(key, "data")
@@ -47,7 +47,7 @@ public class CacheUtil {
                 });
     }
 
-    // Reactivo: se usa desde el filtro de CORS, que corre en el event loop de Netty
+    // Reactive: used from the CORS filter, which runs on Netty's event loop
     public Mono<Boolean> existsTenantByUrl(String url) {
         String key = CacheKeys.GATEWAY_CORS + url;
         return reactiveRedisTemplate.hasKey(key)

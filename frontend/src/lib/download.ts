@@ -1,6 +1,6 @@
 import { api } from "./api"
 
-// El archivo viene del backend (con BOM): se descarga tal cual, con el nombre que manda
+// The file comes from the backend (with BOM): it is downloaded as is, with the name it sends
 export async function downloadCsv(path: string, fallbackName: string, params?: Record<string, unknown>) {
   const response = await api.get<Blob>(path, { responseType: "blob", params })
   const disposition = String(response.headers["content-disposition"] ?? "")

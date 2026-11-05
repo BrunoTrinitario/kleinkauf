@@ -30,8 +30,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
-Levanta solo UsersClient con los aspectos reales de Resilience4j (sin base de datos)
-para comprobar retry, fallback y que los 4xx no se reintentan.
+Starts only UsersClient with the real Resilience4j aspects (no database)
+to check retry, fallback and that 4xx are not retried.
  */
 @SpringBootTest(
 		classes = UsersClient.class,
@@ -55,7 +55,7 @@ class UsersClientResilienceTest {
 	private InternalTokenService internalTokenService;
 
 	@Test
-	void usersCaido_reintenta3VecesYUsaElFallback() {
+	void usersDown_retries3TimesAndUsesTheFallback() {
 		when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), ArgumentMatchers.<ParameterizedTypeReference<List<RoleDto>>>any()))
 				.thenThrow(new ResourceAccessException("connection refused"));
 
@@ -64,7 +64,7 @@ class UsersClientResilienceTest {
 	}
 
 	@Test
-	void error4xx_noSeReintentaYUsaElFallback() {
+	void error4xx_isNotRetriedAndUsesTheFallback() {
 		when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(TenantDto.class)))
 				.thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
 

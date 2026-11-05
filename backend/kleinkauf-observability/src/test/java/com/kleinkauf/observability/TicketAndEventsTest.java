@@ -35,7 +35,7 @@ class TicketAndEventsTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void elTicketVenceYSeUsaUnaSolaVez() throws Exception {
+    void ticketExpiresAndIsUsedOnlyOnce() throws Exception {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         ValueOperations<String, String> values = mock(ValueOperations.class);
         when(redis.opsForValue()).thenReturn(values);
@@ -55,7 +55,7 @@ class TicketAndEventsTest {
     }
 
     @Test
-    void losEventosDeTiendasVanAlCanalDeNegocio() {
+    void storeEventsGoToTheBusinessChannel() {
         SessionRegistry sessions = mock(SessionRegistry.class);
         TestableListener listener = new TestableListener(sessions);
         KleinKaufEvent created = new KleinKaufEvent(KleinKaufEvent.TENANT_CREATED, "public",
@@ -72,14 +72,14 @@ class TicketAndEventsTest {
     }
 
     @Test
-    void losPedidosYElStockVanSoloALaActividadDeSuTienda() {
+    void ordersAndStockGoOnlyToTheirStoreActivity() {
         SessionRegistry sessions = mock(SessionRegistry.class);
         TestableListener listener = new TestableListener(sessions);
 
         listener.receive(new KleinKaufEvent(KleinKaufEvent.ORDER_CREATED, "demo", Instant.parse("2026-11-02T10:00:00Z"),
                 Map.of("number", "K7QM-4X2P", "channel", "ONLINE")).toFields(mapper));
         listener.receive(new KleinKaufEvent(KleinKaufEvent.STOCK_LOW, "demo", Instant.now(), Map.of("productId", 12)).toFields(mapper));
-        // Un evento de tienda con tenant public no es de ninguna tienda; uno desconocido no se reenvia
+        // A store event with tenant public belongs to no store; an unknown one is not forwarded
         listener.receive(new KleinKaufEvent(KleinKaufEvent.STOCK_LOW, "public", Instant.now(), Map.of()).toFields(mapper));
         listener.receive(new KleinKaufEvent("order.otra-cosa", "demo", Instant.now(), Map.of()).toFields(mapper));
 
@@ -92,13 +92,13 @@ class TicketAndEventsTest {
     }
 
     @Test
-    void sinSuscriptosNoSeArmaNingunMensaje() {
+    void withoutSubscribersNoMessageIsBuilt() {
         SessionRegistry sessions = new SessionRegistry(mapper, Clock.systemUTC());
         sessions.publish(Channels.PLATFORM_HEALTH, Map.of());
         assertThat(sessions.clients()).isEmpty();
     }
 
-    // Expone el manejo de un registro sin arrancar el contenedor de Redis
+    // Exposes the handling of a record without starting the Redis container
     static class TestableListener extends EventStreamListener {
         TestableListener(SessionRegistry sessions) {
             super(mock(RedisConnectionFactory.class), sessions,
@@ -111,7 +111,7 @@ class TicketAndEventsTest {
     }
 
     @Test
-    void unEventoMalFormadoNoSeReenvia() {
+    void malformedEventIsNotForwarded() {
         SessionRegistry sessions = mock(SessionRegistry.class);
         new TestableListener(sessions).receive(Map.of("type", "tenant.created"));
         verify(sessions, never()).publish(anyString(), any());

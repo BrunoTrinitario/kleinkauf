@@ -15,15 +15,15 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /*
-Canales de la tienda que se arman en cada lectura del recolector (store.usage y store.users) y sus GET.
-- El recolector le pasa el trafico por tienda del gateway (update) y esto lo manda a las tiendas con algun WS
-  suscripto. Las tiendas sin nadie mirando no cuestan nada.
-- Si Redis falla esa vuelta no se manda nada al canal (y el GET responde 503); la siguiente vuelve a intentar.
+Store channels built on each collector reading (store.usage and store.users) and their GETs.
+- The collector passes it the gateway's per-store traffic (update) and this sends it to the stores with some WS
+  subscribed. Stores with nobody watching cost nothing.
+- If Redis fails that round nothing is sent to the channel (and the GET responds 503); the next one tries again.
  */
 @Component
 public class StoreFeeds {
 
-    // Ultimo trafico por tienda; null si todavia no hay dos lecturas del gateway
+    // Last per-store traffic; null if there are not yet two gateway readings
     private final AtomicReference<Map<String, TenantRates>> traffic = new AtomicReference<>();
     private final SessionRegistry sessions;
     private final StoreUsers storeUsers;
@@ -37,7 +37,7 @@ public class StoreFeeds {
         this.clock = clock;
     }
 
-    // rates: null si en esta lectura no se pudo calcular el trafico del gateway
+    // rates: null if the gateway traffic could not be computed in this reading
     public void update(Map<String, TenantRates> rates) {
         traffic.set(rates == null ? null : Map.copyOf(rates));
         for (String tenant : sessions.tenantsSubscribedTo(Channels.STORE_USERS)) {
@@ -50,12 +50,12 @@ public class StoreFeeds {
         }
     }
 
-    // null si no se pudo leer Redis
+    // null if Redis could not be read
     public StoreUsersDto users(String tenant) {
         return storeUsers.connected(tenant);
     }
 
-    // null si no se pudo leer Redis
+    // null if Redis could not be read
     public StoreUsageDto usage(String tenant) {
         CatalogUsage catalog = catalogUsage.today(tenant);
         if (catalog == null) {

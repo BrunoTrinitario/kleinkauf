@@ -20,6 +20,7 @@ import { Header } from "@/components/header"
 import type { ProfileFormState } from "@/lib/types"
 import { isValidName, isValidPassword } from "@/lib/validation"
 import { PasswordRequirements } from "@/components/password-requirements"
+import { ProfilePhotoCard } from "@/components/profile-photo-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,7 +40,7 @@ export default function UserSettingsPage() {
 	const isSaving = updateProfile.isPending
 	const isDeleting = deleteAccount.isPending
 
-	// El formulario arranca con lo que devuelve /auth/me (y se vuelve a llenar despues de guardar)
+	// The form starts with what /auth/me returns (and is filled again after saving)
 	useEffect(() => {
 		if (me.data) {
 			setProfile({
@@ -69,14 +70,14 @@ export default function UserSettingsPage() {
 			setError(strings.validation.nameInvalid)
 			return
 		}
-		// Contrasena vacia = no se cambia
+		// Empty password = not changed
 		if (profile.password !== "" && !isValidPassword(profile.password)) {
 			setError(strings.validation.passwordReqsError)
 			return
 		}
 
 		try {
-			// La contrasena solo se manda si se escribio una nueva
+			// The password is only sent if a new one was typed
 			await updateProfile.mutateAsync({
 				name: profile.name.trim(),
 				password: profile.password === "" ? undefined : profile.password,
@@ -87,14 +88,14 @@ export default function UserSettingsPage() {
 		}
 	}
 
-	// 409: es el unico ADMINISTRADOR de la tienda (el backend no la deja sin administrador)
+	// 409: it is the store's only ADMINISTRADOR (the backend does not leave it without an administrator)
 	const handleDeleteAccount = async () => {
 		setDeleteError(null)
 		try {
 			await deleteAccount.mutateAsync()
 			setIsDeleteOpen(false)
 			toast.success(strings.userSettings.deletedToast)
-			// A la home, no al login: logout navega despues de que la ruta protegida reacciona
+			// To the home page, not to login: logout navigates after the protected route reacts
 			logout("/")
 		} catch (err) {
 			setDeleteError(getErrorMessage(err, strings.userSettings.deleteError, { conflict: strings.userSettings.lastAdmin }))
@@ -113,6 +114,8 @@ export default function UserSettingsPage() {
 							{strings.userSettings.subtitle}
 					</p>
 				</div>
+
+				{me.data ? <ProfilePhotoCard user={me.data} /> : null}
 
 				<Card className="max-w-2xl">
 					<CardHeader>

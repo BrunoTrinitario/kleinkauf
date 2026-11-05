@@ -1,11 +1,11 @@
 /*
-Microservicio de observabilidad (docs/observabilidad.md):
-- Recolector: cada pocos segundos lee /ready y /metrics del puerto de gestion de cada instancia de Eureka.
-- Eventos: lee los eventos de los servicios en Redis Streams y los reenvia en vivo.
-- WebSocket (/ws) con ticket corto: el panel de la plataforma y el de la tienda en tiempo real.
-- Auditoria (docs/auditoria.md): la guarda en la base observability (un schema por tienda y public) con JDBC.
-  Sin Hibernate a proposito: asi no se activan el multi-tenant ni la auditoria de kleinkauf-common, que son para
-  los servicios que la mandan. El estado del recolector sigue en memoria.
+Observability microservice (docs/observabilidad.md):
+- Collector: every few seconds reads /ready and /metrics from the management port of each Eureka instance.
+- Events: reads the services' events from Redis Streams and forwards them live.
+- WebSocket (/ws) with a short-lived ticket: the platform and store real-time dashboards.
+- Audit (docs/auditoria.md): stores it in the observability database (one schema per store plus public) with JDBC.
+  No Hibernate on purpose: that way kleinkauf-common's multi-tenancy and audit, which are meant for
+  the services that send it, are not activated. The collector's state stays in memory.
  */
 plugins {
 	id 'java'
@@ -36,7 +36,7 @@ dependencyManagement {
 }
 
 dependencies {
-    // Observabilidad: /health, /ready y /metrics (Prometheus), traceId en los logs y trazas por OTLP (configurado en kleinkauf-common)
+    // Observability: /health, /ready and /metrics (Prometheus), traceId in the logs and OTLP traces (configured in kleinkauf-common)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
@@ -59,7 +59,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'com.h2database:h2'
-	// La auditoria esta particionada (Postgres): AuditStoreTest la prueba con un Postgres real
+	// The audit is partitioned (Postgres): AuditStoreTest tests it against a real Postgres
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:postgresql'
 	testRuntimeOnly 'org.postgresql:postgresql'
@@ -70,8 +70,8 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
-	// La zona del JVM viaja a Postgres al conectar: la de Windows (America/Buenos_Aires) Postgres 17 no la acepta.
-	// En el server los contenedores corren en UTC
+	// The JVM time zone travels to Postgres on connect: Postgres 17 does not accept Windows' (America/Buenos_Aires).
+	// On the server the containers run in UTC
 	systemProperty 'user.timezone', 'UTC'
 }
 

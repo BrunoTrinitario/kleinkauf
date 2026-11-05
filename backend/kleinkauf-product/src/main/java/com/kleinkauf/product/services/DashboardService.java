@@ -20,8 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /*
-Panel de la tienda (docs/panel-admin.md): productos y stock con los datos de hoy, siempre al dia (sin cache).
-Cada dato es una consulta de conteo o suma en la base: no se cargan los productos.
+Store dashboard (docs/panel-admin.md): products and stock with today's data, always up to date (no cache).
+Each value is a count or sum query in the database: products are not loaded.
  */
 @Service
 public class DashboardService {
@@ -73,7 +73,7 @@ public class DashboardService {
                 .toList();
     }
 
-    // Sin productos que sumen, 0 (no null); siempre con 2 decimales, como los precios
+    // Without products to add up, 0 (not null); always with 2 decimals, like prices
     private static BigDecimal money(BigDecimal value) {
         return (value == null ? BigDecimal.ZERO : value).setScale(2, RoundingMode.HALF_UP);
     }

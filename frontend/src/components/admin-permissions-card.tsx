@@ -15,10 +15,10 @@ const ROLES: { value: UserRole; label: string }[] = [
 
 const AREAS = Object.keys(PERMISSIONS) as PermissionArea[]
 
-// El ADMINISTRADOR tiene todo y no se configura; USUARIOS no se delega (el backend responde 400)
+// ADMINISTRADOR has everything and is not configurable; USUARIOS is not delegable (the backend responds 400)
 const isEditable = (role: UserRole, area: PermissionArea) => role !== "ADMINISTRADOR" && area !== "USUARIOS"
 
-// Matriz de permisos por rol (solo ADMINISTRADOR, como la pagina de usuarios). Cada casilla se guarda al momento
+// Permission matrix per role (ADMINISTRADOR only, like the users page). Each checkbox is saved right away
 export function AdminPermissionsCard({ enabled }: { enabled: boolean }) {
   const query = useRolePermissions(enabled)
   const save = useSetRolePermissions()

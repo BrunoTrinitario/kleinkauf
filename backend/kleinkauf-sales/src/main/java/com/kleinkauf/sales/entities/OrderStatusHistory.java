@@ -7,7 +7,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-// Cada cambio de estado del pedido. No se modifica ni se borra
+// Each status change of the order. Never modified or deleted
 @Entity
 @Table(name = "order_status_history")
 @Getter
@@ -27,7 +27,7 @@ public class OrderStatusHistory {
     @Column(nullable = false, length = 20)
     private OrderStatus status;
 
-    // Usuario que hizo el cambio; null si fue un invitado o el sistema (vencimiento)
+    // User who made the change; null if it was a guest or the system (expiry)
     @Column(name = "user_id")
     private Long userId;
 

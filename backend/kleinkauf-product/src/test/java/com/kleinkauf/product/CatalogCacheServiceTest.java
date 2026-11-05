@@ -56,7 +56,7 @@ class CatalogCacheServiceTest {
 	}
 
 	@Test
-	void hit_noVaALaBase() throws Exception {
+	void hit_doesNotGoToTheDatabase() throws Exception {
 		when(values.get("catalog:tienda_a:version")).thenReturn(3);
 		when(values.get("catalog:tienda_a:v3:categories"))
 				.thenReturn(objectMapper.writeValueAsString(List.of(new CategoryDto("comedor", 2))));
@@ -68,7 +68,7 @@ class CatalogCacheServiceTest {
 	}
 
 	@Test
-	void miss_leeLaBaseYGuardaConLaVersionActualYTtl() throws Exception {
+	void miss_readsTheDatabaseAndStoresWithCurrentVersionAndTtl() throws Exception {
 		when(values.get("catalog:tienda_a:version")).thenReturn(null);
 
 		List<CategoryDto> result = cache.get("categories", type, this::fromDb);
@@ -79,7 +79,7 @@ class CatalogCacheServiceTest {
 	}
 
 	@Test
-	void redisCaido_igualRespondeDesdeLaBase() {
+	void redisDown_stillRespondsFromTheDatabase() {
 		when(values.get(anyString())).thenThrow(new RedisConnectionFailureException("down"));
 
 		assertEquals(fromDbValue(), cache.get("categories", type, this::fromDb));
@@ -87,14 +87,14 @@ class CatalogCacheServiceTest {
 	}
 
 	@Test
-	void invalidar_sinTransaccion_subeLaVersionDelTenant() {
+	void invalidate_withoutTransaction_bumpsTheTenantVersion() {
 		cache.invalidate();
 
 		verify(values).increment("catalog:tienda_a:version");
 	}
 
 	@Test
-	void invalidar_conTransaccion_esperaAlCommit() {
+	void invalidate_withTransaction_waitsForCommit() {
 		TransactionSynchronizationManager.initSynchronization();
 
 		cache.invalidate();
