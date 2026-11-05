@@ -36,7 +36,7 @@ class PlatformUsageServiceTest {
 	private PlatformUsageService service;
 
 	@Test
-	void cuentaCadaSchemaMenosPublic_yLoGuarda() throws ApiException {
+	void countsEachSchemaExceptPublic_andStoresIt() throws ApiException {
 		when(cacheUtil.getPlatformUsage()).thenReturn(null);
 		when(jdbcTemplate.queryForList(contains("'product'"), eq(String.class)))
 				.thenReturn(List.of("demo", "public", "sin_combos", "Mal-Schema"));
@@ -53,7 +53,7 @@ class PlatformUsageServiceTest {
 	}
 
 	@Test
-	void desdeLaCache_ordenaPorCombos() throws ApiException {
+	void fromCache_sortsByBundles() throws ApiException {
 		when(cacheUtil.getPlatformUsage()).thenReturn(List.of(
 				new ProductUsageDto("a", 10, 1), new ProductUsageDto("b", 2, 5)));
 
@@ -63,7 +63,7 @@ class PlatformUsageServiceTest {
 	}
 
 	@Test
-	void ordenInvalido_respondeBadRequest() {
+	void invalidSort_respondsBadRequest() {
 		ApiException ex = assertThrows(ApiException.class, () -> service.usage("users"));
 
 		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());

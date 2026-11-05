@@ -10,16 +10,16 @@ interface ProductDetailProps {
   product: CatalogProduct
   metadata: ProductMetadata | null
   metadataError: string | null
-  // URLs de las imagenes en orden (el modal las precarga; la pagina usa las del gateway)
+  // Image URLs in order (the modal preloads them; the page uses the gateway's)
   imageSrcs: string[]
-  // En el modal son DialogTitle y DialogDescription (accesibilidad del dialogo); en la pagina, h1 y p
+  // In the modal they are DialogTitle and DialogDescription (dialog accessibility); on the page, h1 and p
   titleAs?: ElementType
   descriptionAs?: ElementType
-  // Debajo de la disponibilidad (ej. el link a la pagina del producto desde el modal)
+  // Below the availability (e.g. the link to the product page from the modal)
   extra?: ReactNode
 }
 
-// Solo los datos cargados: texto vacio o medida en 0 = sin dato
+// Only the data that was entered: empty text or a 0 measurement = no value
 function metadataRowsOf(metadata: ProductMetadata | null): [string, string][] {
   const rows: [string, string][] = []
   if (!metadata) return rows
@@ -33,8 +33,8 @@ function metadataRowsOf(metadata: ProductMetadata | null): [string, string][] {
   return rows
 }
 
-// Detalle de un producto del catalogo: imagenes, datos, disponibilidad, metadatos y compartir.
-// Lo usan el modal de la home y la pagina del producto (a donde lleva el link compartido)
+// Detail of a catalog product: images, data, availability, metadata and sharing.
+// Used by the home page modal and the product page (where the shared link leads)
 export function ProductDetail({
   product,
   metadata,
@@ -53,11 +53,11 @@ export function ProductDetail({
   }, [product.slug, count])
 
   return (
-    // grid-cols-1 (minmax(0, 1fr)) y min-w-0 en las columnas: sin eso, segun el navegador la columna crece al ancho
-    // minimo del contenido y se sale del contenedor en mobile (la imagen y la flecha quedaban cortadas)
+    // grid-cols-1 (minmax(0, 1fr)) and min-w-0 on the columns: without them, depending on the browser the column grows to the
+    // content's minimum width and overflows the container on mobile (the image and the arrow got cut off)
     <div className="grid grid-cols-1 md:grid-cols-2 min-w-0">
-      {/* contain y no cover: la columna sigue el alto del texto y las imagenes pueden tener cualquier proporcion;
-          con cover se recortaba buena parte (ej. una foto 4:3 en una columna 2:3). El fondo completa lo que sobra */}
+      {/* contain and not cover: the column follows the text height and images can have any aspect ratio;
+          with cover a good part got cropped (e.g. a 4:3 photo in a 2:3 column). The background fills the rest */}
       <div className="relative min-w-0 aspect-square md:aspect-auto md:h-full md:min-h-[24rem] bg-muted">
         {count > 0 ? (
           <div className="relative h-full w-full">
@@ -118,7 +118,7 @@ export function ProductDetail({
             availability={product.availability}
           />
 
-          {/* Disponibilidad: el catalogo no muestra el stock exacto */}
+          {/* Availability: the catalog does not show the exact stock */}
           <div className="flex items-center gap-2 text-sm">
             {product.availability === "DISPONIBLE" ? (
               <Check className="h-4 w-4 text-primary" />

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, ArrowRight } from "lucide-react"
-// A donde volver despues del login (la sesion vencio en esa pagina). Solo rutas propias: nada de otro sitio
+// Where to go back after login (the session expired on that page). Own routes only: nothing from another site
 const safeNext = (next: string | null) =>
   next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/"
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  // Viene de /reset-password despues de cambiar la contrasena
+  // Comes from /reset-password after changing the password
   const passwordChanged = searchParams.get("contrasena") === "cambiada"
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,7 +104,7 @@ export default function LoginPage() {
                   <label htmlFor="password" className="text-sm font-medium text-foreground">
                     {strings.login.passwordLabel}
                   </label>
-                  {/* La plataforma no tiene recupero: el gateway solo lo atiende desde una tienda */}
+                  {/* The platform has no password recovery: the gateway only serves it from a store */}
                   {!IS_PLATFORM && (
                     <Link to="/recuperar" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
                       {strings.login.forgotPassword}
@@ -148,7 +148,7 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              {/* En la plataforma no hay registro: los superadmins se crean desde el backend */}
+              {/* There is no sign-up on the platform: superadmins are created from the backend */}
               {!IS_PLATFORM && (
                 <p className="text-sm text-muted-foreground text-center">
                   {strings.login.noAccount}{" "}

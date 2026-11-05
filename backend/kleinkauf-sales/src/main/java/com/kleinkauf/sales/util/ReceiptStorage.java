@@ -13,9 +13,9 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 /*
-Comprobantes en disco, una carpeta por tienda y pedido: <receipts.path>/<tenant>/<numero>/<uuid>.<ext>.
-No se sirven como estaticos: solo los descarga el administrador por la API.
-El tipo se reconoce por los primeros bytes del archivo, no por el content-type que manda el cliente.
+Receipts on disk, one folder per store and order: <receipts.path>/<tenant>/<number>/<uuid>.<ext>.
+They are not served as static files: only the administrator downloads them through the API.
+The type is recognized by the file's first bytes, not by the content-type the client sends.
  */
 @Component
 public class ReceiptStorage {
@@ -37,7 +37,7 @@ public class ReceiptStorage {
     @Value("${receipts.path:uploads/sales/receipts}")
     private String receiptsPath;
 
-    // null si no es JPG, PNG ni PDF
+    // null if it is not JPG, PNG or PDF
     public static FileType detect(byte[] bytes) {
         if (startsWith(bytes, 0xFF, 0xD8, 0xFF)) return FileType.JPG;
         if (startsWith(bytes, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return FileType.PNG;
@@ -45,7 +45,7 @@ public class ReceiptStorage {
         return null;
     }
 
-    // Devuelve la ruta relativa que se guarda en PaymentReceipt
+    // Returns the relative path stored in PaymentReceipt
     public String save(String tenant, String orderNumber, byte[] bytes, FileType type) {
         String relative = tenant + "/" + orderNumber + "/" + UUID.randomUUID() + "." + type.extension;
         Path file = resolve(relative);
@@ -58,7 +58,7 @@ public class ReceiptStorage {
         return relative;
     }
 
-    // Para volver atras si no se pudo guardar el pedido
+    // To roll back if the order could not be saved
     public void deleteQuietly(String relative) {
         try {
             Files.deleteIfExists(resolve(relative));
@@ -70,7 +70,7 @@ public class ReceiptStorage {
         return new FileSystemResource(resolve(relative));
     }
 
-    // La ruta la arma este componente (tenant, numero y uuid), pero igual se valida que no se salga de la carpeta
+    // This component builds the path (tenant, number and uuid), but it is still checked that it does not leave the folder
     private Path resolve(String relative) {
         Path base = Paths.get(receiptsPath).toAbsolutePath().normalize();
         Path file = base.resolve(relative).normalize();

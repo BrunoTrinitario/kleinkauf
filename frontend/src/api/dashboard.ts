@@ -7,9 +7,9 @@ import { productKeys } from "./products"
 import { userKeys } from "./users"
 
 /*
-Resumen del panel de la tienda (solo ADMINISTRADOR, docs/panel-admin.md). Cada servicio arma su parte y cada bloque
-carga por separado: si uno falla, el resto del panel sigue. Las keys cuelgan de cada dominio, asi un cambio de
-productos, usuarios o ventas tambien actualiza el resumen.
+Store dashboard overview (ADMINISTRADOR only, docs/panel-admin.md). Each service builds its part and each block
+loads separately: if one fails, the rest of the dashboard keeps working. The keys hang from each domain, so a change to
+products, users or sales also updates the overview.
  */
 export const salesKeys = {
   all: ["sales"] as const,
@@ -53,7 +53,7 @@ export interface UsersDashboard {
   registrations: { from: string; to: string; groupBy: PeriodGroupBy; periods: { period: string; count: number }[] }
 }
 
-// unitsWithoutCost > 0: la ganancia es mas alta de lo real (hay que avisarlo)
+// unitsWithoutCost > 0: the profit is higher than the real one (it has to be flagged)
 export interface SalesTotals {
   orders: number
   units: number
@@ -99,7 +99,7 @@ export function useUsersDashboard(range: PeriodRange, enabled: boolean) {
   })
 }
 
-// sales espera groupBy en minuscula y los dias de la tienda (Argentina)
+// sales expects groupBy in lowercase and store days (Argentina)
 const salesParams = (range: PeriodRange) => ({ from: range.from, to: range.to, groupBy: range.groupBy.toLowerCase() })
 
 export function useSalesSummary(range: PeriodRange, enabled: boolean) {

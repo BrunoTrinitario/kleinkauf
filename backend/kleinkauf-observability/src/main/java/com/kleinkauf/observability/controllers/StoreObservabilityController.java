@@ -30,14 +30,14 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /*
-Panel de la tienda (solo ADMINISTRADOR, ver SecurityConfig). Siempre de la tienda de la request: sin tienda
-(desde la plataforma) responde 404. El superadmin no ve la auditoria de las tiendas.
-- POST /ws-ticket: ticket para el WS de la tienda, con los roles actuales.
-- GET /store/audit: historial de la tienda, paginado y con filtros (fecha, usuario, entidad, accion).
-- GET /store/audit/{entity}/{entityId}: historial de una cosa puntual (ej. Product/12).
-- GET /store/audit/export: el historial con los mismos filtros, en CSV (hasta 50000 eventos).
-- GET /store/users y /store/usage: lo mismo que mandan store.users y store.usage, para cuando se abre el panel
-  (el WS manda solo lo nuevo). 503 si no se pudo leer Redis.
+Store dashboard (ADMINISTRADOR only, see SecurityConfig). Always for the request's store: without a store
+(from the platform) it responds 404. The superadmin does not see the stores' audit.
+- POST /ws-ticket: ticket for the store's WS, with the current roles.
+- GET /store/audit: the store's history, paginated and with filters (date, user, entity, action).
+- GET /store/audit/{entity}/{entityId}: history of one specific thing (e.g. Product/12).
+- GET /store/audit/export: the history with the same filters, as CSV (up to 50000 events).
+- GET /store/users and /store/usage: the same that store.users and store.usage send, for when the dashboard is opened
+  (the WS only sends what is new). 503 if Redis could not be read.
  */
 @RestController
 @RequestMapping("/api/v1/observability")

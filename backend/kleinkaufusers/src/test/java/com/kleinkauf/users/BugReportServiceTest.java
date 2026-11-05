@@ -35,7 +35,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Reportar un bug desde una tienda y el listado del panel de la plataforma
+// Reporting a bug from a store and the platform dashboard listing
 @ExtendWith(MockitoExtension.class)
 class BugReportServiceTest {
 
@@ -57,7 +57,7 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void invitado_guardaLaTiendaYElEmailQueEscribio() throws Exception {
+	void guest_storesTheStoreAndTheEmailTheyWrote() throws Exception {
 		TenantContext.setCurrentTenant("mi_tienda");
 
 		bugReportService.create(new NewBugReportDto("  El carrito no suma bien  ", " Ana@Mail.com ", "https://mi-tienda.x/carrito"),
@@ -73,7 +73,7 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void conSesion_guardaQuienEsYUsaElEmailDeSuCuenta() throws Exception {
+	void withSession_storesWhoItIsAndUsesTheAccountEmail() throws Exception {
 		TenantContext.setCurrentTenant("mi_tienda");
 		User user = new User();
 		user.setId(7L);
@@ -90,7 +90,7 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void descripcionCortaOLarga_oEmailInvalido_respondeBadRequest() {
+	void shortOrLongDescription_orInvalidEmail_respondsBadRequest() {
 		for (NewBugReportDto dto : List.of(
 				new NewBugReportDto("corto", null, null),
 				new NewBugReportDto("x".repeat(2001), null, null),
@@ -102,14 +102,14 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void urlDeLaPaginaLarga_seRecorta() throws Exception {
+	void longPageUrl_isTruncated() throws Exception {
 		bugReportService.create(new NewBugReportDto("El carrito no suma bien", null, "https://x/" + "a".repeat(600)), null, null);
 
 		assertEquals(BugReport.PAGE_URL_MAX_LENGTH, saved().getPageUrl().length());
 	}
 
 	@Test
-	void listado_pendientesPorDefecto_conLaTiendaDeCadaReporte() throws Exception {
+	void listing_pendingByDefault_withEachReportStore() throws Exception {
 		BugReport report = report(4L, "mi_tienda");
 		Tenant tenant = new Tenant();
 		tenant.setSchema("mi_tienda");
@@ -129,7 +129,7 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void listado_estadoOPaginaInvalidos_respondeBadRequest() {
+	void listing_invalidStatusOrPage_respondsBadRequest() {
 		assertEquals(HttpStatus.BAD_REQUEST,
 				assertThrows(ApiException.class, () -> bugReportService.list("otro", null, null)).getStatus());
 		assertEquals(HttpStatus.BAD_REQUEST,
@@ -139,7 +139,7 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void marcarResuelto_noCambiaLaFechaSiYaEstaba_yPendienteLaBorra() throws Exception {
+	void markResolved_doesNotChangeTheDateIfAlreadyResolved_andPendingClearsIt() throws Exception {
 		LocalDateTime resolvedAt = LocalDateTime.of(2026, 11, 1, 10, 0);
 		BugReport report = report(4L, null);
 		report.setResolvedAt(resolvedAt);
@@ -154,7 +154,7 @@ class BugReportServiceTest {
 	}
 
 	@Test
-	void marcarResuelto_reporteInexistente_respondeNotFound() {
+	void markResolved_unknownReport_respondsNotFound() {
 		when(bugReportRepository.findById(9L)).thenReturn(Optional.empty());
 
 		ApiException ex = assertThrows(ApiException.class, () -> bugReportService.setResolved(9L, true));

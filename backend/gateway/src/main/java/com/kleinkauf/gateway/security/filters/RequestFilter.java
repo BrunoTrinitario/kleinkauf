@@ -13,7 +13,7 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-// Rate limit por IP y origen, en ventanas de 1 minuto (las imagenes no cuentan). Cuenta en Redis (RateLimitCounter)
+// Rate limit by IP and origin, in 1-minute windows (images do not count). Counted in Redis (RateLimitCounter)
 @Component
 @Order(-100)
 public class RequestFilter implements WebFilter {
@@ -40,7 +40,7 @@ public class RequestFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        // El puerto de gestion lo consultan Prometheus y observability cada pocos segundos
+        // The management port is queried by Prometheus and observability every few seconds
         if (ManagementRequests.isManagement(exchange)) {
             return chain.filter(exchange);
         }
@@ -59,7 +59,7 @@ public class RequestFilter implements WebFilter {
         });
     }
 
-    // count incluye la request actual: con limite 5 pasan 5 y la sexta se rechaza
+    // count includes the current request: with a limit of 5, 5 pass and the sixth is rejected
     private boolean isExceeded(long count, String type){
         if (type.equals(RequestTenantFactory.LOGIN) && count>loginLimit)
             return true;

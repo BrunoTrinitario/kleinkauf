@@ -41,7 +41,7 @@ export function AdminUserCreateModal({
   const [password, setPassword] = useState("")
   const [roles, setRoles] = useState<Set<UserRole>>(new Set(["CLIENTE"]))
 
-  // El email muestra el error recien cuando hay algo escrito
+  // The email shows the error only once something has been typed
   const emailError = email.trim() !== "" && !isValidEmail(email)
   const nameError = name.length > 0 && !isValidName(name)
 
@@ -77,7 +77,7 @@ export function AdminUserCreateModal({
 
   const handleCreate = () => {
     if (!onCreate || !canCreate) return
-    // La contrasena va tal cual: los espacios cuentan, como en el registro
+    // The password goes as is: spaces count, as on sign-up
     onCreate({
       name: name.trim(),
       email: email.trim(),

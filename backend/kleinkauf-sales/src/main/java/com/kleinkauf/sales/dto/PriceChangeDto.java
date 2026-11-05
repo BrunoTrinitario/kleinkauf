@@ -4,7 +4,7 @@ import com.kleinkauf.common.dto.stock.ReservationItemType;
 
 import java.math.BigDecimal;
 
-// Item cuyo precio cambio entre el carrito y el pedido
+// Item whose price changed between the cart and the order
 public record PriceChangeDto(
         ReservationItemType type,
         Long id,

@@ -40,19 +40,19 @@ class PricingTest {
 	private ProductService productService;
 
 	@Test
-	void calculaElMargenSobreElPrecioDeVenta() throws ApiException {
+	void computesTheMarginOverTheSalePrice() throws ApiException {
 		mockProduct("15000.00", "9000.00");
 
 		PricingDto pricing = productService.getPricing(1L);
 
 		assertEquals(new BigDecimal("6000.00"), pricing.margin());
 		assertEquals(new BigDecimal("40.00"), pricing.marginPercent());
-		// Ver el costo es una lectura sensible
+		// Seeing the cost is a sensitive read
 		verify(auditLog).read("ProductPricing", 1L);
 	}
 
 	@Test
-	void margenNegativo_cuandoSeVendePorDebajoDelCosto() throws ApiException {
+	void negativeMargin_whenSoldBelowCost() throws ApiException {
 		mockProduct("800.00", "1000.00");
 
 		PricingDto pricing = productService.getPricing(1L);
@@ -62,7 +62,7 @@ class PricingTest {
 	}
 
 	@Test
-	void sinCosto_noHayMargen() throws ApiException {
+	void withoutCost_noMargin() throws ApiException {
 		mockProduct("1000.00", null);
 
 		PricingDto pricing = productService.getPricing(1L);
@@ -73,7 +73,7 @@ class PricingTest {
 	}
 
 	@Test
-	void precioCero_noDivide() throws ApiException {
+	void zeroPrice_doesNotDivide() throws ApiException {
 		mockProduct("0", "100");
 
 		PricingDto pricing = productService.getPricing(1L);
@@ -83,7 +83,7 @@ class PricingTest {
 	}
 
 	@Test
-	void precioNegativo_respondeBadRequest() {
+	void negativePrice_respondsBadRequest() {
 		ApiException ex = assertThrows(ApiException.class,
 				() -> productService.updatePricing(1L, new UpdatePricingDto(new BigDecimal("-1"), BigDecimal.TEN)));
 
@@ -92,7 +92,7 @@ class PricingTest {
 	}
 
 	@Test
-	void actualizaPrecioYCosto() throws ApiException {
+	void updatesPriceAndCost() throws ApiException {
 		Product product = mockProduct(null, null);
 
 		PricingDto pricing = productService.updatePricing(1L, new UpdatePricingDto(new BigDecimal("500.00"), new BigDecimal("300.00")));

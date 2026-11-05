@@ -4,7 +4,7 @@ import com.kleinkauf.sales.entities.DeliveryType;
 
 import java.util.List;
 
-// Pedido desde la tienda. address solo con ENVIO
+// Order from the store. address only with ENVIO
 public record NewOrderDto(
         List<NewOrderItemDto> items,
         BuyerDto buyer,

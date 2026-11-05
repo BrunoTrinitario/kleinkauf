@@ -14,10 +14,10 @@ import java.time.Duration;
 import java.util.function.Supplier;
 
 /*
-Cache del catalogo publico en Redis, por tenant.
-- Clave: catalog:<tenant>:v<version>:<consulta>. Cada cambio en un producto del tenant sube la version
-  (catalog:<tenant>:version), asi todo lo cacheado queda viejo al instante. TTL de 1 hora como respaldo.
-- Si Redis falla se lee de la base: el catalogo no depende del cache.
+Public catalog cache in Redis, per tenant.
+- Key: catalog:<tenant>:v<version>:<query>. Every change to a tenant's product bumps the version
+  (catalog:<tenant>:version), so everything cached becomes stale instantly. 1-hour TTL as a backup.
+- If Redis fails it reads from the database: the catalog does not depend on the cache.
  */
 @Slf4j
 @Service
@@ -54,9 +54,9 @@ public class CatalogCacheService {
     }
 
     /*
-    Llamar despues de cualquier cambio en un producto del tenant actual.
-    Con una transaccion abierta se aplica despues del commit: si se aplicara antes, una lectura
-    concurrente podria volver a cachear los datos viejos con la version nueva.
+    Call after any change to a product of the current tenant.
+    With an open transaction it applies after the commit: if it applied before, a concurrent
+    read could cache the old data again with the new version.
      */
     public void invalidate() {
         String versionKey = prefix() + ":version";

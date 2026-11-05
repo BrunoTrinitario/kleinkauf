@@ -57,16 +57,16 @@ class PlatformDashboardServiceTest {
 	@Mock
 	private RecentActivity recentActivity;
 
-	// Paneles en hora argentina, servidor en UTC (como en Docker)
+	// Dashboards in Argentine time, server in UTC (as in Docker)
 	@Spy
 	private DashboardTime dashboardTime = new DashboardTime(ZoneId.of("America/Argentina/Buenos_Aires"), ZoneOffset.UTC);
 
 	@InjectMocks
 	private PlatformDashboardService service;
 
-	// Creada el 2 a la 1:30 UTC: en Argentina todavia es el 1 a las 22:30
+	// Created on the 2nd at 1:30 UTC: in Argentina it is still the 1st at 22:30
 	@Test
-	void altas_seCuentanEnElDiaDeArgentina() throws ApiException {
+	void signUps_areCountedOnTheArgentineDay() throws ApiException {
 		when(tenantRepository.findAll()).thenReturn(List.of(tenant(1L, "a", true, "2026-10-02T01:30", null)));
 
 		PlatformDashboardDto dashboard = service.dashboard("2026-10-01", "2026-10-02", "DAY");
@@ -77,7 +77,7 @@ class PlatformDashboardServiceTest {
 	}
 
 	@Test
-	void resumen_cuentaEstadosYAltasIncluidosLosBorrados() throws ApiException {
+	void summary_countsStatusesAndSignUpsIncludingDeleted() throws ApiException {
 		when(tenantRepository.findAll()).thenReturn(List.of(
 				tenant(1L, "a", true, "2026-10-01T10:00", null),
 				tenant(2L, "b", false, "2026-10-01T18:00", null),
@@ -94,7 +94,7 @@ class PlatformDashboardServiceTest {
 	}
 
 	@Test
-	void uso_desdeLaCache_ordenaPorElCriterioPedido() throws ApiException {
+	void usage_fromCache_sortsByTheRequestedCriterion() throws ApiException {
 		when(cacheUtil.getPlatformUsage()).thenReturn(List.of(
 				usage("a", 5, 1, null),
 				usage("b", 9, 0, OffsetDateTime.parse("2026-10-01T10:00Z")),
@@ -102,20 +102,20 @@ class PlatformDashboardServiceTest {
 
 		assertEquals(List.of("b", "a", "c"), identifiers(service.usage(null)));
 		assertEquals(List.of("c", "a", "b"), identifiers(service.usage("activeUsers")));
-		// Los que nunca tuvieron actividad van al final
+		// Those that never had activity go last
 		assertEquals(List.of("c", "b", "a"), identifiers(service.usage("LASTACTIVITY")));
 		verifyNoInteractions(jdbcTemplate);
 	}
 
 	@Test
-	void uso_sinCache_cuentaCadaSchemaYLoGuarda() throws ApiException {
-		// Sin stub Mockito devolveria una lista vacia, que es una cache valida
+	void usage_withoutCache_countsEachSchemaAndStoresIt() throws ApiException {
+		// Without a stub Mockito would return an empty list, which is a valid cache
 		when(cacheUtil.getPlatformUsage()).thenReturn(null);
 		when(tenantRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()).thenReturn(List.of(
 				tenant(1L, "mi_tienda", true, "2026-10-01T10:00", null),
 				tenant(2L, "sin_tabla", false, "2026-10-02T10:00", null)));
 		when(jdbcTemplate.queryForList(anyString(), eq(String.class))).thenReturn(List.of("public", "mi_tienda"));
-		// Solo mi_tienda tiene la tabla: sin_tabla cuenta 0 sin consultar su schema
+		// Only mi_tienda has the table: sin_tabla counts 0 without querying its schema
 		when(jdbcTemplate.queryForObject(anyString(), any(RowMapper.class), any()))
 				.thenAnswer(inv -> {
 					String sql = inv.getArgument(0);
@@ -126,14 +126,14 @@ class PlatformDashboardServiceTest {
 		List<TenantUsageDto> usage = service.usage(null);
 
 		assertEquals(2, usage.size());
-		TenantUsageDto sinTabla = usage.stream().filter(u -> u.schema().equals("sin_tabla")).findFirst().orElseThrow();
-		assertEquals("sin-tabla", sinTabla.identifier());
-		assertEquals(0, sinTabla.users());
+		TenantUsageDto withoutTable = usage.stream().filter(u -> u.schema().equals("sin_tabla")).findFirst().orElseThrow();
+		assertEquals("sin-tabla", withoutTable.identifier());
+		assertEquals(0, withoutTable.users());
 		verify(cacheUtil).savePlatformUsage(any());
 	}
 
 	@Test
-	void uso_laUltimaActividadEsLoMasRecienteEntreElLoginYLasRequests() throws ApiException {
+	void usage_lastActivityIsTheMostRecentOfLoginAndRequests() throws ApiException {
 		when(cacheUtil.getPlatformUsage()).thenReturn(null);
 		when(tenantRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()).thenReturn(List.of(
 				tenant(1L, "con_sesion", true, "2026-10-01T10:00", null),
@@ -163,7 +163,7 @@ class PlatformDashboardServiceTest {
 	}
 
 	@Test
-	void uso_ordenInvalido_respondeBadRequest() {
+	void usage_invalidSort_respondsBadRequest() {
 		ApiException ex = assertThrows(ApiException.class, () -> service.usage("products"));
 
 		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());

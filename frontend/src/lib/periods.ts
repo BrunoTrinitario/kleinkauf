@@ -1,6 +1,6 @@
 import type { PeriodGroupBy } from "./types"
 
-// Rangos fijos de los graficos de los paneles (plataforma y tienda)
+// Fixed ranges of the dashboard charts (platform and store)
 export type RangeKey = "days" | "weeks" | "months"
 
 export interface PeriodRange {
@@ -12,7 +12,7 @@ export interface PeriodRange {
 const pad = (n: number) => String(n).padStart(2, "0")
 const isoDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 
-// Periodos completos que terminan hoy: 30 dias, 12 semanas (empiezan el lunes, como en el backend) o 12 meses
+// Full periods ending today: 30 days, 12 weeks (starting on Monday, as in the backend) or 12 months
 export function rangeParams(key: RangeKey): PeriodRange {
   const today = new Date()
   const from = new Date(today)

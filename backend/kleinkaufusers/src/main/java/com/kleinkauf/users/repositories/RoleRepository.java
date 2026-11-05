@@ -21,19 +21,19 @@ import com.kleinkauf.users.entities.Role;
 public interface RoleRepository extends JpaRepository<Role, Long>{
     Optional<Role> findByUser_IdAndType(Long userId, String type);
     Collection<Role> findByUser_Id(Long userId);
-    // Roles de varios usuarios en una sola consulta (listado paginado)
+    // Roles of several users in a single query (paginated listing)
     List<Role> findByUser_IdIn(Collection<Long> userIds);
 
-    // Nativa a proposito: el @SQLRestriction de Role ("deleted_at IS NULL") tambien filtra las consultas JPQL,
-    // y aca hay que encontrar el rol aunque este borrado (soft delete) para reactivarlo
+    // Native on purpose: Role's @SQLRestriction ("deleted_at IS NULL") also filters JPQL queries,
+    // and here the role has to be found even if it is deleted (soft delete) to reactivate it
     @Query(value = "SELECT * FROM roles WHERE userid = :userId AND type = :type", nativeQuery = true)
     Optional<Role> existDeletedRole(@Param("userId") Long userId, @Param("type") String type);
 
-    // [tipo, usuarios] de los usuarios no borrados (panel de la tienda). Un usuario con varios roles cuenta en cada uno
+    // [type, users] of the non-deleted users (store dashboard). A user with several roles counts in each one
     @Query("SELECT r.type, COUNT(DISTINCT u.id) FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL GROUP BY r.type")
     List<Object[]> countUsersByType();
 
-    // Usuarios no borrados con ese rol (ej. que la tienda no se quede sin ADMINISTRADOR)
+    // Non-deleted users with that role (e.g. so the store is not left without an ADMINISTRADOR)
     @Query("SELECT COUNT(DISTINCT u.id) FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL AND r.type = :type")
     long countActiveUsersWithType(@Param("type") String type);
 }

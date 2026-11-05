@@ -24,13 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /*
-Panel de usuarios de la tienda contra una base real (H2 en modo PostgreSQL), sin el multi-tenant:
-valida las consultas JPQL y que los borrados no cuenten.
+Store users dashboard against a real database (H2 in PostgreSQL mode), without multi-tenancy:
+validates the JPQL queries and that deleted ones do not count.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:users-dashboard;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
 		"spring.jpa.hibernate.ddl-auto=create-drop",
-		// Los tests corren en UTC: con la misma zona los dias guardados son los del panel (DashboardTimeTest prueba la otra)
+		// Tests run in UTC: with the same zone the stored days are the dashboard's (DashboardTimeTest tests the other one)
 		"users.dashboard.zone=UTC"
 })
 @Import({UserDashboardService.class, DashboardTime.class})
@@ -42,32 +42,32 @@ class UserDashboardServiceTest {
 	@Autowired
 	private UserDashboardService dashboardService;
 
-	// Lo pide el CommandLineRunner de KleinKaufusersApplication
+	// Required by KleinKaufusersApplication's CommandLineRunner
 	@MockitoBean
 	private UserService userService;
 
 	@Test
-	void cuentaTotalActivosYPorRol_sinLosBorrados() throws ApiException {
+	void countsTotalActiveAndByRole_withoutDeleted() throws ApiException {
 		LocalDateTime now = LocalDateTime.now();
 		user("admin@t.com", now, now.minusDays(1), "ADMINISTRADOR", "EMPLEADO");
 		user("empleado@t.com", now, now.minusDays(40), "EMPLEADO");
 		user("cliente@t.com", now, null, "CLIENTE");
-		User borrado = user("borrado@t.com", now, now, "CLIENTE");
-		borrado.setDeletedAt(now);
+		User deleted = user("borrado@t.com", now, now, "CLIENTE");
+		deleted.setDeletedAt(now);
 		em.flush();
 		em.clear();
 
 		UserDashboardDto dashboard = dashboardService.dashboard(null, null, null);
 
 		assertEquals(3, dashboard.total());
-		// Entro en los ultimos 30 dias: solo el administrador (el borrado no cuenta)
+		// Logged in within the last 30 days: only the administrator (the deleted one does not count)
 		assertEquals(1, dashboard.active());
 		assertEquals(30, dashboard.activeWindowDays());
 		assertEquals(Map.of("ADMINISTRADOR", 1L, "EMPLEADO", 2L, "CLIENTE", 1L), dashboard.byRole());
 	}
 
 	@Test
-	void sinUsuarios_losRolesVanEnCero() throws ApiException {
+	void withoutUsers_rolesAreZero() throws ApiException {
 		UserDashboardDto dashboard = dashboardService.dashboard(null, null, null);
 
 		assertEquals(0, dashboard.total());
@@ -76,24 +76,24 @@ class UserDashboardServiceTest {
 	}
 
 	@Test
-	void altasPorPeriodo_incluyeElUltimoDiaEntero() throws ApiException {
+	void signUpsPerPeriod_includeTheWholeLastDay() throws ApiException {
 		user("a@t.com", LocalDateTime.of(2026, 10, 5, 0, 0), null, "CLIENTE");
 		user("b@t.com", LocalDateTime.of(2026, 10, 6, 23, 59), null, "CLIENTE");
 		user("c@t.com", LocalDateTime.of(2026, 10, 12, 10, 0), null, "CLIENTE");
-		// Afuera del rango
+		// Outside the range
 		user("d@t.com", LocalDateTime.of(2026, 10, 13, 0, 0), null, "CLIENTE");
 		em.flush();
 
 		UserDashboardDto dashboard = dashboardService.dashboard("2026-10-05", "2026-10-12", "WEEK");
 
-		// Semanas que empiezan el lunes: 5/10 y 12/10
+		// Weeks starting on Monday: 10/5 and 10/12
 		assertEquals(List.of(
 				new PeriodCountDto(LocalDate.of(2026, 10, 5), 2),
 				new PeriodCountDto(LocalDate.of(2026, 10, 12), 1)), dashboard.registrations().periods());
 	}
 
 	@Test
-	void periodoInvalido_400() {
+	void invalidPeriod_400() {
 		ApiException e = assertThrows(ApiException.class, () -> dashboardService.dashboard("2026-10-10", "2026-10-01", null));
 		assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
 	}

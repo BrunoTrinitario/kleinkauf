@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Permisos por rol de cada tienda (mascara de bits de PermissionArea).
-- ADMINISTRADOR: siempre todos, no se configura.
-- EMPLEADO y CLIENTE: los configura el administrador. Sin configuracion usan los
-  permisos de antes de existir esto: EMPLEADO solo STOCK, CLIENTE ninguno.
-- USUARIOS no se delega: queda solo para ADMINISTRADOR.
+Permissions per role of each store (PermissionArea bit mask).
+- ADMINISTRADOR: always all of them, not configurable.
+- EMPLEADO and CLIENTE: configured by the administrator. Without configuration they use the
+  permissions from before this existed: EMPLEADO only STOCK, CLIENTE none.
+- USUARIOS is not delegable: it stays only for ADMINISTRADOR.
  */
 @Service
 public class RolePermissionService {
@@ -31,7 +31,7 @@ public class RolePermissionService {
             RolesType.CLIENTE, 0
     );
 
-    // Lo que se le puede dar a EMPLEADO o CLIENTE: todo menos USUARIOS
+    // What can be granted to EMPLEADO or CLIENTE: everything except USUARIOS
     static final int DELEGABLE = PermissionArea.ALL & ~PermissionArea.USUARIOS.bit();
 
     @Autowired
@@ -49,7 +49,7 @@ public class RolePermissionService {
         }
         return switch (type) {
             case ADMINISTRADOR -> PermissionArea.ALL;
-            // El superadmin administra la plataforma, no una tienda
+            // The superadmin manages the platform, not a store
             case SUPERADMIN -> 0;
             default -> rolePermissionRepository.findByType(type.name())
                     .map(RolePermission::getPermissions)
@@ -87,7 +87,7 @@ public class RolePermissionService {
         rolePermission.setPermissions(permissions);
         rolePermissionRepository.save(rolePermission);
 
-        // Los roles de cada usuario estan cacheados en Redis (los lee products): se borran los de la tienda
+        // Each user's roles are cached in Redis (products reads them): the store's are deleted
         cacheUtil.deleteTenantUserRoles(TenantContext.getCurrentTenant());
         return new RolePermissionDto(type.name(), permissions);
     }

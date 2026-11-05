@@ -38,14 +38,14 @@ public class TenantGatewayFilter implements WebFilter {
     private String platformUrl;
 
     /*
-    Resuelve el tenant por el Origin y le pasa su schema a los microservicios.
-    - Rutas de plataforma (/api/v1/platform/**) e imagenes de productos (/products/images/**): no tienen
-      tenant, siguen sin el header (el navegador no manda Origin al cargar un <img>).
-    - Tenant inexistente o borrado: 404. Deshabilitado: 403.
-    - WS (/ws) desde el frontend de la plataforma: es el panel del superadmin, sin tienda. Desde una tienda
-      se resuelve como cualquier request y observability valida que el ticket sea de esa tienda.
-    Solo los errores de la busqueda del tenant se responden aca; los de los servicios siguen su curso.
-    El schema queda tambien en el atributo TENANT_ATTRIBUTE: lo usa la etiqueta "tenant" de las metricas.
+    Resolves the tenant by the Origin and passes its schema on to the microservices.
+    - Platform routes (/api/v1/platform/**) and product images (/products/images/**): they have no
+      tenant, they go on without the header (the browser does not send Origin when loading an <img>).
+    - Unknown or deleted tenant: 404. Disabled: 403.
+    - WS (/ws) from the platform frontend: it is the superadmin dashboard, with no store. From a store
+      it is resolved like any request and observability checks that the ticket belongs to that store.
+    Only tenant lookup errors are answered here; the services' errors run their course.
+    The schema is also kept in the TENANT_ATTRIBUTE attribute: the metrics' "tenant" tag uses it.
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -75,9 +75,9 @@ public class TenantGatewayFilter implements WebFilter {
     }
 
     /*
-    La URL de la tienda con la que se la busca: el Origin, salvo en el link para compartir, que abre un crawler sin
-    Origin. Ahi la tienda sale del identificador de la ruta, con el esquema, host y puerto de platform.url
-    (http://localhost:2999 + mitienda -> http://mitienda.localhost:2999, como arma la URL users en el alta).
+    The store URL used to look it up: the Origin, except for the share link, which a crawler opens without
+    Origin. There the store comes from the identifier in the path, with the scheme, host and port of platform.url
+    (http://localhost:2999 + mitienda -> http://mitienda.localhost:2999, the way users builds the URL on sign-up).
      */
     private String tenantOrigin(ServerWebExchange exchange, String path) {
         Matcher share = PermittedUrls.SHARE_PATH.matcher(path);

@@ -2,7 +2,7 @@ package com.kleinkauf.product.dto;
 
 import java.util.List;
 
-// Pagina del listado de productos del panel (mismo formato que el catalogo, pero con stock exacto)
+// A page of the dashboard product listing (same format as the catalog, but with exact stock)
 public record ProductPageDto(
         List<LightProductDto> items,
         int page,

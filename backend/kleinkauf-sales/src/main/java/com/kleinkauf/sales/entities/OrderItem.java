@@ -9,8 +9,8 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 /*
-Linea del pedido. Nombre, precios y costo se copian al momento de la venta:
-si despues cambia el producto, el pedido y los reportes no cambian.
+Order line. Name, prices and cost are copied at sale time:
+if the product changes later, the order and the reports do not change.
  */
 @Entity
 @Table(name = "order_items")
@@ -31,7 +31,7 @@ public class OrderItem {
     @Column(nullable = false, length = 10)
     private ReservationItemType type;
 
-    // Id del producto o combo en products
+    // Id of the product or bundle in products
     @Column(name = "item_id", nullable = false)
     private Long itemId;
 
@@ -41,15 +41,15 @@ public class OrderItem {
     @Column(nullable = false)
     private int quantity;
 
-    // Precio de lista al vender; null si era 'a consultar' (solo en ventas del local)
+    // List price at sale time; null if it was 'a consultar' (in-store sales only)
     @Column(name = "list_price", precision = 12, scale = 2)
     private BigDecimal listPrice;
 
-    // Precio cobrado (en el local el administrador lo puede cambiar; online es el de lista)
+    // Price charged (in the store the administrator can change it; online it is the list price)
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
-    // Costo al vender (para la ganancia); null si el producto no tenia costo cargado
+    // Cost at sale time (for the profit); null if the product had no cost set
     @Column(name = "unit_cost", precision = 12, scale = 2)
     private BigDecimal unitCost;
 

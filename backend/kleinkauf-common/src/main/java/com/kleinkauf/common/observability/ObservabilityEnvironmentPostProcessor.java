@@ -10,17 +10,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Configuracion de Actuator igual en todos los servicios. Son valores por defecto: si un servicio
-define la misma propiedad en su application.properties, gana la del servicio.
-- Puerto de gestion interno (server.port + 6000, ej. products 3002 -> 9002). El gateway no lo expone:
-  lo leen Docker, Prometheus y observability.
-- /health: liveness (el proceso esta vivo). /ready: readiness (base, Redis, Eureka...).
-  /status: el detalle completo de la salud. /metrics: metricas en formato Prometheus.
-- El puerto de gestion se publica en la metadata de Eureka (management.port) para que observability
-  encuentre a cada instancia.
-- traceId, spanId y tenant en los logs. En texto por defecto; en JSON (logstash) con el stack de
-  observabilidad, que lo pide con LOGGING_STRUCTURED_FORMAT_CONSOLE para que Loki los lea por campo.
-- Trazas por OTLP, apagadas salvo con el stack de observabilidad levantado.
+Actuator configuration shared by all services. These are defaults: if a service
+defines the same property in its application.properties, the service's value wins.
+- Internal management port (server.port + 6000, e.g. products 3002 -> 9002). The gateway does not expose it:
+  it is read by Docker, Prometheus and observability.
+- /health: liveness (the process is alive). /ready: readiness (database, Redis, Eureka...).
+  /status: full health detail. /metrics: metrics in Prometheus format.
+- The management port is published in the Eureka metadata (management.port) so observability
+  can find each instance.
+- traceId, spanId and tenant in the logs. Plain text by default; JSON (logstash) with the observability
+  stack, which asks for it with LOGGING_STRUCTURED_FORMAT_CONSOLE so Loki reads them by field.
+- Traces over OTLP, off unless the observability stack is up.
  */
 public class ObservabilityEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
@@ -34,7 +34,7 @@ public class ObservabilityEnvironmentPostProcessor implements EnvironmentPostPro
         if (!environment.containsProperty("management.server.port")) {
             Integer serverPort = environment.getProperty("server.port", Integer.class);
             if (serverPort != null) {
-                // Puerto aleatorio (tests): la gestion tambien en uno aleatorio, separado del de la app
+                // Random port (tests): management also on a random one, separate from the app's
                 defaults.put("management.server.port", serverPort == 0 ? 0 : serverPort + MANAGEMENT_PORT_OFFSET);
             }
         }
@@ -55,24 +55,24 @@ public class ObservabilityEnvironmentPostProcessor implements EnvironmentPostPro
         defaults.put("management.endpoint.health.group.readiness.show-components", "always");
         defaults.put("eureka.instance.metadata-map.management.port", "${management.server.port:}");
 
-        // Metricas: nombre del servicio en todas y histograma de latencias HTTP (p50 / p95 / p99)
+        // Metrics: service name on all of them and an HTTP latency histogram (p50 / p95 / p99)
         defaults.put("management.metrics.tags.application", "${spring.application.name:}");
         defaults.put("management.metrics.distribution.percentiles-histogram.http.server.requests", "true");
 
-        // Trazas: todas en desarrollo. traceId en los logs, tambien en el gateway (reactivo)
+        // Traces: all of them in development. traceId in the logs, also in the (reactive) gateway
         defaults.put("management.tracing.sampling.probability", "1.0");
         defaults.put("spring.reactor.context-propagation", "auto");
         defaults.put("logging.pattern.correlation", "[${spring.application.name:},%X{traceId:-},%X{spanId:-},%X{tenant:-}] ");
 
-        // Envio de trazas por OTLP al colector (Alloy, que las pasa a Tempo). Apagado por defecto para que sin
-        // el stack de observabilidad no haya errores de conexion: lo prende docker-compose.observability.yml
+        // Traces are sent over OTLP to the collector (Alloy, which passes them to Tempo). Off by default so that without
+        // the observability stack there are no connection errors: docker-compose.observability.yml turns it on
         defaults.put("management.otlp.tracing.export.enabled", "false");
         defaults.put("management.otlp.tracing.endpoint", "http://localhost:4318/v1/traces");
 
         environment.getPropertySources().addLast(new MapPropertySource(SOURCE_NAME, defaults));
     }
 
-    // Despues de leer application.properties, asi ve el server.port del servicio
+    // After reading application.properties, so it sees the service's server.port
     @Override
     public int getOrder() {
         return Ordered.LOWEST_PRECEDENCE;

@@ -3,8 +3,8 @@ package com.kleinkauf.observability.dto;
 import java.util.List;
 
 /*
-Salud de un servicio: UP (todas sus instancias listas), DEGRADED (algunas) o DOWN (ninguna, o no hay
-instancias en eureka). openCircuitBreakers: los circuit breakers abiertos en alguna de sus instancias.
+A service's health: UP (all its instances ready), DEGRADED (some) or DOWN (none, or there are no
+instances in eureka). openCircuitBreakers: the circuit breakers open on any of its instances.
  */
 public record ServiceHealthDto(String name, String status, List<InstanceHealthDto> instances,
                                List<String> openCircuitBreakers) {

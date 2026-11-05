@@ -19,11 +19,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /*
-Series por periodo de los paneles: parametros from, to (yyyy-MM-dd, inclusive) y groupBy (DAY, WEEK o MONTH).
-Sin fechas: los ultimos 30 dias hasta hoy, por dia. La semana empieza el lunes.
-Se devuelven todos los periodos del rango, tambien los que tienen 0.
-Tope de MAX_PERIODS periodos para que un rango de anios por dia no arme una respuesta enorme.
-Los dias son en la zona de los paneles (DashboardTime). sales tiene su propia version en ReportService.
+Dashboard series per period: parameters from, to (yyyy-MM-dd, inclusive) and groupBy (DAY, WEEK or MONTH).
+Without dates: the last 30 days up to today, by day. The week starts on Monday.
+Every period in the range is returned, including those with 0.
+Capped at MAX_PERIODS periods so a multi-year range by day does not build a huge response.
+Days are in the dashboards' zone (DashboardTime). sales has its own version in ReportService.
  */
 public final class Periods {
 
@@ -54,7 +54,7 @@ public final class Periods {
         return range;
     }
 
-    // Cuenta las fechas del rango por periodo; las de afuera se ignoran
+    // Counts the dates in the range per period; those outside are ignored
     public static RegistrationsDto series(Range range, Collection<LocalDate> dates) {
         Map<LocalDate, Long> counts = new TreeMap<>();
         for (LocalDate start = periodStart(range.from(), range.groupBy()); !start.isAfter(range.to()); start = next(start, range.groupBy())) {

@@ -17,5 +17,7 @@ public record FullUserDto(
     Long id,
     String name,
     String email,
-    List<RoleDto> roles
+    List<RoleDto> roles,
+    // Profile photo: file under /users/avatars/, or null
+    String avatar
 ) {}

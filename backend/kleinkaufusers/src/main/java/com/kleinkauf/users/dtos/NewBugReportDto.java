@@ -1,6 +1,6 @@
 package com.kleinkauf.users.dtos;
 
-// Reporte desde el footer de la tienda. email es opcional (con la sesion abierta se usa el de la cuenta)
+// Report from the store footer. email is optional (with an open session the account's is used)
 public record NewBugReportDto(
         String description,
         String email,

@@ -22,7 +22,7 @@ class KleinKaufCoreAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(KleinKaufCoreAutoConfiguration.class, RedisAutoConfiguration.class));
 
     @Test
-    void creaLosBeansComunes() {
+    void createsTheSharedBeans() {
         runner.withPropertyValues("api.internal.key=" + SECRET).run(context -> {
             assertThat(context).hasSingleBean(InternalTokenService.class);
             assertThat(context).hasBean("caffeineCache");
@@ -34,7 +34,7 @@ class KleinKaufCoreAutoConfigurationTest {
     }
 
     @Test
-    void elPublicadorDeEventosEsSoloParaServlet() {
+    void eventPublisherIsServletOnly() {
         new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(KleinKaufCoreAutoConfiguration.class, RedisAutoConfiguration.class))
                 .run(context -> assertThat(context).hasSingleBean(KleinKaufEventPublisher.class));
@@ -44,12 +44,12 @@ class KleinKaufCoreAutoConfigurationTest {
     }
 
     @Test
-    void sinClaveInternaNoCreaElServicioDeTokens() {
+    void withoutInternalKeyTokenServiceIsNotCreated() {
         runner.run(context -> assertThat(context).doesNotHaveBean(InternalTokenService.class));
     }
 
     @Test
-    void tokenInternoGeneradoEsValido() {
+    void generatedInternalTokenIsValid() {
         InternalTokenService service = new InternalTokenService(SECRET);
         String token = service.generateMicroServiceToken("products");
 
@@ -57,11 +57,11 @@ class KleinKaufCoreAutoConfigurationTest {
     }
 
     @Test
-    void tokenFirmadoConOtraClaveEsInvalido() {
+    void tokenSignedWithAnotherKeyIsInvalid() {
         InternalTokenService service = new InternalTokenService(SECRET);
-        InternalTokenService otro = new InternalTokenService("otraClaveDistintaDeAlMenos32Bytes!!");
+        InternalTokenService other = new InternalTokenService("otraClaveDistintaDeAlMenos32Bytes!!");
 
-        assertThat(service.validateInternalToken(otro.generateMicroServiceToken("products"))).isFalse();
+        assertThat(service.validateInternalToken(other.generateMicroServiceToken("products"))).isFalse();
         assertThat(service.validateInternalToken(null)).isFalse();
         assertThat(service.validateInternalToken("basura")).isFalse();
     }

@@ -59,7 +59,7 @@ public class JwtUtil {
                 .claims(claims)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMillis))
-                .signWith(key) // 🔥 ya no hace falta pasar algoritmo
+                .signWith(key) // 🔥 no need to pass the algorithm anymore
                 .compact();
     }
 

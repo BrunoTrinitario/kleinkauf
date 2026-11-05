@@ -5,9 +5,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.server.ServerWebExchange;
 
 /*
-Requests del puerto de gestion (/health, /ready, /metrics). En WebFlux los WebFilter del gateway
-(JWT, tenant, rate limit) tambien corren en ese puerto, asi que cada uno las deja pasar con esto.
-El puerto es interno: el gateway no lo rutea y en Docker no se publica.
+Requests on the management port (/health, /ready, /metrics). In WebFlux the gateway's WebFilters
+(JWT, tenant, rate limit) also run on that port, so each one lets them through with this.
+The port is internal: the gateway does not route it and it is not published in Docker.
  */
 public final class ManagementRequests {
 

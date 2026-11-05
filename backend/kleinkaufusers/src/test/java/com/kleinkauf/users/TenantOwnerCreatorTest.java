@@ -62,12 +62,12 @@ class TenantOwnerCreatorTest {
 	}
 
 	@Test
-	void creaAlDuenioEnElSchemaDelTenantComoAdministradorYEmpleado() {
+	void createsOwnerInTenantSchemaAsAdministratorAndEmployee() {
 		when(passwordEncoder.encode("secreta")).thenReturn("hash");
 
 		creator.createOwner("mi_tienda", "Ana", "ana@mail.com", "secreta");
 
-		// La sesion se abre atada al schema del tenant nuevo
+		// The session is opened bound to the new tenant's schema
 		verify(sessionBuilder).tenantIdentifier((Object) "mi_tienda");
 		ArgumentCaptor<Object> persisted = ArgumentCaptor.forClass(Object.class);
 		verify(session, times(3)).persist(persisted.capture());
@@ -84,7 +84,7 @@ class TenantOwnerCreatorTest {
 	}
 
 	@Test
-	void siFallaHaceRollback() {
+	void ifItFailsItRollsBack() {
 		when(transaction.isActive()).thenReturn(true);
 		doThrow(new RuntimeException("db")).when(session).persist(any(User.class));
 

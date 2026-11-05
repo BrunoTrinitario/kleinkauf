@@ -13,15 +13,15 @@ public class BundleDto{
     private Long id;
     private String name;
     private boolean enabled;
-    // Precio final del combo (con el descuento aplicado si no es FIXED); null = sin precio
+    // Final bundle price (with the discount applied if it is not FIXED); null = no price
     private BigDecimal price;
     // FIXED, PERCENT o AMOUNT
     private BundlePricingType pricingType;
-    // Porcentaje o monto del descuento; null en FIXED
+    // Discount percentage or amount; null in FIXED
     private BigDecimal discount;
-    // Suma de precio * cantidad de sus productos (null si alguno no tiene precio)
+    // Sum of price * quantity of its products (null if any has no price)
     private BigDecimal listPrice;
-    // Cuantos combos se pueden armar con el stock actual
+    // How many bundles can be put together with the current stock
     private int available;
     private List<BundleProductDto> products;
 }

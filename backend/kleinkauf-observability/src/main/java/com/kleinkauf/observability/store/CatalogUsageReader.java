@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Uso del catalogo de una tienda en el dia: el hash usage:<tenant>:<dia> que escribe products (ver UsageKeys).
+A store's catalog usage for the day: the usage:<tenant>:<day> hash written by products (see UsageKeys).
  */
 @Slf4j
 @Component
@@ -30,7 +30,7 @@ public class CatalogUsageReader {
         this.redis = redis;
     }
 
-    // null si no se pudo leer Redis
+    // null if Redis could not be read
     public CatalogUsage today(String tenant) {
         LocalDate today = UsageKeys.today();
         Map<Object, Object> counts;

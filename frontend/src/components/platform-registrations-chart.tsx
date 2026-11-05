@@ -3,7 +3,7 @@ import type { PeriodGroupBy } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
-// "2026-10-05" es una fecha sin hora: se arma en hora local para que no se corra un dia
+// "2026-10-05" is a date without a time: it is built in local time so it does not shift by a day
 export function parsePeriod(period: string): Date {
   const [year, month, day] = period.split("-").map(Number)
   return new Date(year, month - 1, day)
@@ -14,13 +14,13 @@ const monthYear = new Intl.DateTimeFormat("es-AR", { month: "short", year: "2-di
 const fullMonth = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" })
 const fullDay = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" })
 
-// Etiqueta corta del eje
+// Short axis label
 export function formatPeriodTick(period: string, groupBy: PeriodGroupBy): string {
   const date = parsePeriod(period)
   return groupBy === "MONTH" ? monthYear.format(date) : dayMonth.format(date)
 }
 
-// Etiqueta completa (tooltip y tabla)
+// Full label (tooltip and table)
 export function formatPeriodLabel(period: string, groupBy: PeriodGroupBy): string {
   const date = parsePeriod(period)
   switch (groupBy) {
@@ -34,18 +34,18 @@ export function formatPeriodLabel(period: string, groupBy: PeriodGroupBy): strin
 }
 
 interface PeriodBarChartProps {
-  // period: primer dia del periodo (yyyy-MM-dd); vienen todos, tambien los que estan en cero
+  // period: first day of the period (yyyy-MM-dd); all of them come, including those at zero
   data: { period: string; value: number }[]
   groupBy: PeriodGroupBy
-  // Nombre de la serie en el tooltip
+  // Series name in the tooltip
   label: string
-  // Formato del valor en el eje y el tooltip (ej. pesos); sin el, enteros
+  // Value format on the axis and the tooltip (e.g. pesos); without it, integers
   formatValue?: (value: number) => string
-  // Ancho del eje Y: un monto en pesos necesita mas lugar que un contador
+  // Y axis width: an amount in pesos needs more room than a counter
   axisWidth?: number
 }
 
-// Barras por periodo, una sola serie (el titulo de la card la nombra, no hace falta leyenda)
+// Bars per period, a single series (the card title names it, no legend needed)
 export function PeriodBarChart({ data, groupBy, label, formatValue, axisWidth = 40 }: PeriodBarChartProps) {
   const config = { value: { label, color: "var(--primary)" } } satisfies ChartConfig
   return (

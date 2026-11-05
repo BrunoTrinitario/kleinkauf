@@ -1,7 +1,7 @@
 package com.kleinkauf.common.constants;
 
 /*
-Headers propios que viajan entre el gateway y los microservicios
+Custom headers that travel between the gateway and the microservices
  */
 public final class Headers {
     public static final String FORWARDED_HOST = "X-Forwarded-Host";
@@ -10,7 +10,7 @@ public final class Headers {
     public static final String INTERNAL_TOKEN = "X-Internal-Token";
     public static final String OPEN_PATH = "X-Open-Path";
     public static final String TENANT_NAME = "X-Tenant-Name";
-    // IP del cliente segun el gateway (para la auditoria); la del cliente se borra
+    // Client IP according to the gateway (for the audit); the one sent by the client is removed
     public static final String CLIENT_IP = "X-Client-Ip";
 
     private Headers() {

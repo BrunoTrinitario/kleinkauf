@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /*
-Valida contra una base real (H2 en modo PostgreSQL) el mapeo de las columnas nuevas
-y las consultas JPQL, que si estan mal solo fallan al arrancar el servicio.
+Validates against a real database (H2 in PostgreSQL mode) the mapping of the new columns
+and the JPQL queries, which if wrong only fail when the service starts.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:products;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
@@ -36,7 +36,7 @@ class StockRepositoryTest {
 	private StockMovementRepository stockMovementRepository;
 
 	@Test
-	void guardaPrecioCostoYStockMinimo() {
+	void storesPriceCostAndMinStock() {
 		Product product = persist("Mesa", 4, 2);
 		product.setPrice(new BigDecimal("15000.50"));
 		product.setCost(new BigDecimal("9000.25"));
@@ -51,7 +51,7 @@ class StockRepositoryTest {
 	}
 
 	@Test
-	void stockBajo_soloLosQueTienenMinimoYEstanEnOAbajo() {
+	void lowStock_onlyThoseWithMinimumAndAtOrBelow() {
 		persist("Sin alerta", 0, 0);
 		persist("Bien", 10, 3);
 		persist("Justo", 3, 3);
@@ -64,7 +64,7 @@ class StockRepositoryTest {
 	}
 
 	@Test
-	void destacados_porOrdenYLosSinOrdenAlFinalPorNombre() {
+	void featured_byOrderAndUnorderedLastByName() {
 		featured(persist("Zeta sin orden", 1, 0), null);
 		featured(persist("Segundo", 1, 0), 2);
 		persist("No destacado", 1, 0);
@@ -78,21 +78,21 @@ class StockRepositoryTest {
 	}
 
 	@Test
-	void findByIdForUpdate_encuentraElProducto() {
+	void findByIdForUpdate_findsTheProduct() {
 		Product product = persist("Silla", 5, 0);
 
 		assertTrue(productRepository.findByIdForUpdate(product.getId()).isPresent());
 	}
 
 	@Test
-	void movimientos_delMasNuevoAlMasViejo() {
+	void movements_newestToOldest() {
 		Product product = persist("Lampara", 0, 0);
-		StockMovement viejo = movement(product, LocalDateTime.now().minusDays(1));
-		StockMovement nuevo = movement(product, LocalDateTime.now());
+		StockMovement older = movement(product, LocalDateTime.now().minusDays(1));
+		StockMovement newer = movement(product, LocalDateTime.now());
 
 		List<StockMovement> movements = stockMovementRepository.findByProduct_IdOrderByCreatedAtDescIdDesc(product.getId());
 
-		assertEquals(List.of(nuevo.getId(), viejo.getId()), movements.stream().map(StockMovement::getId).toList());
+		assertEquals(List.of(newer.getId(), older.getId()), movements.stream().map(StockMovement::getId).toList());
 	}
 
 	private Product persist(String name, int stock, int minStock) {

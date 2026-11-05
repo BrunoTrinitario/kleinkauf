@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.dto.reports;
 
-// Totales de un canal (ONLINE / LOCAL) o de un medio de pago
+// Totals of a channel (ONLINE / LOCAL) or of a payment method
 public record BreakdownDto(
         String key,
         ReportTotalsDto totals

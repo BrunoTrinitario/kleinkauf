@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 /*
-Nombre de quien hizo cada cosa. Se busca en users al guardar el evento y queda guardado con el: si despues
-borran al usuario, su auditoria sigue diciendo quien era. Se guarda 10 minutos para no preguntar por cada
-evento. Si users no responde, el evento se guarda igual sin nombre (queda el id).
+Name of whoever did each thing. It is looked up in users when the event is stored and saved with it: if the user
+is deleted later, their audit still says who they were. Cached for 10 minutes so as not to ask on every
+event. If users does not answer, the event is stored anyway without a name (the id remains).
  */
 @Component
 public class ActorNames {

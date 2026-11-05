@@ -18,11 +18,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// El contador en Redis: lo comparten todos los gateways
+// The counter in Redis: shared by all gateways
 class RateLimitCounterTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-01T10:00:10Z"), ZoneOffset.UTC);
-    // Minuto de CLOCK desde 1970: la ventana va en la key
+    // CLOCK minute since 1970: the window goes in the key
     private static final String KEY = "rate_limit:login:x:" + CLOCK.millis() / 60_000;
 
     private final ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
@@ -40,7 +40,7 @@ class RateLimitCounterTest {
     }
 
     @Test
-    void laPrimeraDeLaVentanaPoneElVencimiento() {
+    void firstOfTheWindowSetsTheExpiry() {
         when(values.increment(KEY)).thenReturn(Mono.just(1L));
         when(redis.expire(KEY, RateLimitCounter.KEY_TTL)).thenReturn(Mono.just(true));
 
@@ -49,9 +49,9 @@ class RateLimitCounterTest {
         verify(redis).expire(KEY, RateLimitCounter.KEY_TTL);
     }
 
-    // Lo que contaron los otros gateways tambien suma
+    // What the other gateways counted adds up too
     @Test
-    void lasSiguientesDevuelvenElTotalDeRedis() {
+    void followingOnesReturnTheRedisTotal() {
         when(values.increment(KEY)).thenReturn(Mono.just(6L));
 
         assertEquals(6L, counter.increment("rate_limit:login:x").block());
@@ -59,10 +59,10 @@ class RateLimitCounterTest {
         verify(redis, never()).expire(anyString(), org.mockito.ArgumentMatchers.any(Duration.class));
     }
 
-    // Con Redis caido o lento el limite sigue, contado en la memoria de este gateway
+    // With Redis down or slow the limit still holds, counted in this gateway's memory
     @Test
-    void sinRedis_cuentaEnMemoria() {
-        when(values.increment(KEY)).thenReturn(Mono.error(new IllegalStateException("redis caido")));
+    void withoutRedis_countsInMemory() {
+        when(values.increment(KEY)).thenReturn(Mono.error(new IllegalStateException("redis down")));
         assertEquals(1L, counter.increment("rate_limit:login:x").block());
         assertEquals(2L, counter.increment("rate_limit:login:x").block());
 

@@ -100,7 +100,7 @@ class OrderServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		// OrderStock real sobre el cliente mockeado: se prueba tambien el manejo de errores de products
+		// Real OrderStock over the mocked client: products error handling is tested too
 		OrderStock orderStock = new OrderStock();
 		ReflectionTestUtils.setField(orderStock, "productsClient", productsClient);
 		ReflectionTestUtils.setField(service, "orderStock", orderStock);
@@ -126,7 +126,7 @@ class OrderServiceTest {
 	private static final byte[] PNG = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3};
 
 	@Test
-	void comprobante_pasaARevisionYSeGuarda() throws Exception {
+	void receipt_goesToReviewAndIsStored() throws Exception {
 		Order order = pending();
 		when(receiptStorage.save(eq("tienda1"), eq(NUMBER), any(), eq(ReceiptStorage.FileType.PNG))).thenReturn("tienda1/K7QM-4X2P/a.png");
 		when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(i -> i.getArgument(0));
@@ -135,17 +135,17 @@ class OrderServiceTest {
 
 		assertEquals(OrderStatus.PAGO_EN_REVISION, dto.status());
 		assertEquals(1, dto.receipts());
-		// Ya no se muestran los datos para transferir
+		// The transfer details are no longer shown
 		assertNull(dto.payment());
 		assertEquals("image/png", order.getReceipts().get(0).getContentType());
-		// Panel en vivo de la tienda
+		// Store live dashboard
 		verify(orderEvents).receiptUploaded(order);
 	}
 
 	@Test
-	void comprobante_tipoPorContenido_noPorElNombre() {
+	void receipt_typeByContent_notByName() {
 		pending();
-		// Dice ser PNG pero no lo es
+		// Claims to be PNG but is not
 		ApiException e = assertThrows(ApiException.class,
 				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file("<html>".getBytes(StandardCharsets.UTF_8), "image/png")));
 		assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
@@ -153,20 +153,20 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void comprobante_soloMientrasEsperaElPagoYAntesDeVencer() {
-		Order vencido = pending();
-		vencido.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+	void receipt_onlyWhileAwaitingPaymentAndBeforeExpiring() {
+		Order expiredOrder = pending();
+		expiredOrder.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 		assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class,
 				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file(PNG, "image/png"))).getStatus());
 
-		Order pagado = pending();
-		pagado.setStatus(OrderStatus.PAGADO);
+		Order paidOrder = pending();
+		paidOrder.setStatus(OrderStatus.PAGADO);
 		assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class,
 				() -> service.uploadReceipt(NUMBER, "ana@mail.com", file(PNG, "image/png"))).getStatus());
 	}
 
 	@Test
-	void comprobante_hasta5() {
+	void receipt_upTo5() {
 		Order order = pending();
 		for (int i = 0; i < 5; i++) order.addReceipt(new PaymentReceipt());
 
@@ -176,7 +176,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void comprobante_otroEmail_404() {
+	void receipt_otherEmail_404() {
 		pending();
 		ApiException e = assertThrows(ApiException.class,
 				() -> service.uploadReceipt(NUMBER, "otro@mail.com", file(PNG, "image/png")));
@@ -184,7 +184,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void comprobante_siNoSePuedeGuardarElPedido_borraElArchivo() {
+	void receipt_ifTheOrderCannotBeSaved_deletesTheFile() {
 		pending();
 		when(receiptStorage.save(any(), any(), any(), any())).thenReturn("tienda1/K7QM-4X2P/a.png");
 		when(orderRepository.saveAndFlush(any(Order.class))).thenThrow(new ObjectOptimisticLockingFailureException(Order.class, 1L));
@@ -211,7 +211,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_reservaGuardaYDevuelveLosDatosParaTransferir() throws Exception {
+	void create_reservesSavesAndReturnsTheTransferDetails() throws Exception {
 		reserves(reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", "60.00"),
 				reserved(ReservationItemType.BUNDLE, 9L, "Comedor", "150.00", null));
 
@@ -243,7 +243,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_logueado_quedaAsociadoAlUsuario() throws Exception {
+	void create_loggedIn_isLinkedToTheUser() throws Exception {
 		CustomUserDetails user = new CustomUserDetails(7L, List.of(new RoleDto("CLIENTE", 0)));
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
@@ -255,7 +255,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_lineasRepetidas_seJuntan() throws Exception {
+	void create_repeatedLines_areMerged() throws Exception {
 		reserves(reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", null));
 
 		service.create(order(item(ReservationItemType.PRODUCT, 5L, 1, "100.00"),
@@ -268,7 +268,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_precioCambiado_devuelveElStockYNoGuarda() {
+	void create_priceChanged_returnsTheStockAndDoesNotSave() {
 		reserves(reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "120.00", null));
 
 		PricesChangedException e = assertThrows(PricesChangedException.class,
@@ -281,7 +281,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_sinStock_respondeElErrorDeProductsSinDevolver() {
+	void create_withoutStock_respondsWithProductsErrorWithoutReleasing() {
 		when(productsClient.reserve(any())).thenThrow(HttpClientErrorException.create(HttpStatus.CONFLICT, "Conflict",
 				HttpHeaders.EMPTY, "Not enough stock: Mesa".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
 
@@ -290,13 +290,13 @@ class OrderServiceTest {
 
 		assertEquals(HttpStatus.CONFLICT, e.getStatus());
 		assertEquals("Not enough stock: Mesa", e.getMessage());
-		// Todo o nada: products no desconto nada
+		// All or nothing: products deducted nothing
 		verify(productsClient, never()).release(anyString());
 		verify(orderRepository, never()).save(any());
 	}
 
 	@Test
-	void crear_productsNoResponde_devuelvePorLasDudasY503() {
+	void create_productsDoesNotAnswer_releasesJustInCaseAnd503() {
 		when(productsClient.reserve(any())).thenThrow(new ResourceAccessException("timeout"));
 
 		ApiException e = assertThrows(ApiException.class,
@@ -307,7 +307,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_fallaAlGuardar_devuelveElStock() {
+	void create_failsOnSave_returnsTheStock() {
 		reserves(reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", null));
 		when(orderRepository.save(any(Order.class))).thenThrow(new IllegalStateException("db caida"));
 
@@ -319,7 +319,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_sinDatosDePago_esConflictoSinReservar() {
+	void create_withoutPaymentDetails_isConflictWithoutReserving() {
 		when(settingsService.current()).thenReturn(new SalesSettings());
 
 		ApiException e = assertThrows(ApiException.class,
@@ -330,23 +330,23 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void crear_validaTopesCompradorYDireccion() {
+	void create_validatesLimitsBuyerAndAddress() {
 		NewOrderItemDto ok = item(ReservationItemType.PRODUCT, 5L, 1, "100.00");
 		BuyerDto buyer = new BuyerDto("Ana", "ana@mail.com", "11 5555-5555");
 		AddressDto address = new AddressDto("Calle", "123", null, "CABA", "Buenos Aires", "1405");
 
-		// Mas de 20 unidades (tambien sumando lineas repetidas)
+		// More than 20 units (also adding up repeated lines)
 		assertBadRequest(new NewOrderDto(List.of(item(ReservationItemType.PRODUCT, 5L, 21, "1")), buyer, DeliveryType.RETIRO, null, null));
 		assertBadRequest(new NewOrderDto(List.of(item(ReservationItemType.PRODUCT, 5L, 15, "1"), item(ReservationItemType.PRODUCT, 5L, 6, "1")),
 				buyer, DeliveryType.RETIRO, null, null));
-		// Mas de 30 lineas
+		// More than 30 lines
 		List<NewOrderItemDto> many = java.util.stream.LongStream.rangeClosed(1, 31)
 				.mapToObj(id -> item(ReservationItemType.PRODUCT, id, 1, "1")).toList();
 		assertBadRequest(new NewOrderDto(many, buyer, DeliveryType.RETIRO, null, null));
-		// Sin precio del carrito, sin items
+		// No cart price, no items
 		assertBadRequest(new NewOrderDto(List.of(new NewOrderItemDto(ReservationItemType.PRODUCT, 5L, 1, null)), buyer, DeliveryType.RETIRO, null, null));
 		assertBadRequest(new NewOrderDto(List.of(), buyer, DeliveryType.RETIRO, null, null));
-		// Comprador
+		// Buyer
 		assertBadRequest(new NewOrderDto(List.of(ok), new BuyerDto("Ana", "no-es-email", "11 5555-5555"), DeliveryType.RETIRO, null, null));
 		assertBadRequest(new NewOrderDto(List.of(ok), new BuyerDto(" ", "ana@mail.com", "11 5555-5555"), DeliveryType.RETIRO, null, null));
 		assertBadRequest(new NewOrderDto(List.of(ok), new BuyerDto("Ana", "ana@mail.com", null), DeliveryType.RETIRO, null, null));
@@ -361,7 +361,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void consulta_conOtroEmail_noEncuentraElPedido() {
+	void lookup_withOtherEmail_doesNotFindTheOrder() {
 		Order order = new Order();
 		order.setNumber(NUMBER);
 		order.setBuyerEmail("ana@mail.com");
@@ -372,7 +372,7 @@ class OrderServiceTest {
 	}
 
 	@Test
-	void consulta_sinImportarMayusculas() throws ApiException {
+	void lookup_caseInsensitive() throws ApiException {
 		Order order = new Order();
 		order.setNumber(NUMBER);
 		order.setStatus(OrderStatus.PENDIENTE_PAGO);

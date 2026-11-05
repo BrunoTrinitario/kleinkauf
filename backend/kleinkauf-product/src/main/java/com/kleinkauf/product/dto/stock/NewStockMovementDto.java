@@ -3,8 +3,8 @@ package com.kleinkauf.product.dto.stock;
 import com.kleinkauf.product.entities.StockMovementType;
 
 /*
-ENTRADA y SALIDA: quantity es la cantidad de unidades (mayor a 0).
-AJUSTE: quantity es el stock real contado (0 o mas) y reason es obligatorio.
+ENTRADA and SALIDA: quantity is the number of units (greater than 0).
+AJUSTE: quantity is the real counted stock (0 or more) and reason is required.
  */
 public record NewStockMovementDto(
         StockMovementType type,

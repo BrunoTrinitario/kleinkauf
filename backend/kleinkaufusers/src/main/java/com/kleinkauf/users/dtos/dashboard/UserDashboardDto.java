@@ -5,10 +5,10 @@ import com.kleinkauf.users.dtos.platform.RegistrationsDto;
 import java.util.Map;
 
 /*
-GET /api/v1/users/dashboard: panel de la tienda (solo ADMINISTRADOR, docs/panel-admin.md).
-- active: entraron en los ultimos activeWindowDays dias (lastLogin).
-- byRole: ADMINISTRADOR, EMPLEADO y CLIENTE siempre (en 0 si no hay); un usuario con varios roles cuenta en cada uno.
-- registrations: altas por periodo de los usuarios que siguen en la tienda.
+GET /api/v1/users/dashboard: store dashboard (ADMINISTRADOR only, docs/panel-admin.md).
+- active: logged in within the last activeWindowDays days (lastLogin).
+- byRole: ADMINISTRADOR, EMPLEADO and CLIENTE always (0 if there are none); a user with several roles counts in each one.
+- registrations: sign-ups per period of the users still in the store.
  */
 public record UserDashboardDto(
         long total,

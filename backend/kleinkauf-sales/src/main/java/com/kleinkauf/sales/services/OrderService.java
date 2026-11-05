@@ -49,13 +49,13 @@ import java.util.Locale;
 import java.util.Map;
 
 /*
-Pedidos de la tienda online: checkout, crear, consulta del invitado, comprobante, cancelacion y mis pedidos.
-Crear un pedido:
-1. Valida el pedido y que la tienda tenga configurados los datos de pago.
-2. Reserva el stock en products con el numero del pedido (todo o nada, idempotente).
-3. Compara los precios con los del carrito: si cambio alguno, devuelve el stock y responde 409.
-4. Guarda el pedido. Si falla, devuelve el stock.
-El comprobante y la cancelacion identifican al invitado con el email del pedido.
+Online store orders: checkout, create, guest lookup, receipt, cancellation and my orders.
+Creating an order:
+1. Validates the order and that the store has the payment details configured.
+2. Reserves the stock in products with the order number (all or nothing, idempotent).
+3. Compares the prices with the cart's: if any changed, it returns the stock and responds 409.
+4. Saves the order. If it fails, it returns the stock.
+The receipt and the cancellation identify the guest by the order email.
  */
 @Slf4j
 @Service
@@ -143,8 +143,8 @@ public class OrderService {
     }
 
     /*
-    Sube el comprobante: hasta maxReceipts por pedido, JPG, PNG o PDF de hasta 5 MB, mientras el pedido
-    espera el pago (PENDIENTE_PAGO o RECHAZADO) y no vencio. Pasa a PAGO_EN_REVISION.
+    Uploads the receipt: up to maxReceipts per order, JPG, PNG or PDF up to 5 MB, while the order
+    awaits payment (PENDIENTE_PAGO or RECHAZADO) and has not expired. Moves to PAGO_EN_REVISION.
      */
     @Transactional(rollbackFor = Exception.class)
     public OrderDto uploadReceipt(String number, String email, MultipartFile file) throws ApiException {
@@ -178,7 +178,7 @@ public class OrderService {
             receiptStorage.deleteQuietly(path);
             throw e;
         }
-        // Se publica despues del commit
+        // Published after the commit
         orderEvents.receiptUploaded(order);
         return OrderMapper.toBuyerDto(order, settingsService.current());
     }
@@ -211,7 +211,7 @@ public class OrderService {
                 orders.getNumber(), orders.getSize(), orders.getTotalElements(), orders.getTotalPages());
     }
 
-    // Unico en la tienda (tambien lo usan las ventas del local). Con 31^8 combinaciones un choque es muy raro
+    // Unique within the store (in-store sales use it too). With 31^8 combinations a collision is very rare
     public String newNumber() throws ApiException {
         for (int i = 0; i < NUMBER_ATTEMPTS; i++) {
             String number = numberGenerator.next();
@@ -220,7 +220,7 @@ public class OrderService {
         throw new ApiException(ErrorMessages.ORDER_NOT_CREATED, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
-    // Mismo 404 si no existe o si el email no coincide: no revela que numeros existen
+    // Same 404 if it does not exist or the email does not match: does not reveal which numbers exist
     private Order findForBuyer(String number, String email) throws ApiException {
         if (number == null || email == null) throw notFound();
         String cleanEmail = email.trim().toLowerCase(Locale.ROOT);
@@ -244,7 +244,7 @@ public class OrderService {
         }
     }
 
-    // Valida el pedido y junta las lineas repetidas (mismo producto o combo)
+    // Validates the order and merges repeated lines (same product or bundle)
     private List<NewOrderItemDto> validate(NewOrderDto dto) throws ApiException {
         String invalidItems = ErrorMessages.INVALID_ITEMS.formatted(maxLines, maxQuantity);
         if (dto == null || dto.items() == null || dto.items().isEmpty()) {
@@ -280,7 +280,7 @@ public class OrderService {
         return new ArrayList<>(merged.values());
     }
 
-    // La reserva devuelve los items en el mismo orden que se pidieron
+    // The reservation returns the items in the same order they were requested
     private static List<PriceChangeDto> priceChanges(List<NewOrderItemDto> items, List<ReservedItemDto> reserved) {
         List<PriceChangeDto> changes = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
@@ -321,7 +321,7 @@ public class OrderService {
         return order;
     }
 
-    // Linea con los datos al momento de la venta. unitPrice: el cobrado (en el local puede no ser el de lista)
+    // Line with the data at sale time. unitPrice: the one charged (in the store it may not be the list price)
     static OrderItem item(ReservedItemDto r, int quantity, BigDecimal unitPrice) {
         OrderItem item = new OrderItem();
         item.setType(r.type());

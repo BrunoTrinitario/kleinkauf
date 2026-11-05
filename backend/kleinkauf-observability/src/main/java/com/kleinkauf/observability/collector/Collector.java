@@ -35,13 +35,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /*
-Recolector (lo llama Schedules cada observability.poll.interval):
-1. Lee /ready y /metrics de cada instancia, todas a la vez (un hilo virtual por instancia).
-2. Arma la salud y el trafico por servicio. Las tasas salen de la lectura anterior de cada instancia.
-3. Guarda la lectura (PlatformState) y la manda por el WS: platform.health solo si cambio algun estado,
-   platform.traffic siempre.
-4. Con el trafico del gateway por tienda (etiqueta tenant) actualiza los canales de las tiendas (StoreFeeds).
-   Se usa solo el gateway: cada request de una tienda pasa una vez por ahi (en los servicios se contaria de nuevo).
+Collector (called by Schedules every observability.poll.interval):
+1. Reads /ready and /metrics from every instance, all at once (one virtual thread per instance).
+2. Builds the health and traffic per service. Rates come from each instance's previous reading.
+3. Stores the reading (PlatformState) and sends it over the WS: platform.health only if some status changed,
+   platform.traffic always.
+4. With the gateway's per-store traffic (tenant tag) it updates the store channels (StoreFeeds).
+   Only the gateway is used: each store request goes through it once (in the services it would be counted again).
  */
 @Slf4j
 @Component
@@ -61,7 +61,7 @@ public class Collector {
     private final String gatewayService;
 
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-    // Ultima lectura de cada instancia (por id): de aca salen las tasas
+    // Last reading of each instance (by id): rates come from here
     private final Map<String, Reading> previous = new HashMap<>();
     private String lastHealthSignature;
 
@@ -80,7 +80,7 @@ public class Collector {
         this.gatewayService = gatewayService;
     }
 
-    // synchronized: si una vuelta se demora no se pisa con la siguiente
+    // synchronized: if a round runs late it does not overlap with the next one
     public synchronized PlatformOverviewDto collect() {
         Instant now = clock.instant();
         List<Target> targets = discovery.targets();
@@ -110,7 +110,7 @@ public class Collector {
         try {
             storeFeeds.update(tenantRates);
         } catch (RuntimeException e) {
-            // Los canales de las tiendas no frenan el panel de la plataforma
+            // Store channels do not hold back the platform dashboard
             log.warn("No se pudieron actualizar los canales de las tiendas: {}", e.toString());
         }
         return overview;
@@ -119,7 +119,7 @@ public class Collector {
     private List<Result> probeAll(List<Target> targets) {
         List<Future<Result>> futures = targets.stream().map(t -> executor.submit(() -> probe.probe(t))).toList();
         List<Result> results = new ArrayList<>();
-        // Cada instancia tiene su timeout por llamada; esto es un tope por si alguna se cuelga igual
+        // Each instance has its own per-call timeout; this is a cap in case one hangs anyway
         long deadline = System.nanoTime() + timeout.multipliedBy(3).toNanos();
         for (int i = 0; i < futures.size(); i++) {
             Future<Result> future = futures.get(i);
@@ -172,13 +172,13 @@ public class Collector {
                 sum(metrics, InstanceMetrics::dbConnectionsMax));
     }
 
-    // Trafico por tienda del gateway; null si todavia no hay dos lecturas de ninguna de sus instancias
+    // Gateway per-store traffic; null if there are not yet two readings from any of its instances
     private Map<String, Traffic.TenantRates> tenantRates(List<Result> gateway, Instant now) {
         Deltas deltas = deltas(gateway, now);
         return deltas.list().isEmpty() ? null : Traffic.tenantRates(deltas.list(), deltas.seconds());
     }
 
-    // Lo que paso en cada instancia desde su lectura anterior; seconds es el promedio de los intervalos
+    // What happened on each instance since its previous reading; seconds is the average of the intervals
     private record Deltas(List<Traffic.Delta> list, double seconds) {
     }
 
@@ -196,7 +196,7 @@ public class Collector {
         return new Deltas(deltas, deltas.isEmpty() ? 0 : seconds / deltas.size());
     }
 
-    // Se olvidan las instancias que ya no estan; las que no respondieron /metrics quedan como estaban
+    // Instances that are gone are forgotten; those that did not answer /metrics stay as they were
     private void remember(List<Target> targets, Collection<List<Result>> results, Instant now) {
         previous.keySet().retainAll(targets.stream().map(Target::instanceId).toList());
         results.stream().flatMap(List::stream)

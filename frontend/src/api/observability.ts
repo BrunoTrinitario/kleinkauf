@@ -5,13 +5,13 @@ import { IS_PLATFORM } from "@/lib/platform"
 import type { Page } from "@/lib/types"
 
 /*
-Observabilidad y auditoria (kleinkauf-observability, docs/backend/observability.md).
-- Tienda (/api/v1/observability, solo ADMINISTRADOR): auditoria de su tienda, uso del dia y conectados.
-- Plataforma (/api/v1/platform/observability, solo SUPERADMIN): salud, trafico y auditoria de la plataforma.
-Lo anterior se carga por REST y lo nuevo llega por el WebSocket (hooks/use-live-channels.ts).
+Observability and audit (kleinkauf-observability, docs/backend/observability.md).
+- Store (/api/v1/observability, ADMINISTRADOR only): the store's audit, today's usage and connected users.
+- Platform (/api/v1/platform/observability, SUPERADMIN only): health, traffic and the platform's audit.
+The past is loaded over REST and what is new arrives over the WebSocket (hooks/use-live-channels.ts).
  */
 
-// --- Auditoria ---
+// --- Audit ---
 
 export type AuditAction =
   | "CREATE"
@@ -28,7 +28,7 @@ export interface AuditEvent {
   tenant: string
   at: string
   service: string | null
-  // null: alta de tienda por autoservicio (sin usuario)
+  // null: self-service store sign-up (no user)
   actor: { userId: number | null; name: string | null; role: string | null } | null
   ip: string | null
   traceId: string | null
@@ -38,7 +38,7 @@ export interface AuditEvent {
   changes: Record<string, { from: string | null; to: string | null }>
 }
 
-// from y to: dias (yyyy-MM-dd) en la hora de quien mira; se mandan como el inicio de ese dia con zona
+// from and to: days (yyyy-MM-dd) in the viewer's time; sent as the start of that day with its zone
 export interface AuditFilters {
   from?: string
   to?: string
@@ -60,7 +60,7 @@ function auditParams(filters: AuditFilters) {
   }
   return {
     from: filters.from ? startOf(filters.from).toISOString() : undefined,
-    // to no se incluye: el dia entero es hasta el comienzo del siguiente
+    // to is exclusive: the whole day lasts until the start of the next one
     to: filters.to ? nextDay(filters.to).toISOString() : undefined,
     userId: filters.userId || undefined,
     entity: filters.entity || undefined,
@@ -94,18 +94,18 @@ export function useAudit(filters: AuditFilters, enabled = true) {
   })
 }
 
-// El CSV lo arma el backend (hasta 50.000 eventos; con mas responde 400 y hay que acotar las fechas)
+// The backend builds the CSV (up to 50,000 events; with more it answers 400 and the dates have to be narrowed)
 export const exportAudit = (filters: AuditFilters) =>
   downloadCsv(`${AUDIT_PATH}/export`, "auditoria.csv", auditParams(filters))
 
-// --- Tienda: uso del dia y conectados ---
+// --- Store: today's usage and connected users ---
 
 export interface StoreUsage {
   at: string | null
   date: string
   catalogVisits: number
   topProducts: { slug: string; views: number }[]
-  // null hasta la segunda lectura del recolector
+  // null until the collector's second reading
   traffic: { requestsPerSecond: number; errors4xxPerSecond: number; errors5xxPerSecond: number } | null
 }
 
@@ -130,7 +130,7 @@ export function useStoreUsers(enabled = true) {
   })
 }
 
-// Lo que manda store.activity: { type, at, ...datos }
+// What store.activity sends: { type, at, ...data }
 export type StoreActivity =
   | {
       type: "order.created" | "order.receipt-uploaded"
@@ -154,7 +154,7 @@ export type StoreActivity =
     }
   | { type: "stock.low"; at: string; productId: number; productName: string; stock: number; minStock: number }
 
-// --- Plataforma: salud y trafico ---
+// --- Platform: health and traffic ---
 
 export type ServiceStatus = "UP" | "DEGRADED" | "DOWN"
 
@@ -165,7 +165,7 @@ export interface ServiceHealth {
   openCircuitBreakers: string[]
 }
 
-// Las tasas son null hasta la segunda lectura; los percentiles, si no hubo requests
+// Rates are null until the second reading; percentiles, when there were no requests
 export interface ServiceTraffic {
   name: string
   instances: number
@@ -189,7 +189,7 @@ export interface ConnectedUsers {
   byTenant: { tenant: string; users: number }[]
 }
 
-// Lo que manda platform.traffic en cada lectura (10 s)
+// What platform.traffic sends on each reading (10 s)
 export interface TrafficUpdate {
   at: string
   traffic: ServiceTraffic[]
@@ -197,7 +197,7 @@ export interface TrafficUpdate {
 }
 
 export interface PlatformOverview extends TrafficUpdate {
-  // null: el recolector todavia no hizo ninguna lectura
+  // null: the collector has not made any reading yet
   at: string
   services: ServiceHealth[]
 }

@@ -11,11 +11,11 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 /*
-Rutas que el gateway no rutea a ningun servicio: 404. Sin esto respondian 401 (Spring Security o JwtFilter piden
-login antes de que el gateway busque la ruta) o 404 por falta de tienda, segun la ruta y los headers.
-Solo mira las rutas del gateway (GatewayRoutes): un endpoint inexistente dentro de un servicio
-(ej. /api/v1/products/inventado) sigue pidiendo login, asi no se pueden listar los endpoints de cada servicio.
-Corre despues de CORS (-150), para que el navegador pueda leer el 404, y antes de Spring Security (-100).
+Routes the gateway does not route to any service: 404. Without this they responded 401 (Spring Security or JwtFilter ask for
+login before the gateway looks up the route) or 404 for lack of a store, depending on the route and the headers.
+It only looks at the gateway's routes (GatewayRoutes): an unknown endpoint inside a service
+(e.g. /api/v1/products/made-up) still asks for login, so each service's endpoints cannot be enumerated.
+Runs after CORS (-150), so the browser can read the 404, and before Spring Security (-100).
  */
 @Component
 @Order(-120)

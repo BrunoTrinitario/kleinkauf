@@ -11,7 +11,7 @@ interface PlatformTenantCardProps {
   tenant: PlatformTenant
   onToggleEnabled: (tenant: PlatformTenant, enabled: boolean) => void
   onDelete: (tenant: PlatformTenant) => void
-  // Mientras se guarda el cambio de estado de esta tienda
+  // While this store's status change is being saved
   isSaving?: boolean
 }
 
@@ -22,7 +22,7 @@ export function PlatformTenantCard({ tenant, onToggleEnabled, onDelete, isSaving
     <Badge className="bg-muted text-muted-foreground">{strings.platformTenants.disabled}</Badge>
   )
 
-  // Misma disposicion que la tarjeta de usuario: acciones siempre a la derecha, el estado abajo en mobile
+  // Same layout as the user card: actions always on the right, the status below on mobile
   return (
     <div className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">

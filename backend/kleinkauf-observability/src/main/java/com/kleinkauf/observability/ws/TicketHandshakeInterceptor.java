@@ -13,10 +13,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Map;
 
 /*
-Abre el WS solo con un ticket valido (/ws?ticket=...) y del mismo tenant que la conexion:
-el gateway reconoce la tienda por el Origin y la pasa en X-Forwarded-Host; desde el frontend de la
-plataforma no hay tienda y la conexion es de "public". Sin ticket, vencido o ya usado: 401.
-De otro tenant (ej. un ticket de plataforma usado desde una tienda): 403.
+Opens the WS only with a valid ticket (/ws?ticket=...) from the same tenant as the connection:
+the gateway recognizes the store by the Origin and passes it in X-Forwarded-Host; from the platform
+frontend there is no store and the connection belongs to "public". Without a ticket, expired or already used: 401.
+From another tenant (e.g. a platform ticket used from a store): 403.
  */
 @Component
 public class TicketHandshakeInterceptor implements HandshakeInterceptor {

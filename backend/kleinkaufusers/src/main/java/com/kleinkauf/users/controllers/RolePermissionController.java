@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /*
-Permisos por rol de la tienda. Solo ADMINISTRADOR (/api/v1/users/** en SecurityConfig).
-permissions: mascara de bits (PRODUCTOS=1, PRECIOS=2, STOCK=4, COMBOS=8, USUARIOS=16).
+Store permissions per role. ADMINISTRADOR only (/api/v1/users/** in SecurityConfig).
+permissions: bit mask (PRODUCTOS=1, PRECIOS=2, STOCK=4, COMBOS=8, USUARIOS=16).
  */
 @RestController
 @RequestMapping("/api/v1/users/roles")
@@ -27,7 +27,7 @@ public class RolePermissionController {
         return ResponseEntity.ok(rolePermissionService.list());
     }
 
-    // Solo EMPLEADO y CLIENTE; USUARIOS no se puede dar. Body: {"permissions": 5}
+    // Only EMPLEADO and CLIENTE; USUARIOS cannot be granted. Body: {"permissions": 5}
     @PutMapping("/{role}/permissions")
     public ResponseEntity<RolePermissionDto> update(@PathVariable String role, @RequestBody UpdatePermissionsDto dto) throws ApiException {
         if (dto == null || dto.permissions() == null) {

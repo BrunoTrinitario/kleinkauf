@@ -14,11 +14,11 @@ import java.time.Clock;
 import java.util.Map;
 
 /*
-Publica eventos en Redis Streams (KleinKaufEvent.STREAM) para observability.
-- Dentro de una transaccion se publica despues del commit: si la operacion se deshace, no hay evento.
-- El stream se recorta a unos MAX_LENGTH eventos: es para lo que pasa en vivo, no un historial.
-- Si Redis falla se loguea y la operacion sigue: por ahora los eventos son solo para el panel en vivo.
-  La auditoria (etapa 3, docs/auditoria.md) no puede perderlos y va a pasar por una tabla outbox.
+Publishes events to Redis Streams (KleinKaufEvent.STREAM) for observability.
+- Inside a transaction it publishes after the commit: if the operation is rolled back, there is no event.
+- The stream is trimmed to about MAX_LENGTH events: it is for what happens live, not a history.
+- If Redis fails it is logged and the operation goes on: for now events are only for the live dashboard.
+  The audit (stage 3, docs/auditoria.md) cannot lose them and goes through an outbox table.
  */
 public class KleinKaufEventPublisher {
 

@@ -14,9 +14,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /*
-Consultas del catalogo publico. JPQL armado a mano para poder ordenar por precio con
-los productos sin precio ('consultar') siempre al final. Los borrados quedan afuera
-por el @SQLRestriction de Product.
+Public catalog queries. Hand-built JPQL to be able to sort by price with
+products without a price ('consultar') always last. Deleted ones are left out
+by Product's @SQLRestriction.
  */
 @Repository
 public class CatalogRepository {
@@ -55,7 +55,7 @@ public class CatalogRepository {
     private static String where(Filter filter, Map<String, Object> params) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (filter.query() != null && !filter.query().isBlank()) {
-            // Busca en nombre, descripcion y categoria sin distinguir mayusculas; '%' y '_' se buscan tal cual
+            // Searches name, description and category case-insensitively; '%' and '_' are searched literally
             where.append(" AND (LOWER(p.name) LIKE :q ESCAPE '\\' OR LOWER(p.description) LIKE :q ESCAPE '\\'"
                     + " OR LOWER(p.category) LIKE :q ESCAPE '\\')");
             params.put("q", "%" + escapeLike(filter.query().trim().toLowerCase(Locale.ROOT)) + "%");

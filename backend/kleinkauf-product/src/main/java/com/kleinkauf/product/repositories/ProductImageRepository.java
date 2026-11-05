@@ -14,8 +14,8 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Long
     Collection<ProductImage> findByProduct_Id(Long id);
     List<ProductImage> findByProduct_IdOrderByImageOrderAsc (Long id);
 
-    // Imagenes de varios productos en una sola consulta: cada fila es {productId, path}, en orden.
-    // Proyeccion para no cargar el producto de cada imagen
+    // Images of several products in a single query: each row is {productId, path}, in order.
+    // Projection so as not to load each image's product
     @Query("SELECT i.product.id, i.path FROM ProductImage i WHERE i.product.id IN :ids ORDER BY i.imageOrder ASC, i.id ASC")
     List<Object[]> findPathsByProductIds(@Param("ids") Collection<Long> ids);
 }

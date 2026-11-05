@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-// Devuelve value recien cuando deja de cambiar por delayMs (para no pegarle al servidor por cada tecla)
+// Returns value only once it stops changing for delayMs (so as not to hit the server on every keystroke)
 export function useDebouncedValue<T>(value: T, delayMs = 300): T {
   const [debounced, setDebounced] = useState(value)
 

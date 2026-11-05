@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.users.services.UserService;
 import java.util.Set;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  *
@@ -39,13 +40,13 @@ public class AuthController {
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.OK);
     }
 
-    // Renueva la sesion con el refresh token del login (publico: el token de 1 hora puede estar vencido)
+    // Renews the session with the login refresh token (public: the 1-hour token may have expired)
     @PostMapping("/refresh")
     public ResponseEntity<LoggedUser> refresh(@RequestBody RefreshTokenDto dto) throws ApiException {
         return ResponseEntity.ok(userService.refresh(dto == null ? null : dto.refreshToken()));
     }
 
-    // Cierra la sesion: el refresh deja de servir. 204 aunque ya no sirviera
+    // Closes the session: the refresh token stops working. 204 even if it no longer worked
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody(required = false) RefreshTokenDto dto) {
         userService.logout(dto == null ? null : dto.refreshToken());
@@ -59,18 +60,30 @@ public class AuthController {
         return new ResponseEntity<>(loggedUser, org.springframework.http.HttpStatus.CREATED);
     }
 
-    // Borrar la propia cuenta. 409 si es el ultimo ADMINISTRADOR de la tienda
+    // Delete your own account. 409 if it is the store's last ADMINISTRADOR
     @DeleteMapping("/me")
     public ResponseEntity<String> Delete(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
         userService.deleteUserById(userDetails.getId());
         return new ResponseEntity<>(SuccessMessages.USER_DELETED, org.springframework.http.HttpStatus.OK);
     }
 
-    // Cambiar el nombre o la contrasena propios (los que vienen en null no cambian; el email no se edita)
+    // Change your own name or password (null ones do not change; the email cannot be edited)
     @PatchMapping("/me")
     public ResponseEntity<FullUserDto> Update(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody PatchUserDto userData) throws ApiException {
         FullUserDto updatedUser = userService.updateUser(userDetails.getId(), userData.name(), userData.password());
         return new ResponseEntity<>(updatedUser, org.springframework.http.HttpStatus.OK);
+    }
+
+    // Own profile photo: PNG, JPG, WEBP or GIF up to 1 MB. Replaces the previous one
+    @PostMapping(value = "/me/avatar", consumes = "multipart/form-data")
+    public ResponseEntity<FullUserDto> uploadAvatar(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                    @RequestParam("file") MultipartFile file) throws ApiException {
+        return ResponseEntity.ok(userService.setAvatar(userDetails.getId(), file));
+    }
+
+    @DeleteMapping("/me/avatar")
+    public ResponseEntity<FullUserDto> deleteAvatar(@AuthenticationPrincipal CustomUserDetails userDetails) throws ApiException {
+        return ResponseEntity.ok(userService.deleteAvatar(userDetails.getId()));
     }
 
     @PostMapping("/forgot-password")

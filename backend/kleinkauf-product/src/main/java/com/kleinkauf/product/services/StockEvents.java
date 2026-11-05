@@ -12,11 +12,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Eventos de stock para el panel en vivo de la tienda (canal store.activity, docs/observabilidad.md):
-- stock.movement: un movimiento cargado a mano desde el panel. Los de los pedidos no: ya llega order.created.
-- stock.low: un producto paso a estar en stock bajo (minStock > 0 y stock <= minStock) con un movimiento
-  cualquiera, tambien los de los pedidos. Solo al cruzar el limite, no en cada movimiento mientras siga bajo.
-Dentro de una transaccion se publican despues del commit. Sin Redis no se publica nada y el stock sigue igual.
+Stock events for the store's live dashboard (store.activity channel, docs/observabilidad.md):
+- stock.movement: a movement entered manually from the dashboard. Order movements are not: order.created already arrives.
+- stock.low: a product went into low stock (minStock > 0 and stock <= minStock) with any
+  movement, order ones included. Only when crossing the limit, not on every movement while it stays low.
+Inside a transaction they are published after the commit. Without Redis nothing is published and the stock is unaffected.
  */
 @Component
 public class StockEvents {
@@ -39,7 +39,7 @@ public class StockEvents {
         publish(KleinKaufEvent.STOCK_MOVEMENT, data);
     }
 
-    // stockBefore: el stock antes de los movimientos de esta operacion
+    // stockBefore: the stock before this operation's movements
     public void lowIfCrossed(Product product, int stockBefore) {
         if (!crossedLow(product.getMinStock(), stockBefore, product.getStock())) {
             return;

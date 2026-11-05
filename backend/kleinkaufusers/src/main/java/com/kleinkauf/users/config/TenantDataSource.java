@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /*
-Encargada de definir el buffer de conexiones de todas lsa bds
+In charge of defining the connection pool of all the dbs
  */
 @Slf4j
 @Component
@@ -31,9 +31,9 @@ public class TenantDataSource implements Serializable, TenantSchemaManager {
 
 
     /*
-    Al arrancar migra public y el schema de cada tienda no borrada, como products y sales: un cambio en las entidades
-    llega a todas las tiendas en el deploy. Despues, prepareSchema solo crea el schema si falta (antes migraba cada
-    tienda en su primera request despues de cada reinicio, y esa request tardaba).
+    At startup it migrates public and the schema of each non-deleted store, like products and sales: an entity change
+    reaches every store on deploy. After that, prepareSchema only creates the schema if it is missing (it used to migrate each
+    store on its first request after every restart, and that request was slow).
      */
     @PostConstruct
     public void initAllSchemas() {
@@ -44,7 +44,7 @@ public class TenantDataSource implements Serializable, TenantSchemaManager {
                 createSchemaIfNotExists(schema);
                 runMigration(schema);
             } catch (RuntimeException e) {
-                // Una tienda con problemas no frena el arranque del resto
+                // A store with problems does not hold back the startup of the rest
                 log.error("No se pudo migrar el schema {}", schema, e);
             }
         }
@@ -83,7 +83,7 @@ public class TenantDataSource implements Serializable, TenantSchemaManager {
         runMigration(name);
     }
 
-    // Las tiendas existentes ya se migraron al arrancar: aca solo se crea el schema de una que todavia no lo tiene
+    // Existing stores were already migrated at startup: here only the schema of one that does not have it yet is created
     @Override
     public void prepareSchema(String tenantIdentifier) {
         if (!existsSchema(tenantIdentifier)) {
@@ -123,8 +123,8 @@ public class TenantDataSource implements Serializable, TenantSchemaManager {
             emfb.afterPropertiesSet();
             emfb.destroy();
 
-            // roles.permission (int por usuario, siempre 0) se reemplazo por role_permissions.
-            // ddl-auto=update no borra columnas y quedaba NOT NULL: sin esto fallaria cada alta de rol
+            // roles.permission (int per user, always 0) was replaced by role_permissions.
+            // ddl-auto=update does not drop columns and it was left NOT NULL: without this every role insert would fail
             conn.createStatement().execute("ALTER TABLE " + schema + ".roles DROP COLUMN IF EXISTS permission");
 
         } catch (Exception e) {

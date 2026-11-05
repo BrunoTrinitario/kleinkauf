@@ -9,13 +9,13 @@ import { PageHeader } from "@/components/page-header"
 import { BundleCard } from "@/components/catalog-highlights"
 import { Button } from "@/components/ui/button"
 
-// Combos que se pueden comprar (/combos). Un link a /combos#combo-{id} baja a ese combo. Publica
+// Bundles that can be bought (/combos). A link to /combos#combo-{id} scrolls to that bundle. Public
 export default function BundlesPage() {
   const bundlesQuery = useCatalogBundles()
   const bundles = bundlesQuery.data ?? []
   const { hash } = useLocation()
 
-  // El router no baja solo al ancla: se hace cuando ya estan las tarjetas
+  // The router does not scroll to the anchor on its own: it is done once the cards are there
   useEffect(() => {
     if (!hash || bundles.length === 0) return
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: "start" })

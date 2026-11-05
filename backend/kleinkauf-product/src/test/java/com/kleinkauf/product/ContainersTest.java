@@ -7,11 +7,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /*
-Base de los tests que levantan la app entera (@SpringBootTest): Postgres y Redis reales con Testcontainers, en vez de
-depender de que haya un Postgres en localhost:5432. @ServiceConnection le pasa las URLs a Spring.
-Los contenedores se levantan una sola vez para todas las clases (Testcontainers los borra al terminar): Spring reusa
-el contexto entre clases de test, y si cada clase tuviera los suyos, la segunda apuntaria a uno ya apagado.
-Sin Docker estos tests se saltean (no fallan): los demas tests no lo necesitan.
+Base for the tests that start the whole app (@SpringBootTest): real Postgres and Redis with Testcontainers, instead of
+depending on a Postgres at localhost:5432. @ServiceConnection passes the URLs to Spring.
+The containers are started only once for all classes (Testcontainers removes them at the end): Spring reuses
+the context across test classes, and if each class had its own, the second one would point to one already stopped.
+Without Docker these tests are skipped (they do not fail): the other tests do not need it.
  */
 @Testcontainers(disabledWithoutDocker = true)
 abstract class ContainersTest {

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header"
 import { AuditLog } from "@/components/audit-log"
 import { Button } from "@/components/ui/button"
 
-// Auditoria de la tienda (solo ADMINISTRADOR, lo controla la ruta). El superadmin no la ve
+// Store audit (ADMINISTRADOR only, checked by the route). The superadmin does not see it
 export default function AdminAuditPage() {
   const { user } = useAuth()
   return (

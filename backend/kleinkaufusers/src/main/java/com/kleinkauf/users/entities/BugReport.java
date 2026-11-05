@@ -14,11 +14,11 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /*
-Reporte de un bug que manda alguien desde el footer de una tienda. Va en public (schema explicito): lo leen los
-superadmins desde el panel de la plataforma, aunque se mande con el tenant de la tienda en el contexto.
-tenantSchema: la tienda desde la que se mando. userId, reporterName: el usuario si tenia la sesion abierta.
-email: para contestarle; el que escribio en el formulario o, si no, el de su cuenta.
-resolvedAt: null mientras esta pendiente.
+A bug report someone sends from a store's footer. It lives in public (explicit schema): superadmins read it
+from the platform dashboard, even though it is sent with the store's tenant in the context.
+tenantSchema: the store it was sent from. userId, reporterName: the user if they had an open session.
+email: to reply to them; the one written in the form or, if none, their account's.
+resolvedAt: null while it is pending.
  */
 @Entity
 @Table(name = "bug_reports", schema = "public")

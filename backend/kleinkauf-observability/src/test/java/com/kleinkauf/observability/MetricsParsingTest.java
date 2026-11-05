@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.within;
 
 class MetricsParsingTest {
 
-    // Recorte de lo que devuelve /metrics de un servicio (Micrometer, formato 0.0.4)
+    // An excerpt of what a service's /metrics returns (Micrometer, format 0.0.4)
     static final String METRICS = """
             # HELP http_server_requests_seconds
             # TYPE http_server_requests_seconds histogram
@@ -42,7 +42,7 @@ class MetricsParsingTest {
             """;
 
     @Test
-    void leeEtiquetasValoresYSaltaComentarios() {
+    void readsLabelsValuesAndSkipsComments() {
         List<Sample> samples = PrometheusText.parse("""
                 # TYPE x counter
                 x_total{a="uno",b="con \\"comillas\\", y coma"} 3.5 1700000000000
@@ -59,7 +59,7 @@ class MetricsParsingTest {
     }
 
     @Test
-    void tomaLasMetricasSinLasDelPuertoDeGestion() {
+    void takesMetricsWithoutTheManagementPortOnes() {
         InstanceMetrics metrics = InstanceMetrics.from(PrometheusText.parse(METRICS));
 
         assertThat(metrics.requests()).isEqualTo(106);
@@ -77,7 +77,7 @@ class MetricsParsingTest {
     }
 
     @Test
-    void lasTasasSalenDeLaDiferenciaEntreLecturas() {
+    void ratesComeFromTheDifferenceBetweenReadings() {
         InstanceMetrics before = metrics(100, 2, Map.of(0.05, 80.0, 0.1, 95.0, Double.POSITIVE_INFINITY, 100.0));
         InstanceMetrics after = metrics(200, 12, Map.of(0.05, 130.0, 0.1, 190.0, Double.POSITIVE_INFINITY, 200.0));
 
@@ -85,15 +85,15 @@ class MetricsParsingTest {
 
         assertThat(rates.requestsPerSecond()).isEqualTo(10);
         assertThat(rates.errors5xxPerSecond()).isEqualTo(1);
-        // 100 requests en el intervalo: 50 hasta 50 ms, 45 entre 50 y 100 ms, 5 mas lentas
+        // 100 requests in the interval: 50 up to 50 ms, 45 between 50 and 100 ms, 5 slower
         assertThat(rates.p50Ms()).isCloseTo(50.0, within(0.1));
         assertThat(rates.p95Ms()).isCloseTo(100.0, within(0.1));
-        // El p99 cae en el bucket +Inf: lo mas que se sabe es el limite anterior
+        // The p99 falls in the +Inf bucket: the most that is known is the previous bound
         assertThat(rates.p99Ms()).isCloseTo(100.0, within(0.1));
     }
 
     @Test
-    void siLaInstanciaSeReinicioSeTomaLaLecturaNueva() {
+    void ifTheInstanceRestartedTheNewReadingIsTaken() {
         InstanceMetrics before = metrics(500, 0, Map.of(Double.POSITIVE_INFINITY, 500.0));
         InstanceMetrics after = metrics(30, 0, Map.of(Double.POSITIVE_INFINITY, 30.0));
 
@@ -104,7 +104,7 @@ class MetricsParsingTest {
     }
 
     @Test
-    void sinRequestsNoHayPercentiles() {
+    void withoutRequestsThereAreNoPercentiles() {
         InstanceMetrics same = metrics(100, 0, Map.of(0.1, 100.0, Double.POSITIVE_INFINITY, 100.0));
 
         Traffic.Rates rates = Traffic.rates(List.of(Traffic.delta(same, same)), 10);
@@ -124,23 +124,23 @@ class MetricsParsingTest {
     }
 
     @Test
-    void cuentaRequestsYErroresPorTienda_sinNoneNiInvalid() {
+    void countsRequestsAndErrorsPerStore_withoutNoneOrInvalid() {
         InstanceMetrics metrics = InstanceMetrics.from(PrometheusText.parse(METRICS + """
                 http_server_requests_seconds_count{method="GET",status="404",tenant="demo",uri="/x"} 6
                 http_server_requests_seconds_count{method="GET",status="200",tenant="invalid",uri="/x"} 9
                 """));
 
-        // demo: 100 ok + 4 de 500 + 6 de 404; "none" (login y /metrics) e "invalid" no son tiendas
+        // demo: 100 ok + 4 of 500 + 6 of 404; "none" (login and /metrics) and "invalid" are not stores
         assertThat(metrics.tenants()).containsOnlyKeys("demo");
         assertThat(metrics.tenants().get("demo")).isEqualTo(new InstanceMetrics.TenantRequests(110, 6, 4));
     }
 
     @Test
-    void tasasPorTienda_sumanLasInstanciasYUnReinicioNoDaNegativo() {
+    void perStoreRates_addUpInstancesAndARestartIsNotNegative() {
         InstanceMetrics before = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(100, 10, 0)));
         InstanceMetrics after = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(150, 20, 0),
                 "otra", new InstanceMetrics.TenantRequests(30, 0, 3)));
-        // Otra instancia que se reinicio: el contador bajo, se toma la lectura nueva entera
+        // Another instance that restarted: the counter went down, the whole new reading is taken
         InstanceMetrics restartedBefore = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(500, 0, 0)));
         InstanceMetrics restartedAfter = tenantMetrics(Map.of("demo", new InstanceMetrics.TenantRequests(50, 0, 0)));
 

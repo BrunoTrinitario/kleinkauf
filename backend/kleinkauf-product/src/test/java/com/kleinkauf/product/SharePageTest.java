@@ -10,7 +10,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// HTML del link para compartir: Open Graph para la vista previa y redireccion a la pagina del producto
+// Share link HTML: Open Graph for the preview and redirect to the product page
 class SharePageTest {
 
     private static final String STORE = "http://mitienda.localhost:2999";
@@ -22,28 +22,28 @@ class SharePageTest {
     }
 
     @Test
-    void producto_conPrecioEImagen() {
+    void product_withPriceAndImage() {
         String html = SharePage.product(product("Mesa de roble", "Maciza, 6 personas", new BigDecimal("150000.50"),
                 List.of("abc.png", "def.png")), STORE, PUBLIC);
 
         assertThat(html).contains("<meta property=\"og:title\" content=\"Mesa de roble\">");
         assertThat(html).contains("<meta property=\"og:description\" content=\"$ 150.000,50 · Maciza, 6 personas\">");
-        // La primera imagen, con URL absoluta (el crawler no conoce el gateway)
+        // The first image, with an absolute URL (the crawler does not know the gateway)
         assertThat(html).contains("<meta property=\"og:image\" content=\"http://localhost:3000/products/images/abc.png\">");
         assertThat(html).contains("<meta http-equiv=\"refresh\" content=\"0; url=" + STORE + "/productos/mesa-de-roble\">");
     }
 
     @Test
-    void sinPrecioNiImagen_noLasInventa() {
+    void withoutPriceOrImage_doesNotMakeThemUp() {
         String html = SharePage.product(product("Mesa a medida", "", null, List.of()), STORE, PUBLIC);
 
         assertThat(html).doesNotContain("og:image").doesNotContain("og:description");
         assertThat(html).contains("og:title");
     }
 
-    // Los textos los carga el comercio: no pueden cerrar el atributo ni meter un script
+    // The texts are entered by the merchant: they cannot close the attribute or inject a script
     @Test
-    void escapaLoQueCargaElComercio() {
+    void escapesWhatTheMerchantEnters() {
         String html = SharePage.product(product("Mesa \"Roble\" <script>alert(1)</script>", "Con 'comillas' & más",
                 null, List.of()), STORE, PUBLIC);
 
@@ -53,7 +53,7 @@ class SharePageTest {
     }
 
     @Test
-    void descripcionLarga_seRecorta() {
+    void longDescription_isTruncated() {
         String html = SharePage.product(product("Mesa", "x".repeat(500), null, List.of()), STORE, PUBLIC);
 
         assertThat(html).contains("x".repeat(199) + "…");
@@ -61,7 +61,7 @@ class SharePageTest {
     }
 
     @Test
-    void productoQueNoExiste_vaALaHomeDeLaTienda() {
+    void productThatDoesNotExist_goesToTheStoreHome() {
         String html = SharePage.store(STORE);
 
         assertThat(html).contains("url=" + STORE + "/\"").doesNotContain("og:title");

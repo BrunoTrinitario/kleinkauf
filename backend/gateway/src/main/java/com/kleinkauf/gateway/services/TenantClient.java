@@ -15,9 +15,9 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 
 /*
-Llamadas al microservicio de usuarios para resolver tenants, protegidas con
-Resilience4j (instancia "users" en application.properties) y con timeout.
-El fallback va en @Retry porque es el aspecto mas externo.
+Calls to the users microservice to resolve tenants, protected with
+Resilience4j ("users" instance in application.properties) and with a timeout.
+The fallback goes on @Retry because it is the outermost aspect.
  */
 @Slf4j
 @Component
@@ -64,7 +64,7 @@ public class TenantClient {
                 .timeout(timeout);
     }
 
-    // Si users no responde, el origen no se permite
+    // If users does not answer, the origin is not allowed
     private Mono<Boolean> isCorsAllowedFallback(String url, Throwable ex) {
         log.warn("No se pudo validar CORS para {}: {}", url, ex.toString());
         return Mono.just(false);

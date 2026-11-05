@@ -42,11 +42,11 @@ public class BundleFactory {
     }
 
     /*
-    Precio final del combo: el unico lugar donde se calcula (panel, catalogo y la reserva que le da el precio a sales).
-    - FIXED: el precio guardado (null = sin precio).
-    - PERCENT: suma de los productos menos el porcentaje. AMOUNT: suma menos el monto, sin bajar de 0.
-    Con descuento, si algun producto no tiene precio o el combo no tiene productos, queda sin precio (no se vende
-    online). Redondeado a 2 decimales.
+    Final bundle price: the only place it is computed (dashboard, catalog and the reservation that gives sales the price).
+    - FIXED: the stored price (null = no price).
+    - PERCENT: sum of the products minus the percentage. AMOUNT: sum minus the amount, without going below 0.
+    With a discount, if some product has no price or the bundle has no products, it has no price (it is not sold
+    online). Rounded to 2 decimals.
     */
     public static BigDecimal price(Bundle bundle) {
         BundlePricingType type = pricingType(bundle);
@@ -60,14 +60,14 @@ public class BundleFactory {
         return price.setScale(2, RoundingMode.HALF_UP);
     }
 
-    // Un combo creado antes del tipo de precio (o en un test) cuenta como FIXED
+    // A bundle created before the pricing type existed (or in a test) counts as FIXED
     private static BundlePricingType pricingType(Bundle bundle) {
         return bundle.getPricingType() != null ? bundle.getPricingType() : BundlePricingType.FIXED;
     }
 
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
-    // Suma de precio * cantidad; null si algun producto no tiene precio
+    // Sum of price * quantity; null if some product has no price
     public static BigDecimal listPrice(List<BundleProduct> products) {
         BigDecimal total = BigDecimal.ZERO;
         for (BundleProduct bp : products) {
@@ -78,7 +78,7 @@ public class BundleFactory {
         return total;
     }
 
-    // El producto con menos stock (en relacion a lo que pide el combo) limita cuantos combos se arman
+    // The product with the least stock (relative to what the bundle needs) limits how many bundles can be put together
     public static int available(List<BundleProduct> products) {
         if (products.isEmpty()) return 0;
         int available = Integer.MAX_VALUE;
@@ -90,7 +90,7 @@ public class BundleFactory {
         return available == Integer.MAX_VALUE ? 0 : available;
     }
 
-    // La de menor orden, como en el catalogo
+    // The one with the lowest order, as in the catalog
     private static String firstImage(Product p) {
         if (p.getImages() == null) return null;
         return p.getImages().stream()

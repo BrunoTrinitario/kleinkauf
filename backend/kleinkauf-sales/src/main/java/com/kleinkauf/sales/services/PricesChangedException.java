@@ -5,7 +5,7 @@ import lombok.Getter;
 
 import java.util.List;
 
-// El precio de algun item cambio entre el carrito y el pedido (ver SalesExceptionHandler)
+// The price of some item changed between the cart and the order (see SalesExceptionHandler)
 @Getter
 public class PricesChangedException extends Exception {
 

@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
-// Mismos topes y reglas que sales (sales.local.* y OrderValidation)
+// Same limits and rules as sales (sales.local.* and OrderValidation)
 const MAX_LINES = 100
 const MAX_QUANTITY = 999
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -30,7 +30,7 @@ interface Line {
   type: OrderItemType
   id: number
   name: string
-  // Stock del producto o combos que se pueden armar, al momento de agregarlo
+  // Product stock or bundles that can be put together, at the time it was added
   stock: number
   listPrice: number | null
   quantity: string
@@ -40,8 +40,8 @@ interface Line {
 const lineKey = (line: { type: OrderItemType; id: number }) => `${line.type}-${line.id}`
 const parseAmount = (value: string) => (value.trim() === "" ? null : Number(value.replace(",", ".")))
 
-// Venta del mostrador ya cobrada (/admin/orders/new, solo ADMINISTRADOR). Se vende aunque falte stock: products
-// registra un ajuste y el pedido queda marcado para revisar
+// Counter sale already charged (/admin/orders/new, ADMINISTRADOR only). It is sold even if stock is short: products
+// records an adjustment and the order is flagged for review
 export default function AdminLocalSalePage() {
   const navigate = useNavigate()
   const create = useCreateLocalSale()
@@ -107,7 +107,7 @@ export default function AdminLocalSalePage() {
     const sale: NewLocalSale = {
       items: lines.map((line) => {
         const price = parseAmount(line.price)
-        // Sin cambio respecto del precio de lista se manda null: el backend usa el precio actual
+        // With no change from the list price null is sent: the backend uses the current price
         return {
           type: line.type,
           id: line.id,
@@ -321,13 +321,13 @@ function saleErrorMessage(error: unknown) {
     }
     if (status === 400 && /discount/i.test(text)) return strings.localSale.invalidDiscount
     if (status === 503) return strings.localSale.unavailable
-    // 409 de products: no existe, combo deshabilitado... el mensaje trae el nombre
+    // 409 from products: does not exist, disabled bundle... the message carries the name
     if (status === 409 && text) return text
   }
   return getErrorMessage(error, strings.localSale.error)
 }
 
-// Busca productos (en el servidor) y combos (la lista completa, filtrada aca) para sumarlos a la venta
+// Searches products (on the server) and bundles (the full list, filtered here) to add them to the sale
 function ItemSearch({ selected, onAdd }: { selected: Set<string>; onAdd: (line: Omit<Line, "quantity" | "price">) => void }) {
   const [input, setInput] = useState("")
   const query = useDebouncedValue(input.trim())

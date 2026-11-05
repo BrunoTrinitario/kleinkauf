@@ -5,8 +5,8 @@ import com.kleinkauf.product.entities.BundlePricingType;
 import java.math.BigDecimal;
 import java.util.List;
 
-// El combo se crea completo: nombre, productos (al menos uno, sin repetir) y precio.
-// pricingType null = FIXED: price (null = no sale en el catalogo). PERCENT y AMOUNT: discount sobre la suma
+// The bundle is created complete: name, products (at least one, no repeats) and price.
+// pricingType null = FIXED: price (null = not shown in the catalog). PERCENT and AMOUNT: discount over the sum
 public record NewBundleDto(
         String name,
         Boolean enabled,
@@ -15,7 +15,7 @@ public record NewBundleDto(
         BundlePricingType pricingType,
         BigDecimal discount
 ) {
-    // Combo de precio fijo
+    // Fixed-price bundle
     public NewBundleDto(String name, Boolean enabled, BigDecimal price, List<NewBundleProductDto> products) {
         this(name, enabled, price, products, null, null);
     }

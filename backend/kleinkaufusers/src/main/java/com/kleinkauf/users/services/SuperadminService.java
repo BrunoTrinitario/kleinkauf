@@ -28,22 +28,22 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Gestion de superadmins (usuarios de public con rol SUPERADMIN) desde el panel de la plataforma.
-- Alta: con los repositorios, como SuperadminInitializer (RoleUtility no deja asignar SUPERADMIN con UserService).
-  La contrasena es temporal pero no hay que cambiarla en el primer login.
-- Desactivar: deleted_at en el usuario y en su rol SUPERADMIN. El rol tambien, porque el HeaderAuthFilter busca
-  los roles por id sin mirar el usuario: si no, su token seguiria sirviendo. Se borran sus roles de Redis;
-  products los tiene hasta 1 minuto en su cache local.
-- Reactivar: limpiar los dos deleted_at.
-El @SQLRestriction de User y Role oculta los borrados, por eso la lista, el cambio de estado y el chequeo de email
-van con SQL directo sobre public.
+Management of superadmins (public users with the SUPERADMIN role) from the platform dashboard.
+- Create: with the repositories, like SuperadminInitializer (RoleUtility does not allow assigning SUPERADMIN with UserService).
+  The password is temporary but it does not have to be changed on first login.
+- Deactivate: deleted_at on the user and on their SUPERADMIN role. The role too, because HeaderAuthFilter looks up
+  roles by id without checking the user: otherwise their token would keep working. Their roles are deleted from Redis;
+  products keeps them for up to 1 minute in its local cache.
+- Reactivate: clear both deleted_at.
+User's and Role's @SQLRestriction hides deleted ones, which is why the list, the status change and the email check
+go with plain SQL against public.
  */
 @Service
 public class SuperadminService {
 
     private static final String SUPERADMIN = RolesType.SUPERADMIN.name();
 
-    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
     @Autowired
     private AuditLog auditLog;
 
@@ -84,7 +84,7 @@ public class SuperadminService {
         }
         UserValidator.validateNewUser(dto.name(), dto.email(), dto.password());
         String email = UserValidator.normalizeEmail(dto.email());
-        // existsByEmail no ve los borrados, y el email es unico tambien contra ellos
+        // existsByEmail does not see deleted ones, and the email is unique against them too
         if (emailInUse(email)) {
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE, HttpStatus.CONFLICT);
         }
@@ -96,7 +96,7 @@ public class SuperadminService {
         try {
             user = userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            // Dos altas con el mismo email a la vez
+            // Two sign-ups with the same email at once
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE, HttpStatus.CONFLICT);
         }
 

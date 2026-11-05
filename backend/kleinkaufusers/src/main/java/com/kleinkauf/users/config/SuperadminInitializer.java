@@ -15,11 +15,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /*
-Crea el primer superadmin en el schema public al arrancar (al arrancar no hay tenant,
-asi que los repositorios usan public). Solo si estan configurados email y contrasena
-(variables SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD) y ese usuario todavia no existe.
-SUPERADMIN no se puede asignar con UserService (RoleUtility lo excluye), por eso se
-usan los repositorios directamente.
+Creates the first superadmin in the public schema at startup (at startup there is no tenant,
+so the repositories use public). Only if email and password are configured
+(SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD variables) and that user does not exist yet.
+SUPERADMIN cannot be assigned with UserService (RoleUtility excludes it), which is why
+the repositories are used directly.
  */
 @Slf4j
 @Component

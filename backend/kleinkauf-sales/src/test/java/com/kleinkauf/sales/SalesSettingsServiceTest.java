@@ -31,7 +31,7 @@ class SalesSettingsServiceTest {
 	private SalesSettingsService service;
 
 	@Test
-	void sinConfigurar_valoresPorDefectoYSinDatosDePago() {
+	void notConfigured_defaultValuesAndNoPaymentDetails() {
 		when(repository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
 
 		SalesSettingsDto settings = service.get();
@@ -42,7 +42,7 @@ class SalesSettingsServiceTest {
 	}
 
 	@Test
-	void guardar_limpiaBlancosYUsaElPlazoPorDefecto() throws ApiException {
+	void save_trimsBlanksAndUsesTheDefaultDeadline() throws ApiException {
 		when(repository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
 		when(repository.save(any(SalesSettings.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -54,7 +54,7 @@ class SalesSettingsServiceTest {
 	}
 
 	@Test
-	void datosDePago_titularYAliasOCbu() {
+	void paymentDetails_holderAndAliasOrCbu() {
 		SalesSettings settings = new SalesSettings();
 		settings.setHolder("KleinKauf SRL");
 		assertFalse(SalesSettingsService.isPaymentConfigured(settings));
@@ -63,7 +63,7 @@ class SalesSettingsServiceTest {
 	}
 
 	@Test
-	void guardar_validaAliasCbuYPlazo() {
+	void save_validatesAliasCbuAndDeadline() {
 		assertBadRequest(new SalesSettingsDto("corto", null, "KleinKauf", null, 48));
 		assertBadRequest(new SalesSettingsDto("con espacios", null, "KleinKauf", null, 48));
 		assertBadRequest(new SalesSettingsDto(null, "123", "KleinKauf", null, 48));

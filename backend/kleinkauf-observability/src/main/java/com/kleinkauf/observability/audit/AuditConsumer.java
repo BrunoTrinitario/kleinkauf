@@ -30,14 +30,14 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Guarda la auditoria que mandan los servicios (stream kleinkauf:audit, ver OutboxPublisher en kleinkauf-common).
-- Grupo de consumidores "observability-audit": con varias instancias cada evento lo guarda una sola, y un
-  evento se confirma (XACK) recien despues de guardarlo. Si la base falla queda pendiente y se reintenta.
-- Primero lee los pendientes propios (los que no llego a confirmar) y despues los nuevos.
-- Cada minuto toma los pendientes de otra instancia que quedaron trabados mas de un minuto (se cayo).
-- Un evento ilegible se confirma y se loguea: reintentarlo no lo va a arreglar.
-- Despues de guardarlo lo manda en vivo: platform.audit (tenant public) o store.audit (a esa tienda).
-observability.audit.enabled=false lo apaga (tests).
+Stores the audit the services send (stream kleinkauf:audit, see OutboxPublisher in kleinkauf-common).
+- Consumer group "observability-audit": with several instances each event is stored by only one, and an
+  event is acknowledged (XACK) only after it is stored. If the database fails it stays pending and is retried.
+- It first reads its own pending ones (those it did not get to acknowledge) and then the new ones.
+- Every minute it claims another instance's pending ones that have been stuck for more than a minute (it went down).
+- An unreadable event is acknowledged and logged: retrying will not fix it.
+- After storing it, it sends it live: platform.audit (tenant public) or store.audit (to that store).
+observability.audit.enabled=false turns it off (tests).
  */
 @Slf4j
 @Component
@@ -94,7 +94,7 @@ public class AuditConsumer implements SmartLifecycle {
                     lastReclaim = clock.millis();
                     reclaimStale();
                 }
-                // Primero lo que quedo sin confirmar (un error de la base, un reinicio); despues lo nuevo
+                // First what was left unacknowledged (a database error, a restart); then the new ones
                 if (handle(read(ReadOffset.from("0"), false)) == 0) {
                     handle(read(ReadOffset.lastConsumed(), true));
                 }
@@ -106,7 +106,7 @@ public class AuditConsumer implements SmartLifecycle {
         }
     }
 
-    // Desde el principio del stream: lo que se publico antes de que existiera el grupo tambien se guarda
+    // From the start of the stream: what was published before the group existed is stored too
     private void createGroup() {
         try {
             redis.execute((RedisCallback<String>) connection -> connection.streamCommands().xGroupCreate(
@@ -173,7 +173,7 @@ public class AuditConsumer implements SmartLifecycle {
                 event.action(), event.entity(), event.entityId(), event.changes());
     }
 
-    // Pendientes de otra instancia que no los confirmo en un minuto: se los queda esta
+    // Another instance's pending ones not acknowledged within a minute: this one takes them
     private void reclaimStale() {
         PendingMessages pending = redis.opsForStream().pending(AuditEvent.STREAM, GROUP, Range.unbounded(), BATCH);
         List<RecordId> stale = pending.stream()

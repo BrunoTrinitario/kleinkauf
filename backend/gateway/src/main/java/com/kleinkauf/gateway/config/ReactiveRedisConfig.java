@@ -9,8 +9,8 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /*
-Version reactiva del redisTemplate de kleinkauf-common, con los mismos serializers,
-para leer desde el event loop lo que los otros servicios guardan en Redis.
+Reactive version of kleinkauf-common's redisTemplate, with the same serializers,
+to read from the event loop what the other services store in Redis.
  */
 @Configuration
 public class ReactiveRedisConfig {

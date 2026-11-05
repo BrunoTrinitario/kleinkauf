@@ -19,13 +19,13 @@ import { Input } from "@/components/ui/input"
 const STATUSES = Object.keys(strings.order.status) as OrderStatus[]
 const CHANNELS: OrderChannel[] = ["ONLINE", "LOCAL"]
 
-// Lista de pedidos del panel de ventas (solo ADMINISTRADOR). Los filtros van en la URL: "atras" desde el detalle
-// vuelve a la misma lista
+// Order list of the sales dashboard (ADMINISTRADOR only). Filters go in the URL: "back" from the detail
+// returns to the same list
 export default function AdminOrdersPage() {
   const [params, setParams] = useSearchParams()
   const [searchInput, setSearchInput] = useState(params.get("q") ?? "")
   const search = useDebouncedValue(searchInput.trim())
-  // Desde el checkout ("Cargar datos de cobro") se llega con el dialogo abierto
+  // From the checkout ("Cargar datos de cobro") it arrives with the dialog open
   const location = useLocation()
   const [settingsOpen, setSettingsOpen] = useState(
     () => !!(location.state as { openSettings?: boolean } | null)?.openSettings
@@ -42,7 +42,7 @@ export default function AdminOrdersPage() {
     page: Math.max(0, Number(params.get("pagina") ?? 1) - 1) || 0,
   }
 
-  // Cambia un filtro y vuelve a la primera pagina (salvo que se cambie la pagina)
+  // Changes a filter and goes back to the first page (unless the page itself is changed)
   const update = (changes: Record<string, string>) => {
     setParams(
       (current) => {

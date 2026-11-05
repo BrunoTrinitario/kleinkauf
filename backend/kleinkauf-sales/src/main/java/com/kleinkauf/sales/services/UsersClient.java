@@ -19,12 +19,12 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 
 /*
-Llamadas HTTP al microservicio de usuarios, protegidas con Resilience4j
-(instancia "users" en application.properties):
-- Retry: reintenta errores de red / 5xx.
-- CircuitBreaker: si users falla seguido, deja de llamarlo un rato y va directo al fallback.
-El fallback esta en @Retry porque es el aspecto mas externo; si estuviera en
-@CircuitBreaker el retry nunca veria la excepcion.
+HTTP calls to the users microservice, protected with Resilience4j
+("users" instance in application.properties):
+- Retry: retries network / 5xx errors.
+- CircuitBreaker: if users keeps failing, it stops calling it for a while and goes straight to the fallback.
+The fallback is on @Retry because it is the outermost aspect; if it were on
+@CircuitBreaker the retry would never see the exception.
  */
 @Slf4j
 @Component
@@ -83,7 +83,7 @@ public class UsersClient {
         return headers;
     }
 
-    // Sin roles el usuario queda autenticado pero solo accede a lo publico
+    // Without roles the user stays authenticated but only accesses public content
     private List<RoleDto> getUserRolesFallback(Long userId, String tenant, Throwable ex) {
         log.warn("No se pudieron obtener los roles del usuario {} ({}): {}", userId, tenant, ex.toString());
         return null;

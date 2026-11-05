@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { NewBugReport } from "@/lib/types"
 
-// "Reportar un bug" del footer de la tienda: con o sin sesion. Lo leen los superadmins en el panel de la plataforma
+// "Report a bug" from the store footer: with or without a session. Superadmins read them in the platform dashboard
 export function useCreateBugReport() {
   return useMutation({
     mutationFn: (report: NewBugReport) => api.post("/bug-reports", report),

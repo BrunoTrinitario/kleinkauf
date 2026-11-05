@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_PUBLIC?: string
-  // Host de la plataforma (sin tienda). Por defecto "localhost"
+  // Platform host (no store). "localhost" by default
   readonly VITE_PLATFORM_HOSTNAME?: string
 }
 

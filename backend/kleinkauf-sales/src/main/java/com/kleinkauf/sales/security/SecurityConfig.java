@@ -20,13 +20,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/internal/**").hasRole("INTERNAL")
-                        // Checkout publico: invitado o logueado (si viene logueado el pedido queda asociado)
+                        // Public checkout: guest or logged in (if logged in the order is linked)
                         .requestMatchers(HttpMethod.GET, "/api/v1/sales/checkout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/sales/orders", "/api/v1/sales/orders/lookup",
                                 "/api/v1/sales/orders/*/receipt", "/api/v1/sales/orders/*/cancel").permitAll()
-                        // Gestion de pedidos y configuracion de ventas: solo el administrador (no se delega)
+                        // Order management and sales settings: administrator only (not delegable)
                         .requestMatchers("/api/v1/sales/admin/**").hasRole("ADMINISTRADOR")
-                        // Mis pedidos y el resto: cualquier usuario logueado
+                        // My orders and the rest: any logged-in user
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class)

@@ -47,14 +47,14 @@ import java.util.Locale;
 import java.util.Map;
 
 /*
-Pedidos en el panel del administrador: lista con filtros, detalle, comprobantes, cambios de estado
-y ventas del local.
-Venta del local (ya cobrada):
-1. Valida y reserva el stock en products como venta del local: acepta items sin precio y, si falta
-   stock, products lo ajusta y el pedido queda marcado para revisar (stockReview).
-2. Calcula los precios (el del administrador o el actual) y el descuento. Si falta algun precio o el
-   descuento supera el subtotal, devuelve el stock.
-3. Suma a vendidos y guarda. Si algo falla, vuelve atras lo hecho en products.
+Orders in the administrator dashboard: list with filters, detail, receipts, status changes
+and in-store sales.
+In-store sale (already charged):
+1. Validates and reserves the stock in products as an in-store sale: accepts items without a price and, if stock
+   is short, products adjusts it and the order is flagged for review (stockReview).
+2. Computes the prices (the administrator's or the current one) and the discount. If some price is missing or the
+   discount exceeds the subtotal, it returns the stock.
+3. Adds to sold and saves. If something fails, it rolls back what was done in products.
  */
 @Slf4j
 @Service
@@ -68,7 +68,7 @@ public class AdminOrderService {
     @Value("${sales.local.max-quantity:999}")
     private int maxQuantity;
 
-    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
     @Autowired
     private AuditLog auditLog;
 
@@ -96,11 +96,11 @@ public class AdminOrderService {
     @Autowired
     private OrderEvents orderEvents;
 
-    // Comprobante a descargar: el registro y el archivo
+    // Receipt to download: the record and the file
     public record ReceiptFile(PaymentReceipt receipt, Resource file) {
     }
 
-    // Filtros de la lista; todos opcionales. from y to son fechas (yyyy-MM-dd) inclusive
+    // List filters; all optional. from and to are dates (yyyy-MM-dd), inclusive
     public record Filter(String status, String channel, String paymentMethod, Boolean stockReview,
                          String from, String to, String q) {
     }
@@ -124,7 +124,7 @@ public class AdminOrderService {
                 SecurityUtil.currentUserId(), dto == null ? null : dto.reason()));
     }
 
-    // Sin readOnly: la lectura queda en la auditoria, que escribe en la outbox dentro de esta transaccion
+    // Not readOnly: the read goes to the audit, which writes to the outbox inside this transaction
     @Transactional(rollbackFor = Exception.class)
     public ReceiptFile receipt(String number, Long id) throws ApiException {
         PaymentReceipt receipt = receiptRepository.findByIdAndOrder_Number(id, number.trim().toUpperCase(Locale.ROOT))
@@ -134,7 +134,7 @@ public class AdminOrderService {
             log.error("Falta el archivo del comprobante {} del pedido {}: {}", id, number, receipt.getPath());
             throw new ApiException(ErrorMessages.RECEIPT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-        // Lectura sensible: el comprobante de pago
+        // Sensitive read: the payment receipt
         auditLog.read("PaymentReceipt", id);
         return new ReceiptFile(receipt, file);
     }
@@ -179,7 +179,7 @@ public class AdminOrderService {
                 .orElseThrow(() -> new ApiException(ErrorMessages.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
-    // Valida la venta del local y junta las lineas repetidas con el mismo precio
+    // Validates the in-store sale and merges repeated lines with the same price
     private List<LocalOrderItemDto> validate(LocalOrderDto dto) throws ApiException {
         String invalidItems = ErrorMessages.INVALID_LOCAL_ITEMS.formatted(maxLines, maxQuantity);
         if (dto == null || dto.items() == null || dto.items().isEmpty()) {
@@ -273,7 +273,7 @@ public class AdminOrderService {
         return value.length() <= 500 ? value : value.substring(0, 500);
     }
 
-    // from y to son dias de la tienda (SalesTime), no del servidor
+    // from and to are store days (SalesTime), not server days
     static Specification<Order> specification(Filter filter, SalesTime time) throws ApiException {
         OrderStatus status = parse(OrderStatus.class, filter.status(), "status");
         SalesChannel channel = parse(SalesChannel.class, filter.channel(), "channel");
@@ -291,7 +291,7 @@ public class AdminOrderService {
             if (from != null) predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), time.startOfDay(from)));
             if (to != null) predicates.add(cb.lessThan(root.get("createdAt"), time.startOfDay(to.plusDays(1))));
             if (q != null) {
-                // Por numero (exacto, sin importar mayusculas) o por parte del email
+                // By number (exact, case-insensitive) or by part of the email
                 predicates.add(cb.or(
                         cb.equal(root.get("number"), q.toUpperCase(Locale.ROOT)),
                         cb.like(root.get("buyerEmail"), "%" + escapeLike(q.toLowerCase(Locale.ROOT)) + "%", '\\')));

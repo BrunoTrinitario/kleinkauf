@@ -21,7 +21,7 @@ const a = strings.audit
 const dateTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "medium" })
 const ACTIONS = Object.keys(a.actions)
 
-// Lo que se audita en cada lado (docs/auditoria.md#qué-se-registra)
+// What is audited on each side (docs/auditoria.md#qué-se-registra)
 const STORE_ENTITIES = [
   "Product",
   "ProductPricing",
@@ -43,9 +43,9 @@ const PLATFORM_ENTITIES = ["Tenant", "Superadmin", "User", "Role"]
 const GRID = "md:grid-cols-[10rem_minmax(0,12rem)_9rem_minmax(0,1fr)_1.5rem]"
 
 /*
-Historial de auditoria (de la tienda o de la plataforma, segun donde se abra). Los filtros van en la URL, como en
-la lista de pedidos. Lo nuevo llega por el WS (store.audit / platform.audit): en la primera pagina se recarga solo;
-en las otras se avisa cuantos eventos nuevos hay.
+Audit history (the store's or the platform's, depending on where it is opened). Filters go in the URL, as in the
+orders list. What is new arrives over the WS (store.audit / platform.audit): the first page reloads by itself; the
+others show how many new events there are.
  */
 export function AuditLog({ enabled }: { enabled: boolean }) {
   const [params, setParams] = useSearchParams()

@@ -19,14 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /*
-Cambios de estado de un pedido y sus efectos en products:
-- PAGADO: suma el pedido al contador de vendidos.
-- RECHAZADO: el plazo para subir otro comprobante corre de nuevo desde el rechazo.
-- CANCELADO / VENCIDO: devuelve el stock; si ya estaba pago, lo resta de vendidos.
-Primero se actualiza products (idempotente) y despues se guarda el pedido: si products falla, el pedido
-no cambia y se puede reintentar. El pedido tiene control optimista (@Version): si otro lo cambio
-mientras tanto responde 409.
-Las llamadas a este servicio tienen que estar dentro de una transaccion (items e historial son lazy).
+Order status changes and their effects in products:
+- PAGADO: adds the order to the sold counter.
+- RECHAZADO: the deadline to upload another receipt runs again from the rejection.
+- CANCELADO / VENCIDO: returns the stock; if it was already paid, subtracts it from sold.
+products is updated first (idempotent) and then the order is saved: if products fails, the order
+does not change and it can be retried. The order has optimistic locking (@Version): if someone else changed it
+in the meantime it responds 409.
+Calls to this service must be inside a transaction (items and history are lazy).
  */
 @Slf4j
 @Service
@@ -35,7 +35,7 @@ public class OrderStatusService {
     public static final String BUYER_CANCEL_REASON = "Cancelado por el comprador";
     public static final String EXPIRED_REASON = "Vencio el plazo para pagar";
 
-    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
     @Autowired
     private AuditLog auditLog;
 
@@ -48,7 +48,7 @@ public class OrderStatusService {
     @Autowired
     private SalesSettingsService settingsService;
 
-    // Cambio del administrador (ver OrderStatus.canChangeTo; una venta del local entregada tambien se anula)
+    // Change by the administrator (see OrderStatus.canChangeTo; a delivered in-store sale can also be voided)
     public Order change(Order order, OrderStatus target, Long userId, String reason) throws ApiException {
         OrderStatus current = order.getStatus();
         if (target == null || !current.canChangeTo(target, order.getChannel())) {
@@ -76,7 +76,7 @@ public class OrderStatusService {
         return saved;
     }
 
-    // Cancelacion del comprador: solo hasta que se valida el pago
+    // Cancellation by the buyer: only until the payment is validated
     public Order cancelByBuyer(Order order, Long userId) throws ApiException {
         if (!order.getStatus().isAwaitingPayment()) {
             throw new ApiException(ErrorMessages.CANCEL_NOT_ALLOWED, HttpStatus.CONFLICT);
@@ -86,14 +86,14 @@ public class OrderStatusService {
         return save(order, false);
     }
 
-    // Lo usa ExpirationJob, un pedido por transaccion
+    // Used by ExpirationJob, one order per transaction
     @Transactional(rollbackFor = Exception.class)
     public boolean expire(String number, LocalDateTime now) throws ApiException {
         Order order = orderRepository.findByNumber(number).orElse(null);
         return order != null && expire(order, now);
     }
 
-    // false si el pedido ya no estaba para vencer (subio el comprobante, lo cancelaron...)
+    // false if the order was no longer due to expire (the receipt was uploaded, it was cancelled...)
     public boolean expire(Order order, LocalDateTime now) throws ApiException {
         if (!order.getStatus().acceptsReceipt() || order.getExpiresAt() == null || order.getExpiresAt().isAfter(now)) {
             return false;
@@ -111,7 +111,7 @@ public class OrderStatusService {
         }
     }
 
-    // soldJustMarked: si no se puede guardar, se resta de vendidos lo que se acaba de sumar
+    // soldJustMarked: if it cannot be saved, what was just added is subtracted from sold
     private Order save(Order order, boolean soldJustMarked) throws ApiException {
         try {
             return orderRepository.saveAndFlush(order);

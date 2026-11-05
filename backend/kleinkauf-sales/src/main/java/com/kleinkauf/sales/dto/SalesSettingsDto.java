@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.dto;
 
-// Configuracion de ventas de la tienda. expirationHours null = 48
+// The store's sales settings. expirationHours null = 48
 public record SalesSettingsDto(
         String alias,
         String cbu,

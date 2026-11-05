@@ -3,10 +3,10 @@ package com.kleinkauf.common.constants;
 import java.time.Duration;
 
 /*
-Ultima actividad de cada usuario en Redis (docs/observabilidad.md): activity:<tenant>:<userId> con la hora
-de su ultima request (epoch en milisegundos). La escribe el gateway y la lee observability.
-Conectado = alguna request en los ultimos TTL: la key vence sola.
-tenant: el schema de la tienda, o "public" para los superadmins.
+Last activity of each user in Redis (docs/observabilidad.md): activity:<tenant>:<userId> with the time
+of their last request (epoch in milliseconds). Written by the gateway and read by observability.
+Online = some request within the last TTL: the key expires on its own.
+tenant: the store's schema, or "public" for superadmins.
  */
 public final class ActivityKeys {
 
@@ -20,7 +20,7 @@ public final class ActivityKeys {
         return PREFIX + tenant + ":" + userId;
     }
 
-    // El tenant de una key, o null si no tiene la forma activity:<tenant>:<userId>
+    // The tenant of a key, or null if it does not have the activity:<tenant>:<userId> shape
     public static String tenantOf(String key) {
         if (key == null || !key.startsWith(PREFIX)) {
             return null;

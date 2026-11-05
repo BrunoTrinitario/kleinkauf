@@ -27,7 +27,7 @@ dependencyManagement {
 }
 
 dependencies {
-    // Observabilidad: /health, /ready y /metrics (Prometheus), traceId en los logs y trazas por OTLP (configurado en kleinkauf-common)
+    // Observability: /health, /ready and /metrics (Prometheus), traceId in the logs and OTLP traces (configured in kleinkauf-common)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
@@ -51,7 +51,7 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
-	// Postgres y Redis reales para los tests que levantan la app (se saltean si no hay Docker)
+	// Real Postgres and Redis for the tests that start the app (skipped if there is no Docker)
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:postgresql'
@@ -62,8 +62,8 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
-	// La zona del JVM viaja a Postgres al conectar: la de Windows (America/Buenos_Aires) Postgres 17 no la acepta.
-	// En el server los contenedores corren en UTC
+	// The JVM time zone travels to Postgres on connect: Postgres 17 does not accept Windows' (America/Buenos_Aires).
+	// On the server the containers run in UTC
 	systemProperty 'user.timezone', 'UTC'
 }
 

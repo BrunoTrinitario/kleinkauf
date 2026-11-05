@@ -1,8 +1,8 @@
 package com.kleinkauf.product.dto.catalog;
 
 /*
-Disponibilidad publica: no muestra el stock exacto.
-POCAS_UNIDADES usa el stock minimo del producto (si es 0, nunca aparece).
+Public availability: does not show the exact stock.
+POCAS_UNIDADES uses the product's minimum stock (if it is 0, it never shows up).
  */
 public enum Availability {
     DISPONIBLE,

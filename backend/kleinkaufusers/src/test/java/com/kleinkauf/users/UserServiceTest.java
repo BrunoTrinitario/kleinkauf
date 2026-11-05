@@ -146,7 +146,7 @@ public class UserServiceTest extends ContainersTest {
 
     @Test
     void login_validCredentials_returnsLoggedUser() throws ApiException {
-        // El login es con el email (sin distinguir mayusculas)
+        // Login is by email (case-insensitive)
         LoggedUser loggedUser = userService.login("Admin@Test.com", "password1");
 
         assertEquals("admin", loggedUser.name());
@@ -174,7 +174,7 @@ public class UserServiceTest extends ContainersTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
 
-    // Los roles vienen con su mascara de permisos (RoleDto): para comparar alcanza el tipo
+    // Roles come with their permission mask (RoleDto): comparing the type is enough
     private static List<String> roleTypes(FullUserDto user) {
         return user.roles().stream().map(RoleDto::getType).toList();
     }

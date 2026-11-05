@@ -3,10 +3,10 @@ package com.kleinkauf.product.dto;
 import java.math.BigDecimal;
 
 /*
-Precio, costo y margen de un producto (solo administrador).
-margin = price - cost; marginPercent = margen sobre el precio de venta.
-Son null si falta el precio o el costo.
-soldCount: unidades vendidas en pedidos pagos (contador de sales, solo para el panel).
+A product's price, cost and margin (administrator only).
+margin = price - cost; marginPercent = margin over the sale price.
+They are null if the price or the cost is missing.
+soldCount: units sold in paid orders (sales counter, dashboard only).
  */
 public record PricingDto(
         Long productId,

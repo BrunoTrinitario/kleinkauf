@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.entities;
 
-// El costo del envio lo arregla la tienda aparte
+// The shipping cost is arranged separately by the store
 public enum DeliveryType {
     RETIRO,
     ENVIO

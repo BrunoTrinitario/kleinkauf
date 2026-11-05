@@ -1,5 +1,6 @@
-
+import { useState } from "react"
 import { Link } from "react-router-dom"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/auth-context"
 import type { UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
@@ -22,7 +23,11 @@ import {
 import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
-import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Radio, ScrollText } from "lucide-react"
+import { useStoreConfig } from "@/api/store"
+import { useMe } from "@/api/account"
+import { UserAvatar } from "@/components/user-avatar"
+import { productImageUrl } from "@/lib/api"
+import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Menu, Radio, ScrollText } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "CLIENTE", label: strings.roles.cliente, icon: User },
@@ -30,11 +35,138 @@ const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "ADMINISTRADOR", label: strings.roles.administrador, icon: Shield },
 ]
 
+interface NavLinksProps {
+  hasBundles: boolean
+  showPanel: boolean
+  canManageSales: boolean
+  canManageProducts: boolean
+  canManageUsers: boolean
+  pendingReview: number
+  lowStock: number
+  // In the side menu: stacked, and each link closes the menu
+  vertical?: boolean
+  onNavigate?: () => void
+}
+
+function CountBadge({ count, label }: { count: number; label: string }) {
+  if (count <= 0) return null
+  return (
+    <span
+      className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
+      aria-label={label}
+      title={label}
+    >
+      {count}
+    </span>
+  )
+}
+
+// Store links and, separately, panel links (e.g. the store's "Combos" and the panel's "Combos")
+function NavLinks({
+  hasBundles,
+  showPanel,
+  canManageSales,
+  canManageProducts,
+  canManageUsers,
+  pendingReview,
+  lowStock,
+  vertical = false,
+  onNavigate,
+}: NavLinksProps) {
+  const link = vertical
+    ? "flex items-center gap-1.5 rounded-md px-3 py-2.5 text-base text-foreground hover:bg-muted transition-colors"
+    : "flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+  const panelLabel = vertical
+    ? "mt-4 border-t border-border px-3 pt-4 pb-1 text-xs uppercase tracking-wider text-muted-foreground"
+    : "flex items-center gap-2 border-l border-border pl-6 text-xs uppercase tracking-wider text-muted-foreground"
+
+  return (
+    <>
+      <Link to="/" className={link} onClick={onNavigate}>
+        {strings.nav.home}
+      </Link>
+      <Link to={CATALOG_PATH} className={link} onClick={onNavigate}>
+        {strings.nav.catalog}
+      </Link>
+      {hasBundles && (
+        <Link to="/combos" className={link} onClick={onNavigate}>
+          {strings.nav.bundles}
+        </Link>
+      )}
+      {showPanel && <span className={panelLabel}>{strings.nav.panel}</span>}
+      {canManageSales && (
+        <Link to="/admin/orders" className={link} onClick={onNavigate}>
+          {strings.adminOrders.nav}
+          <CountBadge count={pendingReview} label={strings.adminOrders.navBadge(pendingReview)} />
+        </Link>
+      )}
+      {canManageProducts && (
+        <Link to="/admin/products" className={link} onClick={onNavigate}>
+          {strings.nav.products}
+          <CountBadge count={lowStock} label={strings.adminLowStock.navBadge(lowStock)} />
+        </Link>
+      )}
+      {canManageProducts && (
+        <Link to="/admin/bundles" className={link} onClick={onNavigate}>
+          {strings.nav.bundles}
+        </Link>
+      )}
+      {canManageUsers && (
+        <Link to="/admin/users" className={link} onClick={onNavigate}>
+          {strings.nav.users}
+        </Link>
+      )}
+    </>
+  )
+}
+
+// Store name and, if enabled, its icon. Shows nothing while the settings load (so one name is not replaced by
+// another)
+function StoreBrand() {
+  const config = useStoreConfig().data
+  if (!config) return <span className="h-5 w-24" aria-hidden />
+  return (
+    <>
+      {config.icon && config.showIconInHeader ? (
+        <img src={productImageUrl(config.icon)} alt="" className="h-7 w-7 shrink-0 rounded-md object-contain" />
+      ) : null}
+      <span className="truncate text-sm font-medium">{config.name}</span>
+    </>
+  )
+}
+
+// Menu button (below md only) that opens the navigation in a panel from the left
+function MobileNav(props: NavLinksProps) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden -ml-2" aria-label={strings.nav.openMenu}>
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72 gap-0 p-4">
+        <SheetHeader className="p-0 pb-4">
+          <SheetTitle className="flex items-center gap-2 text-left">
+            <StoreBrand />
+          </SheetTitle>
+          <SheetDescription className="sr-only">{strings.nav.menuDescription}</SheetDescription>
+        </SheetHeader>
+        <nav className="flex flex-col">
+          <NavLinks {...props} vertical onNavigate={() => setOpen(false)} />
+        </nav>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 export function Header() {
   const { user, activeRole, isAuthenticated, logout, switchRole, can } = useAuth()
   const availableRoles = user?.roles.map(role => role.type) ?? []
   const { units } = useCart()
-  // "Combos" de la tienda solo si hay alguno para comprar (la misma consulta que la home, en cache)
+  // Profile photo (same cached query as the settings page)
+  const me = useMe(isAuthenticated).data
+  // The store's "Combos" only if there is any to buy (the same query as the home page, cached)
   const hasBundles = (useCatalogBundles().data?.length ?? 0) > 0
 
   const getRoleBadgeColor = () => {
@@ -48,84 +180,38 @@ export function Header() {
     }
   }
 
-  // Los mismos criterios que las rutas protegidas de App.tsx (areas del rol activo)
+  // The same criteria as the protected routes in App.tsx (areas of the active role)
   const canManageProducts = PRODUCT_PANEL_AREAS.some((area) => can(area))
   const canManageUsers = can("USUARIOS")
-  // Contador de stock bajo junto a "Productos" (la misma consulta que la tarjeta del panel, en cache)
+  // Low stock counter next to "Productos" (the same query as the dashboard card, cached)
   const lowStock = useLowStock(isAuthenticated && can("STOCK")).data?.length ?? 0
-  // Ventas es solo del ADMINISTRADOR (no se delega todavia); el contador son los comprobantes para revisar
+  // Sales is ADMINISTRADOR-only (not delegable yet); the counter is the receipts to review
   const canManageSales = isAuthenticated && activeRole === "ADMINISTRADOR"
   const pendingReview = usePendingReviewCount(canManageSales).data ?? 0
+
+  const navProps: NavLinksProps = {
+    hasBundles,
+    showPanel: isAuthenticated && (canManageProducts || canManageUsers || canManageSales),
+    canManageSales,
+    canManageProducts: isAuthenticated && canManageProducts,
+    canManageUsers: isAuthenticated && canManageUsers,
+    pendingReview,
+    lowStock,
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-card">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <Store className="h-5 w-5" strokeWidth={1.5} />
-          <span className="text-sm font-medium">{strings.site.name}</span>
-        </Link>
-
-        {/* Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to={CATALOG_PATH} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            {strings.nav.catalog}
+        <div className="flex items-center gap-1">
+          <MobileNav {...navProps} />
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <StoreBrand />
           </Link>
-          {hasBundles && (
-            <Link to="/combos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {strings.nav.bundles}
-            </Link>
-          )}
-          {/* Lo del panel va aparte de lo de la tienda (ej. "Combos" de la tienda y "Combos" del panel) */}
-          {isAuthenticated && (canManageProducts || canManageUsers || canManageSales) && (
-            <span className="flex items-center gap-2 border-l border-border pl-6 text-xs uppercase tracking-wider text-muted-foreground">
-              {strings.nav.panel}
-            </span>
-          )}
-          {canManageSales && (
-            <Link
-              to="/admin/orders"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {strings.adminOrders.nav}
-              {pendingReview > 0 ? (
-                <span
-                  className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
-                  aria-label={strings.adminOrders.navBadge(pendingReview)}
-                  title={strings.adminOrders.navBadge(pendingReview)}
-                >
-                  {pendingReview}
-                </span>
-              ) : null}
-            </Link>
-          )}
-          {isAuthenticated && canManageProducts && (
-            <Link
-              to="/admin/products"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {strings.nav.products}
-              {lowStock > 0 ? (
-                <span
-                  className="min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] font-medium leading-5 text-white"
-                  aria-label={strings.adminLowStock.navBadge(lowStock)}
-                  title={strings.adminLowStock.navBadge(lowStock)}
-                >
-                  {lowStock}
-                </span>
-              ) : null}
-            </Link>
-          )}
-          {isAuthenticated && canManageProducts && (
-            <Link to="/admin/bundles" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {strings.nav.bundles}
-            </Link>
-          )}
-          {isAuthenticated && canManageUsers && (
-            <Link to="/admin/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {strings.nav.users}
-            </Link>
-          )}
+        </div>
+
+        {/* Navigation in a row from md; on phones it lives in the side menu (MobileNav) */}
+        <nav className="hidden md:flex items-center gap-6">
+          <NavLinks {...navProps} />
         </nav>
 
         {/* Actions */}
@@ -146,9 +232,7 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-2">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <UserAvatar name={user?.name} avatar={me?.avatar} />
                     <div className="hidden sm:flex flex-col items-start">
                       <span className="text-sm font-medium leading-none">{user?.name}</span>
                       <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded mt-1 ${getRoleBadgeColor()}`}>
@@ -201,6 +285,12 @@ export function Header() {
                         <Link to="/admin">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           {strings.auth.dashboard}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/store">
+                          <Store className="mr-2 h-4 w-4" />
+                          {strings.adminStore.menu}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
@@ -287,7 +377,7 @@ export function Header() {
               <Button variant="outline" asChild>
                 <Link to="/login">{strings.auth.signIn}</Link>
               </Button>
-              {/* En el celular no entra junto al carrito y el login; el login tiene el link para crear la cuenta */}
+              {/* On phones it does not fit next to the cart and the login; the login has the link to create the account */}
               <Button className="hidden sm:inline-flex" asChild>
                 <Link to="/register">{strings.auth.registerNow}</Link>
               </Button>

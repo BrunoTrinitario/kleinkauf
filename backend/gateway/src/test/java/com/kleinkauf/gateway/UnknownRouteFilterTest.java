@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// Una ruta que el gateway no rutea responde 404, no 401
+// A route the gateway does not route responds 404, not 401
 class UnknownRouteFilterTest {
 
     private final RouteLocator routes = () -> Flux.just(
@@ -26,7 +26,7 @@ class UnknownRouteFilterTest {
     private final UnknownRouteFilter filter = new UnknownRouteFilter(routes);
 
     @Test
-    void rutaDelGateway_sigue() {
+    void gatewayRoute_passes() {
         MockServerWebExchange exchange = request("/api/v1/products/5");
 
         assertTrue(run(exchange));
@@ -34,7 +34,7 @@ class UnknownRouteFilterTest {
     }
 
     @Test
-    void rutaQueNoRuteaNingunServicio_respondeNotFound() {
+    void routeToNoService_respondsNotFound() {
         for (String path : java.util.List.of("/inventado", "/api/v1/inventado", "/api/internal/tenants/all")) {
             MockServerWebExchange exchange = request(path);
 

@@ -1,9 +1,9 @@
 import type { CatalogSort } from "./types"
 
 /*
-Filtros del catalogo en la URL (/catalogo?q=&categoria=&orden=&pagina=): atras vuelve al mismo listado y una busqueda o
-una categoria se pueden compartir. pagina empieza en 1 en la URL y en 0 en el backend. Los valores por defecto no se
-escriben (orden=name, pagina=1).
+Catalog filters in the URL (/catalogo?q=&categoria=&orden=&pagina=): back returns to the same listing and a search or
+a category can be shared. pagina starts at 1 in the URL and at 0 in the backend. Default values are not
+written (orden=name, pagina=1).
  */
 
 export const CATALOG_PATH = "/catalogo"

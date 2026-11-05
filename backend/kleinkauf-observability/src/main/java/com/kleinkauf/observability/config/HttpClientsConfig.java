@@ -15,7 +15,7 @@ import java.time.Duration;
 @Configuration
 public class HttpClientsConfig {
 
-    // Llamadas a users por eureka. Con el builder de Spring para que propaguen el traceId y tengan metricas
+    // Calls to users through eureka. With Spring's builder so they propagate the traceId and have metrics
     @Bean
     @LoadBalanced
     public RestTemplate usersRestTemplate(RestTemplateBuilder builder,
@@ -29,8 +29,8 @@ public class HttpClientsConfig {
     }
 
     /*
-    Lecturas del recolector: directo a la IP y el puerto de gestion de cada instancia (sin eureka).
-    Sin el builder a proposito: una traza cada 10 s por instancia solo llenaria Tempo de ruido.
+    Collector readings: straight to each instance's IP and management port (no eureka).
+    Without the builder on purpose: a trace every 10 s per instance would only fill Tempo with noise.
      */
     @Bean
     public RestTemplate pollingRestTemplate(@Value("${observability.poll.timeout:2s}") Duration timeout) {

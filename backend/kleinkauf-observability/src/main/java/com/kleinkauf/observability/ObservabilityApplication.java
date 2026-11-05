@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-// Scheduling: el recolector y la revision de los accesos de los WS abiertos (Schedules)
+// Scheduling: the collector and the access check of the open WSs (Schedules)
 @SpringBootApplication
 @EnableScheduling
 public class ObservabilityApplication {

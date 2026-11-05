@@ -2,7 +2,7 @@ package com.kleinkauf.users.dtos.platform;
 
 import java.time.LocalDate;
 
-// Cantidad de un periodo: period es su primer dia (el lunes en WEEK, el 1 en MONTH)
+// Count for one period: period is its first day (the Monday in WEEK, the 1st in MONTH)
 public record PeriodCountDto(
         LocalDate period,
         long count

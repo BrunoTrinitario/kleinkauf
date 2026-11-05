@@ -40,21 +40,21 @@ class ActivityFilterTest {
     }
 
     @Test
-    void marcaLaActividadDelUsuarioDeLaTienda() {
+    void marksTheStoreUserActivity() {
         run("/api/v1/products/all", "7", "tienda_a");
 
         verify(values).set("activity:tienda_a:7", String.valueOf(NOW.toEpochMilli()), ActivityKeys.TTL);
     }
 
     @Test
-    void elSuperadminQuedaEnPublic() {
+    void superadminStaysInPublic() {
         run("/api/v1/platform/admin/tenants", "1", null);
 
         verify(values).set(eq("activity:public:1"), anyString(), eq(ActivityKeys.TTL));
     }
 
     @Test
-    void escribeUnaSolaVezCadaTreintaSegundosPorUsuario() {
+    void writesOnlyOnceEveryThirtySecondsPerUser() {
         run("/api/v1/products/all", "7", "tienda_a");
         run("/api/v1/products/1", "7", "tienda_a");
         run("/api/v1/products/all", "8", "tienda_a");
@@ -63,15 +63,15 @@ class ActivityFilterTest {
     }
 
     @Test
-    void sinUsuarioNoMarcaNada() {
+    void withoutUserMarksNothing() {
         run("/api/v1/catalog/products", null, "tienda_a");
-        run("/api/v1/products/all", "no-es-numero", "tienda_a");
+        run("/api/v1/products/all", "not-a-number", "tienda_a");
 
         verify(values, never()).set(anyString(), anyString(), any());
     }
 
     @Test
-    void siRedisFallaLaRequestSigue() {
+    void ifRedisFailsTheRequestGoesOn() {
         when(values.set(anyString(), anyString(), any())).thenReturn(Mono.error(new RedisConnectionFailureException("caido")));
 
         assertThat(run("/api/v1/products/all", "7", "tienda_a")).isTrue();

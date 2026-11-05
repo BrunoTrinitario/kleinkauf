@@ -1,9 +1,9 @@
 package com.kleinkauf.observability.dto;
 
 /*
-Trafico y recursos de un servicio, sumando sus instancias. Las tasas son por segundo entre las dos ultimas
-lecturas; null si todavia no hay dos lecturas. Los percentiles (ms) son null si no hubo requests.
-cpu: promedio de las instancias (0 a 1).
+Traffic and resources of a service, adding up its instances. Rates are per second between the last two
+readings; null if there are not two readings yet. Percentiles (ms) are null if there were no requests.
+cpu: average of the instances (0 to 1).
  */
 public record ServiceTrafficDto(
         String name,

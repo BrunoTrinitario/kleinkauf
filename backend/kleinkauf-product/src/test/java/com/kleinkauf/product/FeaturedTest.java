@@ -52,7 +52,7 @@ class FeaturedTest {
 	private ProductService productService;
 
 	@Test
-	void marcarComoDestacadoConOrden() throws ApiException {
+	void markAsFeaturedWithOrder() throws ApiException {
 		Product product = mockProduct();
 
 		productService.setFeatured(1L, new FeaturedDto(true, 2));
@@ -63,7 +63,7 @@ class FeaturedTest {
 	}
 
 	@Test
-	void desmarcar_borraElOrden() throws ApiException {
+	void unmark_clearsTheOrder() throws ApiException {
 		Product product = mockProduct();
 		product.setFeatured(true);
 		product.setFeaturedOrder(1);
@@ -75,7 +75,7 @@ class FeaturedTest {
 	}
 
 	@Test
-	void ordenNegativo_respondeBadRequest() {
+	void negativeOrder_respondsBadRequest() {
 		ApiException ex = assertThrows(ApiException.class, () -> productService.setFeatured(1L, new FeaturedDto(true, -1)));
 
 		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
@@ -83,7 +83,7 @@ class FeaturedTest {
 	}
 
 	@Test
-	void productoInexistente_respondeNotFound() {
+	void unknownProduct_respondsNotFound() {
 		when(productRepository.findById(1L)).thenReturn(Optional.empty());
 
 		ApiException ex = assertThrows(ApiException.class, () -> productService.setFeatured(1L, new FeaturedDto(true, null)));
@@ -92,10 +92,10 @@ class FeaturedTest {
 	}
 
 	@Test
-	void listaDeDestacados_respetaElOrdenDelRepositorio() throws ApiException {
-		Product primero = product(1L);
-		Product segundo = product(2L);
-		when(productRepository.findFeatured()).thenReturn(List.of(primero, segundo));
+	void featuredList_keepsTheRepositoryOrder() throws ApiException {
+		Product first = product(1L);
+		Product second = product(2L);
+		when(productRepository.findFeatured()).thenReturn(List.of(first, second));
 		when(productFactory.getLightProductInfo(any(Product.class), anyList())).thenAnswer(invocation -> {
 			Product p = invocation.getArgument(0);
 			return new LightProductDto(p.getId(), "P" + p.getId(), null, null, null, 0, null, true, List.of(), 0);

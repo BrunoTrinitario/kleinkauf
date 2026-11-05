@@ -17,10 +17,10 @@ import com.kleinkauf.sales.entities.SalesSettings;
 
 import java.util.List;
 
-// Entidades -> DTOs. Leer dentro de una transaccion: items e historial son lazy
+// Entities -> DTOs. Read inside a transaction: items and history are lazy
 public class OrderMapper {
 
-    // Vista del comprador: sin costos ni usuarios del historial; datos de pago solo si falta pagar
+    // Buyer view: no costs or history users; payment details only if payment is pending
     public static OrderDto toBuyerDto(Order order, SalesSettings settings) {
         PaymentDetailsDto payment = order.getStatus().acceptsReceipt() ? SalesSettingsService.paymentDetails(settings) : null;
         List<OrderItemDto> items = order.getItems().stream()

@@ -28,7 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const h = strings.platformHealth
 const CHANNELS = ["platform.health", "platform.traffic", "platform.business"]
-// 60 lecturas de 10 s: los ultimos 10 minutos (el backend no guarda historial)
+// 60 readings of 10 s: the last 10 minutes (the backend keeps no history)
 const HISTORY_MAX = 60
 const STATUS_DOT: Record<string, string> = { UP: "bg-emerald-500", DEGRADED: "bg-amber-500", DOWN: "bg-red-500" }
 const clock = new Intl.DateTimeFormat("es-AR", { timeStyle: "medium" })
@@ -44,9 +44,9 @@ const sum = (traffic: ServiceTraffic[], pick: (row: ServiceTraffic) => number | 
 const hasRates = (traffic: ServiceTraffic[]) => traffic.some((row) => row.requestsPerSecond !== null)
 
 /*
-Estado de la plataforma (solo SUPERADMIN): salud de los servicios, trafico y recursos, conectados y movimientos de
-tiendas. Al abrir se pide el overview y despues lo actualiza el WS (platform.health cuando cambia algo,
-platform.traffic cada 10 s). El grafico junta las lecturas desde que se abrio la pagina.
+Platform status (SUPERADMIN only): service health, traffic and resources, connected users and store changes.
+The overview is requested on open and then the WS updates it (platform.health when something changes,
+platform.traffic every 10 s). The chart gathers the readings since the page was opened.
  */
 export default function PlatformHealthPage() {
   const { ready } = usePlatformSession()

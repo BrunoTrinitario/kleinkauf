@@ -16,7 +16,7 @@ public interface BundleProductRepository extends JpaRepository<BundleProduct, Lo
             Product product
     );
 
-    // [productId, quantity] de un combo. Solo ids: los productos se leen despues con bloqueo
+    // [productId, quantity] of a bundle. Ids only: the products are read later with a lock
     @Query("SELECT bp.product.id, bp.quantity FROM BundleProduct bp WHERE bp.bundle.id = :bundleId")
     List<Object[]> findComponents(@Param("bundleId") Long bundleId);
 }

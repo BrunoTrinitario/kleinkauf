@@ -4,9 +4,9 @@ import java.time.Instant;
 import java.util.List;
 
 /*
-Ultima lectura del recolector (GET /api/v1/platform/observability/overview). El panel la pide al abrir y
-despues se actualiza por el WS. at: null si todavia no hubo ninguna lectura.
-connectedUsers: null si no se pudo leer Redis.
+The collector's last reading (GET /api/v1/platform/observability/overview). The dashboard requests it on open and
+then it is updated over the WS. at: null if there has been no reading yet.
+connectedUsers: null if Redis could not be read.
  */
 public record PlatformOverviewDto(Instant at, List<ServiceHealthDto> services, List<ServiceTrafficDto> traffic,
                                   ConnectedUsersDto connectedUsers) {

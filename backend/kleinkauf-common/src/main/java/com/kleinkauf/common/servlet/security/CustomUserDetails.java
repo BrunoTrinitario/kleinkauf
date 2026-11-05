@@ -19,7 +19,7 @@ public class CustomUserDetails implements UserDetails {
     private Long id;
     private Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-    // Authorities: ROLE_<rol> por cada rol y PERM_<area> por la union de las mascaras de sus roles
+    // Authorities: ROLE_<role> for each role and PERM_<area> for the union of its roles' masks
     public CustomUserDetails(Long id, List<RoleDto> roles) {
         this.id = id;
         int mask = 0;

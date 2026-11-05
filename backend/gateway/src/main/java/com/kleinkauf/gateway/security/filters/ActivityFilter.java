@@ -20,11 +20,11 @@ import java.time.Clock;
 import java.time.Duration;
 
 /*
-Ultima actividad de los usuarios logueados (docs/observabilidad.md): activity:<tenant>:<userId> en Redis con
-la hora de la request, que vence a los 5 minutos. observability la usa para los usuarios conectados.
-- Corre despues de JwtFilter (Order 3): X-User-Id ya es el del token (ClientHeadersFilter borra el del cliente).
-- Se escribe como mucho una vez cada WRITE_EVERY por usuario, para no ir a Redis en cada request.
-- No frena la request: si Redis falla se sigue igual.
+Last activity of logged-in users (docs/observabilidad.md): activity:<tenant>:<userId> in Redis with
+the time of the request, expiring after 5 minutes. observability uses it for the online users.
+- Runs after JwtFilter (Order 3): X-User-Id is already the token's (ClientHeadersFilter removes the client's).
+- Written at most once every WRITE_EVERY per user, so as not to hit Redis on every request.
+- Does not hold the request back: if Redis fails it goes on anyway.
  */
 @Slf4j
 @Component
@@ -80,7 +80,7 @@ public class ActivityFilter implements WebFilter {
                 .subscribe();
     }
 
-    // Plataforma: public (superadmin). Tienda: el schema que puso TenantGatewayFilter
+    // Platform: public (superadmin). Store: the schema set by TenantGatewayFilter
     private static String tenantOf(ServerWebExchange exchange) {
         if (PermittedUrls.isPlatformPath(exchange.getRequest().getURI().getPath())) {
             return TenantConstants.PUBLIC;

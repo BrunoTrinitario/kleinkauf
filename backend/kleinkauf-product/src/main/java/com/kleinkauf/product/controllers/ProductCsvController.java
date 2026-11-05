@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-// Importar y exportar productos en CSV: solo administrador (ver SecurityConfig)
+// Import and export products as CSV: administrator only (see SecurityConfig)
 @RestController
 @RequestMapping("/api/v1/products")
 public class ProductCsvController {
@@ -30,7 +30,7 @@ public class ProductCsvController {
         return csv(productCsvService.template(), "plantilla-productos.csv");
     }
 
-    // 200 con lo creado y actualizado; 400 con los errores por fila (no se importa nada)
+    // 200 with what was created and updated; 400 with the errors per row (nothing is imported)
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImportResultDto> importProducts(@RequestParam("file") MultipartFile file) {
         ImportResultDto result = productCsvService.importCsv(file);

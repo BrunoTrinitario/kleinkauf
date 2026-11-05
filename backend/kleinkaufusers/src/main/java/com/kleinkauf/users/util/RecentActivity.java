@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 /*
-La request mas reciente de cada tienda, de las keys activity:<tenant>:<userId> que marca el gateway (vencen a los
-5 minutos, ver ActivityKeys). El uso por tenant la combina con el ultimo login: un usuario con la sesion abierta
-sigue activo aunque no vuelva a loguearse.
-Los valores son la hora en milisegundos (texto plano): se leen con StringRedisTemplate, no con el RedisTemplate de
-JSON del servicio. Si Redis falla devuelve un mapa vacio y queda el ultimo login.
+The most recent request of each store, from the activity:<tenant>:<userId> keys marked by the gateway (expire after
+5 minutes, see ActivityKeys). Per-tenant usage combines it with the last login: a user with an open session
+is still active even if they do not log in again.
+Values are the time in milliseconds (plain text): they are read with StringRedisTemplate, not with the service's
+JSON RedisTemplate. If Redis fails it returns an empty map and the last login remains.
  */
 @Slf4j
 @Component
@@ -35,7 +35,7 @@ public class RecentActivity {
         this.redis = redis;
     }
 
-    // schema -> ultima request, en la hora del servidor (como lastLogin)
+    // schema -> last request, in server time (like lastLogin)
     public Map<String, LocalDateTime> byTenant() {
         StringRedisTemplate template = redis.getIfAvailable();
         if (template == null) {

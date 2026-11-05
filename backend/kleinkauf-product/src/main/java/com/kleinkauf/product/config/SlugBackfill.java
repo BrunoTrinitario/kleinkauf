@@ -13,9 +13,9 @@ import java.util.Map;
 import java.util.Set;
 
 /*
-Completa el slug de los productos creados antes del catalogo publico.
-Corre despues de migrar el schema de cada tenant (TenantDataSource); si no falta ninguno no hace nada.
-El nombre del schema viene de la tabla de tenants (identificador validado: a-z, 0-9 y _).
+Fills in the slug of products created before the public catalog.
+Runs after migrating each tenant's schema (TenantDataSource); if none is missing it does nothing.
+The schema name comes from the tenants table (validated identifier: a-z, 0-9 and _).
  */
 public class SlugBackfill {
 

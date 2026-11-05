@@ -21,14 +21,14 @@ import java.io.IOException;
 import java.util.List;
 
 /*
-Arma el usuario autenticado con el header X-User-Id que agrega el gateway y sus roles de users.
-En las rutas publicas tambien: crear un pedido logueado lo asocia al usuario.
-/api/internal/** pide el token interno de los microservicios.
+Builds the authenticated user from the X-User-Id header added by the gateway and their roles from users.
+On public routes too: creating an order while logged in links it to the user.
+/api/internal/** requires the microservices' internal token.
  */
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {
 
-    // Authority de las llamadas entre microservicios (ver SecurityConfig)
+    // Authority for calls between microservices (see SecurityConfig)
     public static final String INTERNAL_ROLE = "ROLE_INTERNAL";
     private static final String INTERNAL_PRINCIPAL = "internal";
 

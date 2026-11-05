@@ -10,18 +10,18 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /*
-Lo que el recolector toma de /metrics de una instancia en una lectura.
-Los contadores de requests son acumulados desde que arranco la instancia: las tasas salen de restar
-dos lecturas (ver Traffic). Los demas son el valor del momento.
-No cuenta las requests del puerto de gestion (las hacen Prometheus y observability) ni las del WS,
-que duran lo que dura la conexion y arruinarian los percentiles.
+What the collector takes from an instance's /metrics in one reading.
+Request counters are cumulative since the instance started: rates come from subtracting
+two readings (see Traffic). The rest are current values.
+It does not count management port requests (made by Prometheus and observability) nor WS ones,
+which last as long as the connection and would ruin the percentiles.
  */
 public record InstanceMetrics(
         double requests,
         double errors5xx,
         double errors4xx,
         double rateLimited,
-        // Histograma de latencias acumulado: limite superior del bucket (segundos) -> cantidad
+        // Cumulative latency histogram: bucket upper bound (seconds) -> count
         Map<Double, Double> buckets,
         Double heapUsedBytes,
         Double heapMaxBytes,
@@ -30,7 +30,7 @@ public record InstanceMetrics(
         Double dbConnectionsActive,
         Double dbConnectionsMax,
         List<String> openCircuitBreakers,
-        // Requests y errores por tienda (etiqueta tenant), acumulados como los de arriba. Sin "none" ni "invalid"
+        // Requests and errors per store (tenant tag), cumulative like the ones above. Without "none" or "invalid"
         Map<String, TenantRequests> tenants
 ) {
 
@@ -89,7 +89,7 @@ public record InstanceMetrics(
                     if ("heap".equals(sample.label("area"))) heapUsed = sum(heapUsed, sample.value());
                 }
                 case "jvm_memory_max_bytes" -> {
-                    // -1: el pool no tiene maximo
+                    // -1: the pool has no maximum
                     if ("heap".equals(sample.label("area")) && sample.value() > 0) heapMax = sum(heapMax, sample.value());
                 }
                 case "process_cpu_usage" -> cpu = sample.value();

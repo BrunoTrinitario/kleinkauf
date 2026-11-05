@@ -4,7 +4,7 @@ import com.kleinkauf.product.entities.BundlePricingType;
 
 import java.math.BigDecimal;
 
-// pricingType null = FIXED (como antes: solo price). FIXED usa price (null = sin precio); PERCENT y AMOUNT, discount
+// pricingType null = FIXED (as before: price only). FIXED uses price (null = no price); PERCENT and AMOUNT, discount
 public record UpdateBundlePriceDto(
         BigDecimal price,
         BundlePricingType pricingType,

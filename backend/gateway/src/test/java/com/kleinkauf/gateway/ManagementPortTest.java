@@ -10,9 +10,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /*
-/health, /ready y /metrics van por el puerto de gestion, sin tenant ni login (lo leen Docker,
-Prometheus y observability). Por el puerto publico del gateway no existen.
-Los tests apagan Prometheus salvo con @AutoConfigureObservability.
+/health, /ready and /metrics go through the management port, without tenant or login (read by Docker,
+Prometheus and observability). They do not exist on the gateway's public port.
+Tests turn Prometheus off except with @AutoConfigureObservability.
  */
 @AutoConfigureObservability
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -30,21 +30,21 @@ class ManagementPortTest {
     }
 
     @Test
-    void healthResponde200SinTenantNiLogin() {
+    void healthResponds200WithoutTenantOrLogin() {
         client(managementPort).get().uri("/health").exchange()
                 .expectStatus().isOk()
                 .expectBody().jsonPath("$.status").isEqualTo("UP");
     }
 
     @Test
-    void readyRespondeConElDetalle() {
-        // Redis no esta en los tests: /ready puede dar 503, pero responde el estado y no 401 / 404
+    void readyRespondsWithDetail() {
+        // Redis is not available in the tests: /ready may give 503, but it responds with the status and not 401 / 404
         client(managementPort).get().uri("/ready").exchange()
                 .expectBody().jsonPath("$.status").exists();
     }
 
     @Test
-    void metricsEnFormatoPrometheus() {
+    void metricsInPrometheusFormat() {
         client(managementPort).get().uri("/metrics").exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(body -> assertThat(body)
@@ -53,7 +53,7 @@ class ManagementPortTest {
     }
 
     @Test
-    void elPuertoPublicoNoExponeLaGestion() {
+    void publicPortDoesNotExposeManagement() {
         client(serverPort).get().uri("/metrics").header("Origin", "http://demo.localhost:2999").exchange()
                 .expectStatus().value(status -> assertThat(status).isNotEqualTo(200));
     }

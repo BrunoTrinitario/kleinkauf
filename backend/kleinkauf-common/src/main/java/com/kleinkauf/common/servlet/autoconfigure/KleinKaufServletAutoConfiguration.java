@@ -37,11 +37,11 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Configuracion comun de los microservicios servlet:
-- Hibernate multi-tenant por schema (el servicio tiene que tener un bean TenantSchemaManager)
-- Filtro de tenant (kleinkauf.tenant.required=false lo hace opcional)
-- Manejo global de excepciones
-- Auditoria de las entidades @Audited, si esta activa (KleinKaufAuditAutoConfiguration)
+Shared configuration of the servlet microservices:
+- Hibernate multi-tenancy by schema (the service must have a TenantSchemaManager bean)
+- Tenant filter (kleinkauf.tenant.required=false makes it optional)
+- Global exception handling
+- Audit of @Audited entities, if enabled (KleinKaufAuditAutoConfiguration)
  */
 @AutoConfiguration(after = DataSourceAutoConfiguration.class, before = HibernateJpaAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -70,8 +70,8 @@ public class KleinKaufServletAutoConfiguration {
     }
 
     /*
-    El TenantSchemaManager es un @Component del servicio; se inyecta @Lazy porque
-    en algunos servicios depende de beans que a su vez necesitan el EntityManager.
+    The TenantSchemaManager is a @Component of the service; it is injected @Lazy because
+    in some services it depends on beans that in turn need the EntityManager.
      */
     @Bean
     @ConditionalOnMissingBean(MultiTenantConnectionProvider.class)
@@ -87,8 +87,8 @@ public class KleinKaufServletAutoConfiguration {
     }
 
     /*
-    Configuracion de HIBERNATE como ORM para cada schema de la multitenancy.
-    Escanea las entidades del paquete de la aplicacion (@SpringBootApplication).
+    HIBERNATE configuration as the ORM for each schema of the multitenancy.
+    Scans the entities of the application package (@SpringBootApplication).
      */
     @Bean
     @ConditionalOnMissingBean(name = "entityManagerFactory")

@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface StockReservationRepository extends JpaRepository<StockReservation, Long> {
 
-    // Bloquea la reserva para que dos devoluciones del mismo pedido no devuelvan dos veces
+    // Locks the reservation so two releases of the same order do not return the stock twice
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM StockReservation r WHERE r.reference = :reference")
     Optional<StockReservation> findByReferenceForUpdate(@Param("reference") String reference);
