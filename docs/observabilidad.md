@@ -4,9 +4,9 @@ Cómo saber en todo momento cómo está la plataforma y cada tienda: salud de lo
 un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y a nivel **tienda**
 (administrador). La auditoría usa la misma base y está en [auditoria.md](auditoria.md).
 
-> Estado: **backend hecho** en las tres etapas de código (base técnica, servicio `kleinkauf-observability` con su WS y
-> auditoría), también los canales de la tienda (`store.activity`, `store.usage` y `store.users`). Falta el
-> **frontend** de los paneles: ver [Pendiente](#pendiente).
+> Estado: **hecho**. Backend en las tres etapas de código (base técnica, servicio `kleinkauf-observability` con su WS
+> y auditoría) y frontend: `/estado` y `/auditoria` en la plataforma, `/admin/actividad` y `/admin/auditoria` en
+> cada tienda (ver [frontend.md](frontend.md), sección 9).
 
 ## Decisiones
 
@@ -57,7 +57,7 @@ un panel en **tiempo real por WebSocket**, a nivel **plataforma** (superadmin) y
 | Usuarios conectados | Total y por tienda | Hecho (`platform.traffic`) |
 | Negocio global | Tenants por estado, altas y uso por tienda | Por REST en users y products ([panel-admin.md](panel-admin.md)); `platform.business` avisa cuando cambian |
 | Auditoría | Quién hizo qué en la plataforma | Hecho (`platform.audit` y su historial) |
-| Pedidos y facturación de la plataforma | Totales de todas las tiendas | Pendiente |
+| Pedidos y facturación de la plataforma | Totales de todas las tiendas | Descartado: el superadmin no ve los datos de las tiendas |
 
 observability **no vuelve a calcular** lo que ya da el panel de la plataforma
 (`GET /api/v1/platform/admin/dashboard`, `/admin/usage` y `/platform/products/usage`): suma la salud, el tráfico y
@@ -279,10 +279,7 @@ Cada rama sale de la anterior.
 
 ## Pendiente
 
-- **Frontend**: la página del panel de la plataforma (salud, tráfico y auditoría en vivo), las vistas de la tienda
-  (auditoría, actividad, uso y conectados) y el cliente del WS (pedir el ticket, conectar, ping, reconectar con un
-  ticket nuevo). Ver la sección 9 de [frontend.md](frontend.md).
-- **Pedidos y facturación de toda la plataforma** en el panel del superadmin.
+- **Historial de una cosa puntual** dentro de su pantalla (pedido, producto, usuario): el endpoint ya está.
 - **Prueba de punta a punta con Docker**: todo junto con Postgres y Redis reales (los tests usan H2 y mocks).
 
 ## Para decidir
