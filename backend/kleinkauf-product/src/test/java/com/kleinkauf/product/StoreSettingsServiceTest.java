@@ -2,6 +2,7 @@ package com.kleinkauf.product;
 
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.common.servlet.tenant.TenantContext;
+import com.kleinkauf.product.dto.store.SocialLinks;
 import com.kleinkauf.product.dto.store.StoreDto;
 import com.kleinkauf.product.dto.store.UpdateStoreDto;
 import com.kleinkauf.product.entities.StoreSettings;
@@ -71,14 +72,14 @@ class StoreSettingsServiceTest {
         StoreSettings settings = new StoreSettings();
         when(repository.findById(StoreSettings.SINGLETON_ID)).thenReturn(Optional.of(settings));
 
-        StoreDto store = service.update(new UpdateStoreDto("  Casa Roble  ", "forest", false, true));
+        StoreDto store = service.update(new UpdateStoreDto("  Casa Roble  ", "forest", false, true, null));
         assertEquals("Casa Roble", store.name());
         assertEquals("Casa Roble", store.customName());
         assertEquals("FOREST", store.theme());
         assertFalse(store.showIconInHeader());
         assertTrue(store.showIconAsFavicon());
 
-        store = service.update(new UpdateStoreDto("   ", null, null, null));
+        store = service.update(new UpdateStoreDto("   ", null, null, null, null));
         assertEquals("Mi tienda", store.name());
         assertNull(store.customName());
         assertEquals("FOREST", store.theme(), "a null theme keeps the current one");
@@ -90,12 +91,49 @@ class StoreSettingsServiceTest {
         lenient().when(repository.findById(StoreSettings.SINGLETON_ID)).thenReturn(Optional.of(new StoreSettings()));
 
         ApiException longName = assertThrows(ApiException.class,
-                () -> service.update(new UpdateStoreDto("x".repeat(61), null, null, null)));
+                () -> service.update(new UpdateStoreDto("x".repeat(61), null, null, null, null)));
         assertEquals(HttpStatus.BAD_REQUEST, longName.getStatus());
 
         ApiException theme = assertThrows(ApiException.class,
-                () -> service.update(new UpdateStoreDto("Casa", "neon", null, null)));
+                () -> service.update(new UpdateStoreDto("Casa", "neon", null, null, null)));
         assertEquals(HttpStatus.BAD_REQUEST, theme.getStatus());
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void update_socials_buildsLinksFromUsersKeepsNullsAndRemovesBlanks() throws ApiException {
+        StoreSettings settings = new StoreSettings();
+        settings.setFacebookUrl("https://www.facebook.com/casaroble");
+        when(repository.findById(StoreSettings.SINGLETON_ID)).thenReturn(Optional.of(settings));
+
+        StoreDto store = service.update(new UpdateStoreDto("Casa", null, null, null,
+                new SocialLinks("@casa.roble", "https://twitter.com/casaroble", null, "casaroble")));
+
+        assertEquals("https://www.instagram.com/casa.roble", store.socials().instagram());
+        assertEquals("https://twitter.com/casaroble", store.socials().x());
+        assertEquals("https://www.facebook.com/casaroble", store.socials().facebook(), "a null network keeps its link");
+        assertEquals("https://www.tiktok.com/@casaroble", store.socials().tiktok());
+
+        store = service.update(new UpdateStoreDto("Casa", null, null, null, new SocialLinks(" ", null, "", null)));
+        assertNull(store.socials().instagram(), "a blank network is removed");
+        assertNull(store.socials().facebook());
+        assertEquals("https://www.tiktok.com/@casaroble", store.socials().tiktok());
+    }
+
+    // The links are shown to every customer: only profiles of that network
+    @Test
+    void update_socials_rejectsLinksFromOtherSites() {
+        lenient().when(repository.findById(StoreSettings.SINGLETON_ID)).thenReturn(Optional.of(new StoreSettings()));
+
+        for (SocialLinks socials : List.of(
+                new SocialLinks("https://instagram.com.phishing.io/casa", null, null, null),
+                new SocialLinks(null, "https://example.com/casa", null, null),
+                new SocialLinks(null, null, "javascript:alert(1)", null),
+                new SocialLinks(null, null, null, "https://user:pass@tiktok.com/@casa"))) {
+            ApiException ex = assertThrows(ApiException.class,
+                    () -> service.update(new UpdateStoreDto("Casa", null, null, null, socials)));
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        }
         verify(repository, never()).saveAndFlush(any());
     }
 
@@ -112,7 +150,7 @@ class StoreSettingsServiceTest {
     void update_acceptsDarkTheme() throws ApiException {
         when(repository.findById(StoreSettings.SINGLETON_ID)).thenReturn(Optional.of(new StoreSettings()));
 
-        assertEquals("NIGHT", service.update(new UpdateStoreDto(null, "night", null, null)).theme());
+        assertEquals("NIGHT", service.update(new UpdateStoreDto(null, "night", null, null, null)).theme());
     }
 
     @Test
@@ -167,7 +205,7 @@ class StoreSettingsServiceTest {
                 .thenThrow(new DataIntegrityViolationException("duplicate key"))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        StoreDto store = service.update(new UpdateStoreDto("Casa Roble", "rose", null, null));
+        StoreDto store = service.update(new UpdateStoreDto("Casa Roble", "rose", null, null, null));
 
         assertEquals("Casa Roble", store.name());
         assertEquals("ROSE", store.theme());

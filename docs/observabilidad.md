@@ -71,7 +71,7 @@ el tiempo real.
 | Ventas | **Dinero recaudado** e **historial de pedidos** | Por REST en [ventas](ventas.md) (`/api/v1/sales/admin/**`) |
 | Actividad en vivo | Pedidos nuevos y ventas del local, comprobantes subidos, movimientos de stock cargados a mano y productos que pasan a stock bajo, apenas pasan | Hecho (`store.activity`) |
 | Uso de la tienda | Visitas al catálogo y productos más vistos del día; requests y errores por segundo de su tienda | Hecho (`store.usage` y `GET /store/usage`) |
-| Usuarios conectados | Usuarios con actividad en los últimos 5 minutos (todos los logueados, también clientes) y su última actividad | Hecho (`store.users` y `GET /store/users`) |
+| Usuarios conectados | Usuarios con actividad en los últimos 5 minutos (todos los logueados, también clientes) y su última actividad, y cuántos visitantes sin sesión | Hecho (`store.users` y `GET /store/users`) |
 
 #### Actividad de la tienda (`store.activity`)
 
@@ -106,7 +106,7 @@ vivo: lo que pasó con el panel cerrado está en la auditoría y en los pedidos.
 ```
 
 ```json
-{ "total": 2, "users": [ { "userId": 8, "name": "Beto", "lastActivity": "2026-11-03T13:00:05Z" } ] }
+{ "total": 2, "users": [ { "userId": 8, "name": "Beto", "lastActivity": "2026-11-03T13:00:05Z" } ], "visitors": 14 }
 ```
 
 ## Componentes

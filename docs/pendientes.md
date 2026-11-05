@@ -14,6 +14,15 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 ### Resuelto desde la versión anterior
 
+- **Redes sociales de la tienda** (parte de B12): en `/admin/store` el administrador carga Instagram, Facebook, X y
+  TikTok (el link del perfil o solo el usuario, y products arma el link). Solo se aceptan links de esa red (se muestran
+  a todos los clientes) y siempre en https. Las que tienen link aparecen como íconos al pie de todas las páginas de la
+  tienda; las vacías no. Van en `socials` de `GET /api/v1/catalog/store` y `PUT /api/v1/store/settings` (en el `PUT`,
+  una red en `null` queda como está y una vacía se borra).
+- **Visitantes sin sesión** en la observabilidad: el gateway marca a quien navega una tienda sin sesión
+  (`visitor:<tienda>:<id>` en Redis, 5 minutos; el id es un hash de la IP y el navegador, la IP no se guarda).
+  `store.users` y `GET /store/users` suman `visitors`, y los conectados de la plataforma `visitors` en total y por
+  tienda. `/admin/actividad` y `/estado` muestran "con sesión · visitantes".
 - **Observabilidad y auditoría en el frontend** (B8): cliente del WebSocket (`hooks/use-live-channels.ts`: ticket,
   ping, reconexión con espera creciente y sin reintentos si perdió el acceso) y cuatro pantallas.
   - Tienda: `/admin/actividad` (conectados, visitas y tráfico del día, lo más visto y un feed en vivo de pedidos,
@@ -227,7 +236,7 @@ de un producto o de un usuario) con `GET /observability/store/audit/{entity}/{id
 
 ### B12. Configuración por tienda
 
-- Textos de la tienda configurables (nombre, tema e ícono ya están, ver arriba).
+- Textos de la tienda configurables (nombre, tema, ícono y redes sociales ya están, ver arriba).
 - Que cada visitante elija claro u oscuro (hoy lo decide la tienda con el tema "Noche").
 - Mails de recupero de contraseña configurables por tienda.
 - Configuración general de la tienda desde su panel.
