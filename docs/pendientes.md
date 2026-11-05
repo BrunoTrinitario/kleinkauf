@@ -14,6 +14,11 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 ### Resuelto desde la versión anterior
 
+- **SEO** (parte de B11): cada página pública de la tienda tiene su título, descripción, Open Graph y canonical
+  (`lib/page-meta.ts`: home, catálogo, combos, producto con su foto y textos legales), y las privadas (panel, carrito,
+  checkout, cuenta, login) van con `noindex`; la plataforma entera también. Cada tienda tiene su `robots.txt` y su
+  `sitemap.xml` (`GET /share/{tienda}/sitemap.xml`, que arma products con sus productos), servidos por Caddy en el
+  host de la tienda (ver `deploy.md`, "Buscadores").
 - **Redes sociales de la tienda** (parte de B12): en `/admin/store` el administrador carga Instagram, Facebook, X y
   TikTok (el link del perfil o solo el usuario, y products arma el link). Solo se aceptan links de esa red (se muestran
   a todos los clientes) y siempre en https. Las que tienen link aparecen como íconos al pie de todas las páginas de la
@@ -231,7 +236,8 @@ de un producto o de un usuario) con `GET /observability/store/audit/{entity}/{id
 
 ### B11. Publicación
 
-- SEO: meta tags, Open Graph, sitemap, robots y performance de las páginas.
+- SEO: medir la performance de las páginas (Lighthouse) y cargar el sitemap de cada tienda en Search Console. Las
+  meta tags, el sitemap y el robots ya están (ver arriba).
 - Que un abogado revise los textos de `/privacidad` y `/terminos` (`lib/strings.ts`, `legal`).
 
 ### B12. Configuración por tienda

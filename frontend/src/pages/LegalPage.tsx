@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { strings } from "@/lib/strings"
+import { usePageMeta } from "@/lib/page-meta"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
@@ -11,6 +12,7 @@ interface LegalPageProps {
 // Privacy (/privacidad) and terms (/terminos), linked from the footer. Public
 export default function LegalPage({ document: kind }: LegalPageProps) {
   const content = strings.legal[kind]
+  usePageMeta({ title: content.title, description: content.subtitle })
 
   // When going from one to the other from the footer, start from the top
   useEffect(() => {

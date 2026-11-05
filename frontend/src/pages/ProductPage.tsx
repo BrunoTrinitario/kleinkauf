@@ -5,6 +5,7 @@ import { productImageUrl } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import { getErrorMessage } from "@/lib/api-error"
 import { useCatalogProduct } from "@/api/catalog"
+import { usePageMeta } from "@/lib/page-meta"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductDetail } from "@/components/product-detail"
@@ -20,6 +21,12 @@ export default function ProductPage() {
   const detail = useCatalogProduct(slug, slug !== "")
   const product = detail.data
   const notFound = axios.isAxiosError(detail.error) && detail.error.response?.status === 404
+  usePageMeta({
+    title: product?.name,
+    description: product ? product.description || strings.seo.productDescription(product.name, product.category) : null,
+    image: product?.images[0] ?? null,
+    type: product ? "product" : "website",
+  })
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

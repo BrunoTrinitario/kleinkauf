@@ -1,10 +1,12 @@
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { BundlesStrip, CatalogStrip, FeaturedStrip } from "@/components/catalog-highlights"
+import { usePageMeta } from "@/lib/page-meta"
 
 // Store home: a short showcase. Featured products, bundles and the first catalog page, which ends with the link
 // to /catalogo (the full listing, search and filters live there)
 export default function HomePage() {
+  usePageMeta({})
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />

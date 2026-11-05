@@ -1367,6 +1367,13 @@ export const strings = {
     loadError: "No se pudieron cargar los datos de cobro.",
     saveError: "No se pudieron guardar los datos de cobro.",
   },
+  // Search engine descriptions (lib/page-meta.ts): up to 160 characters
+  seo: {
+    storeDescription: (store: string) => `${store}: catálogo online, combos y compra con retiro o envío.`,
+    catalogDescription: "Todos los productos de la tienda, con precios, disponibilidad y búsqueda por categoría.",
+    productDescription: (name: string, category: string) => `${name}${category ? ` (${category})` : ""}: precio y disponibilidad.`,
+    bundlesDescription: "Combos de productos con descuento.",
+  },
   // Status of the panels' live connection (WebSocket)
   live: {
     connecting: "Conectando...",

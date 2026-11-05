@@ -85,6 +85,10 @@ class PermittedUrlsTest {
         assertTrue(PermittedUrls.SHARE_PATH.matcher("/share/mi-tienda/products/mesa-de-roble").matches());
         assertFalse(PermittedUrls.SHARE_PATH.matcher("/share/Mi_Tienda/products/mesa").matches());
         assertFalse(PermittedUrls.SHARE_PATH.matcher("/share/a/products/mesa").matches());
+        // The store's sitemap goes the same way (search engines do not send Origin either)
+        assertTrue(PermittedUrls.isPermitted("GET", "/share/mi-tienda/sitemap.xml"));
+        assertTrue(PermittedUrls.SHARE_PATH.matcher("/share/mi-tienda/sitemap.xml").matches());
+        assertFalse(PermittedUrls.SHARE_PATH.matcher("/share/mi-tienda/sitemapxxml").matches());
     }
 
     @Test
