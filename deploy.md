@@ -245,6 +245,12 @@ alias kk='docker compose --env-file ~/kleinkauf/.env -f ~/kleinkauf/backend/back
 | Reiniciar un servicio | `kk restart user-service` |
 | Recargar el Caddyfile | `kk exec caddy caddy reload --config /etc/caddy/Caddyfile` |
 | Frenar todo (sin perder datos) | `kk --profile server stop` |
+| Crear un superadmin (pide email, nombre y contraseña) | `bash ~/kleinkauf/backend/backend/deploy/create-superadmin.sh` |
+
+`create-superadmin.sh` lo inserta directo en Postgres (base `users`, schema `public`), con la contraseña en bcrypt
+como la app. Sirve si no queda ningún superadmin para entrar al panel; si hay uno, es mejor crearlo desde el panel,
+porque así queda en la auditoría. Busca solo el contenedor de Postgres; si no lo encuentra, indicalo con
+`PG_CONTAINER=<nombre>`. Para calcular el hash, activa `pgcrypto` en la base `postgres` (no en `users`).
 
 Los datos viven en volúmenes de Docker (`kleinkauf_postgres-data`, `kleinkauf_product-uploads`,
 `kleinkauf_sales-uploads`, `kleinkauf_caddy-data`, etc.). Las fotos de perfil de users (`/app/uploads/users/avatars`)
