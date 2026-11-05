@@ -108,6 +108,25 @@ public class CacheUtil {
         }
     }
 
+    // Marks the order confirmation as sent. False if it was already marked. If Redis fails it returns true: better a
+    // repeated email than none
+    public boolean claimOrderMail(String tenantSchema, String orderNumber, Duration ttl) {
+        try {
+            return !Boolean.FALSE.equals(
+                    redisTemplate.opsForValue().setIfAbsent(CacheKeys.ORDER_MAIL(tenantSchema, orderNumber), "1", ttl));
+        } catch (RuntimeException e) {
+            return true;
+        }
+    }
+
+    public void releaseOrderMail(String tenantSchema, String orderNumber) {
+        try {
+            redisTemplate.delete(CacheKeys.ORDER_MAIL(tenantSchema, orderNumber));
+        } catch (RuntimeException ignored) {
+            // Without Redis there is nothing to release
+        }
+    }
+
     // Refresh tokens: each one issued is stored and expires with it (7 days)
     public void saveRefreshToken(String tenantSchema, Long userId, String tokenId, Duration ttl) {
         redisTemplate.opsForValue().set(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId), "1", ttl);

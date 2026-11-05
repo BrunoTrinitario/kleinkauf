@@ -18,8 +18,8 @@ import java.util.List;
 
 /*
 A store's online users: the activity:<tenant>:<userId> keys marked by the gateway (expire after 5
-minutes) with the time of their last request. Only the store's keys are iterated with SCAN and the names come from
-ActorNames (users, cached).
+minutes) with the time of their last request, and how many anonymous visitors (visitor:<tenant>:*). Only the
+store's keys are iterated with SCAN and the names come from ActorNames (users, cached).
  */
 @Slf4j
 @Component
@@ -39,14 +39,20 @@ public class StoreUsers {
     public StoreUsersDto connected(String tenant) {
         // The tenant goes in the SCAN pattern: only if shaped like a schema (no * or ?)
         if (!AuditStore.validSchema(tenant)) {
-            return new StoreUsersDto(0, List.of());
+            return new StoreUsersDto(0, List.of(), 0);
         }
         List<String> keys = new ArrayList<>();
         List<String> values;
+        long visitors;
         ScanOptions options = ScanOptions.scanOptions().match(ActivityKeys.PREFIX + tenant + ":*").count(SCAN_COUNT).build();
-        try (Cursor<String> cursor = redis.scan(options)) {
+        ScanOptions visitorOptions = ScanOptions.scanOptions().match(ActivityKeys.VISITOR_PREFIX + tenant + ":*")
+                .count(SCAN_COUNT).build();
+        try (Cursor<String> cursor = redis.scan(options); Cursor<String> visitorCursor = redis.scan(visitorOptions)) {
             cursor.forEachRemaining(keys::add);
             values = keys.isEmpty() ? List.of() : redis.opsForValue().multiGet(keys);
+            List<String> visitorKeys = new ArrayList<>();
+            visitorCursor.forEachRemaining(visitorKeys::add);
+            visitors = visitorKeys.size();
         } catch (RuntimeException e) {
             log.warn("No se pudieron leer los usuarios conectados de {}: {}", tenant, e.toString());
             return null;
@@ -61,7 +67,7 @@ public class StoreUsers {
             users.add(new ConnectedUser(userId, names.name(userId, tenant), lastActivity));
         }
         users.sort(Comparator.comparing(ConnectedUser::lastActivity).reversed().thenComparing(ConnectedUser::userId));
-        return new StoreUsersDto(users.size(), users);
+        return new StoreUsersDto(users.size(), users, visitors);
     }
 
     private static Long userId(String key) {

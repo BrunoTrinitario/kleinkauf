@@ -149,9 +149,9 @@ export default function PlatformHealthPage() {
           />
           <Tile
             label={h.connected}
-            value={connected?.total}
+            value={connected ? connected.total + connected.visitors : undefined}
             icon={Users}
-            hint={connected ? h.connectedHint(connected.byTenant.length) : undefined}
+            hint={connected ? strings.storeActivity.connectedSplit(connected.total, connected.visitors) : undefined}
           />
         </div>
 
@@ -207,7 +207,9 @@ export default function PlatformHealthPage() {
                   {connected.byTenant.map((row) => (
                     <li key={row.tenant} className="flex justify-between gap-3">
                       <span className="truncate">{row.tenant === "public" ? h.platformTenant : row.tenant}</span>
-                      <span className="tabular-nums text-muted-foreground">{row.users}</span>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {strings.storeActivity.connectedSplit(row.users, row.visitors)}
+                      </span>
                     </li>
                   ))}
                 </ul>

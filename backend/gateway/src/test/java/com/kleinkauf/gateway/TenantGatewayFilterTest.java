@@ -144,6 +144,17 @@ class TenantGatewayFilterTest {
     }
 
     @Test
+    void sitemap_looksUpStoreByPath() {
+        when(tenantService.getTenant("http://tienda-a.localhost:2999")).thenReturn(Mono.just(tenant(true)));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("http://gateway/share/tienda-a/sitemap.xml"));
+
+        run(exchange);
+
+        assertEquals("tienda_a", forwarded.get().getRequest().getHeaders().getFirst(Headers.FORWARDED_HOST));
+    }
+
+    @Test
     void shareLinkOfDisabledStore_respondsForbidden() {
         when(tenantService.getTenant("http://tienda-a.localhost:2999")).thenReturn(Mono.just(tenant(false)));
         MockServerWebExchange exchange = MockServerWebExchange.from(

@@ -1,6 +1,6 @@
 # Pendientes
 
-_Última actualización: 2026-11-04 (deuda técnica cerrada: refresh revocable, rate limit en Redis, CI y auditoría; A1 cerrado)_
+_Última actualización: 2026-11-05 (mails por Resend: recupero con el nombre de la tienda y confirmación de compra)_
 
 Lista de lo que queda por hacer, armada comparando la documentación ([MVP.md](../MVP.md), `docs/` y la referencia
 por servicio en [docs/backend/](backend/README.md)) con el código. Cada tarea tiene el flujo previsto para
@@ -14,6 +14,24 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 ### Resuelto desde la versión anterior
 
+- **SEO** (parte de B11): cada página pública de la tienda tiene su título, descripción, Open Graph y canonical
+  (`lib/page-meta.ts`: home, catálogo, combos, producto con su foto y textos legales), y las privadas (panel, carrito,
+  checkout, cuenta, login) van con `noindex`; la plataforma entera también. Cada tienda tiene su `robots.txt` y su
+  `sitemap.xml` (`GET /share/{tienda}/sitemap.xml`, que arma products con sus productos), servidos por Caddy en el
+  host de la tienda (ver `deploy.md`, "Buscadores").
+- **Mails por Resend** ([mail.md](mail.md)): salen de `no-reply@mail.kleinkauf.site` con el nombre de la tienda
+  como remitente y el dueño como `Reply-To`. Se sumó el **mail de confirmación de compra** (pedidos online): ítems,
+  total, entrega, datos para transferir y link al pedido, una sola vez por pedido. Falta cargar `MAIL_PASSWORD` en el
+  server (ver [E. Server](#e-server)).
+- **Redes sociales de la tienda** (parte de B12): en `/admin/store` el administrador carga Instagram, Facebook, X y
+  TikTok (el link del perfil o solo el usuario, y products arma el link). Solo se aceptan links de esa red (se muestran
+  a todos los clientes) y siempre en https. Las que tienen link aparecen como íconos al pie de todas las páginas de la
+  tienda; las vacías no. Van en `socials` de `GET /api/v1/catalog/store` y `PUT /api/v1/store/settings` (en el `PUT`,
+  una red en `null` queda como está y una vacía se borra).
+- **Visitantes sin sesión** en la observabilidad: el gateway marca a quien navega una tienda sin sesión
+  (`visitor:<tienda>:<id>` en Redis, 5 minutos; el id es un hash de la IP y el navegador, la IP no se guarda).
+  `store.users` y `GET /store/users` suman `visitors`, y los conectados de la plataforma `visitors` en total y por
+  tienda. `/admin/actividad` y `/estado` muestran "con sesión · visitantes".
 - **Observabilidad y auditoría en el frontend** (B8): cliente del WebSocket (`hooks/use-live-channels.ts`: ticket,
   ping, reconexión con espera creciente y sin reintentos si perdió el acceso) y cuatro pantallas.
   - Tienda: `/admin/actividad` (conectados, visitas y tráfico del día, lo más visto y un feed en vivo de pedidos,
@@ -37,7 +55,7 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 - **Recupero de contraseña** (B1): "¿Olvidaste tu contraseña?" en el login de las tiendas lleva a `/recuperar`, que pide
   el mail; el link lleva a `/reset-password?token=`, que pide la nueva y vuelve al login. Si el link venció o ya se
-  usó, ofrece pedir otro. Para que lleguen los mails, el server necesita `MAIL_USERNAME` y `MAIL_PASSWORD` (ver
+  usó, ofrece pedir otro. Para que lleguen los mails, el server necesita `MAIL_PASSWORD` (ver
   [E. Server](#e-server)).
 - **Caché de roles**: `CachedUser` no guardaba los roles y en Redis quedaba `"null"`, así que products, sales y el
   gateway le pedían los roles a users en cada request (y con users caído, 403). Lo encontró la prueba de punta a punta.
@@ -222,12 +240,13 @@ de un producto o de un usuario) con `GET /observability/store/audit/{entity}/{id
 
 ### B11. Publicación
 
-- SEO: meta tags, Open Graph, sitemap, robots y performance de las páginas.
+- SEO: medir la performance de las páginas (Lighthouse) y cargar el sitemap de cada tienda en Search Console. Las
+  meta tags, el sitemap y el robots ya están (ver arriba).
 - Que un abogado revise los textos de `/privacidad` y `/terminos` (`lib/strings.ts`, `legal`).
 
 ### B12. Configuración por tienda
 
-- Textos de la tienda configurables (nombre, tema e ícono ya están, ver arriba).
+- Textos de la tienda configurables (nombre, tema, ícono y redes sociales ya están, ver arriba).
 - Que cada visitante elija claro u oscuro (hoy lo decide la tienda con el tema "Noche").
 - Mails de recupero de contraseña configurables por tienda.
 - Configuración general de la tienda desde su panel.
@@ -264,7 +283,7 @@ preguntas antes de implementarla, como se hizo con ventas.
 ### C4. "Para después" de ventas
 
 - Mercado Pago con webhook.
-- Avisos por email.
+- Avisos por email cuando cambia el estado del pedido (la confirmación al crearlo ya está).
 - Comprobante imprimible.
 - Exportar los reportes a CSV.
 - Zona horaria por tienda (hoy es una para todo el servicio, y el uso del catálogo usa siempre Buenos Aires).
@@ -307,8 +326,9 @@ preguntas antes de implementarla, como se hizo con ventas.
 
 Tareas en el VPS (ver [deploy.md](../deploy.md)):
 
-1. Cargar `MAIL_USERNAME` y `MAIL_PASSWORD` (contraseña de aplicación de Gmail) en `~/kleinkauf/.env`: sin eso el
-   recupero de contraseña no manda mails.
+1. Cargar `MAIL_PASSWORD` (la clave de Resend solo de envío, ver [mail.md](mail.md)) en `~/kleinkauf/.env` y
+   pasarla al contenedor de users en `docker-compose.prod.yml`: sin eso no sale ningún mail. Confirmar que
+   `mail.kleinkauf.site` figure como verificado en Resend.
 2. Cambiar la contraseña del superadmin inicial.
 3. SSH: entrar solo con clave (`PasswordAuthentication no`) y fail2ban.
 4. Activar los backups de Postgres (ya están armados) y copiarlos fuera del server de vez en cuando.

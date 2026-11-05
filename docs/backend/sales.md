@@ -74,7 +74,8 @@ Cualquier otro cambio responde 409. Cada cambio queda en el historial con fecha,
 2. **Crear el pedido:** `POST /api/v1/sales/orders` con los ítems del carrito (y el precio que vio el comprador),
    los datos del comprador y la entrega. Con sesión iniciada mandar el token: el pedido queda en "mis pedidos".
    - **201:** mostrar el número, el total, el vencimiento y los datos para transferir. Guardar número y email
-     (los pide todo lo que sigue).
+     (los pide todo lo que sigue). Al comprador le llega además un mail con lo mismo y el link al pedido (lo manda
+     users en segundo plano; si falla, el pedido no cambia). Ver [mail.md](../mail.md).
    - **409 con JSON `items`:** cambió algún precio. Mostrar `expectedPrice` → `currentPrice`, actualizar el carrito
      y pedir que confirme de nuevo.
    - **409 con texto:** sin stock (`Not enough stock: Mesa, Silla`), ítem no disponible o sin precio, o la tienda
@@ -507,7 +508,9 @@ gateway ──► sales :3003
               ├── products :3002   reservas, devoluciones y vendidos (endpoints internos)
               │     token interno + X-Forwarded-Host de la tienda, Eureka, timeouts 2 s / 3 s,
               │     Resilience4j "products" (circuit breaker y reintentos)
-              └── users :3001      roles del usuario (GET /api/internal/users/roles/{id})
+              └── users :3001      roles del usuario (GET /api/internal/users/roles/{id}) y mail de
+                                   confirmación de compra (POST /api/internal/mail/order-confirmation,
+                                   en segundo plano, sin reintentos)
 
 ExpirationJob (cada 1 h, empieza al minuto) ── por cada tienda: vence pedidos y devuelve su stock
 ```

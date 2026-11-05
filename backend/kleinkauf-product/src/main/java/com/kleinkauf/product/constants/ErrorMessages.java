@@ -35,6 +35,8 @@ public class ErrorMessages {
     public static String INVALID_STORE_NAME = "The store name must be 60 characters or fewer";
     public static String INVALID_STORE_THEME = "Unknown theme";
     public static String STORE_ICON_REQUIRED = "The icon file is required";
+    // %s: the network (Instagram, X, Facebook, TikTok)
+    public static String INVALID_SOCIAL_LINK = "The %s link is not valid: use the profile link or just the user";
     public static String INVALID_CATALOG_SORT = "The sort must be name, price_asc, price_desc or best_sellers";
     public static String INVALID_CATALOG_PAGE = "The page must be 0 or greater and the size between 1 and 100";
     public static String INVALID_RESERVATION = "The reservation needs a reference (up to 40 characters) and items with type, id and a quantity greater than zero";

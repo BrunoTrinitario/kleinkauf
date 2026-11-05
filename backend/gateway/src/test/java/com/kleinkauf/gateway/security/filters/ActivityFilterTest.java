@@ -3,6 +3,8 @@ package com.kleinkauf.gateway.security.filters;
 import com.kleinkauf.common.constants.ActivityKeys;
 import com.kleinkauf.common.constants.Headers;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
@@ -10,6 +12,7 @@ import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -62,9 +65,28 @@ class ActivityFilterTest {
         verify(values, times(2)).set(anyString(), anyString(), any());
     }
 
+    // Anonymous visitor of a store: marked by a hash of IP and browser, never with the IP itself
     @Test
-    void withoutUserMarksNothing() {
+    void withoutSessionInAStore_marksAnAnonymousVisitor() {
         run("/api/v1/catalog/products", null, "tienda_a");
+
+        ArgumentCaptor<String> key = ArgumentCaptor.forClass(String.class);
+        verify(values).set(key.capture(), anyString(), eq(ActivityKeys.TTL));
+        assertThat(key.getValue()).matches("visitor:tienda_a:[0-9a-f]{16}");
+        assertThat(key.getValue()).doesNotContain("10.0.0.1");
+    }
+
+    @Test
+    void sameIpAndBrowser_isTheSameVisitor_otherBrowserIsAnother() {
+        assertThat(ActivityFilter.visitorId(exchange("10.0.0.1", "Firefox")))
+                .isEqualTo(ActivityFilter.visitorId(exchange("10.0.0.1", "Firefox")))
+                .isNotEqualTo(ActivityFilter.visitorId(exchange("10.0.0.1", "Chrome")))
+                .isNotEqualTo(ActivityFilter.visitorId(exchange("10.0.0.2", "Firefox")));
+    }
+
+    @Test
+    void withoutSessionOnThePlatform_orWithAMalformedUser_marksNothing() {
+        run("/api/v1/platform/auth/login", null, null);
         run("/api/v1/products/all", "not-a-number", "tienda_a");
 
         verify(values, never()).set(anyString(), anyString(), any());
@@ -77,8 +99,16 @@ class ActivityFilterTest {
         assertThat(run("/api/v1/products/all", "7", "tienda_a")).isTrue();
     }
 
+    private static MockServerWebExchange exchange(String ip, String agent) {
+        return MockServerWebExchange.from(MockServerHttpRequest.get("http://gateway/api/v1/catalog/products")
+                .remoteAddress(new InetSocketAddress(ip, 5000))
+                .header(HttpHeaders.USER_AGENT, agent));
+    }
+
     private boolean run(String path, String userId, String tenant) {
-        MockServerHttpRequest.BaseBuilder<?> request = MockServerHttpRequest.get("http://gateway" + path);
+        MockServerHttpRequest.BaseBuilder<?> request = MockServerHttpRequest.get("http://gateway" + path)
+                .remoteAddress(new InetSocketAddress("10.0.0.1", 5000))
+                .header(HttpHeaders.USER_AGENT, "Firefox");
         if (userId != null) request.header(Headers.USER_ID, userId);
         if (tenant != null) request.header(Headers.FORWARDED_HOST, tenant);
         AtomicBoolean passed = new AtomicBoolean();

@@ -415,6 +415,14 @@ export interface AdminOrderFilters {
 // Store settings (GET /catalog/store, public; GET/PUT /store/settings, ADMINISTRADOR).
 // name is never null (without a custom name it is derived from the identifier); customName is the one the admin set.
 // icon: file under /products/images/ or null
+// The store's social networks: the profile link of each one, or null if it does not have it
+export interface SocialLinks {
+  instagram: string | null
+  x: string | null
+  facebook: string | null
+  tiktok: string | null
+}
+
 export interface StoreConfig {
   name: string
   customName: string | null
@@ -422,13 +430,16 @@ export interface StoreConfig {
   icon: string | null
   showIconInHeader: boolean
   showIconAsFavicon: boolean
+  socials: SocialLinks
 }
 
+// socials: what the administrator typed (the link or just the user); "" removes the network
 export interface UpdateStoreConfig {
   name: string | null
   theme: string
   showIconInHeader: boolean
   showIconAsFavicon: boolean
+  socials: Record<keyof SocialLinks, string>
 }
 
 // Payment collection details. Empty ones are stored as null; expirationHours null = 48

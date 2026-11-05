@@ -647,6 +647,20 @@ caracteres), `og:image` (la primera imagen, con URL absoluta), `og:url` y una re
 curl http://localhost:3000/share/demo/products/mesa-de-roble
 ```
 
+### GET /share/{tienda}/sitemap.xml
+
+**Acceso:** público (sin login). El sitemap de la tienda para los buscadores: en el server Caddy lo sirve en
+`https://<tienda>.<dominio>/sitemap.xml`, que es donde apunta su `robots.txt` (ver `deploy.md`, "Buscadores"). La
+tienda se resuelve por la ruta, igual que el link para compartir, y llega a products como `/share/sitemap.xml`.
+
+Respuesta **200** `application/xml` con las URLs absolutas de la tienda: la home, `/catalogo`, `/combos` (si hay
+combos a la venta), `/productos/{slug}` de cada producto no borrado y los textos legales. Nada del panel, el carrito
+ni la cuenta. `Cache-Control: public, max-age=3600`. Tienda inexistente (404) o deshabilitada (403): el gateway.
+
+```bash
+curl http://localhost:3000/share/demo/sitemap.xml
+```
+
 ## Plataforma
 
 ### GET /api/v1/platform/products/usage?sort=

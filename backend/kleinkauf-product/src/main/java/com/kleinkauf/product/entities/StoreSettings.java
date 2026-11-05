@@ -9,7 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 
-// Store settings (name, color theme and icon): a single row per schema
+// Store settings (name, color theme, icon and social networks): a single row per schema
 @Entity
 @Audited
 @Table(name = "store_settings")
@@ -46,6 +46,19 @@ public class StoreSettings {
     @ColumnDefault("true")
     @Column(name = "show_icon_as_favicon", nullable = false)
     private boolean showIconAsFavicon = true;
+
+    // Social network profiles (full https link, see SocialLinkNormalizer). null: the store does not have that network
+    @Column(name = "instagram_url", length = 255)
+    private String instagramUrl;
+
+    @Column(name = "x_url", length = 255)
+    private String xUrl;
+
+    @Column(name = "facebook_url", length = 255)
+    private String facebookUrl;
+
+    @Column(name = "tiktok_url", length = 255)
+    private String tiktokUrl;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

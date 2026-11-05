@@ -24,6 +24,7 @@ import com.kleinkauf.sales.entities.SalesChannel;
 import com.kleinkauf.sales.entities.SalesSettings;
 import com.kleinkauf.sales.repositories.OrderRepository;
 import com.kleinkauf.sales.services.OrderEvents;
+import com.kleinkauf.sales.services.OrderMail;
 import com.kleinkauf.sales.services.OrderNumberGenerator;
 import com.kleinkauf.sales.services.OrderService;
 import com.kleinkauf.sales.services.OrderStatusService;
@@ -94,6 +95,9 @@ class OrderServiceTest {
 
 	@Mock
 	private OrderEvents orderEvents;
+
+	@Mock
+	private OrderMail orderMail;
 
 	@InjectMocks
 	private OrderService service;
@@ -240,6 +244,7 @@ class OrderServiceTest {
 		assertTrue(order.getExpiresAt().isAfter(order.getCreatedAt().plusHours(47)));
 		verify(productsClient, never()).release(anyString());
 		verify(orderEvents).created(order);
+		verify(orderMail).confirmation(order, created.payment());
 	}
 
 	@Test

@@ -3,6 +3,7 @@ package com.kleinkauf.sales.services;
 import com.kleinkauf.common.constants.Headers;
 import com.kleinkauf.common.dto.RoleDto;
 import com.kleinkauf.common.dto.TenantDto;
+import com.kleinkauf.common.dto.mail.OrderConfirmationMailDto;
 import com.kleinkauf.common.security.InternalTokenService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -74,6 +75,20 @@ public class UsersClient {
                 new HttpEntity<>(internalHeaders()),
                 TenantDto.class
         ).getBody();
+    }
+
+    // Order confirmation email (users sends it once per order). Not retried here: users answers 204 even if the mail
+    // server fails, and the failure stays in its log
+    @CircuitBreaker(name = "users")
+    public void sendOrderConfirmation(OrderConfirmationMailDto mail, String tenant) {
+        HttpHeaders headers = internalHeaders();
+        headers.set(Headers.FORWARDED_HOST, tenant);
+        restTemplate.exchange(
+                usersUrl + "api/internal/mail/order-confirmation",
+                HttpMethod.POST,
+                new HttpEntity<>(mail, headers),
+                Void.class
+        );
     }
 
     private HttpHeaders internalHeaders() {

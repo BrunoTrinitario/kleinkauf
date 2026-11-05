@@ -16,6 +16,7 @@ import com.kleinkauf.sales.dto.OrderCreatedDto;
 import com.kleinkauf.sales.dto.OrderDto;
 import com.kleinkauf.sales.dto.OrderSummaryDto;
 import com.kleinkauf.sales.dto.PageDto;
+import com.kleinkauf.sales.dto.PaymentDetailsDto;
 import com.kleinkauf.sales.dto.PriceChangeDto;
 import com.kleinkauf.sales.entities.DeliveryType;
 import com.kleinkauf.sales.entities.Order;
@@ -55,6 +56,7 @@ Creating an order:
 2. Reserves the stock in products with the order number (all or nothing, idempotent).
 3. Compares the prices with the cart's: if any changed, it returns the stock and responds 409.
 4. Saves the order. If it fails, it returns the stock.
+5. Asks users to email the buyer the confirmation (in the background, OrderMail).
 The receipt and the cancellation identify the guest by the order email.
  */
 @Slf4j
@@ -98,6 +100,9 @@ public class OrderService {
     @Autowired
     private OrderEvents orderEvents;
 
+    @Autowired
+    private OrderMail orderMail;
+
     public CheckoutDto checkout() {
         SalesSettings settings = settingsService.current();
         boolean configured = SalesSettingsService.isPaymentConfigured(settings);
@@ -132,8 +137,9 @@ public class OrderService {
             throw new ApiException(ErrorMessages.ORDER_NOT_CREATED, HttpStatus.SERVICE_UNAVAILABLE);
         }
         orderEvents.created(order);
-        return new OrderCreatedDto(order.getNumber(), order.getStatus(), order.getTotal(), order.getExpiresAt(),
-                SalesSettingsService.paymentDetails(settings));
+        PaymentDetailsDto payment = SalesSettingsService.paymentDetails(settings);
+        orderMail.confirmation(order, payment);
+        return new OrderCreatedDto(order.getNumber(), order.getStatus(), order.getTotal(), order.getExpiresAt(), payment);
     }
 
     @Transactional(readOnly = true)

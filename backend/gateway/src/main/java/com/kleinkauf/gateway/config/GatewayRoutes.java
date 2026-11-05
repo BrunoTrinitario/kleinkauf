@@ -39,6 +39,11 @@ public class GatewayRoutes {
 
                 // Share link (Open Graph): the store goes in the path and products does not need it (TenantGatewayFilter
                 // already resolved it and it arrives as X-Forwarded-Host)
+                // The store's sitemap: the store's frontend (nginx) serves it at <store>/sitemap.xml
+                .route("sitemap", r -> r
+                        .path("/share/*/sitemap.xml")
+                        .filters(f -> f.rewritePath("/share/[^/]+/sitemap.xml", "/share/sitemap.xml"))
+                        .uri(productUrl))
                 .route("share", r -> r
                         .path("/share/*/products/*")
                         .filters(f -> f.rewritePath("/share/[^/]+/products/(?<slug>[^/]+)", "/share/products/${slug}"))

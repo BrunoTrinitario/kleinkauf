@@ -3,12 +3,15 @@ package com.kleinkauf.product.services;
 import com.kleinkauf.common.servlet.exceptions.ApiException;
 import com.kleinkauf.common.servlet.tenant.TenantContext;
 import com.kleinkauf.product.constants.ErrorMessages;
+import com.kleinkauf.product.dto.store.SocialLinks;
 import com.kleinkauf.product.dto.store.StoreDto;
 import com.kleinkauf.product.dto.store.UpdateStoreDto;
 import com.kleinkauf.product.entities.StoreSettings;
 import com.kleinkauf.product.entities.StoreTheme;
 import com.kleinkauf.product.repositories.StoreSettingsRepository;
 import com.kleinkauf.product.util.FileManager;
+import com.kleinkauf.product.util.SocialLinkNormalizer;
+import com.kleinkauf.product.util.SocialLinkNormalizer.Network;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -24,7 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /*
-Store settings: name, color theme and icon (and whether the icon goes in the header and as the favicon).
+Store settings: name, color theme, icon (and whether the icon goes in the header and as the favicon) and social
+networks.
 Until the administrator changes them the defaults apply: the name derived from the store identifier, the OCEAN
 theme and no icon. The icon is stored and served like product images.
  */
@@ -49,12 +53,36 @@ public class StoreSettingsService {
             throw new ApiException(ErrorMessages.INVALID_STORE_NAME, HttpStatus.BAD_REQUEST);
         }
         StoreTheme theme = dto.theme() == null ? null : parseTheme(dto.theme());
+        // Validated before saving anything: an invalid link does not leave the rest half saved
+        SocialLinks socials = dto.socials();
+        String instagram = socials == null ? null : social(Network.INSTAGRAM, "Instagram", socials.instagram());
+        String x = socials == null ? null : social(Network.X, "X", socials.x());
+        String facebook = socials == null ? null : social(Network.FACEBOOK, "Facebook", socials.facebook());
+        String tiktok = socials == null ? null : social(Network.TIKTOK, "TikTok", socials.tiktok());
         return toDto(save(settings -> {
             if (theme != null) settings.setTheme(theme.name());
             settings.setName(name);
             if (dto.showIconInHeader() != null) settings.setShowIconInHeader(dto.showIconInHeader());
             if (dto.showIconAsFavicon() != null) settings.setShowIconAsFavicon(dto.showIconAsFavicon());
+            if (socials != null) {
+                if (socials.instagram() != null) settings.setInstagramUrl(instagram);
+                if (socials.x() != null) settings.setXUrl(x);
+                if (socials.facebook() != null) settings.setFacebookUrl(facebook);
+                if (socials.tiktok() != null) settings.setTiktokUrl(tiktok);
+            }
         }));
+    }
+
+    // The profile link, or null if blank (removes the network). 400 if it is not from that network
+    private static String social(Network network, String label, String value) throws ApiException {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String link = SocialLinkNormalizer.normalize(network, value);
+        if (link == null) {
+            throw new ApiException(ErrorMessages.INVALID_SOCIAL_LINK.formatted(label), HttpStatus.BAD_REQUEST);
+        }
+        return link;
     }
 
     // Replaces the icon (the previous file is deleted from disk). Same rules as product images: up to 1 MB and JPG,
@@ -135,7 +163,8 @@ public class StoreSettingsService {
     private static StoreDto toDto(StoreSettings s) {
         String name = s.getName() != null ? s.getName() : defaultName(TenantContext.getCurrentTenant());
         return new StoreDto(name, s.getName(), knownTheme(s.getTheme()).name(), s.getIcon(),
-                s.isShowIconInHeader(), s.isShowIconAsFavicon());
+                s.isShowIconInHeader(), s.isShowIconAsFavicon(),
+                new SocialLinks(s.getInstagramUrl(), s.getXUrl(), s.getFacebookUrl(), s.getTiktokUrl()));
     }
 
     // A theme that no longer exists (or a value set by hand) is shown as the default one
