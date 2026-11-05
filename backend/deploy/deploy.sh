@@ -16,7 +16,8 @@ compose() { docker compose --env-file "$ENV_FILE" -f backend/deploy/docker-compo
 case "$PART" in
   backend)
     BUILD="eureka user-service product-service sales-service observability-service gateway-service"
-    #Postgres y Redis entran como dependencias; no se compilan. Caddy (la entrada HTTPS) va con el backend
+    #Postgres y Redis entran como dependencias; no se compilan. Caddy (la entrada HTTPS) va con el backend.
+    #El backup (servicio backup) todavia no se levanta: para activarlo, sumarlo aca (ver deploy.md, "Backups")
     UP="$BUILD caddy"
     UP_FLAGS=""
     ;;
@@ -49,7 +50,17 @@ if [ "$PART" = backend ]; then
   compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 fi
 
-#Las imagenes viejas quedan sin tag despues de cada build
+#Limpieza: sin esto el disco crece varios GB por semana solo con deploys.
+#- Las imagenes viejas quedan sin tag despues de cada build.
+#- La cache de build (capas y la cache de gradle y npm) que no se uso en CACHE_KEEP: lo que se uso hace poco queda,
+#  asi el proximo build sigue siendo rapido.
+#- Contenedores parados y redes sin uso. Los volumenes (base, imagenes, certificados) no se tocan nunca.
+CACHE_KEEP=${DOCKER_CACHE_KEEP:-72h}
+echo "== limpieza"
 docker image prune -f >/dev/null
+docker builder prune -f --filter "until=$CACHE_KEEP" >/dev/null
+docker container prune -f >/dev/null
+docker network prune -f >/dev/null
+docker system df
 
 compose ps

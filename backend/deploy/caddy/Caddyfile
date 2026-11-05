@@ -11,12 +11,37 @@
 	}
 }
 
+#Headers de seguridad de todo lo que se sirve por HTTPS. HSTS sin preload: se puede sacar bajando max-age
+(security) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
+}
+
+#El frontend (plataforma y tiendas): ademas, no se puede meter en un iframe y la CSP.
+#La CSP va en Report-Only: el navegador avisa en la consola lo que bloquearia, sin bloquearlo. Cuando no aparezcan
+#avisos, pasarla a Content-Security-Policy. style-src 'unsafe-inline': sonner y Radix insertan <style> en runtime.
+#img-src y frame-src blob: vista previa de imagenes y comprobantes. connect-src wss: el panel en tiempo real (/ws)
+(frontend) {
+	import security
+	header {
+		X-Frame-Options "DENY"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.{$PLATFORM_DOMAIN}; font-src 'self' data:; connect-src 'self' https://api.{$PLATFORM_DOMAIN} wss://api.{$PLATFORM_DOMAIN}; frame-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	}
+}
+
 {$PLATFORM_DOMAIN} {
+	import frontend
 	encode zstd gzip
 	reverse_proxy frontend:80
 }
 
 api.{$PLATFORM_DOMAIN} {
+	import security
 	encode zstd gzip
 	reverse_proxy gateway-service:3000
 }
@@ -32,6 +57,7 @@ https:// {
 	tls {
 		on_demand
 	}
+	import frontend
 	encode zstd gzip
 
 	#Vista previa de un producto compartido: los crawlers no ejecutan JavaScript, asi que /productos/{slug} se les
