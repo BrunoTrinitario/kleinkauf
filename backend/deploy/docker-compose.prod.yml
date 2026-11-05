@@ -10,9 +10,18 @@
 #HTTPS) con el profile server; lo levanta deploy.sh. Postgres, Redis, Eureka y los puertos de gestion son internos
 name: kleinkauf
 
+#Logs de cada contenedor: sin limite crecen para siempre y llenan el disco. Hasta 3 archivos de 10 MB (docker logs
+#muestra los ultimos 30 MB)
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 #Imagen de un servicio del backend: mismo Dockerfile, cambia la carpeta
 x-service: &service
   restart: unless-stopped
+  logging: *logging
   environment: &service-env
     SPRING_DATA_REDIS_HOST: redis
     SPRING_DATA_REDIS_PORT: "6379"
@@ -49,6 +58,7 @@ services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
@@ -65,6 +75,7 @@ services:
   redis:
     image: redis:8
     restart: unless-stopped
+    logging: *logging
     volumes:
       - redis-data:/data
     healthcheck:
@@ -110,6 +121,9 @@ services:
       SPRING_MAIL_PORT: ${MAIL_PORT}
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+    #Fotos de perfil (uploads/users/avatars): sin el volumen se pierden en cada deploy
+    volumes:
+      - user-uploads:/app/uploads
     depends_on: *depends
     healthcheck:
       <<: *healthcheck
@@ -199,6 +213,7 @@ services:
   frontend:
     image: kleinkauf/frontend
     restart: unless-stopped
+    logging: *logging
     build:
       context: ../../frontend
       args:
@@ -212,6 +227,7 @@ services:
     image: caddy:2.10-alpine
     profiles: [server]
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
@@ -232,6 +248,7 @@ services:
     image: postgres:17
     profiles: [backup]
     restart: unless-stopped
+    logging: *logging
     entrypoint: ["bash", "/backup.sh"]
     environment:
       PGHOST: postgres
@@ -244,6 +261,7 @@ services:
       - ${BACKUP_DIR:-${HOME}/kleinkauf/backups}:/backups
       - product-uploads:/uploads/products:ro
       - sales-uploads:/uploads/sales:ro
+      - user-uploads:/uploads/users:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -278,5 +296,6 @@ volumes:
   redis-data:
   product-uploads:
   sales-uploads:
+  user-uploads:
   caddy-data:
   caddy-config:

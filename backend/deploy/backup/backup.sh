@@ -2,7 +2,7 @@
 #Backup diario del server: corre adentro del servicio backup de docker-compose.prod.yml (imagen de Postgres).
 #Una vez por dia, a partir de BACKUP_HOUR (hora UTC), deja en /backups:
 #  kleinkauf-<fecha>.sql.gz       pg_dumpall de todas las bases (users, products, sales, observability)
-#  kleinkauf-<fecha>-uploads.tgz  imagenes de productos y comprobantes de pago (volumenes de products y sales)
+#  kleinkauf-<fecha>-uploads.tgz  imagenes de productos, comprobantes de pago y fotos de perfil (volumenes de products, sales y users)
 #Borra los de mas de BACKUP_KEEP_DAYS dias. Si el contenedor se reinicia, no repite el backup del dia.
 #Como restaurarlo: deploy.md, "Backups"
 set -euo pipefail

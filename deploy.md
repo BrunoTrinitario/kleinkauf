@@ -247,10 +247,32 @@ alias kk='docker compose --env-file ~/kleinkauf/.env -f ~/kleinkauf/backend/back
 | Frenar todo (sin perder datos) | `kk --profile server stop` |
 
 Los datos viven en volúmenes de Docker (`kleinkauf_postgres-data`, `kleinkauf_product-uploads`,
-`kleinkauf_sales-uploads`, `kleinkauf_caddy-data`, etc.). Las fotos de perfil de users (`/app/uploads/users/avatars`)
-necesitan su propio volumen (`user-uploads`) en `docker-compose.prod.yml`: sin él se pierden en cada deploy. `docker compose down` los conserva; **`down -v` los borra**.
+`kleinkauf_sales-uploads`, `kleinkauf_user-uploads` con las fotos de perfil, `kleinkauf_caddy-data`, etc.).
+`docker compose down` los conserva; **`down -v` los borra**.
 `kleinkauf_caddy-data` guarda los certificados: si se pierde, Caddy los vuelve a pedir, pero Let's Encrypt limita
 cuántos se emiten por semana.
+
+### Espacio en disco
+
+Cada deploy compila imágenes nuevas, así que sin limpieza el disco crece varios GB por semana. `deploy.sh` limpia al
+final de cada deploy, y el log del job de GitHub Actions muestra cuánto ocupa Docker (`docker system df`):
+
+- Las imágenes viejas (sin tag) y los contenedores parados.
+- La caché de build que no se usó en los últimos 3 días (`DOCKER_CACHE_KEEP` en el entorno, por defecto `72h`). La
+  que se usó hace poco queda, así el siguiente build sigue siendo rápido (las dependencias de gradle y npm están ahí).
+- Los volúmenes no se tocan nunca.
+
+Los logs de los contenedores rotan solos: hasta 3 archivos de 10 MB por contenedor (`x-logging` en
+`docker-compose.prod.yml`).
+
+Para ver qué ocupa y liberar a mano, en el server:
+
+```bash
+df -h /                      # disco del server
+docker system df             # imágenes, contenedores, volúmenes y caché de build
+docker builder prune -af     # toda la caché de build (el próximo deploy tarda más: baja las dependencias de nuevo)
+docker image prune -af       # todas las imágenes sin contenedor (también las de servicios frenados)
+```
 
 ### Backups
 
