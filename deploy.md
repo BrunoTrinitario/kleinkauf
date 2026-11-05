@@ -317,6 +317,16 @@ La CSP está en **Report-Only**: no bloquea nada, solo avisa en la consola del n
 lo que bloquearía. Después de usar un rato la tienda y el panel sin que aparezcan avisos, cambiar en el Caddyfile
 `Content-Security-Policy-Report-Only` por `Content-Security-Policy`.
 
+### Buscadores (robots.txt y sitemap.xml)
+
+Los resuelve Caddy por host, como la vista previa de los productos compartidos:
+
+- En cada tienda, `/robots.txt` deja indexar lo público (home, catálogo, combos, productos y textos legales) y no el
+  panel, el carrito, el checkout ni la cuenta, y apunta a `https://<tienda>.<dominio>/sitemap.xml`.
+- `/sitemap.xml` va al gateway (`/share/<tienda>/sitemap.xml`): lo arma products con los productos de la tienda.
+  Para que Google lo use, se puede cargar en Search Console por tienda.
+- La plataforma y `api.` responden `Disallow: /`.
+
 ### Firewall
 
 Docker publica sus puertos escribiendo reglas de iptables propias, así que las reglas comunes de ufw (`ufw allow`) no

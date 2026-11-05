@@ -34,16 +34,33 @@
 	}
 }
 
+#robots.txt de lo que no es para buscadores: el panel de la plataforma y la API
+(noindex) {
+	handle /robots.txt {
+		header Content-Type "text/plain; charset=utf-8"
+		respond <<TXT
+			User-agent: *
+			Disallow: /
+			TXT 200
+	}
+}
+
 {$PLATFORM_DOMAIN} {
 	import frontend
 	encode zstd gzip
-	reverse_proxy frontend:80
+	import noindex
+	handle {
+		reverse_proxy frontend:80
+	}
 }
 
 api.{$PLATFORM_DOMAIN} {
 	import security
 	encode zstd gzip
-	reverse_proxy gateway-service:3000
+	import noindex
+	handle {
+		reverse_proxy gateway-service:3000
+	}
 }
 
 #www no es una tienda (es un identificador reservado): va al dominio de la plataforma
@@ -70,6 +87,37 @@ https:// {
 	handle @preview {
 		rewrite * /share/{re.host.1}/products/{re.slug.1}
 		reverse_proxy gateway-service:3000
+	}
+
+	#Para los buscadores. El sitemap lo arma products con los productos de la tienda (/share/{tienda}/sitemap.xml en el
+	#gateway, como la vista previa). robots.txt deja indexar lo publico y no el panel, el carrito, el checkout ni la
+	#cuenta (el frontend tambien les pone noindex)
+	@sitemap {
+		path /sitemap.xml
+		header_regexp host Host ^([a-z0-9-]+)\.
+	}
+	handle @sitemap {
+		rewrite * /share/{re.host.1}/sitemap.xml
+		reverse_proxy gateway-service:3000
+	}
+	handle /robots.txt {
+		header Content-Type "text/plain; charset=utf-8"
+		respond <<TXT
+			User-agent: *
+			Allow: /
+			Disallow: /admin
+			Disallow: /user/
+			Disallow: /carrito
+			Disallow: /checkout
+			Disallow: /pedido
+			Disallow: /mis-pedidos
+			Disallow: /login
+			Disallow: /register
+			Disallow: /recuperar
+			Disallow: /reset-password
+
+			Sitemap: https://{host}/sitemap.xml
+			TXT 200
 	}
 
 	handle {
