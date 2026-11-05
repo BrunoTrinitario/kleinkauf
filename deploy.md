@@ -258,8 +258,9 @@ Cada deploy compila imágenes nuevas, así que sin limpieza el disco crece vario
 final de cada deploy, y el log del job de GitHub Actions muestra cuánto ocupa Docker (`docker system df`):
 
 - Las imágenes viejas (sin tag) y los contenedores parados.
-- La caché de build que no se usó en los últimos 3 días (`DOCKER_CACHE_KEEP` en el entorno, por defecto `72h`). La
-  que se usó hace poco queda, así el siguiente build sigue siendo rápido (las dependencias de gradle y npm están ahí).
+- La caché de build que no se usó en las últimas 24 horas (`DOCKER_CACHE_KEEP` en el entorno, por defecto `24h`;
+  con 72 h quedaban más de 13 GB). La que se usó hace poco queda, así el siguiente deploy del día sigue siendo rápido
+  (las dependencias de gradle y npm están ahí).
 - Los volúmenes no se tocan nunca.
 
 Los logs de los contenedores rotan solos: hasta 3 archivos de 10 MB por contenedor (`x-logging` en
