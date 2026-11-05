@@ -224,7 +224,6 @@ kleinkauf/
 │   ├── observabilidad.md         Observabilidad: salud, métricas, trazas, logs y WebSocket
 │   └── pendientes.md             Lo que queda por hacer, con el flujo de cada tarea
 ├── MVP.md                        Estado actual y propuesta de funcionalidades
-├── TODO                          Pendientes y cosas a tener en cuenta
 └── .gitignore                    Reglas de ignore comunes a todo el repo
 ```
 

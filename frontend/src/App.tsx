@@ -22,18 +22,23 @@ import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
 import AdminOrderPage from "@/pages/admin/AdminOrderPage"
 import AdminLocalSalePage from "@/pages/admin/AdminLocalSalePage"
 import AdminReportsPage from "@/pages/admin/AdminReportsPage"
+import AdminActivityPage from "@/pages/admin/AdminActivityPage"
+import AdminAuditPage from "@/pages/admin/AdminAuditPage"
 import SettingsPage from "@/pages/user/SettingsPage"
 import MyOrdersPage from "@/pages/user/MyOrdersPage"
 import CartPage from "@/pages/CartPage"
 import CheckoutPage from "@/pages/CheckoutPage"
 import OrderPage from "@/pages/OrderPage"
 import OrderLookupPage from "@/pages/OrderLookupPage"
+import PlatformAuditPage from "@/pages/platform/PlatformAuditPage"
 import PlatformBugReportsPage from "@/pages/platform/PlatformBugReportsPage"
+import PlatformHealthPage from "@/pages/platform/PlatformHealthPage"
 import PlatformDashboardPage from "@/pages/platform/PlatformDashboardPage"
 import PlatformSuperadminsPage from "@/pages/platform/PlatformSuperadminsPage"
 import PlatformTenantsPage from "@/pages/platform/PlatformTenantsPage"
 
-// Plataforma (localhost:2999): login del superadmin, resumen, tiendas, superadmins y reportes de bugs. Sin catalogo ni registro
+// Plataforma (localhost:2999): login del superadmin, resumen, estado, tiendas, superadmins, auditoria y reportes de bugs.
+// Sin catalogo ni registro
 function PlatformRoutes() {
   return (
     <Routes>
@@ -44,6 +49,8 @@ function PlatformRoutes() {
         <Route path="/tenants" element={<PlatformTenantsPage />} />
         <Route path="/superadmins" element={<PlatformSuperadminsPage />} />
         <Route path="/bug-reports" element={<PlatformBugReportsPage />} />
+        <Route path="/estado" element={<PlatformHealthPage />} />
+        <Route path="/auditoria" element={<PlatformAuditPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -87,6 +94,8 @@ function StoreRoutes() {
           <Route path="/admin/orders/new" element={<AdminLocalSalePage />} />
           <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/orders/:number" element={<AdminOrderPage />} />
+          <Route path="/admin/actividad" element={<AdminActivityPage />} />
+          <Route path="/admin/auditoria" element={<AdminAuditPage />} />
         </Route>
         <Route element={<RequireArea anyOf={PRODUCT_PANEL_AREAS} />}>
           <Route path="/admin/products" element={<AdminProductsPage />} />

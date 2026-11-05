@@ -183,16 +183,15 @@ Visible según el permiso de cada área; el `ADMINISTRADOR` ve todo.
 - [ ] Contador de vendidos en productos y orden "más vendidos" en el catálogo — falta: el frontend no muestra
   `soldCount` y el orden del catálogo no ofrece `best_sellers`
 
-### 9. Auditoría y observabilidad **[listo en el backend]**
-- [ ] Panel de la plataforma: salud de los servicios, tráfico y recursos en tiempo real (`GET /platform/observability/overview` + canales `platform.health` y `platform.traffic`)
-- [ ] Panel de la plataforma: refrescar el resumen cuando hay un alta o una baja de tienda (canal `platform.business`)
-- [ ] Panel de la plataforma: auditoría de la plataforma (`GET /platform/observability/audit` + `platform.audit`)
-- [ ] Panel de la tienda: feed de auditoría en vivo (quién hizo qué) e historial con filtros y por cosa (`GET /observability/store/audit` + `store.audit`)
-- [ ] Panel de la tienda: actividad en vivo (pedidos nuevos, ventas del local, comprobantes, movimientos y stock bajo) con `store.activity`
-- [ ] Panel de la tienda: uso del día (visitas al catálogo, productos más vistos, requests y errores) con `GET /observability/store/usage` + `store.usage`
-- [ ] Panel de la tienda: usuarios conectados con `GET /observability/store/users` + `store.users`
-- [ ] Cliente WebSocket: pedir el ticket (`POST /platform/observability/ws-ticket` o `POST /observability/ws-ticket`, un solo uso, 30 s), conectar a `/ws?ticket=`, ping cada 30 s, reconectar con ticket nuevo si se corta y no reintentar si el ticket responde 403
-- [ ] Historial por REST al abrir el panel; el WS solo trae lo nuevo
+### 9. Auditoría y observabilidad **[hecho]**
+- [x] Panel de la plataforma: `/estado` con la salud de los servicios (instancias, componentes, circuit breakers), tráfico y recursos por servicio, un gráfico de los últimos minutos, conectados por tienda y movimientos de tiendas (`GET /platform/observability/overview` + `platform.health`, `platform.traffic` y `platform.business`, que además refresca el resumen)
+- [x] Panel de la plataforma: `/auditoria` con la auditoría de la plataforma (`GET /platform/observability/audit` + `platform.audit`)
+- [x] Panel de la tienda: `/admin/auditoria` con el historial filtrable (fechas, qué, acción y usuario), el detalle de cada cambio y lo nuevo en vivo (`GET /observability/store/audit` + `store.audit`)
+- [x] Panel de la tienda: `/admin/actividad` con la actividad en vivo (pedidos, ventas del local, comprobantes, movimientos y stock bajo, con aviso y refresco de los contadores del menú), el uso del día y los conectados (`store.activity`, `store.usage` y `store.users`)
+- [x] Exportar la auditoría a CSV con los filtros puestos (`/store/audit/export`, `/audit/export`)
+- [x] Cliente WebSocket (`hooks/use-live-channels.ts`): ticket de un solo uso, `/ws?ticket=`, ping cada 30 s, reconexión con ticket nuevo y espera creciente; no reintenta con 403 ni con el cierre 1008
+- [x] Historial por REST al abrir el panel; el WS solo trae lo nuevo
+- [ ] Historial de una cosa puntual dentro de su pantalla (pedido, producto, usuario) con `GET /observability/store/audit/{entity}/{id}`
 
 ### 10. Calidad
 - [ ] Tipos de TypeScript de todas las respuestas del backend — el chequeo de tipos ya corre en el build

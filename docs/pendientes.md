@@ -14,6 +14,13 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 ### Resuelto desde la versión anterior
 
+- **Observabilidad y auditoría en el frontend** (B8): cliente del WebSocket (`hooks/use-live-channels.ts`: ticket,
+  ping, reconexión con espera creciente y sin reintentos si perdió el acceso) y cuatro pantallas.
+  - Tienda: `/admin/actividad` (conectados, visitas y tráfico del día, lo más visto y un feed en vivo de pedidos,
+    comprobantes y stock, con avisos y refresco de los contadores del menú) y `/admin/auditoria` (historial con
+    filtros en la URL, el antes y el después de cada cambio, lo nuevo en vivo y exportar a CSV).
+  - Plataforma: `/estado` (servicios con sus instancias y componentes, tráfico y recursos por servicio, gráfico de
+    los últimos minutos, conectados por tienda y movimientos de tiendas) y `/auditoria` (la de la plataforma).
 - **Auditoría**: `audit_events` está particionada por mes (las tablas de antes se pasan solas la primera vez) y el
   historial se exporta en CSV (`/store/audit/export` y el de la plataforma), hasta 50.000 eventos, con la hora
   argentina y protegido contra fórmulas de Excel. Ver [auditoria.md](auditoria.md#consultas). Falta el botón en el
@@ -30,8 +37,8 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 - **Recupero de contraseña** (B1): "¿Olvidaste tu contraseña?" en el login de las tiendas lleva a `/recuperar`, que pide
   el mail; el link lleva a `/reset-password?token=`, que pide la nueva y vuelve al login. Si el link venció o ya se
-  usó, ofrece pedir otro. Para que lleguen los mails, el server necesita `MAIL_USERNAME` y `MAIL_PASSWORD` (ver el
-  `TODO`).
+  usó, ofrece pedir otro. Para que lleguen los mails, el server necesita `MAIL_USERNAME` y `MAIL_PASSWORD` (ver
+  [E. Server](#e-server)).
 - **Caché de roles**: `CachedUser` no guardaba los roles y en Redis quedaba `"null"`, así que products, sales y el
   gateway le pedían los roles a users en cada request (y con users caído, 403). Lo encontró la prueba de punta a punta.
 
@@ -135,7 +142,8 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 - **Borrar la propia cuenta** (B1): "Eliminar mi cuenta" en ajustes, con confirmación.
 - **La tienda no se queda sin administrador**: users responde 409 si se quiere borrar o sacarle el rol al último
   `ADMINISTRADOR` (a sí mismo o desde el panel de usuarios).
-- **`TODO`**: se sacaron las notas viejas (también la de que ventas "no entra") y quedó solo con pendientes nuevos.
+- **`TODO`**: se sacaron las notas viejas (también la de que ventas "no entra"). Después se unió a este archivo y se
+  borró.
 - **Altas con 201**: usuarios, tiendas, superadmins, pedidos y movimientos de stock ya responden 201.
 - **Compra online** (B6): carrito en `localStorage` con productos y combos (`lib/cart.tsx`, ícono con la cantidad en
   el header); checkout en `/checkout` como invitado o con sesión, con retiro o envío, que ante el 409 de precios
@@ -182,15 +190,8 @@ esto ya está.
 
 ### B8. Observabilidad y auditoría
 
-1. Hook `useLiveChannel`: pide un ticket (un solo uso, 30 s), conecta a `/ws?ticket=`, manda ping cada 30 s,
-   reconecta con un ticket nuevo y no reintenta si el ticket responde 403.
-2. Plataforma: salud y tráfico (`overview` más `platform.health` y `platform.traffic`), auditoría
-   (`platform.audit`) y refresco del resumen con `platform.business`.
-3. Tienda: feed de auditoría (`store.audit`), actividad en vivo (`store.activity`), uso del día (`GET /store/usage`
-   más `store.usage`) y conectados (`GET /store/users` más `store.users`).
-4. El historial se carga por REST al abrir el panel y el WS solo trae lo nuevo.
-5. Botón "Exportar CSV" en la auditoría de la tienda y de la plataforma (`/store/audit/export`, `/audit/export`),
-   con los filtros que estén puestos.
+Hecho (ver arriba). Queda el historial de una cosa puntual dentro de su pantalla (la página del pedido, la edición
+de un producto o de un usuario) con `GET /observability/store/audit/{entity}/{id}`.
 
 ### B10. Faltantes chicos (de la revisión de [frontend.md](frontend.md))
 
@@ -208,7 +209,18 @@ esto ya está.
 - Tipos de todas las respuestas (las fichas de `docs/backend/` tienen los ejemplos).
 - Tests de permisos y de los flujos principales.
 - Accesibilidad básica.
-- Pipeline de build.
+
+### B11. Publicación
+
+- SEO: meta tags, Open Graph, sitemap, robots y performance de las páginas.
+- Cambiar el favicon.
+- Que un abogado revise los textos de `/privacidad` y `/terminos` (`lib/strings.ts`, `legal`).
+
+### B12. Configuración por tienda
+
+- Que el administrador configure el frontend de su tienda: marca, colores y textos.
+- Mails de recupero de contraseña configurables por tienda.
+- Configuración general de la tienda desde su panel.
 
 ---
 
@@ -261,9 +273,30 @@ Está todo resuelto (ver arriba).
 - Observabilidad (muestreo de trazas, alertas en Grafana, retención, healthchecks con `/ready`, historial de uso más
   allá de 8 días): queda como está, para más adelante.
 
+**Revisiones**
+
+- Performance del código: consultas lentas, N+1, uso de caché y tiempos por endpoint.
+- Performance del server: CPU, memoria y disco por contenedor, heap de cada JVM y latencia de punta a punta.
+- Pasar la CSP de Report-Only a `Content-Security-Policy` cuando no aparezcan avisos en la consola (ver
+  [deploy.md](../deploy.md)).
+
+---
+
+## E. Server
+
+Tareas en el VPS (ver [deploy.md](../deploy.md)):
+
+1. Cargar `MAIL_USERNAME` y `MAIL_PASSWORD` (contraseña de aplicación de Gmail) en `~/kleinkauf/.env`: sin eso el
+   recupero de contraseña no manda mails.
+2. Cambiar la contraseña del superadmin inicial.
+3. SSH: entrar solo con clave (`PasswordAuthentication no`) y fail2ban.
+4. Activar los backups de Postgres (ya están armados) y copiarlos fuera del server de vez en cuando.
+5. Dominio pago: DNS con comodín (`*.dominio`) y pasar `PLATFORM_DOMAIN` y lo demás en `~/kleinkauf/.env`.
+
 ---
 
 ## Orden sugerido
 
-1. **B8**: tiempo real en los paneles. Ya están B0 a B7 y A1 a A3.
-2. **Decidir y planificar C1**, la próxima etapa de ventas.
+1. **B10 y B11**: faltantes chicos y publicación. Ya están B0 a B8 y A1 a A3.
+2. **E. Server**: sobre todo los mails.
+3. **Decidir y planificar C1**, la próxima etapa de ventas.

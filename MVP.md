@@ -51,7 +51,7 @@ Ordenadas por prioridad sugerida. Marcar la decisión en cada una.
 | 8 | **Importar y exportar productos** (CSV / Excel) | Carga inicial rápida | — | ☑ Sí — **hecho** (solo CSV) |
 | 9 | **Productos destacados** (agregado después) | Elegir qué productos se muestran en la home y en qué orden. Suma al catálogo público (punto 6) | — | ☑ Sí — **hecho** |
 
-> **Sobre ventas:** el `TODO` marcaba "MS ventas y logística" como **no entra**, pero se decidió incluir ventas
+> **Sobre ventas:** el `TODO` (hoy unido a [docs/pendientes.md](docs/pendientes.md)) marcaba "MS ventas y logística" como **no entra**, pero se decidió incluir ventas
 > (punto 3): sin ventas el sistema queda como un catálogo, y es lo que mejor muestra el valor de los microservicios.
 > Está hecho en `kleinkauf-sales`. La logística quedó afuera.
 
