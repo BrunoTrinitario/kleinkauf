@@ -190,7 +190,7 @@ chmod 600 ~/kleinkauf/.env
 | `PLATFORM_HOSTNAME` | `<dominio>` |
 | `PUBLIC_API_URL` | `https://api.<dominio>` |
 | `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` | El primer superadmin (se crea al arrancar si no existe) |
-| `MAIL_USERNAME`, `MAIL_PASSWORD` | Cuenta de Gmail y su contraseña de aplicación |
+| `MAIL_PASSWORD` | Clave de Resend **solo de envío** ("kleinkauf-backend (send only)"). Ver [docs/mail.md](docs/mail.md) |
 | `JAVA_OPTS` | Memoria de cada JVM; con 8 GB alcanza el valor por defecto |
 
 `PUBLIC_API_URL` y `PLATFORM_HOSTNAME` quedan fijas en el build del frontend: si cambian, hay que volver a desplegarlo.

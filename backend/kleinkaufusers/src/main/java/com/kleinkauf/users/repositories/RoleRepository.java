@@ -36,4 +36,8 @@ public interface RoleRepository extends JpaRepository<Role, Long>{
     // Non-deleted users with that role (e.g. so the store is not left without an ADMINISTRADOR)
     @Query("SELECT COUNT(DISTINCT u.id) FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL AND r.type = :type")
     long countActiveUsersWithType(@Param("type") String type);
+
+    // Emails of the non-deleted users with that role, oldest first (the first ADMINISTRADOR is the store owner)
+    @Query("SELECT u.email FROM Role r JOIN r.user u WHERE u.deletedAt IS NULL AND r.type = :type ORDER BY u.createdAt ASC, u.id ASC")
+    List<String> findActiveEmailsWithType(@Param("type") String type);
 }

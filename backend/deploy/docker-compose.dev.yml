@@ -122,6 +122,8 @@ services:
       #Superadmin de desarrollo, se crea al arrancar si no existe
       SUPERADMIN_EMAIL: superadmin@kleinkauf.local
       SUPERADMIN_PASSWORD: superadmin123
+      #Mails reales por Resend (docs/mail.md): exportar MAIL_PASSWORD antes de levantarlo. Sin ella fallan y quedan en el log
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
     ports:
       - "3001:3001"
     depends_on: *depends

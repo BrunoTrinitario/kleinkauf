@@ -14,5 +14,9 @@ public class CacheKeys {
     public static String CACHE_TENANT_URL = "tenant:url:";
     // Per-tenant usage for the platform dashboard (products stores its own in platform:usage:products)
     public static String PLATFORM_USAGE_USERS = "platform:usage:users";
+    // Order confirmation already sent: so a repeated request from sales does not email the buyer twice
+    public static String ORDER_MAIL(String tenantSchema, String orderNumber){
+        return "mail:order:" + tenantSchema + ":" + orderNumber;
+    }
 
 }
