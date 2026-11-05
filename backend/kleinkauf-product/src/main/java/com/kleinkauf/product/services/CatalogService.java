@@ -95,6 +95,14 @@ public class CatalogService {
         return detail;
     }
 
+    // Slugs of every product in the catalog (not deleted), for the sitemap
+    public List<String> productSlugs() {
+        return inTransaction(() -> productRepository.findAllByOrderByNameAsc().stream()
+                .map(product -> product.getSlug())
+                .filter(slug -> slug != null && !slug.isBlank())
+                .toList());
+    }
+
     // Featured products for the home page, in the order the administrator chose (unordered ones last, by name)
     public List<CatalogProductDto> featured() {
         return cache.get("featured",

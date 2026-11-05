@@ -90,7 +90,12 @@ export default function AdminActivityPage() {
         />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Tile label={s.connected} value={users.data?.total} icon={Users} hint={s.connectedHint} />
+          <Tile
+            label={s.connected}
+            value={users.data ? users.data.total + users.data.visitors : undefined}
+            icon={Users}
+            hint={users.data ? s.connectedSplit(users.data.total, users.data.visitors) : s.connectedHint}
+          />
           <Tile label={s.visits} value={usage.data?.catalogVisits} icon={Eye} />
           <Tile
             label={s.requests}
@@ -134,7 +139,7 @@ export default function AdminActivityPage() {
               <CardContent>
                 {users.isError ? (
                   <p className="text-sm text-destructive">{s.loadError}</p>
-                ) : !users.data ? null : users.data.users.length === 0 ? (
+                ) : !users.data ? null : users.data.users.length === 0 && users.data.visitors === 0 ? (
                   <p className="text-sm text-muted-foreground">{s.usersEmpty}</p>
                 ) : (
                   <ul className="space-y-2 text-sm">
@@ -147,6 +152,12 @@ export default function AdminActivityPage() {
                         <span className="shrink-0 text-muted-foreground">{timeAgo(connected.lastActivity)}</span>
                       </li>
                     ))}
+                    {users.data.visitors > 0 ? (
+                      <li className="flex items-center gap-2 text-muted-foreground">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/50" />
+                        {s.visitors(users.data.visitors)}
+                      </li>
+                    ) : null}
                   </ul>
                 )}
               </CardContent>

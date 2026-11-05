@@ -251,7 +251,7 @@ class WebSocketFlowTest {
     void administratorRequestsTheirStoreOnlineUsersAndUsage() {
         when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         when(usersClient.getUserRoles(eq(13L), any())).thenReturn(List.of(new RoleDto("EMPLEADO", 0)));
-        when(storeFeeds.users("mi_tienda")).thenReturn(new StoreUsersDto(0, List.of()));
+        when(storeFeeds.users("mi_tienda")).thenReturn(new StoreUsersDto(0, List.of(), 0));
         when(storeFeeds.usage("mi_tienda")).thenReturn(null);
 
         assertThat(get("/api/v1/observability/store/users", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.OK);

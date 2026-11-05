@@ -30,6 +30,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -48,8 +49,9 @@ class StoreFeedsTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void onlineUsers_mostRecentFirstWithName() {
-        scan(List.of("activity:demo:7", "activity:demo:8", "activity:demo:9"));
+    void onlineUsers_mostRecentFirstWithNameAndAnonymousVisitors() {
+        scan("activity:demo:*", List.of("activity:demo:7", "activity:demo:8", "activity:demo:9"));
+        scan("visitor:demo:*", List.of("visitor:demo:a1", "visitor:demo:b2"));
         ValueOperations<String, String> values = mock(ValueOperations.class);
         when(redis.opsForValue()).thenReturn(values);
         // Number 9 expired between the SCAN and the read
@@ -61,6 +63,7 @@ class StoreFeedsTest {
         StoreUsersDto users = feeds.users("demo");
 
         assertThat(users.total()).isEqualTo(2);
+        assertThat(users.visitors()).isEqualTo(2);
         assertThat(users.users()).containsExactly(
                 new StoreUsersDto.ConnectedUser(8L, "Beto", Instant.ofEpochMilli(5000)),
                 new StoreUsersDto.ConnectedUser(7L, "Ana", Instant.ofEpochMilli(1000)));
@@ -118,13 +121,13 @@ class StoreFeedsTest {
     }
 
     @SuppressWarnings("unchecked")
-    private void scan(List<String> keys) {
+    private void scan(String pattern, List<String> keys) {
         Cursor<String> cursor = mock(Cursor.class);
         Iterator<String> iterator = keys.iterator();
         doAnswer(i -> {
             iterator.forEachRemaining(i.getArgument(0));
             return null;
         }).when(cursor).forEachRemaining(any());
-        when(redis.scan(any(ScanOptions.class))).thenReturn(cursor);
+        when(redis.scan(argThat((ScanOptions options) -> options != null && pattern.equals(options.getPattern())))).thenReturn(cursor);
     }
 }

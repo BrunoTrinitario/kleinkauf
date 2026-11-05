@@ -5,6 +5,7 @@ import { RequireArea, RequireAuth, RequireRole, RequireSuperadmin } from "@/comp
 import { useTenantStatus } from "@/lib/tenant-status"
 import { useCatalogCategories } from "@/api/catalog"
 import { useStoreBranding } from "@/lib/store-branding"
+import { usePlatformSeo, useRouteSeo } from "@/lib/page-meta"
 import StoreUnavailablePage from "@/pages/StoreUnavailablePage"
 import HomePage from "@/pages/HomePage"
 import ProductPage from "@/pages/ProductPage"
@@ -42,6 +43,7 @@ import PlatformTenantsPage from "@/pages/platform/PlatformTenantsPage"
 // Platform (localhost:2999): superadmin login, overview, status, stores, superadmins, audit and bug reports.
 // No catalog or sign-up
 function PlatformRoutes() {
+  usePlatformSeo()
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -65,6 +67,7 @@ function StoreRoutes() {
   useCatalogCategories()
   // Store color theme, tab title and favicon
   useStoreBranding()
+  useRouteSeo()
   const tenantStatus = useTenantStatus()
   if (tenantStatus !== "ok") {
     return <StoreUnavailablePage status={tenantStatus} />

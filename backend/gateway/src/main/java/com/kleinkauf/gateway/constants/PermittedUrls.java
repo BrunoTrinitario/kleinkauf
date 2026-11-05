@@ -23,10 +23,11 @@ public class PermittedUrls {
     // Observability WebSocket: the browser cannot send the JWT in the handshake, it gets in with a ticket
     public static String WS_PATH = "/ws";
 
-    // Link to share a product (WhatsApp, Instagram): /share/{identifier}/products/{slug}.
-    // The crawler does not send Origin: the store comes from the identifier in the path (see TenantGatewayFilter)
+    // Link to share a product (WhatsApp, Instagram): /share/{identifier}/products/{slug}, and the store's sitemap:
+    // /share/{identifier}/sitemap.xml. The crawler does not send Origin: the store comes from the identifier in the
+    // path (see TenantGatewayFilter)
     public static final java.util.regex.Pattern SHARE_PATH =
-            java.util.regex.Pattern.compile("^/share/([a-z][a-z0-9-]{1,28}[a-z0-9])/products/[^/]+$");
+            java.util.regex.Pattern.compile("^/share/([a-z][a-z0-9-]{1,28}[a-z0-9])/(?:products/[^/]+|sitemap\\.xml)$");
 
     // Routes that do not belong to any tenant: the gateway neither looks it up nor adds the header
     public static boolean isTenantlessPath(String path) {
@@ -62,6 +63,7 @@ public class PermittedUrls {
                 "/products/images/{any}",
                 "GET:/users/avatars/{any}",
                 "GET:/share/{code}/products/{code}",
+                "GET:/share/{code}/sitemap.xml",
                 "GET:/ws"
         );
     }

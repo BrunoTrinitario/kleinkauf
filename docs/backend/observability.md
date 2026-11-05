@@ -73,7 +73,8 @@ La última lectura del recolector, para mostrar algo antes del primer mensaje de
       "heapUsedBytes": 1.5E8, "heapMaxBytes": 4.0E9, "cpu": 0.03, "threads": 42.0,
       "dbConnectionsActive": 1.0, "dbConnectionsMax": 10.0 }
   ],
-  "connectedUsers": { "total": 5, "byTenant": [ { "tenant": "demo", "users": 4 }, { "tenant": "public", "users": 1 } ] }
+  "connectedUsers": { "total": 5, "visitors": 12,
+                      "byTenant": [ { "tenant": "demo", "users": 4, "visitors": 12 }, { "tenant": "public", "users": 1, "visitors": 0 } ] }
 }
 ```
 
@@ -154,12 +155,15 @@ curl -o auditoria.csv 'http://localhost:3000/api/v1/observability/store/audit/ex
 **Acceso:** ADMINISTRADOR
 
 Usuarios conectados de la tienda (alguna request en los últimos 5 minutos), del más reciente al más viejo. Son
-todos los logueados, también clientes. `name` es `null` si users no respondió.
+todos los logueados, también clientes. `name` es `null` si users no respondió. `visitors`: cuántos visitantes sin
+sesión hubo en los mismos 5 minutos (solo el número: el gateway los marca con un hash de la IP y el navegador, sin
+guardar la IP; dos personas con la misma conexión y el mismo navegador cuentan como una).
 
 ```json
 { "total": 2,
   "users": [ { "userId": 8, "name": "Beto", "lastActivity": "2026-11-03T13:00:05Z" },
-             { "userId": 1, "name": "Dueño Demo", "lastActivity": "2026-11-03T12:58:40Z" } ] }
+             { "userId": 1, "name": "Dueño Demo", "lastActivity": "2026-11-03T12:58:40Z" } ],
+  "visitors": 14 }
 ```
 
 Error: 503 si no se pudo leer Redis.

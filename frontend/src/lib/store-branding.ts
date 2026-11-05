@@ -5,9 +5,9 @@ import { applyStoreTheme, rememberStoreTheme } from "@/lib/store-themes"
 
 const DEFAULT_FAVICON = "/icon.svg"
 
-// Applies what the store configured: the color theme, its name as the tab title and its icon as the favicon
-// (if enabled). Until the settings arrive, index.html applies (OCEAN theme, KleinKauf icon). StoreRoutes calls it,
-// so it runs on every store page
+// Applies what the store configured: the color theme and its icon as the favicon (if enabled). The tab title is
+// set by lib/page-meta.ts. Until the settings arrive, index.html applies (OCEAN theme, KleinKauf icon). StoreRoutes
+// calls it, so it runs on every store page
 export function useStoreBranding() {
   const config = useStoreConfig().data
 
@@ -15,7 +15,6 @@ export function useStoreBranding() {
     if (!config) return
     applyStoreTheme(config.theme)
     rememberStoreTheme(config.theme)
-    document.title = config.name
 
     const favicon = config.icon && config.showIconAsFavicon ? productImageUrl(config.icon) : DEFAULT_FAVICON
     let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')

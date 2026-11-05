@@ -5,6 +5,7 @@ import com.kleinkauf.common.servlet.tenant.TenantContext;
 import com.kleinkauf.product.dto.catalog.CatalogProductDetailDto;
 import com.kleinkauf.product.services.CatalogService;
 import com.kleinkauf.product.services.SharePage;
+import com.kleinkauf.product.services.Sitemap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 
 /*
-Link to share a product: the gateway receives /share/{identifier}/products/{slug}, resolves the store by
-the identifier (the crawler does not send Origin) and it arrives here as /share/products/{slug} with the store's schema.
-Public and not JSON: an HTML page with Open Graph that redirects to the product page (see SharePage).
+What crawlers read without Origin, so the gateway resolves the store by the identifier in the path:
+- Link to share a product: /share/{identifier}/products/{slug} arrives here as /share/products/{slug} with the store's
+  schema. Public and not JSON: an HTML page with Open Graph that redirects to the product page (see SharePage).
+- The store's sitemap: /share/{identifier}/sitemap.xml arrives as /share/sitemap.xml. The store's frontend serves it
+  at <store>/sitemap.xml (nginx asks the gateway), which is where robots.txt points.
  */
 @RestController
 public class ShareController {
@@ -47,6 +50,16 @@ public class ShareController {
             // Deleted product or badly copied link: 404 for the crawler, the store's home page for the person
             return html(HttpStatus.NOT_FOUND, SharePage.store(storeUrl));
         }
+    }
+
+    @GetMapping(value = "/share/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<String> sitemap() {
+        String storeUrl = storeUrlTemplate.replace("{identifier}", TenantContext.getCurrentTenant().replace('_', '-'));
+        String xml = Sitemap.build(storeUrl, catalogService.productSlugs(), !catalogService.bundles().isEmpty());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())
+                .contentType(new MediaType(MediaType.APPLICATION_XML, java.nio.charset.StandardCharsets.UTF_8))
+                .body(xml);
     }
 
     // Crawlers cache the preview: one hour is enough for a price or photo change to show soon

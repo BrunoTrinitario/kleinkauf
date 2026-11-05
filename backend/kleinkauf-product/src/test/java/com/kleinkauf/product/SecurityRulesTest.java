@@ -188,6 +188,19 @@ class SecurityRulesTest {
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("url=http://tienda1.localhost:2999/")));
 	}
 
+	// The store's sitemap: public (search engines), XML on the store's host
+	@Test
+	void sitemap_isPublicXml() throws Exception {
+		when(catalogService.productSlugs()).thenReturn(List.of("mesa-de-roble"));
+		when(catalogService.bundles()).thenReturn(List.of());
+
+		mockMvc.perform(as(null, get("/share/sitemap.xml")))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"<loc>http://tienda1.localhost:2999/productos/mesa-de-roble</loc>")));
+	}
+
 	// Dashboard listings show the exact stock: they require some dashboard area (EMPLEADO has STOCK by default)
 	@Test
 	void dashboardListing_requiresADashboardArea() throws Exception {

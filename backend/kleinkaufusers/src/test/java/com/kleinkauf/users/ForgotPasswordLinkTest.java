@@ -9,6 +9,8 @@ import com.kleinkauf.users.services.UserService;
 import com.kleinkauf.users.util.JwtUtil;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -101,7 +103,7 @@ class ForgotPasswordLinkTest {
 	private String sentLink() throws Exception {
 		ArgumentCaptor<String> content = ArgumentCaptor.forClass(String.class);
 		verify(mailService).sendMail(eq("ana@mail.com"), anyString(), content.capture());
-		String text = content.getValue();
-		return text.substring(text.indexOf("http"));
+		Matcher link = Pattern.compile("https?://\\S+").matcher(content.getValue());
+		return link.find() ? link.group() : null;
 	}
 }

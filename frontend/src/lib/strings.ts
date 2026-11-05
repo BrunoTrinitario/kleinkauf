@@ -41,6 +41,8 @@ export const strings = {
     privacy: "Privacidad",
     terms: "Términos",
     demo: "Aplicación demo con control de acceso basado en roles",
+    socials: "Redes sociales",
+    socialLink: (network: string, store: string) => `${store} en ${network}`,
   },
   // Base texts for /privacidad and /terminos. They are generic for every store: before using them for real
   // a lawyer should review them (Argentine Personal Data Protection Law 25.326)
@@ -1335,6 +1337,11 @@ export const strings = {
     saving: "Guardando...",
     saved: "Configuración guardada.",
     saveError: "No se pudo guardar la configuración.",
+    socialsTitle: "Redes sociales",
+    socialsDescription: "Las que completes aparecen como íconos al pie de todas las páginas de tu tienda.",
+    socialPlaceholder: "@tu_tienda o el link del perfil",
+    socialsHint: "Podés poner solo el usuario o pegar el link de tu perfil. Dejalo vacío para que no aparezca.",
+    socialInvalid: (network: string) => `El link de ${network} no es válido: poné el link de tu perfil o solo el usuario.`,
   },
   salesSettings: {
     title: "Datos de cobro",
@@ -1359,6 +1366,13 @@ export const strings = {
     saved: "Datos de cobro guardados.",
     loadError: "No se pudieron cargar los datos de cobro.",
     saveError: "No se pudieron guardar los datos de cobro.",
+  },
+  // Search engine descriptions (lib/page-meta.ts): up to 160 characters
+  seo: {
+    storeDescription: (store: string) => `${store}: catálogo online, combos y compra con retiro o envío.`,
+    catalogDescription: "Todos los productos de la tienda, con precios, disponibilidad y búsqueda por categoría.",
+    productDescription: (name: string, category: string) => `${name}${category ? ` (${category})` : ""}: precio y disponibilidad.`,
+    bundlesDescription: "Combos de productos con descuento.",
   },
   // Status of the panels' live connection (WebSocket)
   live: {
@@ -1441,6 +1455,9 @@ export const strings = {
     auditLink: "Ver auditoría",
     connected: "Conectados ahora",
     connectedHint: "Con actividad en los últimos 5 minutos",
+    connectedSplit: (users: number, visitors: number) =>
+      `${users === 1 ? "1 con sesión" : `${users} con sesión`} · ${visitors === 1 ? "1 visitante" : `${visitors} visitantes`}`,
+    visitors: (count: number) => (count === 1 ? "1 visitante sin sesión" : `${count} visitantes sin sesión`),
     visits: "Visitas al catálogo hoy",
     requests: "Pedidos al servidor",
     perSecond: (value: string) => `${value}/s`,
@@ -1455,7 +1472,7 @@ export const strings = {
     topEmpty: "Todavía nadie abrió un producto hoy.",
     views: (count: number) => (count === 1 ? "1 visita" : `${count} visitas`),
     usersTitle: "Conectados",
-    usersDescription: "Todos los usuarios con sesión, también clientes",
+    usersDescription: "Los usuarios con sesión (también clientes) y cuántos visitantes sin sesión hay",
     usersEmpty: "No hay nadie conectado.",
     unknownUser: (id: number) => `Usuario #${id}`,
     ago: (text: string) => `hace ${text}`,
@@ -1485,7 +1502,6 @@ export const strings = {
     errors5xx: "Errores del servidor",
     errors5xxHint: "Respuestas 5xx por segundo",
     connected: "Conectados",
-    connectedHint: (tenants: number) => (tenants === 1 ? "En 1 tienda o la plataforma" : `En ${tenants} tiendas o la plataforma`),
     noReading: "El recolector todavía no hizo ninguna lectura. Espera unos segundos.",
     healthTitle: "Servicios",
     healthDescription: "Cada servicio con sus instancias y lo que revisa su /ready (base, Redis, Eureka...)",
@@ -1513,7 +1529,7 @@ export const strings = {
       db: "Conexiones base",
     },
     connectedTitle: "Conectados por tienda",
-    connectedDescription: "Usuarios con actividad en los últimos 5 minutos",
+    connectedDescription: "Con actividad en los últimos 5 minutos: con sesión y visitantes sin sesión",
     connectedEmpty: "No hay nadie conectado.",
     platformTenant: "Plataforma (superadmins)",
     businessTitle: "Movimientos de tiendas",

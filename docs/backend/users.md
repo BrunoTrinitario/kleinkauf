@@ -93,8 +93,8 @@ URL de su tienda con el email y la contraseña que cargó.
 En el frontend: "¿Olvidaste tu contraseña?" en el login lleva a `/recuperar`, que pide el mail. Solo en las tiendas: el
 gateway no atiende `/api/v1/auth/**` sin tienda, así que la plataforma no tiene recupero.
 
-Si el mail no se puede mandar, el error se ignora (no hay reintentos). El servidor de mail se configura con
-`spring.mail.*`.
+Si el mail no se puede mandar, el error se ignora (no hay reintentos). El mail sale por Resend con el nombre de la
+tienda como remitente y el dueño como `Reply-To`; ver [mail.md](../mail.md).
 
 ### Alta y baja de superadmins
 
@@ -766,6 +766,7 @@ No los llama el frontend ni pasan por el gateway: los llaman los servicios direc
 | GET | `/api/internal/tenants/all` | products y sales (migran los schemas al arrancar; sales también para el vencimiento) | Todas las tiendas no borradas |
 | GET | `/api/internal/users/{id}` | observability (nombres para la auditoría) | `FullUserDto`; 404 `The user was not found.` |
 | GET | `/api/internal/users/roles/{id}` | products, sales, observability | `[{ "type", "permissions" }]` del usuario en la tienda de `X-Forwarded-Host` (sin tienda: `public`) |
+| POST | `/api/internal/mail/order-confirmation` | sales | Manda al comprador el mail de confirmación de un pedido online (`OrderConfirmationMailDto`). Una sola vez por pedido (marca en Redis `mail:order:<schema>:<número>`, 2 días). 204 aunque el mail falle; 400 si falta el número o el email es inválido |
 
 `TenantDto`:
 
@@ -794,8 +795,9 @@ No los llama el frontend ni pasan por el gateway: los llaman los servicios direc
 - **Auditoría:** `User`, `Role`, `RolePermission` y `Tenant` son `@Audited` (altas, cambios y bajas van al outbox;
   el último login no cuenta). Desactivar y reactivar superadmins se registra a mano. Lo de tiendas y superadmins
   queda con tenant `public`. Ver [auditoria.md](../auditoria.md).
-- **Mail:** SMTP (`spring.mail.*`) para el recupero de contraseña.
-- No llama a otros servicios.
+- **Mail:** SMTP (Resend) para el recupero de contraseña y la confirmación de compra. Ver [mail.md](../mail.md).
+- **Llama a products** (`GET /api/v1/catalog/store`) para el nombre de la tienda que va de remitente en los mails.
+  Si products no responde, usa el nombre derivado del identificador.
 
 ## Modelo de datos
 
@@ -830,7 +832,10 @@ en `usuarios` y `roles` con el rol `SUPERADMIN`. Ver [tenants.md](../tenants.md#
 | `users.dashboard.zone` | `America/Argentina/Buenos_Aires` | Zona de los días de los paneles (altas por período) |
 | `platform.scheme`, `platform.domain` | `http`, `localhost:2999` | Arman la URL de cada tienda nueva y el link del recupero |
 | `platform.superadmin.email` / `.password` | `${SUPERADMIN_EMAIL}` / `${SUPERADMIN_PASSWORD}` | Primer superadmin, al arrancar |
-| `spring.mail.*` | Gmail de ejemplo | Mail del recupero |
+| `spring.mail.*` | `smtp.resend.com:587`, usuario `resend`, contraseña `${MAIL_PASSWORD}` | Servidor de mail (Resend). Sin `MAIL_PASSWORD` no sale ningún mail |
+| `mail.from.address` | `${MAIL_FROM:no-reply@mail.kleinkauf.site}` | Dirección de todos los mails |
+| `mail.from.platform-name` | `KleinKauf` | Remitente de los mails sin tienda |
+| `products.url` | `http://products-microservice/` | Nombre de la tienda para el remitente |
 
 Levantarlo solo: `cd backend/kleinkaufusers && ./gradlew bootRun` (con Postgres, Redis y Eureka arriba). Ver el
 [README del proyecto](../../README.md#cómo-correrlo).

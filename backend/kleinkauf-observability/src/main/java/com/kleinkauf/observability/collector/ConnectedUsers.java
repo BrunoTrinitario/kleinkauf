@@ -11,12 +11,16 @@ import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /*
-Online users: the activity:<tenant>:<userId> keys marked by the gateway (expire after 5 minutes).
-Iterated with SCAN (does not block Redis like KEYS). With thousands of users a per-store counter would be better.
+Online users: the activity:<tenant>:<userId> keys (logged in) and visitor:<tenant>:<visitorId> (anonymous) marked by
+the gateway (expire after 5 minutes). Iterated with SCAN (does not block Redis like KEYS). With thousands of users a
+per-store counter would be better.
  */
 @Slf4j
 @Component
@@ -32,23 +36,35 @@ public class ConnectedUsers {
 
     // null if Redis could not be read
     public ConnectedUsersDto count() {
-        Map<String, Long> byTenant = new HashMap<>();
-        ScanOptions options = ScanOptions.scanOptions().match(ActivityKeys.PREFIX + "*").count(SCAN_COUNT).build();
-        try (Cursor<String> cursor = redis.scan(options)) {
-            while (cursor.hasNext()) {
-                String tenant = ActivityKeys.tenantOf(cursor.next());
-                if (tenant != null) {
-                    byTenant.merge(tenant, 1L, Long::sum);
-                }
-            }
+        Map<String, Long> users = new HashMap<>();
+        Map<String, Long> visitors = new HashMap<>();
+        try {
+            countByTenant(ActivityKeys.PREFIX, ActivityKeys::tenantOf, users);
+            countByTenant(ActivityKeys.VISITOR_PREFIX, ActivityKeys::visitorTenantOf, visitors);
         } catch (RuntimeException e) {
             log.warn("No se pudieron contar los usuarios conectados: {}", e.toString());
             return null;
         }
-        List<TenantUsers> tenants = byTenant.entrySet().stream()
-                .map(entry -> new TenantUsers(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparingLong(TenantUsers::users).reversed().thenComparing(TenantUsers::tenant))
+        Set<String> all = new HashSet<>(users.keySet());
+        all.addAll(visitors.keySet());
+        List<TenantUsers> tenants = all.stream()
+                .map(tenant -> new TenantUsers(tenant, users.getOrDefault(tenant, 0L), visitors.getOrDefault(tenant, 0L)))
+                .sorted(Comparator.comparingLong((TenantUsers t) -> t.users() + t.visitors()).reversed()
+                        .thenComparing(TenantUsers::tenant))
                 .toList();
-        return new ConnectedUsersDto(tenants.stream().mapToLong(TenantUsers::users).sum(), tenants);
+        return new ConnectedUsersDto(tenants.stream().mapToLong(TenantUsers::users).sum(),
+                tenants.stream().mapToLong(TenantUsers::visitors).sum(), tenants);
+    }
+
+    private void countByTenant(String prefix, Function<String, String> tenantOf, Map<String, Long> counts) {
+        ScanOptions options = ScanOptions.scanOptions().match(prefix + "*").count(SCAN_COUNT).build();
+        try (Cursor<String> cursor = redis.scan(options)) {
+            while (cursor.hasNext()) {
+                String tenant = tenantOf.apply(cursor.next());
+                if (tenant != null) {
+                    counts.merge(tenant, 1L, Long::sum);
+                }
+            }
+        }
     }
 }

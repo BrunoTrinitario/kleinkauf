@@ -8,12 +8,14 @@ import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { BundleCard } from "@/components/catalog-highlights"
 import { Button } from "@/components/ui/button"
+import { usePageMeta } from "@/lib/page-meta"
 
 // Bundles that can be bought (/combos). A link to /combos#combo-{id} scrolls to that bundle. Public
 export default function BundlesPage() {
   const bundlesQuery = useCatalogBundles()
   const bundles = bundlesQuery.data ?? []
   const { hash } = useLocation()
+  usePageMeta({ title: strings.bundlesPage.title, description: strings.seo.bundlesDescription })
 
   // The router does not scroll to the anchor on its own: it is done once the cards are there
   useEffect(() => {

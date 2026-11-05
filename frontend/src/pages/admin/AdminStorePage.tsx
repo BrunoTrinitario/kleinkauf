@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react"
+import axios from "axios"
 import { toast } from "sonner"
 import { Check, ImageIcon, Trash2, Upload } from "lucide-react"
 import { strings } from "@/lib/strings"
@@ -15,6 +16,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { SOCIAL_NETWORKS, type SocialNetwork } from "@/components/social-links"
+import type { SocialLinks } from "@/lib/types"
 
 const MAX_NAME = 60
 const MAX_ICON_BYTES = 1024 * 1024
@@ -22,8 +25,17 @@ const ICON_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"]
 
 const t = strings.adminStore
 
-// Store settings (/admin/store, ADMINISTRADOR only): name, color theme and icon. The theme previews on the whole
-// page while choosing; leaving without saving restores the saved one. The icon is saved on upload
+// Store settings (/admin/store, ADMINISTRADOR only): name, color theme, icon and social networks. The theme previews
+// on the whole page while choosing; leaving without saving restores the saved one. The icon is saved on upload
+
+const EMPTY_SOCIALS: Record<SocialNetwork, string> = { instagram: "", x: "", facebook: "", tiktok: "" }
+
+const savedSocials = (socials: SocialLinks | undefined): Record<SocialNetwork, string> => ({
+  instagram: socials?.instagram ?? "",
+  x: socials?.x ?? "",
+  facebook: socials?.facebook ?? "",
+  tiktok: socials?.tiktok ?? "",
+})
 export default function AdminStorePage() {
   const config = useStoreConfig()
   const update = useUpdateStoreConfig()
@@ -35,6 +47,7 @@ export default function AdminStorePage() {
   const [theme, setTheme] = useState<StoreTheme>("OCEAN")
   const [showIconInHeader, setShowIconInHeader] = useState(true)
   const [showIconAsFavicon, setShowIconAsFavicon] = useState(true)
+  const [socials, setSocials] = useState<Record<SocialNetwork, string>>(EMPTY_SOCIALS)
   const [error, setError] = useState<string | null>(null)
 
   const saved = config.data
@@ -44,6 +57,8 @@ export default function AdminStorePage() {
     setTheme(isStoreTheme(saved.theme) ? saved.theme : "OCEAN")
     setShowIconInHeader(saved.showIconInHeader)
     setShowIconAsFavicon(saved.showIconAsFavicon)
+    // The backend returns the full link (also when only the user was typed)
+    setSocials(savedSocials(saved.socials))
   }, [saved])
 
   // Theme preview on the whole page. Leaving restores the saved one
@@ -67,7 +82,8 @@ export default function AdminStorePage() {
     name.trim() !== (saved.customName ?? "") ||
     theme !== saved.theme ||
     showIconInHeader !== saved.showIconInHeader ||
-    showIconAsFavicon !== saved.showIconAsFavicon
+    showIconAsFavicon !== saved.showIconAsFavicon ||
+    SOCIAL_NETWORKS.some(({ key }) => socials[key].trim() !== savedSocials(saved.socials)[key])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -78,10 +94,17 @@ export default function AdminStorePage() {
     }
     setError(null)
     try {
-      await update.mutateAsync({ name: clean || null, theme, showIconInHeader, showIconAsFavicon })
+      const trimmed = Object.fromEntries(
+        SOCIAL_NETWORKS.map(({ key }) => [key, socials[key].trim()])
+      ) as Record<SocialNetwork, string>
+      await update.mutateAsync({ name: clean || null, theme, showIconInHeader, showIconAsFavicon, socials: trimmed })
       toast.success(t.saved)
     } catch (err) {
-      setError(getErrorMessage(err, t.saveError))
+      // 400 with "The <network> link is not valid": the backend says which network
+      const network = axios.isAxiosError(err) && err.response?.status === 400
+        ? SOCIAL_NETWORKS.find(({ label }) => String(err.response?.data ?? "").includes(`The ${label} link`))
+        : undefined
+      setError(network ? t.socialInvalid(network.label) : getErrorMessage(err, t.saveError))
     }
   }
 
@@ -232,6 +255,32 @@ export default function AdminStorePage() {
               />
               {!saved.icon ? <p className="text-xs text-muted-foreground">{t.noIconNote}</p> : null}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.socialsTitle}</CardTitle>
+            <CardDescription>{t.socialsDescription}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {SOCIAL_NETWORKS.map(({ key, label, icon: Icon }) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={`social-${key}`} className="flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Label>
+                <Input
+                  id={`social-${key}`}
+                  value={socials[key]}
+                  maxLength={255}
+                  placeholder={t.socialPlaceholder}
+                  onChange={(event) => setSocials((current) => ({ ...current, [key]: event.target.value }))}
+                  className="max-w-md"
+                />
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">{t.socialsHint}</p>
           </CardContent>
         </Card>
 

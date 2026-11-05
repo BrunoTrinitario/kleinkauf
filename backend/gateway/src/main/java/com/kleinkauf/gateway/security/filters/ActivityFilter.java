@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -16,12 +17,18 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.HexFormat;
 
 /*
-Last activity of logged-in users (docs/observabilidad.md): activity:<tenant>:<userId> in Redis with
-the time of the request, expiring after 5 minutes. observability uses it for the online users.
+Last activity (docs/observabilidad.md): activity:<tenant>:<userId> in Redis for logged-in users and
+visitor:<tenant>:<visitorId> for anonymous visitors of a store, expiring after 5 minutes. observability uses them for
+online users. The visitor is a hash of the IP and the User-Agent: the IP itself is not stored.
 - Runs after JwtFilter (Order 3): X-User-Id is already the token's (ClientHeadersFilter removes the client's).
 - Written at most once every WRITE_EVERY per user, so as not to hit Redis on every request.
 - Does not hold the request back: if Redis fails it goes on anyway.
@@ -55,18 +62,36 @@ public class ActivityFilter implements WebFilter {
         String userId = exchange.getRequest().getHeaders().getFirst(Headers.USER_ID);
         String tenant = tenantOf(exchange);
         if (userId != null && tenant != null) {
-            touch(tenant, userId);
+            touchUser(tenant, userId);
+        } else if (tenant != null && !TenantConstants.PUBLIC.equals(tenant)) {
+            // Without a session, only in a store: the platform has no anonymous visitors to show
+            touch(ActivityKeys.visitorKey(tenant, visitorId(exchange)));
         }
         return chain.filter(exchange);
     }
 
-    private void touch(String tenant, String userId) {
-        String key;
+    private void touchUser(String tenant, String userId) {
         try {
-            key = ActivityKeys.key(tenant, Long.parseLong(userId));
+            touch(ActivityKeys.key(tenant, Long.parseLong(userId)));
         } catch (NumberFormatException e) {
-            return;
+            // A malformed id is not marked
         }
+    }
+
+    // Hash of the connection IP (the same one the rate limit uses, not the client's X-Forwarded-For) and the browser
+    static String visitorId(ServerWebExchange exchange) {
+        InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
+        String ip = remote == null ? "" : remote.getHostString();
+        String agent = String.valueOf(exchange.getRequest().getHeaders().getFirst(HttpHeaders.USER_AGENT));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest((ip + "|" + agent).getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private void touch(String key) {
         if (recentlyWritten.asMap().putIfAbsent(key, Boolean.TRUE) != null) {
             return;
         }

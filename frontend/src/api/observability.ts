@@ -109,9 +109,11 @@ export interface StoreUsage {
   traffic: { requestsPerSecond: number; errors4xxPerSecond: number; errors5xxPerSecond: number } | null
 }
 
+// total and users: logged in (customers too). visitors: anonymous visitors, only how many
 export interface StoreUsers {
   total: number
   users: { userId: number; name: string | null; lastActivity: string }[]
+  visitors: number
 }
 
 export function useStoreUsage(enabled = true) {
@@ -184,9 +186,11 @@ export interface ServiceTraffic {
   dbConnectionsMax: number | null
 }
 
+// total: logged in; visitors: anonymous visitors of the stores
 export interface ConnectedUsers {
   total: number
-  byTenant: { tenant: string; users: number }[]
+  visitors: number
+  byTenant: { tenant: string; users: number; visitors: number }[]
 }
 
 // What platform.traffic sends on each reading (10 s)

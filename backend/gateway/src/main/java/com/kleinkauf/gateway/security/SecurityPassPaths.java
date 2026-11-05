@@ -10,7 +10,7 @@ public class SecurityPassPaths{
                 .pathMatchers("/products/images/**").permitAll()
                 .pathMatchers(org.springframework.http.HttpMethod.GET, "/users/avatars/**").permitAll()
                 // Link to share a product (Open Graph): opened by a crawler, without login
-                .pathMatchers(org.springframework.http.HttpMethod.GET, "/share/*/products/*").permitAll()
+                .pathMatchers(org.springframework.http.HttpMethod.GET, "/share/*/products/*", "/share/*/sitemap.xml").permitAll()
                 // The WS carries no JWT: observability opens it with a single-use ticket
                 .pathMatchers("/ws").permitAll()
                 .anyExchange().authenticated();

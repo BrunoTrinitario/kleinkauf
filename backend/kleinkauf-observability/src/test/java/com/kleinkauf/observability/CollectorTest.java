@@ -53,7 +53,7 @@ class CollectorTest {
     CollectorTest() {
         when(discovery.targets()).thenReturn(List.of(PRODUCTS_1, PRODUCTS_2));
         when(discovery.services(any())).thenReturn(List.of("users-microservice", "products-microservice"));
-        when(connectedUsers.count()).thenReturn(new ConnectedUsersDto(3, List.of(new ConnectedUsersDto.TenantUsers("demo", 3))));
+        when(connectedUsers.count()).thenReturn(new ConnectedUsersDto(3, 0, List.of(new ConnectedUsersDto.TenantUsers("demo", 3, 0))));
     }
 
     @Test
