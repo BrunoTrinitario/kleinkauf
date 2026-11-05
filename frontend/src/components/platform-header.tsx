@@ -10,12 +10,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bug, Building2, LayoutDashboard, LogOut, ShieldCheck, Store, User } from "lucide-react"
+import { Activity, Bug, Building2, LayoutDashboard, LogOut, ScrollText, ShieldCheck, Store, User } from "lucide-react"
 
 const NAV = [
   { to: "/dashboard", label: strings.platform.dashboard, icon: LayoutDashboard },
+  { to: "/estado", label: strings.platform.health, icon: Activity },
   { to: "/tenants", label: strings.platform.tenants, icon: Store },
   { to: "/superadmins", label: strings.platform.superadmins, icon: ShieldCheck },
+  { to: "/auditoria", label: strings.platform.audit, icon: ScrollText },
   { to: "/bug-reports", label: strings.platform.bugReports, icon: Bug },
 ]
 

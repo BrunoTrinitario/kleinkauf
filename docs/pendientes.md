@@ -14,6 +14,13 @@ falta el tiempo real. El backend del MVP está completo. La **gestión presencia
 
 ### Resuelto desde la versión anterior
 
+- **Observabilidad y auditoría en el frontend** (B8): cliente del WebSocket (`hooks/use-live-channels.ts`: ticket,
+  ping, reconexión con espera creciente y sin reintentos si perdió el acceso) y cuatro pantallas.
+  - Tienda: `/admin/actividad` (conectados, visitas y tráfico del día, lo más visto y un feed en vivo de pedidos,
+    comprobantes y stock, con avisos y refresco de los contadores del menú) y `/admin/auditoria` (historial con
+    filtros en la URL, el antes y el después de cada cambio, lo nuevo en vivo y exportar a CSV).
+  - Plataforma: `/estado` (servicios con sus instancias y componentes, tráfico y recursos por servicio, gráfico de
+    los últimos minutos, conectados por tienda y movimientos de tiendas) y `/auditoria` (la de la plataforma).
 - **Auditoría**: `audit_events` está particionada por mes (las tablas de antes se pasan solas la primera vez) y el
   historial se exporta en CSV (`/store/audit/export` y el de la plataforma), hasta 50.000 eventos, con la hora
   argentina y protegido contra fórmulas de Excel. Ver [auditoria.md](auditoria.md#consultas). Falta el botón en el
@@ -183,15 +190,8 @@ esto ya está.
 
 ### B8. Observabilidad y auditoría
 
-1. Hook `useLiveChannel`: pide un ticket (un solo uso, 30 s), conecta a `/ws?ticket=`, manda ping cada 30 s,
-   reconecta con un ticket nuevo y no reintenta si el ticket responde 403.
-2. Plataforma: salud y tráfico (`overview` más `platform.health` y `platform.traffic`), auditoría
-   (`platform.audit`) y refresco del resumen con `platform.business`.
-3. Tienda: feed de auditoría (`store.audit`), actividad en vivo (`store.activity`), uso del día (`GET /store/usage`
-   más `store.usage`) y conectados (`GET /store/users` más `store.users`).
-4. El historial se carga por REST al abrir el panel y el WS solo trae lo nuevo.
-5. Botón "Exportar CSV" en la auditoría de la tienda y de la plataforma (`/store/audit/export`, `/audit/export`),
-   con los filtros que estén puestos.
+Hecho (ver arriba). Queda el historial de una cosa puntual dentro de su pantalla (la página del pedido, la edición
+de un producto o de un usuario) con `GET /observability/store/audit/{entity}/{id}`.
 
 ### B10. Faltantes chicos (de la revisión de [frontend.md](frontend.md))
 
@@ -297,6 +297,6 @@ Tareas en el VPS (ver [deploy.md](../deploy.md)):
 
 ## Orden sugerido
 
-1. **B8**: tiempo real en los paneles. Ya están B0 a B7 y A1 a A3.
+1. **B10 y B11**: faltantes chicos y publicación. Ya están B0 a B8 y A1 a A3.
 2. **E. Server**: sobre todo los mails.
 3. **Decidir y planificar C1**, la próxima etapa de ventas.

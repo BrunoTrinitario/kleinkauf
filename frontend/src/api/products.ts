@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
+import { downloadCsv } from "@/lib/download"
 import { strings } from "@/lib/strings"
 import type { Page, Product, ProductMetadata } from "@/lib/types"
 import { normalizeMetadata } from "@/lib/types"
@@ -197,19 +198,6 @@ export function useReorderFeatured() {
 }
 
 // --- Importar y exportar CSV (PRODUCTOS y PRECIOS) ---
-
-// El archivo viene del backend (con BOM y ";"): se descarga tal cual, con el nombre que manda
-async function downloadCsv(path: string, fallbackName: string) {
-  const response = await api.get<Blob>(path, { responseType: "blob" })
-  const disposition = String(response.headers["content-disposition"] ?? "")
-  const name = disposition.match(/filename="?([^";]+)"?/)?.[1] ?? fallbackName
-  const url = URL.createObjectURL(response.data)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = name
-  link.click()
-  URL.revokeObjectURL(url)
-}
 
 export const exportProducts = () => downloadCsv("/products/export", "productos.csv")
 export const downloadImportTemplate = () => downloadCsv("/products/import/template", "plantilla-productos.csv")

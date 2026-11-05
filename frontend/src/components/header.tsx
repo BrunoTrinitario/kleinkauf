@@ -22,7 +22,7 @@ import {
 import { useCart } from "@/lib/cart"
 import { CATALOG_PATH } from "@/lib/catalog-url"
 import { useCatalogBundles } from "@/api/catalog"
-import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt } from "lucide-react"
+import { User, LogOut, Settings, Users, LayoutDashboard, Store, Briefcase, Shield, Check, Package, Boxes, ShoppingCart, ShoppingBag, Receipt, Radio, ScrollText } from "lucide-react"
 
 const roles: { value: UserRole; label: string; icon: typeof User }[] = [
   { value: "CLIENTE", label: strings.roles.cliente, icon: User },
@@ -212,6 +212,18 @@ export function Header() {
                               {pendingReview}
                             </span>
                           ) : null}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/actividad">
+                          <Radio className="mr-2 h-4 w-4" />
+                          {strings.auth.activity}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/auditoria">
+                          <ScrollText className="mr-2 h-4 w-4" />
+                          {strings.auth.audit}
                         </Link>
                       </DropdownMenuItem>
                     </>
