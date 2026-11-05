@@ -11,9 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /*
-Operaciones de la plataforma (fuera de cualquier tenant): corren en el schema public.
-El gateway no agrega X-Forwarded-Host en /api/v1/platform/** y borra el que mande el cliente;
-igual se verifica aca para no depender solo del gateway.
+Platform operations (outside any tenant): they run in the public schema.
+The gateway does not add X-Forwarded-Host on /api/v1/platform/** and removes the one the client sends;
+it is still checked here so as not to depend only on the gateway.
  */
 @Service
 public class PlatformService {
@@ -27,13 +27,13 @@ public class PlatformService {
         }
     }
 
-    // Login del superadmin: mismo login que las tiendas pero en public y exige el rol SUPERADMIN
+    // Superadmin login: same login as the stores but in public, and it requires the SUPERADMIN role
     public LoggedUser login(String email, String password) throws ApiException {
         requirePlatformContext();
         return requireSuperadmin(userService.login(email, password), ErrorMessages.INVALID_CREDENTIALS);
     }
 
-    // Renovar la sesion del superadmin: si lo desactivaron ya no tiene el rol, y no se renueva
+    // Renewing the superadmin session: if they were deactivated they no longer have the role, and it is not renewed
     public LoggedUser refresh(String refreshToken) throws ApiException {
         requirePlatformContext();
         return requireSuperadmin(userService.refresh(refreshToken), ErrorMessages.INVALID_TOKEN);

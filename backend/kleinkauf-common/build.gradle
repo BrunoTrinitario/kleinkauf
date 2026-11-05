@@ -1,13 +1,13 @@
 /*
-Libreria comun de los microservicios de kleinkauf.
-- com.kleinkauf.common: lo que usan todos (gateway incluido): DTOs, headers, Redis, Caffeine y tokens internos.
-- com.kleinkauf.common.servlet: lo que usan los servicios servlet (users, products, sales): multi-tenant de Hibernate,
-  filtro de tenant, excepciones y usuario autenticado. En el gateway (reactivo) no se activa.
-- com.kleinkauf.common.observability: Actuator igual en todos (puerto de gestion, /health, /ready, /metrics),
-  etiqueta tenant en las metricas HTTP y tenant / usuario en los logs.
-Las dependencias de Spring son compileOnly: cada servicio ya trae las suyas y cada autoconfiguracion
-se activa solo si encuentra las clases que necesita.
-Los servicios la consumen como build compuesto: includeBuild('../kleinkauf-common') en su settings.gradle.
+Shared library of the kleinkauf microservices.
+- com.kleinkauf.common: what every service uses (gateway included): DTOs, headers, Redis, Caffeine and internal tokens.
+- com.kleinkauf.common.servlet: what the servlet services use (users, products, sales): Hibernate multi-tenancy,
+  tenant filter, exceptions and the authenticated user. It is not activated in the (reactive) gateway.
+- com.kleinkauf.common.observability: the same Actuator setup everywhere (management port, /health, /ready, /metrics),
+  tenant tag on the HTTP metrics and tenant / user in the logs.
+Spring dependencies are compileOnly: each service already brings its own, and each auto-configuration
+only activates if it finds the classes it needs.
+Services consume it as a composite build: includeBuild('../kleinkauf-common') in their settings.gradle.
  */
 plugins {
 	id 'java-library'
@@ -39,7 +39,7 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
-	// Opcionales: cada bean se crea solo si el servicio tiene la dependencia
+	// Optional: each bean is only created if the service has the dependency
 	compileOnly 'org.springframework.boot:spring-boot-starter-data-redis'
 	compileOnly 'com.github.ben-manes.caffeine:caffeine'
 	compileOnly 'org.springframework.boot:spring-boot-starter-web'

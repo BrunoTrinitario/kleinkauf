@@ -3,8 +3,8 @@ package com.kleinkauf.product.dto.csv;
 import java.util.List;
 
 /*
-Resultado de una importacion. Es todo o nada: si errors no esta vacio no se importo nada.
-row es el numero de linea del archivo (1 = encabezados); 0 si el error es del archivo entero.
+Result of an import. It is all or nothing: if errors is not empty nothing was imported.
+row is the line number in the file (1 = headers); 0 if the error is about the whole file.
  */
 public record ImportResultDto(
         int created,

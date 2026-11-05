@@ -34,8 +34,8 @@ import java.util.regex.Pattern;
 @Service
 public class TenantService {
 
-    // 3 a 30 caracteres, empieza con letra (Postgres no acepta schemas que empiecen con numero),
-    // no termina en guion. Al ser tan restrictivo es seguro usarlo en CREATE SCHEMA.
+    // 3 to 30 characters, starts with a letter (Postgres does not accept schemas starting with a digit),
+    // does not end with a hyphen. Being this restrictive it is safe to use in CREATE SCHEMA.
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-z][a-z0-9-]{1,28}[a-z0-9]$");
 
     private static final Set<String> RESERVED = Set.of(
@@ -52,7 +52,7 @@ public class TenantService {
     @Autowired
     private TenantOwnerCreator tenantOwnerCreator;
 
-    // Altas, habilitar / deshabilitar y bajas: el panel de la plataforma se actualiza en vivo (observability)
+    // Creation, enable / disable and deletion: the platform dashboard updates live (observability)
     @Autowired
     private KleinKaufEventPublisher events;
 
@@ -102,8 +102,8 @@ public class TenantService {
     }
 
     /*
-    Alta de un tenant con su dueno (ADMINISTRADOR y EMPLEADO), activo al instante.
-    La usan el autoservicio y el superadmin.
+    Sign-up of a tenant with its owner (ADMINISTRADOR and EMPLEADO), active immediately.
+    Used by self-service and by the superadmin.
      */
     public PlatformTenantDto createTenant(NewTenantDto dto) throws ApiException {
         String identifier = dto.identifier() != null ? dto.identifier().trim() : null;
@@ -118,20 +118,20 @@ public class TenantService {
         Tenant tenant = new Tenant();
         tenant.setSchema(schema);
         tenant.setUrl(platformScheme + "://" + identifier + "." + platformDomain);
-        // Referencia a la configuracion propia del tenant (se agrega mas adelante)
+        // Reference to the tenant's own configuration (added later)
         tenant.setConfigId(UUID.randomUUID().toString());
         tenant.setEnable(true);
         try {
             tenant = tenantRepository.save(tenant);
         } catch (DataIntegrityViolationException e) {
-            // Dos altas simultaneas con el mismo identificador: la segunda choca con el unique de schema
+            // Two simultaneous sign-ups with the same identifier: the second one hits the schema unique constraint
             throw new ApiException(ErrorMessages.TENANT_IDENTIFIER_IN_USE, HttpStatus.CONFLICT);
         }
 
         try {
             tenantOwnerCreator.createOwner(schema, dto.ownerName().trim(), UserValidator.normalizeEmail(dto.ownerEmail()), dto.ownerPassword());
         } catch (RuntimeException e) {
-            // Sin dueno nadie podria administrarlo: se deshace el alta
+            // Without an owner nobody could manage it: the sign-up is rolled back
             tenantRepository.delete(tenant);
             throw e;
         }
@@ -159,7 +159,7 @@ public class TenantService {
         return toPlatformDto(tenant);
     }
 
-    // Soft delete: el schema y los datos quedan, el identificador no se puede volver a usar
+    // Soft delete: the schema and the data remain, the identifier cannot be used again
     public void deleteTenant(Long id) throws ApiException {
         Tenant tenant = findActive(id);
         tenant.setDeletedAt(LocalDateTime.now());
@@ -168,7 +168,7 @@ public class TenantService {
         publish(KleinKaufEvent.TENANT_DELETED, tenant);
     }
 
-    // Eventos de plataforma: van con tenant "public"; la tienda va en los datos
+    // Platform events: they go with tenant "public"; the store goes in the data
     private void publish(String type, Tenant tenant) {
         events.publish(type, TenantConstants.PUBLIC, Map.of(
                 "id", tenant.getId(),
@@ -185,7 +185,7 @@ public class TenantService {
         if (identifier == null || !IDENTIFIER.matcher(identifier).matches()) {
             throw new ApiException(ErrorMessages.INVALID_TENANT_IDENTIFIER, HttpStatus.BAD_REQUEST);
         }
-        // pg_* son schemas reservados de Postgres
+        // pg_* are Postgres reserved schemas
         if (RESERVED.contains(identifier) || identifier.startsWith("pg-")) {
             throw new ApiException(ErrorMessages.TENANT_IDENTIFIER_RESERVED, HttpStatus.BAD_REQUEST);
         }
@@ -195,7 +195,7 @@ public class TenantService {
         if (isBlank(dto.ownerName()) || isBlank(dto.ownerEmail()) || isBlank(dto.ownerPassword())) {
             throw new ApiException(ErrorMessages.OWNER_DATA_REQUIRED, HttpStatus.BAD_REQUEST);
         }
-        // El dueno es un usuario mas: mismas reglas de nombre, email y contrasena
+        // The owner is just another user: same name, email and password rules
         UserValidator.validateNewUser(dto.ownerName(), dto.ownerEmail(), dto.ownerPassword());
     }
 

@@ -4,7 +4,7 @@ import com.kleinkauf.common.dto.stock.ReservationItemType;
 
 import java.math.BigDecimal;
 
-// Linea del pedido para el administrador: con precio de lista y costo
+// Order line for the administrator: with list price and cost
 public record AdminOrderItemDto(
         ReservationItemType type,
         Long id,

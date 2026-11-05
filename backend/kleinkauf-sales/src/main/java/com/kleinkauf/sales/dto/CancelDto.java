@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.dto;
 
-// Cancelacion del comprador: el email del pedido identifica al invitado
+// Cancellation by the buyer: the order email identifies the guest
 public record CancelDto(
         String email
 ) {

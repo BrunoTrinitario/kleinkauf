@@ -16,13 +16,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Lee /ready y /metrics del puerto de gestion de una instancia.
-/ready responde 503 con el detalle cuando algo esta caido: ese cuerpo tambien se lee.
+Reads /ready and /metrics from an instance's management port.
+/ready responds 503 with the detail when something is down: that body is read too.
  */
 @Component
 public class InstanceProbe {
 
-    // Formato de texto 0.0.4 (sin pedirlo, Actuator podria contestar OpenMetrics)
+    // Text format 0.0.4 (without asking for it, Actuator might answer with OpenMetrics)
     static final String PROMETHEUS_TEXT = "text/plain;version=0.0.4";
 
     public record Result(Target target, String status, Map<String, String> components, String error,

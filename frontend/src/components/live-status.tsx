@@ -2,7 +2,7 @@ import type { LiveStatus } from "@/hooks/use-live-channels"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
-// Punto con el estado del tiempo real: titila mientras esta en vivo
+// Dot with the real-time status: it pulses while live
 export function LiveStatusBadge({ status }: { status: LiveStatus }) {
   const dot = {
     live: "bg-emerald-500",
@@ -29,7 +29,7 @@ export function LiveStatusBadge({ status }: { status: LiveStatus }) {
 
 const relative = new Intl.RelativeTimeFormat("es-AR", { numeric: "auto" })
 
-// "hace 3 minutos" para fechas recientes (conectados, feed en vivo)
+// "hace 3 minutos" for recent dates (connected users, live feed)
 export function timeAgo(value: string, now = Date.now()): string {
   const seconds = Math.round((new Date(value).getTime() - now) / 1000)
   if (seconds > -30) return strings.storeActivity.now
@@ -38,7 +38,7 @@ export function timeAgo(value: string, now = Date.now()): string {
   return relative.format(Math.round(seconds / 86_400), "day")
 }
 
-// Tasas por segundo: con pocos decimales, y "-" sin dato (antes de la segunda lectura)
+// Per-second rates: few decimals, and "-" with no data (before the second reading)
 export function formatRate(value: number | null | undefined): string {
   if (value === null || value === undefined) return "-"
   if (value === 0) return "0"

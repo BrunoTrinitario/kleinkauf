@@ -39,21 +39,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /*
-Importar y exportar productos en CSV (solo administrador).
-- Formato: separador ';', numeros en formato argentino (ver ArgentineNumbers), UTF-8 con BOM
-  para que Excel en espanol lo abra bien con doble clic.
-- Columnas: datos basicos, precio, costo y metadatos. No incluye stock: se maneja con movimientos.
-- Importar: el nombre identifica al producto. Si existe se actualiza y una celda vacia no cambia el dato;
-  si no existe se crea con stock 0. Es todo o nada: si hay algun error no se importa nada.
+Import and export products as CSV (administrator only).
+- Format: ';' separator, numbers in Argentine format (see ArgentineNumbers), UTF-8 with BOM
+  so Spanish-locale Excel opens it correctly with a double click.
+- Columns: basic data, price, cost and metadata. Stock is not included: it is handled with movements.
+- Import: the name identifies the product. If it exists it is updated and an empty cell does not change the value;
+  if it does not exist it is created with stock 0. It is all or nothing: if there is any error nothing is imported.
  */
 @Service
 public class ProductCsvService {
 
     public static final int MAX_ROWS = 5000;
     public static final long MAX_BYTES = 5L * 1024 * 1024;
-    // Largo de las columnas de texto (varchar(255) por defecto en Hibernate)
+    // Length of the text columns (varchar(255) by default in Hibernate)
     static final int MAX_TEXT = 255;
-    // Precio y costo: numeric(12,2)
+    // Price and cost: numeric(12,2)
     static final int MAX_PRICE_INTEGER_DIGITS = 10;
     static final int MAX_PRICE_DECIMALS = 2;
 
@@ -76,7 +76,7 @@ public class ProductCsvService {
     private static final Map<String, Column> BY_HEADER = Arrays.stream(Column.values())
             .collect(Collectors.toMap(Column::header, Function.identity()));
 
-    // Registro a mano de lo que no es un cambio de una entidad @Audited (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
     @Autowired
     private AuditLog auditLog;
 
@@ -93,7 +93,7 @@ public class ProductCsvService {
     private CatalogCacheService catalogCache;
 
     public byte[] exportCsv() {
-        // Lectura sensible: el CSV trae los costos
+        // Sensitive read: the CSV carries the costs
         auditLog.read("ProductExport", null);
         StringBuilder out = new StringBuilder().append(BOM);
         try (CSVPrinter printer = new CSVPrinter(out, format())) {
@@ -165,7 +165,7 @@ public class ProductCsvService {
             return new ImportResultDto(0, 0, errors);
         }
 
-        // Todo o nada: una sola transaccion. En la auditoria va una entrada con el resumen, no una por producto
+        // All or nothing: a single transaction. The audit gets one entry with the summary, not one per product
         int[] counts = new int[2];
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             AuditSuppression.run(() -> {
@@ -281,7 +281,7 @@ public class ProductCsvService {
         }
     }
 
-    // Solo cambia lo que viene con valor: una celda vacia deja el dato como estaba
+    // Only what comes with a value changes: an empty cell leaves the value as it was
     private void update(ParsedRow row) {
         Product product = row.existing();
         setIfPresent(row.texts().get(Column.CATEGORIA), product::setCategory);
@@ -350,7 +350,7 @@ public class ProductCsvService {
                 .build();
     }
 
-    // 'Categoría', ' CATEGORIA ' y 'categoria' son la misma columna
+    // 'Categoría', ' CATEGORIA ' and 'categoria' are the same column
     private static String normalize(String header) {
         return Normalizer.normalize(header.trim(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")

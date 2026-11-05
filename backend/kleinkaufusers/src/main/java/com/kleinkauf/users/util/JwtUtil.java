@@ -37,7 +37,7 @@ public class JwtUtil {
 
     private static final String PASSWORD_CLAIM = "pwd";
 
-    public static final long REFRESH_TOKEN_MILLIS = 1000L * 60 * 60 * 24 * 7; // 7 dias
+    public static final long REFRESH_TOKEN_MILLIS = 1000L * 60 * 60 * 24 * 7; // 7 days
 
     @PostConstruct
     public void init() {
@@ -45,8 +45,8 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // tenant: schema al que pertenece el usuario (los ids se repiten entre tenants);
-    // el gateway rechaza el token si no coincide con el tenant de la request
+    // tenant: schema the user belongs to (ids repeat across tenants);
+    // the gateway rejects the token if it does not match the request's tenant
     public String generateAccessToken(Long id, String email, String name, String tenant) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
@@ -57,9 +57,9 @@ public class JwtUtil {
         return createToken(claims, 1000 * 60 * 60); // 1h
     }
 
-    // Renueva la sesion sin volver a pedir la contrasena (POST /auth/refresh). Como el de recuperacion, lleva la huella
-    // de la contrasena: cambiarla corta todas las sesiones cuando vence su token de 1 hora.
-    // jti: identifica el refresh para guardarlo en Redis y poder cortarlo solo a el (logout, rotacion)
+    // Renews the session without asking for the password again (POST /auth/refresh). Like the recovery one, it carries the fingerprint
+    // of the password: changing it ends all sessions when their 1-hour token expires.
+    // jti: identifies the refresh token to store it in Redis and be able to revoke just that one (logout, rotation)
     public String generateRefreshToken(Long id, String tenant, String passwordHash) {
         Map<String, Object> claims = new HashMap<>();
         claims.put(Claims.ID, UUID.randomUUID().toString());
@@ -70,8 +70,8 @@ public class JwtUtil {
         return createToken(claims, REFRESH_TOKEN_MILLIS);
     }
 
-    // passwordHash: la contrasena actual (hasheada). El token deja de servir cuando la contrasena cambia,
-    // asi que el link del mail se usa una sola vez
+    // passwordHash: the current (hashed) password. The token stops working when the password changes,
+    // so the email link can be used only once
     public String generatePasswordToken(Long id, String email, String tenant, String passwordHash){
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
@@ -82,7 +82,7 @@ public class JwtUtil {
         return createToken(claims, 1000 * 60 * 15); //15 min
     }
 
-    // Huella de la contrasena hasheada: el token viaja en el mail y no tiene que llevar el hash
+    // Fingerprint of the hashed password: the token travels in the email and must not carry the hash
     public static String passwordFingerprint(String passwordHash) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

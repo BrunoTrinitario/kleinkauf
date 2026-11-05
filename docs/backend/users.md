@@ -200,8 +200,12 @@ Respuesta **200** (`FullUserDto`, el mismo formato que los usuarios del panel):
 
 ```json
 { "id": 1, "name": "Dueño Demo", "email": "admin@demo.local",
-  "roles": [ { "type": "ADMINISTRADOR", "permissions": 31 } ] }
+  "roles": [ { "type": "ADMINISTRADOR", "permissions": 31 } ],
+  "avatar": "0b6f…e2.png" }
 ```
+
+`avatar` es la foto de perfil (archivo en [`/users/avatars/`](#get-usersavatarsarchivo)) o `null`. Viene también
+en el login, el refresh y los usuarios del panel.
 
 | Código | Cuándo | Mensaje |
 |---|---|---|
@@ -235,6 +239,44 @@ cuenta"). Respuesta **200** con el texto `The user has been deleted`.
 |---|---|---|
 | 404 | Usuario inexistente | `The user was not found.` |
 | 409 | Es el último `ADMINISTRADOR` de la tienda | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
+
+### POST /api/v1/auth/me/avatar
+
+**Acceso:** Login (cualquier rol)
+
+Sube la foto de perfil propia y reemplaza la anterior, cuyo archivo se borra. Multipart con el campo `file`: PNG, JPG,
+WEBP o GIF de hasta 1 MB. El tipo se valida por el contenido, no por el nombre ni el `Content-Type`; no se aceptan
+SVG porque pueden traer scripts.
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/me/avatar \
+  -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>' \
+  -F 'file=@foto.png'
+```
+
+Respuesta **200**: `FullUserDto` con el `avatar` nuevo.
+
+| Código | Cuándo | Mensaje |
+|---|---|---|
+| 400 | Sin archivo o vacío | `The photo file is required.` |
+| 413 | Más de 1 MB | `The photo must be 1 MB or smaller.` |
+| 415 | No es PNG, JPG, WEBP ni GIF | `Only JPG, PNG, WEBP or GIF photos are allowed.` |
+
+### DELETE /api/v1/auth/me/avatar
+
+**Acceso:** Login
+
+Quita la foto propia y borra el archivo. Respuesta **200**: `FullUserDto` con `avatar: null` (también si no tenía).
+
+### GET /users/avatars/{archivo}
+
+**Acceso:** Público, sin tienda (el navegador no manda `Origin` al cargar un `<img>`), igual que las imágenes de
+productos. Los nombres son aleatorios y cada foto nueva tiene uno nuevo, así que se sirven con caché de 30 días.
+
+Las fotos están en disco en `avatar.path` (`uploads/users/avatars`), una carpeta para todas las tiendas. Los archivos
+solo se tocan cuando el cambio en la base es definitivo: al confirmarse se borra la foto reemplazada y, si la
+transacción falla, la que se acababa de guardar. Al borrar una cuenta (`DELETE /auth/me` o `DELETE /users/{id}`) se
+borra también su foto.
 
 ### POST /api/v1/auth/forgot-password
 

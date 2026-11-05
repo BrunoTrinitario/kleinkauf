@@ -36,7 +36,7 @@ class PlatformServiceTest {
 	}
 
 	@Test
-	void loginDeSuperadmin() throws ApiException {
+	void superadminLogin() throws ApiException {
 		LoggedUser user = user("SUPERADMIN");
 		when(userService.login("root@kleinkauf.com", "clave")).thenReturn(user);
 
@@ -44,7 +44,7 @@ class PlatformServiceTest {
 	}
 
 	@Test
-	void loginSinRolSuperadmin_respondeUnauthorized() throws ApiException {
+	void loginWithoutSuperadminRole_respondsUnauthorized() throws ApiException {
 		when(userService.login("ana@mail.com", "clave")).thenReturn(user("ADMINISTRADOR"));
 
 		ApiException ex = assertThrows(ApiException.class, () -> platformService.login("ana@mail.com", "clave"));
@@ -53,7 +53,7 @@ class PlatformServiceTest {
 	}
 
 	@Test
-	void desdeUnTenant_noExisteLaPlataforma() {
+	void fromATenant_thePlatformDoesNotExist() {
 		TenantContext.setCurrentTenant("tienda_a");
 
 		ApiException ex = assertThrows(ApiException.class, () -> platformService.login("root@kleinkauf.com", "clave"));
@@ -63,6 +63,6 @@ class PlatformServiceTest {
 	}
 
 	private static LoggedUser user(String role) {
-		return new LoggedUser("Nombre", 1L, "mail", "token", "refresh", List.of(new RoleDto(role, 0)));
+		return new LoggedUser("Nombre", 1L, "mail", "token", "refresh", List.of(new RoleDto(role, 0)), null);
 	}
 }

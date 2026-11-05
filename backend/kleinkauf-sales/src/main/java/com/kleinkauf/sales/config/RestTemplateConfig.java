@@ -19,8 +19,8 @@ public class RestTemplateConfig {
     @Value("${http.client.read-timeout:3s}")
     private Duration readTimeout;
 
-    // Con timeouts para que una llamada a otro servicio caido no deje el hilo colgado.
-    // Con el builder de Spring para que las llamadas propaguen el traceId y tengan metricas
+    // With timeouts so a call to another service that is down does not leave the thread hanging.
+    // With Spring's builder so calls propagate the traceId and have metrics
     @Bean
     @LoadBalanced
     public RestTemplate restTemplate(RestTemplateBuilder builder) {

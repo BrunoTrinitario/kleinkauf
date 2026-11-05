@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// Los limites por tipo de ruta. Redis aca esta caido, asi que cuenta en memoria (RateLimitCounterTest prueba Redis)
+// Limits by route type. Redis is down here, so it counts in memory (RateLimitCounterTest tests Redis)
 class RateLimitTest {
 
     private final LocalCacheService localCacheService = new LocalCacheService();
@@ -38,7 +38,7 @@ class RateLimitTest {
         ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
         ReactiveValueOperations<String, String> values = mock(ReactiveValueOperations.class);
         when(redis.opsForValue()).thenReturn(values);
-        when(values.increment(anyString())).thenReturn(Mono.error(new IllegalStateException("redis caido")));
+        when(values.increment(anyString())).thenReturn(Mono.error(new IllegalStateException("redis down")));
         ReflectionTestUtils.setField(filter, "rateLimitCounter", new RateLimitCounter(redis, localCacheService));
         ReflectionTestUtils.setField(filter, "loginLimit", 5);
         ReflectionTestUtils.setField(filter, "signupLimit", 3);
@@ -49,9 +49,9 @@ class RateLimitTest {
     }
 
     @Test
-    void comprobantes_5PorMinuto_yCancelarComparteElLimiteDeLaConsulta() {
+    void receipts_5PerMinute_andCancelSharesTheLookupLimit() {
         for (int i = 0; i < 5; i++) {
-            assertNull(statusOf("POST", "/api/v1/sales/orders/K7QM-4X2P/receipt"), "comprobante " + (i + 1));
+            assertNull(statusOf("POST", "/api/v1/sales/orders/K7QM-4X2P/receipt"), "receipt " + (i + 1));
         }
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/sales/orders/OTRO-0000/receipt"));
 
@@ -62,7 +62,7 @@ class RateLimitTest {
     }
 
     @Test
-    void crearPedido_permite5PorMinuto_yConsultar10() {
+    void createOrder_allows5PerMinute_andLookup10() {
         for (int i = 0; i < 5; i++) {
             assertNull(statusOf("POST", "/api/v1/sales/orders"), "pedido " + (i + 1));
         }
@@ -73,13 +73,13 @@ class RateLimitTest {
         }
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/sales/orders/lookup"));
 
-        // Mis pedidos y el panel usan el limite general
+        // My orders and the dashboard use the general limit
         assertNull(statusOf("GET", "/api/v1/sales/orders/mine"));
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/sales/admin/orders"));
     }
 
     @Test
-    void elContadorSumaYSeReiniciaEnElMinutoSiguiente() {
+    void counterAddsUpAndResetsOnTheNextMinute() {
         assertEquals(1, localCacheService.rateLimitCache("rate_limit:global:x"));
         assertEquals(2, localCacheService.rateLimitCache("rate_limit:global:x"));
         assertEquals(1, localCacheService.rateLimitCache("rate_limit:global:otro"));
@@ -90,16 +90,16 @@ class RateLimitTest {
     }
 
     @Test
-    void altaDeTenants_permite3PorMinuto() {
+    void tenantSignUp_allows3PerMinute() {
         for (int i = 0; i < 3; i++) {
             assertNull(statusOf("POST", "/api/v1/platform/tenants"), "request " + (i + 1));
         }
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/platform/tenants"));
     }
 
-    // Un X-Forwarded-For distinto en cada request no saltea el limite: cuenta la IP de la conexion
+    // A different X-Forwarded-For on each request does not skip the limit: the connection's IP counts
     @Test
-    void elXForwardedForDelClienteNoSalteaElLimite() {
+    void clientXForwardedForDoesNotSkipTheLimit() {
         for (int i = 0; i < 6; i++) {
             MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/auth/login")
                     .header(HttpHeaders.ORIGIN, "http://localhost:3000")
@@ -113,17 +113,17 @@ class RateLimitTest {
     }
 
     @Test
-    void login_permite5PorMinuto() {
+    void login_allows5PerMinute() {
         for (int i = 0; i < 5; i++) {
             assertNull(statusOf("POST", "/api/v1/auth/login"), "request " + (i + 1));
         }
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/auth/login"));
-        // El login de la plataforma comparte el limite de login
+        // The platform login shares the login limit
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, statusOf("POST", "/api/v1/platform/auth/login"));
     }
 
     @Test
-    void lasImagenesNoCuentan() {
+    void imagesDoNotCount() {
         for (int i = 0; i < 400; i++) {
             assertNull(statusOf("GET", "/products/images/foto.jpg"));
         }
@@ -131,12 +131,12 @@ class RateLimitTest {
     }
 
     @Test
-    void tiposDeRuta() {
+    void routeTypes() {
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/platform/tenants"));
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/platform/admin/tenants"));
         assertEquals(RequestTenantFactory.LOGIN, RequestTenantFactory.generatePathType("/api/v1/platform/auth/login"));
         assertEquals(RequestTenantFactory.IMAGE, RequestTenantFactory.generatePathType("/products/images/a.jpg"));
-        // Registro y recuperacion de contrasena (manda un mail): el limite del alta, no el global
+        // Sign-up and password recovery (sends an email): the sign-up limit, not the global one
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/register"));
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password"));
         assertEquals(RequestTenantFactory.SIGNUP, RequestTenantFactory.generatePathType("/api/v1/auth/forgot-password/abc"));
@@ -147,7 +147,7 @@ class RateLimitTest {
         assertEquals(RequestTenantFactory.GLOBAL, RequestTenantFactory.generatePathType("/api/v1/platform/admin/bug-reports"));
     }
 
-    // null = paso (no se seteo status)
+    // null = passed (no status was set)
     private HttpStatus statusOf(String method, String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.method(org.springframework.http.HttpMethod.valueOf(method), "http://gateway" + path)
                 .header(HttpHeaders.ORIGIN, "http://localhost:3000")

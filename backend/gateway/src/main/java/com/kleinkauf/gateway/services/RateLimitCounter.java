@@ -11,10 +11,10 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 /*
-Contador del rate limit en Redis, compartido por todos los gateways (antes cada instancia contaba lo suyo en memoria
-y con dos gateways el limite real era el doble). Una key por identificador y ventana de 1 minuto: INCR y, en la
-primera, EXPIRE para que se borre sola.
-Si Redis falla o tarda, cuenta en la memoria de esta instancia (LocalCacheService): el limite sigue, aunque por gateway.
+Rate limit counter in Redis, shared by all gateways (before, each instance counted its own in memory
+and with two gateways the real limit was double). One key per identifier and 1-minute window: INCR and, on the
+first one, EXPIRE so it deletes itself.
+If Redis fails or is slow, it counts in this instance's memory (LocalCacheService): the limit still holds, although per gateway.
  */
 @Slf4j
 @Service
@@ -40,7 +40,7 @@ public class RateLimitCounter {
         this.clock = clock;
     }
 
-    // Suma la request y devuelve el total de la ventana (incluida esta)
+    // Adds the request and returns the window's total (including this one)
     public Mono<Long> increment(String requestIdentifier) {
         String key = requestIdentifier + ":" + clock.millis() / 60_000;
         return redis.opsForValue().increment(key)
@@ -52,7 +52,7 @@ public class RateLimitCounter {
                 });
     }
 
-    // Una vez por minuto: con Redis caido seria una linea por request
+    // Once a minute: with Redis down it would be one line per request
     private void warn(Throwable e) {
         long now = clock.millis();
         long last = lastWarn.get();

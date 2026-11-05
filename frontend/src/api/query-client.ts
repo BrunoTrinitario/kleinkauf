@@ -4,12 +4,12 @@ import { notifyError } from "@/lib/api-error"
 
 declare module "@tanstack/react-query" {
   interface Register {
-    // errorMessage: el aviso que se muestra si la consulta falla (sin el, la pantalla decide que mostrar)
+    // errorMessage: the notice shown if the query fails (without it, the screen decides what to show)
     queryMeta: { errorMessage?: string }
   }
 }
 
-// Un 4xx no cambia por reintentar (permiso, validacion, sesion): solo se reintentan la red caida y los 5xx
+// A 4xx does not change by retrying (permission, validation, session): only network failures and 5xx are retried
 const shouldRetry = (failureCount: number, error: unknown) => {
   if (failureCount >= 2) return false
   if (!axios.isAxiosError(error)) return false

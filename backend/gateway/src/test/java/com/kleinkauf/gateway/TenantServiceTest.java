@@ -43,7 +43,7 @@ class TenantServiceTest {
     // getTenant
 
     @Test
-    void getTenant_enCacheLocal_noConsultaRedisNiUsers() {
+    void getTenant_inLocalCache_doesNotQueryRedisOrUsers() {
         when(localCacheService.getTenant(ORIGIN)).thenReturn(tenant);
 
         assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
@@ -51,7 +51,7 @@ class TenantServiceTest {
     }
 
     @Test
-    void getTenant_enRedis_noConsultaUsers() {
+    void getTenant_inRedis_doesNotQueryUsers() {
         when(cacheUtil.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
 
         assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
@@ -59,17 +59,17 @@ class TenantServiceTest {
     }
 
     @Test
-    void getTenant_noEstaEnRedis_consultaAUsers() {
+    void getTenant_notInRedis_queriesUsers() {
         when(cacheUtil.getTenantByUrl(ORIGIN)).thenReturn(Mono.empty());
         when(tenantClient.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
 
         assertEquals(tenant, tenantService.getTenant(ORIGIN).block());
-        // Queda en el cache local por URL (TTL de 1 minuto)
+        // Stays in the local cache by URL (1-minute TTL)
         verify(localCacheService).saveTenant(ORIGIN, tenant);
     }
 
     @Test
-    void getTenant_redisCaido_consultaAUsers() {
+    void getTenant_redisDown_queriesUsers() {
         when(cacheUtil.getTenantByUrl(ORIGIN)).thenReturn(Mono.error(new RuntimeException("redis down")));
         when(tenantClient.getTenantByUrl(ORIGIN)).thenReturn(Mono.just(tenant));
 
@@ -79,7 +79,7 @@ class TenantServiceTest {
     // isCorsAllowed
 
     @Test
-    void enCacheLocal_noConsultaRedisNiUsers() {
+    void inLocalCache_doesNotQueryRedisOrUsers() {
         when(localCacheService.existsUrl(ORIGIN)).thenReturn(true);
 
         assertTrue(tenantService.isCorsAllowed(ORIGIN).block());
@@ -87,7 +87,7 @@ class TenantServiceTest {
     }
 
     @Test
-    void enRedis_permiteYCacheaLocal() {
+    void inRedis_allowsAndCachesLocally() {
         when(cacheUtil.existsTenantByUrl(ORIGIN)).thenReturn(Mono.just(true));
 
         assertTrue(tenantService.isCorsAllowed(ORIGIN).block());
@@ -96,7 +96,7 @@ class TenantServiceTest {
     }
 
     @Test
-    void usersLoPermite_permiteYCacheaLocal() {
+    void usersAllowsIt_allowsAndCachesLocally() {
         when(cacheUtil.existsTenantByUrl(ORIGIN)).thenReturn(Mono.just(false));
         when(tenantClient.isCorsAllowed(ORIGIN)).thenReturn(Mono.just(true));
 
@@ -105,7 +105,7 @@ class TenantServiceTest {
     }
 
     @Test
-    void origenDesconocido_noSeCachea() {
+    void unknownOrigin_isNotCached() {
         when(cacheUtil.existsTenantByUrl(ORIGIN)).thenReturn(Mono.just(false));
         when(tenantClient.isCorsAllowed(ORIGIN)).thenReturn(Mono.just(false));
 
@@ -114,7 +114,7 @@ class TenantServiceTest {
     }
 
     @Test
-    void redisCaido_consultaAUsers() {
+    void redisDown_queriesUsers() {
         when(cacheUtil.existsTenantByUrl(ORIGIN)).thenReturn(Mono.error(new RuntimeException("redis down")));
         when(tenantClient.isCorsAllowed(ORIGIN)).thenReturn(Mono.just(true));
 
@@ -122,7 +122,7 @@ class TenantServiceTest {
     }
 
     @Test
-    void usersFalla_noPermite() {
+    void usersFails_doesNotAllow() {
         when(cacheUtil.existsTenantByUrl(ORIGIN)).thenReturn(Mono.just(false));
         when(tenantClient.isCorsAllowed(ORIGIN)).thenReturn(Mono.error(new RuntimeException("users down")));
 

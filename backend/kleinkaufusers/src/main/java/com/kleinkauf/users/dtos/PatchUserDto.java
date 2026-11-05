@@ -1,6 +1,6 @@
 package com.kleinkauf.users.dtos;
 
-// Cambio de nombre o contrasena (PATCH /auth/me y PATCH /users/{id}): null = no se cambia. El email no se edita
+// Name or password change (PATCH /auth/me and PATCH /users/{id}): null = not changed. The email cannot be edited
 public record PatchUserDto(
     String name,
     String password

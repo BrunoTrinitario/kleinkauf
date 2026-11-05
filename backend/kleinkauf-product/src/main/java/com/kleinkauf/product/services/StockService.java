@@ -19,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /*
-Unico lugar donde cambia el stock de un producto: cada cambio queda
-registrado como un StockMovement con el usuario que lo hizo.
+The only place where a product's stock changes: each change is
+recorded as a StockMovement with the user who made it.
  */
 @Service
 public class StockService {
@@ -61,15 +61,15 @@ public class StockService {
         productRepository.save(product);
 
         StockMovement saved = save(product, dto.type(), delta, dto.reason());
-        // La disponibilidad del catalogo cambia con el stock (se aplica despues del commit)
+        // Catalog availability changes with the stock (applied after the commit)
         catalogCache.invalidate();
-        // Panel en vivo de la tienda (tambien despues del commit)
+        // Store live dashboard (also after the commit)
         stockEvents.movement(product, saved);
         stockEvents.lowIfCrossed(product, stockBefore);
         return toDto(saved);
     }
 
-    // Lo usa ProductService al crear un producto con stock
+    // Used by ProductService when creating a product with stock
     public void registerInitialStock(Product product) {
         if (product.getStock() > 0) {
             save(product, StockMovementType.ENTRADA, product.getStock(), INITIAL_STOCK_REASON);

@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class ClientHeadersFilterTest {
 
     @Test
-    void borraLosHeadersInternosQueMandaElCliente() {
+    void removesInternalHeadersSentByTheClient() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("http://gateway/api/v1/platform/admin/tenants")
                 .header(Headers.USER_ID, "1")
                 .header(Headers.FORWARDED_HOST, "tienda_a")
@@ -40,17 +40,17 @@ class ClientHeadersFilterTest {
         assertFalse(headers.containsKey(Headers.FORWARDED_HOST));
         assertFalse(headers.containsKey(Headers.OPEN_PATH));
         assertFalse(headers.containsKey(Headers.TENANT_NAME));
-        // La IP para la auditoria es la de la conexion, no la que manda el cliente
+        // The IP for the audit is the connection's, not the one the client sends
         assertEquals("190.1.2.3", headers.getFirst(Headers.CLIENT_IP));
-        // Los demas siguen
+        // The rest go through
         assertEquals("Bearer x", headers.getFirst(HttpHeaders.AUTHORIZATION));
         assertEquals("http://tienda-a.localhost:3000", headers.getOrigin());
     }
 
-    // Detras de Caddy (forward-headers-strategy=framework) Spring arma la direccion desde X-Forwarded-For sin
+    // Behind Caddy (forward-headers-strategy=framework) Spring builds the address from X-Forwarded-For without
     // resolverla: getAddress() es null
     @Test
-    void conLaDireccionSinResolverUsaLaIpIgual() {
+    void withUnresolvedAddressStillUsesTheIp() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("http://gateway/api/v1/platform/auth/login")
                 .remoteAddress(InetSocketAddress.createUnresolved("190.1.2.3", 0))
                 .header(HttpHeaders.ORIGIN, "https://plataforma.example"));

@@ -24,7 +24,7 @@ import java.util.List;
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {
 
-    // Authority de las llamadas entre microservicios (ver SecurityConfig)
+    // Authority for calls between microservices (see SecurityConfig)
     public static final String INTERNAL_ROLE = "ROLE_INTERNAL";
     private static final String INTERNAL_PRINCIPAL = "internal";
 
@@ -49,7 +49,7 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // /api/internal/** siempre pide el token interno, aunque no venga el header X-internal-request
+        // /api/internal/** always requires the internal token, even if the X-internal-request header is missing
         if (isInternal || path.startsWith(PermittedUrls.INTERNAL_PATH)) {
             String token = request.getHeader(Headers.INTERNAL_TOKEN);
             if (internalTokenService.validateInternalToken(token)) {

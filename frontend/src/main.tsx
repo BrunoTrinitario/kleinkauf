@@ -6,8 +6,13 @@ import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/lib/auth-context"
 import { CartProvider } from "@/lib/cart"
 import { queryClient } from "@/api/query-client"
+import { IS_PLATFORM } from "@/lib/platform"
+import { applyRememberedStoreTheme } from "@/lib/store-themes"
 import App from "./App"
 import "./index.css"
+
+// Store theme before the first paint (useStoreBranding confirms it once the settings arrive)
+if (!IS_PLATFORM) applyRememberedStoreTheme()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-// Carrito (/carrito): cantidades y total con los precios que vio el comprador. Publico
+// Cart (/carrito): quantities and total with the prices the buyer saw. Public
 export default function CartPage() {
   const { items, total, clear } = useCart()
 

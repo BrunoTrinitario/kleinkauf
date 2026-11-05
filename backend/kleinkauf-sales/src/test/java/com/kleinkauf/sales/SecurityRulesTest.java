@@ -46,8 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
-Permisos por rol con el SecurityConfig y el HeaderAuthFilter reales.
-Los roles salen de UserService (mock) segun el header X-User-Id que agrega el gateway.
+Permissions per role with the real SecurityConfig and HeaderAuthFilter.
+Roles come from UserService (mock) according to the X-User-Id header added by the gateway.
  */
 @WebMvcTest(controllers = {OrderController.class, AdminSalesController.class, AdminReportController.class})
 @Import({SecurityConfig.class, SalesExceptionHandler.class, SecurityRulesTest.TenantConfig.class})
@@ -100,7 +100,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void checkout_publicoParaInvitadosYLogueados() throws Exception {
+	void checkout_publicForGuestsAndLoggedIn() throws Exception {
 		mockMvc.perform(as(null, get("/api/v1/sales/checkout"))).andExpect(status().isOk());
 		mockMvc.perform(as(null, json(post("/api/v1/sales/orders"), "{}"))).andExpect(status().isCreated());
 		mockMvc.perform(as(CLIENTE, json(post("/api/v1/sales/orders"), "{}"))).andExpect(status().isCreated());
@@ -108,14 +108,14 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void misPedidos_pideLogin() throws Exception {
+	void myOrders_requiresLogin() throws Exception {
 		mockMvc.perform(as(null, get("/api/v1/sales/orders/mine"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(CLIENTE, get("/api/v1/sales/orders/mine"))).andExpect(status().isOk());
 	}
 
 	@Test
-	void panelDeVentas_soloAdministrador() throws Exception {
-		// El empleado no gestiona ventas aunque tenga todas las areas de productos
+	void salesDashboard_administratorOnly() throws Exception {
+		// An employee does not manage sales even with every product area
 		for (Long user : new Long[]{null, CLIENTE, EMPLEADO}) {
 			mockMvc.perform(as(user, get("/api/v1/sales/admin/orders"))).andExpect(status().isForbidden());
 			mockMvc.perform(as(user, get("/api/v1/sales/admin/orders/K7QM-4X2P"))).andExpect(status().isForbidden());
@@ -128,7 +128,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void comprobanteYCancelacion_publicos() throws Exception {
+	void receiptAndCancellation_public() throws Exception {
 		MockMultipartFile file = new MockMultipartFile("file", "c.png", "image/png", new byte[]{1});
 		mockMvc.perform(as(null, multipart("/api/v1/sales/orders/K7QM-4X2P/receipt").file(file).param("email", "ana@mail.com")))
 				.andExpect(status().isOk());
@@ -137,7 +137,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void ventasDelLocalEstadosYComprobantes_soloAdministrador() throws Exception {
+	void inStoreSalesStatusesAndReceipts_administratorOnly() throws Exception {
 		PaymentReceipt receipt = new PaymentReceipt();
 		receipt.setPath("tienda1/K7QM-4X2P/a.pdf");
 		receipt.setContentType("application/pdf");
@@ -159,7 +159,7 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void reportes_soloAdministrador() throws Exception {
+	void reports_administratorOnly() throws Exception {
 		for (Long user : new Long[]{null, CLIENTE, EMPLEADO}) {
 			mockMvc.perform(as(user, get("/api/v1/sales/admin/reports/summary"))).andExpect(status().isForbidden());
 			mockMvc.perform(as(user, get("/api/v1/sales/admin/reports/products"))).andExpect(status().isForbidden());
@@ -169,12 +169,12 @@ class SecurityRulesTest {
 	}
 
 	@Test
-	void sinTenant_404() throws Exception {
+	void withoutTenant_404() throws Exception {
 		mockMvc.perform(get("/api/v1/sales/checkout")).andExpect(status().isNotFound());
 	}
 
 	@Test
-	void precioCambiado_409ConLosPreciosNuevos() throws Exception {
+	void priceChanged_409WithTheNewPrices() throws Exception {
 		when(orderService.create(any())).thenThrow(new PricesChangedException(List.of(
 				new PriceChangeDto(ReservationItemType.PRODUCT, 5L, "Mesa", new BigDecimal("100.00"), new BigDecimal("120.00")))));
 

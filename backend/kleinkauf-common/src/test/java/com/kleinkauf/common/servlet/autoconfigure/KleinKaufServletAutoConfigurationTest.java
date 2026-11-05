@@ -35,8 +35,8 @@ class KleinKaufServletAutoConfigurationTest {
     static class AppConfig {
     }
 
-    // H2 en memoria en modo PostgreSQL para que Hibernate arranque de verdad
-    // y @AutoConfigurationPackage simula el paquete de la @SpringBootApplication
+    // In-memory H2 in PostgreSQL mode so Hibernate really starts
+    // and @AutoConfigurationPackage simulates the @SpringBootApplication package
     private final WebApplicationContextRunner runner = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KleinKaufServletAutoConfiguration.class))
             .withUserConfiguration(AppConfig.class)
@@ -45,7 +45,7 @@ class KleinKaufServletAutoConfigurationTest {
             .withBean(TenantSchemaManager.class, () -> mock(TenantSchemaManager.class));
 
     @Test
-    void creaLosBeansComunes() {
+    void createsTheSharedBeans() {
         runner.run(context -> {
             assertThat(context).hasSingleBean(TenantFilter.class);
             assertThat(context).hasSingleBean(TenantIdentifierResolver.class);
@@ -55,9 +55,9 @@ class KleinKaufServletAutoConfigurationTest {
         });
     }
 
-    // El gateway es reactivo: tiene la libreria en el classpath pero no debe activar nada servlet
+    // The gateway is reactive: it has the library on the classpath but must not activate anything servlet
     @Test
-    void enUnaAppReactivaNoSeActiva() {
+    void doesNotActivateInReactiveApp() {
         new ReactiveWebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(KleinKaufServletAutoConfiguration.class))
                 .run(context -> {
@@ -68,7 +68,7 @@ class KleinKaufServletAutoConfigurationTest {
     }
 
     @Test
-    void laConexionSePreparaYApuntaAlSchemaDelTenant() throws Exception {
+    void connectionIsPreparedAndPointsToTenantSchema() throws Exception {
         DataSource dataSource = mock(DataSource.class);
         Connection connection = mock(Connection.class);
         TenantSchemaManager schemaManager = mock(TenantSchemaManager.class);
@@ -80,10 +80,10 @@ class KleinKaufServletAutoConfigurationTest {
         verify(connection).setSchema("tienda1");
     }
 
-    // Preparar el schema (en users, correr la migracion) es caro: una vez por tenant, no por conexion.
-    // Y se prepara antes de tomar la conexion, para no tener una tomada mientras se esperan otras
+    // Preparing the schema (in users, running the migration) is expensive: once per tenant, not per connection.
+    // And it is prepared before taking the connection, so as not to hold one while waiting for others
     @Test
-    void elSchemaSePreparaUnaSolaVezYAntesDeTomarLaConexion() throws Exception {
+    void schemaIsPreparedOnlyOnceAndBeforeTakingTheConnection() throws Exception {
         DataSource dataSource = mock(DataSource.class);
         Connection connection = mock(Connection.class);
         TenantSchemaManager schemaManager = mock(TenantSchemaManager.class);
@@ -103,9 +103,9 @@ class KleinKaufServletAutoConfigurationTest {
         verify(schemaManager, org.mockito.Mockito.times(1)).prepareSchema("tienda2");
     }
 
-    // Si preparar falla no queda marcado: el proximo pedido lo vuelve a intentar
+    // If preparing fails it is not marked: the next request tries again
     @Test
-    void siPrepararFallaSeReintenta() throws Exception {
+    void ifPreparingFailsItIsRetried() throws Exception {
         DataSource dataSource = mock(DataSource.class);
         when(dataSource.getConnection()).thenReturn(mock(Connection.class));
         TenantSchemaManager schemaManager = mock(TenantSchemaManager.class);
@@ -120,7 +120,7 @@ class KleinKaufServletAutoConfigurationTest {
     }
 
     @Test
-    void tenantObligatorioSinHeaderResponde404() throws Exception {
+    void requiredTenantWithoutHeaderResponds404() throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -130,9 +130,9 @@ class KleinKaufServletAutoConfigurationTest {
         assertThat(chain.getRequest()).isNull();
     }
 
-    // Ej. imagenes de productos: el navegador no manda Origin al cargar un <img>, asi que no llega el tenant
+    // E.g. product images: the browser does not send Origin when loading an <img>, so the tenant does not arrive
     @Test
-    void rutaPublicaSinHeaderSigueAunqueElTenantSeaObligatorio() throws Exception {
+    void publicPathWithoutHeaderPassesEvenIfTenantIsRequired() throws Exception {
         TenantFilter filter = new TenantFilter(true, java.util.List.of("/products/images/"));
 
         MockFilterChain imageChain = new MockFilterChain();
@@ -146,9 +146,9 @@ class KleinKaufServletAutoConfigurationTest {
         assertThat(otherChain.getRequest()).isNull();
     }
 
-    // Un prefijo vacio (ej. propiedad sin valor) no puede volver publicas todas las rutas
+    // An empty prefix (e.g. a property without a value) cannot make every route public
     @Test
-    void prefijoVacioNoVuelvePublicasLasRutas() throws Exception {
+    void emptyPrefixDoesNotMakeRoutesPublic() throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -160,7 +160,7 @@ class KleinKaufServletAutoConfigurationTest {
     }
 
     @Test
-    void tenantOpcionalSinHeaderSigue() throws Exception {
+    void optionalTenantWithoutHeaderPasses() throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -171,15 +171,15 @@ class KleinKaufServletAutoConfigurationTest {
     }
 
     @Test
-    void elTenantDelHeaderQuedaEnElContextoYSeLimpia() throws Exception {
+    void headerTenantIsSetInContextAndCleared() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(Headers.FORWARDED_HOST, "tienda1");
-        AtomicReference<String> visto = new AtomicReference<>();
+        AtomicReference<String> seen = new AtomicReference<>();
 
         new TenantFilter(true).doFilter(request, new MockHttpServletResponse(),
-                (req, res) -> visto.set(TenantContext.getCurrentTenant()));
+                (req, res) -> seen.set(TenantContext.getCurrentTenant()));
 
-        assertThat(visto.get()).isEqualTo("tienda1");
+        assertThat(seen.get()).isEqualTo("tienda1");
         assertThat(TenantContext.getCurrentTenant()).isNull();
     }
 }

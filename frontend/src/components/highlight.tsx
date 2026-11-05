@@ -5,7 +5,7 @@ interface HeadlineProps {
   highlight: string
 }
 
-/** Título con la palabra clave resaltada (una sola por título). */
+/** Title with the keyword highlighted (only one per title). */
 export function Headline({ text, highlight }: HeadlineProps) {
   const index = highlight ? text.indexOf(highlight) : -1
   if (index === -1) {

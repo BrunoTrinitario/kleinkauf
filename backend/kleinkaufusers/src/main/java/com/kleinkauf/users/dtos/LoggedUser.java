@@ -13,13 +13,15 @@ import java.util.List;
  *
  * @author bruno.trinitario
  */
-// token: el de sesion (1 hora). refreshToken: para renovarlo con POST /auth/refresh (7 dias)
+// token: the session one (1 hour). refreshToken: to renew it with POST /auth/refresh (7 days)
 public record LoggedUser(
     String name,
     Long id,
     String email,
     String token,
     String refreshToken,
-    List<RoleDto> roles
+    List<RoleDto> roles,
+    // Profile photo: file under /users/avatars/, or null
+    String avatar
 ) {
 }

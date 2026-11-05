@@ -50,9 +50,9 @@ class BundleServiceTest {
 	@InjectMocks
 	private BundleService bundleService;
 
-	// Un combo que no existe: 404 (antes, GET devolvia 200 con cuerpo vacio y DELETE 200)
+	// A bundle that does not exist: 404 (GET used to return 200 with an empty body and DELETE 200)
 	@Test
-	void comboInexistente_respondeNotFound() {
+	void unknownBundle_respondsNotFound() {
 		when(bundleRepository.findById(9L)).thenReturn(Optional.empty());
 
 		assertEquals(HttpStatus.NOT_FOUND,
@@ -63,7 +63,7 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void crearCombo_conNombrePrecioYProductos() throws ApiException {
+	void createBundle_withNamePriceAndProducts() throws ApiException {
 		when(productRepository.findAllById(anyIterable()))
 				.thenReturn(List.of(product(1L, "Mesa", "50000.00"), product(2L, "Silla", "12000.00")));
 		when(bundleRepository.save(any(Bundle.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -81,12 +81,12 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void crearCombo_conDescuentoPorcentual_noGuardaPrecio() throws ApiException {
+	void createBundle_withPercentDiscount_doesNotSavePrice() throws ApiException {
 		when(productRepository.findAllById(anyIterable()))
 				.thenReturn(List.of(product(1L, "Mesa", "50000.00"), product(2L, "Silla", "12000.00")));
 		when(bundleRepository.save(any(Bundle.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		// Aunque mande un precio, con descuento no se guarda: el precio sale de los productos
+		// Even if a price is sent, with a discount it is not stored: the price comes from the products
 		BundleDto dto = bundleService.createBundle(new NewBundleDto(
 				"Comedor", true, new BigDecimal("1"),
 				List.of(new NewBundleProductDto(1L, 1), new NewBundleProductDto(2L, 4)),
@@ -99,7 +99,7 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void crearCombo_descuentoInvalido_noGuarda() {
+	void createBundle_invalidDiscount_doesNotSave() {
 		List<NewBundleProductDto> items = List.of(new NewBundleProductDto(1L, 1));
 		assertError(ErrorMessages.INVALID_BUNDLE_DISCOUNT, HttpStatus.BAD_REQUEST,
 				new NewBundleDto("Comedor", true, null, items, BundlePricingType.PERCENT, new BigDecimal("101")));
@@ -110,7 +110,7 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void cambiarAPrecioFijo_borraElDescuento() throws ApiException {
+	void changeToFixedPrice_clearsTheDiscount() throws ApiException {
 		Bundle bundle = new Bundle();
 		bundle.setId(1L);
 		bundle.setPricingType(BundlePricingType.AMOUNT);
@@ -126,7 +126,7 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void crearCombo_sinProductos_noGuarda() {
+	void createBundle_withoutProducts_doesNotSave() {
 		assertError(ErrorMessages.BUNDLE_PRODUCTS_REQUIRED, HttpStatus.BAD_REQUEST,
 				new NewBundleDto("Comedor", true, null, List.of()));
 		assertError(ErrorMessages.BUNDLE_PRODUCTS_REQUIRED, HttpStatus.BAD_REQUEST,
@@ -134,32 +134,32 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void crearCombo_sinNombre_noGuarda() {
+	void createBundle_withoutName_doesNotSave() {
 		assertError(ErrorMessages.BUNDLE_NAME_REQUIRED, HttpStatus.BAD_REQUEST,
 				new NewBundleDto("   ", true, null, List.of(new NewBundleProductDto(1L, 1))));
 	}
 
 	@Test
-	void crearCombo_cantidadCero_noGuarda() {
+	void createBundle_zeroQuantity_doesNotSave() {
 		assertError(ErrorMessages.INVALID_BUNDLE_QUANTITY, HttpStatus.BAD_REQUEST,
 				new NewBundleDto("Comedor", true, null, List.of(new NewBundleProductDto(1L, 0))));
 	}
 
 	@Test
-	void crearCombo_productoRepetido_noGuarda() {
+	void createBundle_repeatedProduct_doesNotSave() {
 		assertError(ErrorMessages.BUNDLE_PRODUCT_REPEATED, HttpStatus.BAD_REQUEST,
 				new NewBundleDto("Comedor", true, null,
 						List.of(new NewBundleProductDto(1L, 1), new NewBundleProductDto(1L, 2))));
 	}
 
 	@Test
-	void crearCombo_precioNegativo_noGuarda() {
+	void createBundle_negativePrice_doesNotSave() {
 		assertError(ErrorMessages.INVALID_PRICE, HttpStatus.BAD_REQUEST,
 				new NewBundleDto("Comedor", true, new BigDecimal("-1"), List.of(new NewBundleProductDto(1L, 1))));
 	}
 
 	@Test
-	void crearCombo_productoInexistente_404() {
+	void createBundle_unknownProduct_404() {
 		when(productRepository.findAllById(anyIterable())).thenReturn(List.of(product(1L, "Mesa", "50000.00")));
 
 		assertError(ErrorMessages.PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND,
@@ -168,18 +168,18 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void cambiarCantidad_noDuplicaElProducto() throws ApiException {
+	void changeQuantity_doesNotDuplicateTheProduct() throws ApiException {
 		Bundle bundle = new Bundle();
 		bundle.setId(1L);
-		Product mesa = product(1L, "Mesa", "50000.00");
+		Product table = product(1L, "Mesa", "50000.00");
 		BundleProduct existing = new BundleProduct();
 		existing.setBundle(bundle);
-		existing.setProduct(mesa);
+		existing.setProduct(table);
 		existing.setQuantity(1);
 		bundle.getProducts().add(existing);
 		when(bundleRepository.findById(1L)).thenReturn(Optional.of(bundle));
-		when(productRepository.findById(1L)).thenReturn(Optional.of(mesa));
-		when(bundleProductRepository.findByBundleAndProduct(bundle, mesa)).thenReturn(Optional.of(existing));
+		when(productRepository.findById(1L)).thenReturn(Optional.of(table));
+		when(bundleProductRepository.findByBundleAndProduct(bundle, table)).thenReturn(Optional.of(existing));
 
 		BundleDto dto = bundleService.addOrUpdateProductToBundle(1L, new NewBundleProductDto(1L, 3));
 
@@ -188,7 +188,7 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void agregarProducto_comboOProductoInexistente_404() {
+	void addProduct_unknownBundleOrProduct_404() {
 		when(bundleRepository.findById(1L)).thenReturn(Optional.empty());
 
 		ApiException error = assertThrows(ApiException.class,
@@ -203,7 +203,7 @@ class BundleServiceTest {
 	}
 
 	@Test
-	void agregarProducto_cantidadCero_noGuarda() {
+	void addProduct_zeroQuantity_doesNotSave() {
 		ApiException error = assertThrows(ApiException.class,
 				() -> bundleService.addOrUpdateProductToBundle(1L, new NewBundleProductDto(1L, 0)));
 		assertEquals(ErrorMessages.INVALID_BUNDLE_QUANTITY, error.getMessage());

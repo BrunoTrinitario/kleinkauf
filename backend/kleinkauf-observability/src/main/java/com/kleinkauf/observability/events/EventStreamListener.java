@@ -24,14 +24,14 @@ import java.util.Map;
 import java.util.Set;
 
 /*
-Lee los eventos de los servicios (stream kleinkauf:events, ver KleinKaufEventPublisher) y los reenvia al WS.
-- Sin grupo de consumidores: cada instancia de observability lee todos los eventos, porque cada una
-  tiene sus propios WS abiertos. Empieza por los que llegan desde que arranco (lo anterior es historia y
-  el panel lo pide por REST).
-- Un error de Redis no corta la lectura: se loguea (una vez por minuto) y se sigue intentando.
-- Los de tiendas (tenant.*) van a platform.business; los de pedidos y stock de una tienda (order.*, stock.*) a
-  store.activity, solo a los WS de esa tienda.
-- La auditoria usa un grupo de consumidores aparte (AuditConsumer), que si guarda y confirma cada evento.
+Reads the services' events (stream kleinkauf:events, see KleinKaufEventPublisher) and forwards them to the WS.
+- No consumer group: each observability instance reads all events, because each one
+  has its own open WSs. It starts with the ones arriving since it started (what came before is history and
+  the dashboard requests it over REST).
+- A Redis error does not stop the reading: it is logged (once a minute) and it keeps trying.
+- Store events (tenant.*) go to platform.business; a store's order and stock events (order.*, stock.*) to
+  store.activity, only to that store's WSs.
+- The audit uses a separate consumer group (AuditConsumer), which does store and acknowledge each event.
  */
 @Slf4j
 @Component
@@ -63,7 +63,7 @@ public class EventStreamListener implements SmartLifecycle {
 
     @Override
     public void start() {
-        // Un id con la hora de ahora: de ahi en adelante el contenedor sigue desde el ultimo que leyo
+        // An id with the current time: from there on the container continues from the last one it read
         ReadOffset from = ReadOffset.from(clock.millis() + "-0");
         container.register(StreamReadRequest.builder(StreamOffset.create(KleinKaufEvent.STREAM, from))
                 .cancelOnError(e -> false)
@@ -77,11 +77,11 @@ public class EventStreamListener implements SmartLifecycle {
         if (event == null) {
             return;
         }
-        // Las tiendas (altas, bajas, habilitar): el panel de la plataforma refresca su resumen
+        // Stores (creation, deletion, enabling): the platform dashboard refreshes its summary
         if (event.type().startsWith("tenant.")) {
             sessions.publish(Channels.PLATFORM_BUSINESS, payload(event));
         } else if (STORE_ACTIVITY.contains(event.type()) && !TenantConstants.PUBLIC.equals(event.tenant())) {
-            // Pedidos y stock: solo a los WS de esa tienda
+            // Orders and stock: only to that store's WSs
             sessions.publishToTenant(Channels.STORE_ACTIVITY, event.tenant(), payload(event));
         }
     }

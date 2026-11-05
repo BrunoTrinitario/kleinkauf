@@ -11,8 +11,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { MailCheck } from "lucide-react"
 
 /*
-"Olvide mi contrasena" (/recuperar), solo en las tiendas. La respuesta es la misma exista o no el email (el backend
-no lo dice), asi que siempre se muestra "revisa tu email". El link del mail lleva a /reset-password
+"Forgot my password" (/recuperar), stores only. The response is the same whether the email exists or not (the backend
+does not say), so "check your email" is always shown. The email link goes to /reset-password
  */
 export default function ForgotPasswordPage() {
   const requestReset = useRequestPasswordReset()

@@ -26,7 +26,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void elPuertoDeGestionEsElDelServicioMas6000() {
+    void managementPortIsServicePortPlus6000() {
         MockEnvironment environment = process(new MockEnvironment().withProperty("server.port", "3002"));
 
         assertThat(environment.getProperty("management.server.port")).isEqualTo("9002");
@@ -39,7 +39,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void loQueDefineElServicioGana() {
+    void serviceDefinedValueWins() {
         MockEnvironment environment = process(new MockEnvironment()
                 .withProperty("server.port", "8761")
                 .withProperty("management.server.port", "9761")
@@ -51,7 +51,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void lasTrazasNoSeExportanSalvoQueSePrendan() {
+    void tracesAreNotExportedUnlessEnabled() {
         MockEnvironment environment = process(new MockEnvironment().withProperty("server.port", "3002"));
 
         assertThat(environment.getProperty("management.otlp.tracing.export.enabled")).isEqualTo("false");
@@ -66,14 +66,14 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void conPuertoAleatorioLaGestionTambienEsAleatoria() {
+    void withRandomPort_managementIsRandomToo() {
         MockEnvironment environment = process(new MockEnvironment().withProperty("server.port", "0"));
 
         assertThat(environment.getProperty("management.server.port")).isEqualTo("0");
     }
 
     @Test
-    void sinPuertoDelServicioNoSeDefine() {
+    void withoutServicePortItIsNotDefined() {
         MockEnvironment environment = process(new MockEnvironment());
 
         assertThat(environment.containsProperty("management.server.port")).isFalse();
@@ -81,7 +81,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void laEtiquetaTenantSoloAceptaSchemas() {
+    void tenantTagOnlyAcceptsSchemas() {
         assertThat(TenantTag.of("mi_tienda")).isEqualTo("mi_tienda");
         assertThat(TenantTag.of(null)).isEqualTo(TenantTag.NONE);
         assertThat(TenantTag.of(" ")).isEqualTo(TenantTag.NONE);
@@ -91,7 +91,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void lasMetricasHttpLlevanElTenantDelHeader() {
+    void httpMetricsCarryTheHeaderTenant() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/products");
         request.addHeader(Headers.FORWARDED_HOST, "mi_tienda");
         ServerRequestObservationContext context = new ServerRequestObservationContext(request, new MockHttpServletResponse());
@@ -105,7 +105,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void losLogsTienenElTenantYElUsuarioDuranteLaRequest() throws Exception {
+    void logsHaveTenantAndUserDuringTheRequest() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/products");
         request.addHeader(Headers.FORWARDED_HOST, "mi_tienda");
         request.addHeader(Headers.USER_ID, "7");

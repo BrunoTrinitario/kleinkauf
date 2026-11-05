@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /*
-Reportes de ventas: solo ADMINISTRADOR (/api/v1/sales/admin/** en SecurityConfig).
-from / to: yyyy-MM-dd, dias de la tienda, inclusive (por defecto los ultimos 30 dias, maximo 366).
+Sales reports: ADMINISTRADOR only (/api/v1/sales/admin/** in SecurityConfig).
+from / to: yyyy-MM-dd, store days, inclusive (by default the last 30 days, max 366).
  */
 @RestController
 @RequestMapping("/api/v1/sales/admin/reports")
@@ -22,7 +22,7 @@ public class AdminReportController {
     @Autowired
     private ReportService reportService;
 
-    // groupBy: day (por defecto) | week | month. channel: ONLINE | LOCAL. paymentMethod: EFECTIVO, TRANSFERENCIA...
+    // groupBy: day (default) | week | month. channel: ONLINE | LOCAL. paymentMethod: EFECTIVO, TRANSFERENCIA...
     @GetMapping("/summary")
     public ResponseEntity<SalesSummaryDto> summary(
             @RequestParam(required = false) String from,
@@ -34,7 +34,7 @@ public class AdminReportController {
         return ResponseEntity.ok(reportService.summary(from, to, groupBy, channel, paymentMethod));
     }
 
-    // sort: units (por defecto) | revenue | profit. limit: 20 por defecto, maximo 100
+    // sort: units (default) | revenue | profit. limit: 20 by default, max 100
     @GetMapping("/products")
     public ResponseEntity<ProductReportDto> products(
             @RequestParam(required = false) String from,

@@ -2,7 +2,7 @@ package com.kleinkauf.sales.dto;
 
 import java.util.List;
 
-// Respuesta 409 al crear un pedido con precios viejos
+// 409 response when creating an order with old prices
 public record PricesChangedDto(
         String message,
         List<PriceChangeDto> items

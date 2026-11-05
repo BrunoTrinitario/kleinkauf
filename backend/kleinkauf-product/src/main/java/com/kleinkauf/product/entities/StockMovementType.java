@@ -1,10 +1,10 @@
 package com.kleinkauf.product.entities;
 
 public enum StockMovementType {
-    // Suma unidades (compra, devolucion)
+    // Adds units (purchase, return)
     ENTRADA,
-    // Resta unidades (venta, rotura, perdida)
+    // Subtracts units (sale, breakage, loss)
     SALIDA,
-    // Fija el stock a un valor (conteo fisico)
+    // Sets the stock to a value (physical count)
     AJUSTE
 }

@@ -15,17 +15,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class CatalogBundleDtoTest {
 
 	@Test
-	void cadaProductoDelComboTraeSuDetalle() {
+	void eachBundleProductCarriesItsDetail() {
 		Bundle bundle = new Bundle();
 		bundle.setId(1L);
 		bundle.setName("Comedor");
 		bundle.setPrice(new BigDecimal("90000.00"));
-		Product mesa = product("mesa", "Mesa", "50000.00");
-		mesa.setCategory("Comedor");
-		mesa.setDescription("Mesa de roble");
-		mesa.getImages().add(image(mesa, "mesa-2.png", 1));
-		mesa.getImages().add(image(mesa, "mesa-1.png", 0));
-		add(bundle, mesa, 1);
+		Product table = product("mesa", "Mesa", "50000.00");
+		table.setCategory("Comedor");
+		table.setDescription("Mesa de roble");
+		table.getImages().add(image(table, "mesa-2.png", 1));
+		table.getImages().add(image(table, "mesa-1.png", 0));
+		add(bundle, table, 1);
 		add(bundle, product("silla", "Silla", null), 4);
 
 		CatalogBundleDto dto = CatalogService.toDto(bundle);

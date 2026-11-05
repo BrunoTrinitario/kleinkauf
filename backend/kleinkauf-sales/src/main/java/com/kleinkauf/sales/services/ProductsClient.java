@@ -17,10 +17,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /*
-Reservas de stock y contador de vendidos en products (endpoints internos), protegidas con Resilience4j
-(instancia "products"). Todas son idempotentes por numero de pedido en products, asi que el retry es seguro.
-Los 4xx (sin stock, sin precio, no disponible) no se reintentan y llegan a OrderService
-como HttpClientErrorException; el resto (red, 5xx, circuito abierto) como otra RuntimeException.
+Stock reservations and sold counter in products (internal endpoints), protected with Resilience4j
+("products" instance). All of them are idempotent by order number in products, so retrying is safe.
+4xx (no stock, no price, not available) are not retried and reach OrderService
+as HttpClientErrorException; the rest (network, 5xx, open circuit) as another RuntimeException.
  */
 @Component
 public class ProductsClient {

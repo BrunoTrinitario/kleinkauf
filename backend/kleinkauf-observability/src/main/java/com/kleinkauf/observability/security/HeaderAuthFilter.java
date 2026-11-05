@@ -17,9 +17,9 @@ import java.io.IOException;
 import java.util.List;
 
 /*
-Arma el usuario autenticado con el header X-User-Id que agrega el gateway y sus roles de users.
-El tenant es el de X-Forwarded-Host; sin el header es la plataforma (public).
-El WS no pasa por aca con usuario: se autentica con el ticket.
+Builds the authenticated user from the X-User-Id header added by the gateway and their roles from users.
+The tenant is the one in X-Forwarded-Host; without the header it is the platform (public).
+The WS does not come through here with a user: it authenticates with the ticket.
  */
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {

@@ -13,12 +13,12 @@ interface AdminFeaturedDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-// Orden de los destacados de la home (area PRODUCTOS). Cada cambio se guarda al momento
+// Order of the home page featured products (PRODUCTOS area). Each change is saved right away
 export function AdminFeaturedDialog({ open, onOpenChange }: AdminFeaturedDialogProps) {
   const featured = useFeaturedProducts(open)
   const reorder = useReorderFeatured()
   const setFeatured = useSetFeatured()
-  // Se muestra el orden nuevo sin esperar al backend; vuelve a lo guardado cuando llega la lista
+  // The new order is shown without waiting for the backend; it goes back to what was saved when the list arrives
   const [items, setItems] = useState<Product[]>([])
 
   useEffect(() => {

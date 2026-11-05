@@ -40,9 +40,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
-Guardado y consulta de la auditoria contra un Postgres real (la tabla esta particionada por mes, H2 no lo soporta),
-y el consumidor del stream (Redis es un mock). Sin Docker se saltea.
-Cada test arranca con los schemas vacios.
+Storing and querying the audit against a real Postgres (the table is partitioned by month, H2 does not support it),
+and the stream consumer (Redis is a mock). Skipped without Docker.
+Each test starts with empty schemas.
  */
 @Testcontainers(disabledWithoutDocker = true)
 class AuditStoreTest {
@@ -50,7 +50,7 @@ class AuditStoreTest {
     private static final Instant T0 = Instant.parse("2026-11-02T10:00:00Z");
     private static final List<String> SCHEMAS = List.of("mi_tienda", "otra_tienda", "nueva", "vieja");
 
-    // Uno para toda la clase: levantarlo por test es lento
+    // One for the whole class: starting it per test is slow
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17");
 
     static {
@@ -74,9 +74,9 @@ class AuditStoreTest {
         store = new AuditStore(jdbc, mapper);
     }
 
-    // Cada mes en su particion; una consulta por fechas lee igual de varias
+    // Each month in its partition; a date query reads from several just the same
     @Test
-    void cadaMesVaASuParticion() throws Exception {
+    void eachMonthGoesToItsPartition() throws Exception {
         store.insert(event("mi_tienda", Instant.parse("2026-10-31T23:59:59Z"), 3L, "UPDATE", "Product", "1"));
         store.insert(event("mi_tienda", Instant.parse("2026-11-01T00:00:00Z"), 3L, "UPDATE", "Product", "1"));
         store.insert(event("mi_tienda", Instant.parse("2027-01-15T10:00:00Z"), 3L, "UPDATE", "Product", "1"));
@@ -90,9 +90,9 @@ class AuditStoreTest {
                 null, null), 0, 10).totalItems()).isEqualTo(2);
     }
 
-    // La tabla de antes (sin particiones) se pasa a particionada la primera vez, sin perder eventos
+    // The older table (without partitions) is converted to partitioned the first time, without losing events
     @Test
-    void laTablaViejaSePasaAParticionadaConSusEventos() throws Exception {
+    void oldTableIsConvertedToPartitionedWithItsEvents() throws Exception {
         jdbc.execute("CREATE SCHEMA vieja");
         jdbc.execute("CREATE TABLE vieja.audit_events (id VARCHAR(36) PRIMARY KEY, occurred_at TIMESTAMP WITH TIME ZONE NOT NULL, "
                 + "service VARCHAR(40), actor_user_id BIGINT, actor_name VARCHAR(200), actor_role VARCHAR(40), ip VARCHAR(64), "
@@ -111,13 +111,13 @@ class AuditStoreTest {
         assertThat(rows("vieja.audit_events_2026_09")).isEqualTo(1);
         assertThat(rows("vieja.audit_events_2026_10")).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT to_regclass('vieja.audit_events_legacy')", String.class)).isNull();
-        // Y sigue guardando, tambien en un mes nuevo
+        // And it keeps storing, also in a new month
         assertThat(store.insert(event("vieja", T0, 3L, "CREATE", "Product", "3"))).isTrue();
         assertThat(store.page("vieja", query(null, null, null, null), 0, 10).totalItems()).isEqualTo(3);
     }
 
     @Test
-    void exportaTodoLoFiltradoDeLoMasNuevoALoMasViejo() throws Exception {
+    void exportsAllFilteredNewestToOldest() throws Exception {
         for (int i = 0; i < 5; i++) {
             store.insert(event("mi_tienda", T0.plusSeconds(i), 3L, i == 4 ? "DELETE" : "UPDATE", "Product", String.valueOf(i)));
         }
@@ -134,7 +134,7 @@ class AuditStoreTest {
     }
 
     @Test
-    void guardaUnaVezAunqueLlegueRepetidoYCadaTiendaEnSuSchema() throws Exception {
+    void storesOnceEvenIfRepeatedAndEachStoreInItsSchema() throws Exception {
         AuditEvent price = event("mi_tienda", T0, 3L, "UPDATE", "Product", "12");
 
         assertThat(store.insert(price)).isTrue();
@@ -150,7 +150,7 @@ class AuditStoreTest {
     }
 
     @Test
-    void filtraPorFechaUsuarioEntidadYAccionYPagina() throws Exception {
+    void filtersByDateUserEntityAndActionAndPaginates() throws Exception {
         for (int i = 0; i < 25; i++) {
             store.insert(event("mi_tienda", T0.plusSeconds(i), i % 2 == 0 ? 3L : 4L, "UPDATE", "Product", String.valueOf(i % 3)));
         }
@@ -159,19 +159,19 @@ class AuditStoreTest {
         PageDto<AuditEvent> first = store.page("mi_tienda", query(null, null, null, null), 0, 10);
         assertThat(first.totalItems()).isEqualTo(26);
         assertThat(first.totalPages()).isEqualTo(3);
-        // Lo mas nuevo primero
+        // Newest first
         assertThat(first.items().get(0).action()).isEqualTo("READ");
 
         assertThat(store.page("mi_tienda", query(null, null, 4L, null), 0, 50).totalItems()).isEqualTo(12);
         assertThat(store.page("mi_tienda", new AuditStore.Query(null, null, null, "Product", "0", null), 0, 50).totalItems()).isEqualTo(9);
         assertThat(store.page("mi_tienda", query(null, null, null, "READ"), 0, 50).totalItems()).isEqualTo(1);
         assertThat(store.page("mi_tienda", query(T0.plusSeconds(20), T0.plusSeconds(25), null, null), 0, 50).totalItems()).isEqualTo(5);
-        // Una tienda sin eventos: vacio, no error
+        // A store without events: empty, not an error
         assertThat(store.page("nueva", query(null, null, null, null), 0, 50).totalItems()).isZero();
     }
 
     @Test
-    void unSchemaInvalidoNoLlegaAlSql() {
+    void invalidSchemaDoesNotReachTheSql() {
         assertThatThrownBy(() -> store.page("x; drop table y", query(null, null, null, null), 0, 10))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(AuditStore.validSchema("Public")).isFalse();
@@ -180,7 +180,7 @@ class AuditStoreTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void elConsumidorGuardaConfirmaYMandaSoloALaTiendaDelEvento() throws Exception {
+    void consumerStoresAcknowledgesAndSendsOnlyToTheEventStore() throws Exception {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         StreamOperations<String, Object, Object> stream = mock(StreamOperations.class);
         when(redis.opsForStream()).thenReturn(stream);
@@ -197,7 +197,7 @@ class AuditStoreTest {
         consumer.receive(RecordId.of("1-1"), fields);
 
         verify(stream, times(2)).acknowledge(eq(AuditEvent.STREAM), anyString(), any(RecordId[].class));
-        // Repetido: se confirma pero no se manda de nuevo
+        // Repeated: acknowledged but not sent again
         verify(sessions, times(1)).publishToTenant(eq(Channels.STORE_AUDIT), eq("mi_tienda"), any());
         assertThat(store.page("mi_tienda", query(null, null, null, null), 0, 10).items().get(0).actor().name())
                 .isEqualTo("Ana");
@@ -205,7 +205,7 @@ class AuditStoreTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void laAuditoriaDeLaPlataformaVaAlCanalDeLaPlataformaYLoIlegibleSeDescarta() throws Exception {
+    void platformAuditGoesToThePlatformChannelAndUnreadableIsDiscarded() throws Exception {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         StreamOperations<String, Object, Object> stream = mock(StreamOperations.class);
         when(redis.opsForStream()).thenReturn(stream);
@@ -224,7 +224,7 @@ class AuditStoreTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void siLaBaseFallaNoSeConfirma() throws Exception {
+    void ifTheDatabaseFailsItIsNotAcknowledged() throws Exception {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         StreamOperations<String, Object, Object> stream = mock(StreamOperations.class);
         when(redis.opsForStream()).thenReturn(stream);

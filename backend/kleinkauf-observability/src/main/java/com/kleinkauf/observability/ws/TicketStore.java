@@ -11,10 +11,10 @@ import java.util.Base64;
 import java.util.Optional;
 
 /*
-Tickets para abrir el WS: el JWT nunca va en la URL. Se guardan en Redis (ws-ticket:<id>) y:
-- vencen a los observability.ticket.ttl (30 s),
-- sirven una sola vez: se leen y se borran en la misma operacion (GETDEL), asi que dos conexiones con el
-  mismo ticket no pueden entrar las dos, aunque haya varias instancias de observability.
+Tickets to open the WS: the JWT never goes in the URL. They are stored in Redis (ws-ticket:<id>) and:
+- expire after observability.ticket.ttl (30 s),
+- work only once: they are read and deleted in the same operation (GETDEL), so two connections with the
+  same ticket cannot both get in, even with several observability instances.
  */
 @Component
 public class TicketStore {

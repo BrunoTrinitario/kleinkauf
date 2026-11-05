@@ -42,7 +42,7 @@ function ProductModalContent({
     [product.images]
   )
 
-  // Se precargan como object URLs: pasar de una imagen a otra no parpadea
+  // Preloaded as object URLs: switching from one image to another does not flicker
   const [resolvedImageUrls, setResolvedImageUrls] = useState<string[]>([])
 
   useEffect(() => {
@@ -69,14 +69,14 @@ function ProductModalContent({
     }
   }, [open, imageUrls])
 
-  // Los metadatos vienen en el detalle publico por slug; null = el producto no los tiene cargados
+  // Metadata comes in the public detail by slug; null = the product does not have it set
   const detail = useCatalogProduct(product.slug, open)
   const metadata = detail.data?.metadata ?? null
   const metadataError = detail.isError ? getErrorMessage(detail.error, strings.productModal.metadataError) : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* max-h + scroll: en pantallas bajas el detalle no entra entero */}
+      {/* max-h + scroll: on short screens the detail does not fit entirely */}
       <DialogContent className="grid-cols-1 sm:max-w-3xl p-0 gap-0 max-h-[90vh] overflow-x-hidden overflow-y-auto">
         <ProductDetail
           product={product}

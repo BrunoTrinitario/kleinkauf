@@ -31,14 +31,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ex.getMessage(), ex.getStatus());
     }
 
-    // Archivo mas grande que spring.servlet.multipart.max-file-size (antes caia en el 500 generico)
+    // File larger than spring.servlet.multipart.max-file-size (it used to fall into the generic 500)
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<?> handleAll(MaxUploadSizeExceededException ex) {
         return new ResponseEntity<>("The file exceeds the maximum upload size", HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
-    // Errores del pedido que antes caian en el 500 generico: una ruta que no existe, un metodo que la ruta no tiene,
-    // un parametro con otro tipo (ej. /products/all contra /products/{id}) o un cuerpo que no es JSON valido
+    // Request errors that used to fall into the generic 500: a route that does not exist, a method the route does not have,
+    // a parameter of another type (e.g. /products/all against /products/{id}) or a body that is not valid JSON
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<?> handleAll(NoResourceFoundException ex) {
         return new ResponseEntity<>(NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(INVALID_BODY, HttpStatus.BAD_REQUEST);
     }
 
-    // Un error no previsto: se loguea con la traza (antes el 500 no dejaba rastro, ni siquiera con el cuerpo vacio)
+    // An unexpected error: logged with the stack trace (the 500 used to leave no trace, not even with an empty body)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAll(Exception ex) {
         log.error("Unhandled error", ex);

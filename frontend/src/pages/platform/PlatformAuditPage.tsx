@@ -4,7 +4,7 @@ import { PlatformHeader } from "@/components/platform-header"
 import { PageHeader } from "@/components/page-header"
 import { AuditLog } from "@/components/audit-log"
 
-// Auditoria de la plataforma (tiendas y superadmins). No incluye la de las tiendas: esa la ve cada administrador
+// Platform audit (stores and superadmins). It does not include the stores' audit: each administrator sees their own
 export default function PlatformAuditPage() {
   const { ready } = usePlatformSession()
   if (!ready) {

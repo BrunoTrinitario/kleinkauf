@@ -12,9 +12,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /*
-Listado paginado de usuarios del panel. JPQL armado a mano (como el catalogo de products) para no
-mandarle a Postgres parametros null sin tipo. Los usuarios y roles borrados quedan afuera por el
-@SQLRestriction de cada entidad.
+Paginated dashboard user listing. Hand-built JPQL (like the products catalog) so as not to
+send Postgres untyped null parameters. Deleted users and roles are left out by each
+entity's @SQLRestriction.
  */
 @Repository
 public class UserSearchRepository {
@@ -22,7 +22,7 @@ public class UserSearchRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
-    // query: busca en nombre y email. role: solo usuarios que tengan ese rol
+    // query: searches name and email. role: only users that have that role
     public record Filter(String query, String role) {
     }
 
@@ -46,7 +46,7 @@ public class UserSearchRepository {
     private static String where(Filter filter, Map<String, Object> params) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (filter.query() != null && !filter.query().isBlank()) {
-            // Sin distinguir mayusculas; '%' y '_' se buscan tal cual
+            // Case-insensitive; '%' and '_' are searched literally
             where.append(" AND (LOWER(u.name) LIKE :q ESCAPE '\\' OR LOWER(u.email) LIKE :q ESCAPE '\\')");
             params.put("q", "%" + escapeLike(filter.query().trim().toLowerCase(Locale.ROOT)) + "%");
         }

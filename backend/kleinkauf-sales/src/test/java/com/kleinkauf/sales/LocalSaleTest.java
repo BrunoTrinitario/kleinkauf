@@ -52,7 +52,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Venta del local (AdminOrderService.createLocal) con el OrderStock real sobre el cliente de products mockeado
+// In-store sale (AdminOrderService.createLocal) with the real OrderStock over the mocked products client
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class LocalSaleTest {
@@ -97,7 +97,7 @@ class LocalSaleTest {
 	}
 
 	@Test
-	void venta_conPrecioCambiadoDescuentoYSinStock_entregada() throws ApiException {
+	void sale_withChangedPriceDiscountAndWithoutStock_delivered() throws ApiException {
 		reserves(List.of("Silla"),
 				reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", "60.00"),
 				reserved(ReservationItemType.PRODUCT, 6L, "Silla", null, null));
@@ -114,12 +114,12 @@ class LocalSaleTest {
 		assertEquals(0, new BigDecimal("200.00").compareTo(sale.total()));
 		assertEquals(new BigDecimal("100.00"), sale.items().get(0).listPrice());
 		assertEquals(new BigDecimal("90.00"), sale.items().get(0).unitPrice());
-		// 'A consultar': sin precio de lista
+		// 'A consultar': no list price
 		assertNull(sale.items().get(1).listPrice());
 		assertTrue(sale.stockReview());
 		assertNull(sale.buyer().name());
 		assertNull(sale.expiresAt());
-		// PAGADO y ENTREGADO, los dos por el administrador
+		// PAGADO and ENTREGADO, both by the administrator
 		assertEquals(2, sale.history().size());
 		assertEquals(ADMIN, sale.history().get(0).userId());
 		assertTrue(sale.history().get(0).reason().contains("Silla"));
@@ -133,7 +133,7 @@ class LocalSaleTest {
 	}
 
 	@Test
-	void venta_aConsultarSinPrecio_400YDevuelveElStock() {
+	void sale_priceOnRequestWithoutPrice_400AndReturnsTheStock() {
 		reserves(List.of(), reserved(ReservationItemType.PRODUCT, 6L, "Silla", null, null));
 
 		ApiException e = assertThrows(ApiException.class, () -> service.createLocal(sale(
@@ -147,7 +147,7 @@ class LocalSaleTest {
 	}
 
 	@Test
-	void venta_descuentoMayorAlSubtotal_400YDevuelveElStock() {
+	void sale_discountGreaterThanSubtotal_400AndReturnsTheStock() {
 		reserves(List.of(), reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", null));
 
 		ApiException e = assertThrows(ApiException.class, () -> service.createLocal(sale(
@@ -158,7 +158,7 @@ class LocalSaleTest {
 	}
 
 	@Test
-	void venta_siNoSePuedeSumarAVendidos_devuelveElStockY503() {
+	void sale_ifItCannotAddToSold_returnsTheStockAnd503() {
 		reserves(List.of(), reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", null));
 		doThrow(new ResourceAccessException("timeout")).when(productsClient).markSold(eq(NUMBER), any());
 
@@ -171,7 +171,7 @@ class LocalSaleTest {
 	}
 
 	@Test
-	void venta_siNoSePuedeGuardar_vuelveAtrasEnProducts() {
+	void sale_ifItCannotBeSaved_rollsBackInProducts() {
 		reserves(List.of(), reserved(ReservationItemType.PRODUCT, 5L, "Mesa", "100.00", null));
 		when(orderRepository.save(any(Order.class))).thenThrow(new IllegalStateException("db caida"));
 
@@ -184,9 +184,9 @@ class LocalSaleTest {
 	}
 
 	@Test
-	void venta_validaciones() {
+	void sale_validations() {
 		LocalOrderItemDto ok = new LocalOrderItemDto(ReservationItemType.PRODUCT, 5L, 1, null);
-		// Estado inicial, medio de pago, descuento negativo, comprador invalido, cantidad
+		// Initial status, payment method, negative discount, invalid buyer, quantity
 		assertBadRequest(new LocalOrderDto(List.of(ok), null, PaymentMethod.EFECTIVO, OrderStatus.PENDIENTE_PAGO, null, null, null, null));
 		assertBadRequest(new LocalOrderDto(List.of(ok), null, null, OrderStatus.PAGADO, null, null, null, null));
 		assertBadRequest(new LocalOrderDto(List.of(ok), new BigDecimal("-1"), PaymentMethod.EFECTIVO, OrderStatus.PAGADO, null, null, null, null));

@@ -17,7 +17,7 @@ class PeriodsTest {
 	private static final LocalDate TODAY = LocalDate.of(2026, 11, 2);
 
 	@Test
-	void sinParametros_ultimos30DiasPorDia() throws ApiException {
+	void withoutParameters_last30DaysByDay() throws ApiException {
 		Periods.Range range = Periods.parse(null, null, null, TODAY);
 
 		assertEquals(LocalDate.of(2026, 10, 4), range.from());
@@ -27,7 +27,7 @@ class PeriodsTest {
 	}
 
 	@Test
-	void porDia_incluyeLosPeriodosEnCero() throws ApiException {
+	void byDay_includesZeroPeriods() throws ApiException {
 		Periods.Range range = Periods.parse("2026-10-01", "2026-10-03", "day", TODAY);
 
 		RegistrationsDto series = Periods.series(range, List.of(
@@ -41,8 +41,8 @@ class PeriodsTest {
 	}
 
 	@Test
-	void porSemana_empiezaElLunesYCruzaElAnio() throws ApiException {
-		// 2025-12-31 es miercoles: su semana empieza el lunes 29; 2026-01-05 es lunes
+	void byWeek_startsOnMondayAndCrossesTheYear() throws ApiException {
+		// 2025-12-31 is a Wednesday: its week starts on Monday the 29th; 2026-01-05 is a Monday
 		Periods.Range range = Periods.parse("2025-12-31", "2026-01-06", "WEEK", TODAY);
 
 		RegistrationsDto series = Periods.series(range, List.of(
@@ -54,7 +54,7 @@ class PeriodsTest {
 	}
 
 	@Test
-	void porMes() throws ApiException {
+	void byMonth() throws ApiException {
 		Periods.Range range = Periods.parse("2026-08-15", "2026-10-02", "MONTH", TODAY);
 
 		RegistrationsDto series = Periods.series(range, List.of(LocalDate.of(2026, 9, 30), LocalDate.of(2026, 10, 1)));
@@ -66,7 +66,7 @@ class PeriodsTest {
 	}
 
 	@Test
-	void unSoloDia_yFechasFueraDelRangoNoCuentan() throws ApiException {
+	void singleDay_andDatesOutsideTheRangeDoNotCount() throws ApiException {
 		Periods.Range range = Periods.parse("2026-10-01", "2026-10-01", null, TODAY);
 
 		RegistrationsDto series = Periods.series(range, List.of(LocalDate.of(2026, 9, 30), LocalDate.of(2026, 10, 1)));
@@ -75,22 +75,22 @@ class PeriodsTest {
 	}
 
 	@Test
-	void fromDespuesDeTo_respondeBadRequest() {
+	void fromAfterTo_respondsBadRequest() {
 		ApiException ex = assertThrows(ApiException.class, () -> Periods.parse("2026-10-02", "2026-10-01", null, TODAY));
 
 		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
 	}
 
 	@Test
-	void topeDePeriodos() throws ApiException {
-		// 1000 dias entran justo; 1001 no. Por mes, el mismo rango es corto
+	void periodCap() throws ApiException {
+		// 1000 days fit exactly; 1001 do not. By month, the same range is short
 		Periods.parse("2024-02-06", "2026-11-01", "DAY", TODAY);
 		assertThrows(ApiException.class, () -> Periods.parse("2024-02-05", "2026-11-01", "DAY", TODAY));
 		Periods.parse("2000-01-01", "2026-11-01", "MONTH", TODAY);
 	}
 
 	@Test
-	void parametrosInvalidos_respondenBadRequest() {
+	void invalidParameters_respondBadRequest() {
 		assertEquals(HttpStatus.BAD_REQUEST,
 				assertThrows(ApiException.class, () -> Periods.parse(null, null, "YEAR", TODAY)).getStatus());
 		assertEquals(HttpStatus.BAD_REQUEST,

@@ -3,7 +3,7 @@ package com.kleinkauf.product.dto;
 import java.math.BigDecimal;
 
 /*
-stock es el stock inicial: queda registrado como movimiento de ENTRADA.
+stock is the initial stock: it is recorded as an ENTRADA movement.
  */
 public record NewProductDto(
         String name,

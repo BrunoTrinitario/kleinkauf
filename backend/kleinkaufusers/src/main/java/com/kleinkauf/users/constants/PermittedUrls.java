@@ -11,14 +11,16 @@ public class PermittedUrls {
                 "/api/v1/auth/register",
                 "/api/v1/platform/tenants",
                 "/api/v1/platform/auth/login",
-                // Renovar la sesion: el token de 1 hora puede estar vencido
+                // Renewing the session: the 1-hour token may have expired
                 "/api/v1/auth/refresh",
                 "/api/v1/platform/auth/refresh",
-                // Cerrar sesion: solo manda el refresh, que es lo que corta
+                // Logout: only sends the refresh token, which is what it revokes
                 "/api/v1/auth/logout",
                 "/api/v1/platform/auth/logout",
-                // Reportar un bug: con o sin sesion. El controller lee el usuario del header del gateway
-                "/api/v1/bug-reports"
+                // Reporting a bug: with or without a session. The controller reads the user from the gateway header
+                "/api/v1/bug-reports",
+                // Profile photos: public files, nobody is logged in when an <img> loads them
+                "/users/avatars/"
         );
     }
 

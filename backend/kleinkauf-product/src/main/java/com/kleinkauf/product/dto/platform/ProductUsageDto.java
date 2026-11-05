@@ -1,8 +1,8 @@
 package com.kleinkauf.product.dto.platform;
 
 /*
-Productos (no borrados) y combos de un tenant, para el uso por tenant del panel de la plataforma.
-El frontend lo junta con el uso que da users (GET /api/v1/platform/admin/usage) por schema.
+A tenant's (non-deleted) products and bundles, for the platform dashboard's per-tenant usage.
+The frontend joins it by schema with the usage users provides (GET /api/v1/platform/admin/usage).
  */
 public record ProductUsageDto(
         String schema,

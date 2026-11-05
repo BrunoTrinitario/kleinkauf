@@ -3,12 +3,12 @@ package com.kleinkauf.sales.dto.reports;
 import java.math.BigDecimal;
 
 /*
-Totales de un conjunto de ventas.
-- revenue: lo cobrado (totales de los pedidos, con el descuento ya restado).
-- discounts: descuentos de las ventas del local.
-- cost: costo de las unidades vendidas, con el costo guardado al vender.
-- profit: revenue - cost. Si hay unidades sin costo cargado (unitsWithoutCost > 0), la ganancia es mas alta
-  de lo real: el panel deberia avisarlo.
+Totals of a set of sales.
+- revenue: what was charged (order totals, with the discount already subtracted).
+- discounts: discounts of the in-store sales.
+- cost: cost of the units sold, with the cost stored at sale time.
+- profit: revenue - cost. If there are units without a cost set (unitsWithoutCost > 0), the profit is higher
+  than the real one: the dashboard should warn about it.
  */
 public record ReportTotalsDto(
         long orders,

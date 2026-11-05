@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Panel de la tienda: solo ADMINISTRADOR, no por areas (ver SecurityConfig y docs/panel-admin.md)
+// Store dashboard: ADMINISTRADOR only, not by areas (see SecurityConfig and docs/panel-admin.md)
 @RestController
 @RequestMapping("/api/v1/products")
 public class DashboardController {

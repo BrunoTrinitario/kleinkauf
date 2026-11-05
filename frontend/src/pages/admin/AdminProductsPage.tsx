@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { FileSpreadsheet, Plus, Package, Star } from "lucide-react"
 
-// Abre con cualquier area del panel (RequireArea en App.tsx); crear, editar y borrar piden PRODUCTOS
+// Opens with any dashboard area (RequireArea in App.tsx); creating, editing and deleting require PRODUCTOS
 export default function ProductsManagementPage() {
   const { user, can } = useAuth()
   const queryClient = useQueryClient()
@@ -49,7 +49,7 @@ export default function ProductsManagementPage() {
   const [page, setPage] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  // Producto a borrar: se pide confirmacion antes (borrar no se puede deshacer desde el panel)
+  // Product to delete: confirmation is asked first (deleting cannot be undone from the dashboard)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [stockTarget, setStockTarget] = useState<StockTarget | null>(null)
   const [isFeaturedOpen, setIsFeaturedOpen] = useState(false)
@@ -57,18 +57,18 @@ export default function ProductsManagementPage() {
 
   const canEditProducts = can("PRODUCTOS")
   const canManageStock = can("STOCK")
-  // El CSV trae costos: pide PRODUCTOS y PRECIOS
+  // The CSV carries costs: it requires PRODUCTOS and PRECIOS
   const canUseCsv = canEditProducts && can("PRECIOS")
   const lowStock = useLowStock(canManageStock).data ?? []
   const featured = useFeaturedProducts(canEditProducts).data
   const setFeatured = useSetFeatured()
 
-  // Una busqueda o filtro nuevo arranca desde la primera pagina
+  // A new search or filter starts from the first page
   useEffect(() => {
     setPage(0)
   }, [searchQuery, categoryFilter])
 
-  // Categorias para el filtro (las mismas que el catalogo, con su cantidad de productos)
+  // Categories for the filter (the same as the catalog, with their product count)
   const categories = useCatalogCategories().data ?? []
   const productsQuery = useAdminProducts({ q: searchQuery, category: categoryFilter, page }, !!user?.token)
   const productsPage = productsQuery.data
@@ -77,7 +77,7 @@ export default function ProductsManagementPage() {
 
   const products = productsPage?.items ?? []
 
-  // Mismo formulario para crear (selectedProduct null) y para editar
+  // Same form to create (selectedProduct null) and to edit
   const openCreateForm = () => {
     setSelectedProduct(null)
     setIsFormOpen(true)
@@ -88,7 +88,7 @@ export default function ProductsManagementPage() {
     setIsFormOpen(true)
   }
 
-  // Al guardar se recarga la pagina actual: un producto nuevo o renombrado puede cambiar de lugar
+  // On save the current page is reloaded: a new or renamed product may change place
   const handleSaved = () => {
     setIsFormOpen(false)
     setSelectedProduct(null)
@@ -98,7 +98,7 @@ export default function ProductsManagementPage() {
   const handleDeleteProduct = async (product: Product) => {
     try {
       await deleteProduct.mutateAsync(product.id)
-      // Si era el ultimo de la pagina se vuelve a la anterior (la actual se recarga sola)
+      // If it was the last one on the page it goes back to the previous one (the current one reloads on its own)
       if (products.length === 1 && page > 0) {
         setPage(page - 1)
       }
@@ -107,7 +107,7 @@ export default function ProductsManagementPage() {
     }
   }
 
-  // Un destacado nuevo va al final de la home (su orden es la cantidad que ya hay)
+  // A new featured product goes last on the home page (its order is the count that already exists)
   const handleToggleFeatured = async (product: Product) => {
     try {
       await setFeatured.mutateAsync(

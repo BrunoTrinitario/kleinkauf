@@ -8,7 +8,7 @@ import org.hibernate.event.spi.EventType;
 import org.hibernate.integrator.spi.Integrator;
 import org.hibernate.service.spi.SessionFactoryServiceRegistry;
 
-// Engancha AuditHibernateListener en el EntityManagerFactory principal (ver KleinKaufServletAutoConfiguration)
+// Hooks AuditHibernateListener into the primary EntityManagerFactory (see KleinKaufServletAutoConfiguration)
 public class AuditIntegrator implements Integrator {
 
     private final AuditHibernateListener listener;

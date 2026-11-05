@@ -2,6 +2,6 @@ package com.kleinkauf.observability.dto;
 
 import java.util.List;
 
-// Pagina de un listado, con la misma forma que los otros servicios (Page<T> del frontend). page empieza en 0
+// A page of a listing, with the same shape as the other services (the frontend's Page<T>). page starts at 0
 public record PageDto<T>(List<T> items, int page, int size, long totalItems, int totalPages) {
 }

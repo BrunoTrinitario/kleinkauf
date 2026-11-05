@@ -23,13 +23,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /*
-Manda los pendientes de la outbox a Redis Streams (AuditEvent.STREAM) y los marca como enviados.
-- Cada kleinkauf.audit.publish-interval (2 s), de a BATCH, hasta vaciarla.
-- FOR UPDATE SKIP LOCKED: con varias instancias del servicio cada una toma filas distintas.
-- Si Redis falla no se marca nada y se reintenta en la vuelta siguiente. Si una fila se manda dos veces
-  (Redis respondio pero el commit fallo) observability la descarta por id.
-- Una vez por hora borra los enviados de mas de una semana: la auditoria se guarda en observability, aca
-  la tabla es solo de paso.
+Sends the pending outbox rows to Redis Streams (AuditEvent.STREAM) and marks them as sent.
+- Every kleinkauf.audit.publish-interval (2 s), BATCH at a time, until it is empty.
+- FOR UPDATE SKIP LOCKED: with several instances of the service each one takes different rows.
+- If Redis fails nothing is marked and it is retried on the next round. If a row is sent twice
+  (Redis answered but the commit failed) observability discards it by id.
+- Once an hour it deletes the rows sent more than a week ago: the audit is stored in observability, here
+  the table is just a passage.
  */
 public class OutboxPublisher implements SmartLifecycle {
 
@@ -73,7 +73,7 @@ public class OutboxPublisher implements SmartLifecycle {
     private void safePublish() {
         try {
             while (publishPending() == BATCH) {
-                // Habia mas: sigue sin esperar
+                // There were more: keep going without waiting
             }
         } catch (Exception e) {
             logError("No se pudo publicar la auditoria pendiente (se reintenta): {}", e);
@@ -90,7 +90,7 @@ public class OutboxPublisher implements SmartLifecycle {
         }
     }
 
-    // Cuantas filas mando
+    // How many rows were sent
     public int publishPending() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             boolean autoCommit = connection.getAutoCommit();

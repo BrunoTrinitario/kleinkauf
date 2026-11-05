@@ -2,7 +2,8 @@ import type { RoleDto, User, UserRole } from "@/lib/types"
 import { strings } from "@/lib/strings"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash2, User as UserIcon, Mail } from "lucide-react"
+import { Pencil, Trash2, Mail } from "lucide-react"
+import { UserAvatar } from "@/components/user-avatar"
 
 const roleColors: Record<UserRole, string> = {
   CLIENTE: "bg-muted text-muted-foreground",
@@ -16,7 +17,7 @@ const roleLabels: Record<UserRole, string> = {
   ADMINISTRADOR: strings.roles.administrador,
 }
 
-// Orden fijo de los badges, del rol con mas permisos al de menos
+// Fixed badge order, from the role with the most permissions to the one with the fewest
 const ROLE_ORDER: UserRole[] = ["ADMINISTRADOR", "EMPLEADO", "CLIENTE"]
 
 const resolveRoles = (roles: RoleDto[] | undefined): UserRole[] => {
@@ -45,14 +46,12 @@ export function AdminUserCard({ user, onEdit, onDelete, disableDelete }: AdminUs
       <Badge className="bg-muted text-muted-foreground">{strings.roles.noRole}</Badge>
     )
 
-  // Siempre en una fila: los botones quedan a la derecha tambien en mobile.
-  // En mobile los roles van debajo del email; desde sm, al lado de los botones
+  // Always in one row: the buttons stay on the right on mobile too.
+  // On mobile the roles go below the email; from sm, next to the buttons
   return (
     <div className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-        <div className="h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center">
-          <UserIcon className="h-5 w-5 text-muted-foreground" />
-        </div>
+        <UserAvatar name={user.name} avatar={user.avatar} className="h-10 w-10 shrink-0 text-sm" />
         <div className="min-w-0">
           <p className="font-medium text-foreground truncate">{user.name}</p>
           <p className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">

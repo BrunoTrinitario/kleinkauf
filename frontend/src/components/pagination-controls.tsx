@@ -8,7 +8,7 @@ interface PaginationControlsProps {
   onPageChange: (page: number) => void
 }
 
-// Anterior / Pagina X de Y / Siguiente. page empieza en 0, como en el backend. Con una sola pagina no se muestra
+// Previous / Page X of Y / Next. page starts at 0, as in the backend. Not shown with a single page
 export function PaginationControls({ page, totalPages, disabled, onPageChange }: PaginationControlsProps) {
   if (totalPages <= 1) {
     return null

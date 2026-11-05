@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.TimeUnit;
 
 /*
-El cache general (caffeineCache) viene de kleinkauf-common; aca los propios del gateway
+The general cache (caffeineCache) comes from kleinkauf-common; these are the gateway's own
  */
 @Configuration
 public class CaffeineConfig {
@@ -22,7 +22,7 @@ public class CaffeineConfig {
                 .build();
     }
 
-    // Tenants y CORS por URL. TTL corto: deshabilitar o borrar un tenant tarda hasta 1 minuto en aplicarse
+    // Tenants and CORS by URL. Short TTL: disabling or deleting a tenant takes up to 1 minute to apply
     @Bean
     public Cache<String, Object> tenantCache() {
         return Caffeine.newBuilder()

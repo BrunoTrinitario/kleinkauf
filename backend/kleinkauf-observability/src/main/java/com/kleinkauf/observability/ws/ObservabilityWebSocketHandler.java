@@ -12,12 +12,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Mensajes del cliente (JSON):
+Client messages (JSON):
   { "type": "subscribe", "channel": "platform.health" }  -> { "type": "subscribed", "channel": ... }
   { "type": "unsubscribe", "channel": "platform.health" } -> { "type": "unsubscribed", "channel": ... }
   { "type": "ping" }                                      -> { "type": "pong" }
-Lo que no se entiende o un canal no permitido responde { "type": "error", "message": ... } sin cortar.
-El ticket ya se valido en el handshake (TicketHandshakeInterceptor).
+Anything that cannot be understood or a channel that is not allowed responds { "type": "error", "message": ... } without closing.
+The ticket was already validated in the handshake (TicketHandshakeInterceptor).
  */
 @Component
 public class ObservabilityWebSocketHandler extends TextWebSocketHandler {

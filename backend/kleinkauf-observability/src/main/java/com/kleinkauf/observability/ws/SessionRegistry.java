@@ -19,16 +19,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /*
-WS abiertos en esta instancia y sus suscripciones. Manda los eventos a los suscriptos de cada canal:
+WSs open on this instance and their subscriptions. Sends events to each channel's subscribers:
   { "type": "event", "channel": "platform.health", "data": { ... }, "at": "2026-11-02T10:00:00Z" }
-Los envios pasan por ConcurrentWebSocketSessionDecorator: el recolector, los eventos y las respuestas
-escriben desde hilos distintos, y un cliente lento no traba a los demas (se lo desconecta).
+Sends go through ConcurrentWebSocketSessionDecorator: the collector, the events and the replies
+write from different threads, and a slow client does not hold up the others (it gets disconnected).
  */
 @Slf4j
 @Component
 public class SessionRegistry {
 
-    // Tope de lo que se le puede acumular a un cliente lento antes de cortarlo
+    // Cap on what can pile up for a slow client before cutting it off
     private static final int SEND_TIME_LIMIT_MS = 5_000;
     private static final int BUFFER_SIZE_LIMIT = 512 * 1024;
 
@@ -65,14 +65,14 @@ public class SessionRegistry {
         send(channel, data, clients.values().stream().filter(c -> c.channels().contains(channel)).toList());
     }
 
-    // Canales de la tienda: solo a los WS abiertos con un ticket de esa tienda
+    // Store channels: only to WSs opened with a ticket for that store
     public void publishToTenant(String channel, String tenant, Object data) {
         send(channel, data, clients.values().stream()
                 .filter(c -> c.channels().contains(channel) && tenant.equals(c.ticket().tenant()))
                 .toList());
     }
 
-    // Tiendas con algun WS suscripto al canal: el recolector arma los datos de la tienda solo para esas
+    // Stores with some WS subscribed to the channel: the collector builds the store data only for those
     public Set<String> tenantsSubscribedTo(String channel) {
         return clients.values().stream()
                 .filter(c -> !c.ticket().isPlatform() && c.channels().contains(channel))
@@ -103,7 +103,7 @@ public class SessionRegistry {
         try {
             client.session().sendMessage(text);
         } catch (Exception e) {
-            // Cliente lento o conexion rota: se lo corta y el frontend se vuelve a conectar
+            // Slow client or broken connection: it is cut off and the frontend reconnects
             close(client, CloseStatus.SESSION_NOT_RELIABLE);
         }
     }
@@ -113,7 +113,7 @@ public class SessionRegistry {
         try {
             client.session().close(status);
         } catch (IOException ignored) {
-            // Ya estaba cerrada
+            // It was already closed
         }
     }
 }

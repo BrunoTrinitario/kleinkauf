@@ -32,6 +32,9 @@ public class ErrorMessages {
     public static String INVALID_FEATURED_ORDER = "The featured order must be zero or greater";
     public static String IMAGE_TOO_LARGE = "Each image must be 1 MB or smaller";
     public static String INVALID_IMAGE = "Only JPG, PNG, WEBP or GIF images are allowed";
+    public static String INVALID_STORE_NAME = "The store name must be 60 characters or fewer";
+    public static String INVALID_STORE_THEME = "Unknown theme";
+    public static String STORE_ICON_REQUIRED = "The icon file is required";
     public static String INVALID_CATALOG_SORT = "The sort must be name, price_asc, price_desc or best_sellers";
     public static String INVALID_CATALOG_PAGE = "The page must be 0 or greater and the size between 1 and 100";
     public static String INVALID_RESERVATION = "The reservation needs a reference (up to 40 characters) and items with type, id and a quantity greater than zero";

@@ -3,8 +3,8 @@ package com.kleinkauf.observability.dto;
 import java.util.Map;
 
 /*
-Salud de una instancia segun su /ready: UP o DOWN y el estado de cada componente (db, redis, discoveryComposite...).
-error: por que no se pudo leer (sin respuesta, timeout); null si respondio.
+An instance's health according to its /ready: UP or DOWN and the status of each component (db, redis, discoveryComposite...).
+error: why it could not be read (no response, timeout); null if it answered.
  */
 public record InstanceHealthDto(String id, String status, Map<String, String> components, String error) {
 }

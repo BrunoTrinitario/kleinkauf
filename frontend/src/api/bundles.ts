@@ -3,12 +3,12 @@ import { api } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import { catalogKeys } from "./catalog"
 
-// Combos (/api/v1/bundles): leer pide cualquier area del panel, cambiar pide COMBOS
+// Bundles (/api/v1/bundles): reading requires any dashboard area, changing requires COMBOS
 export const bundleKeys = {
   all: ["bundles"] as const,
 }
 
-// productid va en minuscula en la respuesta del backend. price: el del producto; image: su primera imagen
+// productid comes in lowercase in the backend response. price: the product's; image: its first image
 export interface BundleProduct {
   productid: number
   productName: string
@@ -17,18 +17,18 @@ export interface BundleProduct {
   image: string | null
 }
 
-// FIXED: precio guardado. PERCENT / AMOUNT: descuento sobre la suma de los productos (el precio sigue a los productos)
+// FIXED: stored price. PERCENT / AMOUNT: discount over the sum of the products (the price follows the products)
 export type BundlePricingType = "FIXED" | "PERCENT" | "AMOUNT"
 
-// Como se guarda el precio. FIXED usa price (null = sin precio); PERCENT y AMOUNT usan discount
+// How the price is stored. FIXED uses price (null = no price); PERCENT and AMOUNT use discount
 export interface BundlePricing {
   pricingType: BundlePricingType
   price: number | null
   discount: number | null
 }
 
-// price: el precio final (con el descuento aplicado). listPrice: suma de precio x cantidad (null si algun producto no
-// tiene precio). available: cuantos se pueden armar
+// price: the final price (with the discount applied). listPrice: sum of price x quantity (null if some product has no
+// price). available: how many can be put together
 export interface Bundle extends BundlePricing {
   id: number
   name: string
@@ -38,7 +38,7 @@ export interface Bundle extends BundlePricing {
   products: BundleProduct[]
 }
 
-// Se crea completo de una vez: nombre, productos (al menos uno) y precio
+// Created complete in one go: name, products (at least one) and price
 export interface NewBundle extends BundlePricing {
   name: string
   enabled: boolean
@@ -54,7 +54,7 @@ export function useBundles(enabled: boolean) {
   })
 }
 
-// Un combo cambia el panel y lo que se puede comprar en el catalogo
+// A bundle changes the dashboard and what can be bought in the catalog
 function useBundleMutation<T>(mutationFn: (variables: T) => Promise<unknown>) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -77,7 +77,7 @@ export const useSetBundleEnabled = () =>
 export const useSetBundlePrice = () =>
   useBundleMutation(({ id, ...pricing }: { id: number } & BundlePricing) => api.put(`/bundles/${id}/price`, pricing))
 
-// Agrega el producto o cambia su cantidad
+// Adds the product or changes its quantity
 export const useSetBundleProduct = () =>
   useBundleMutation(({ id, productId, quantity }: { id: number; productId: number; quantity: number }) =>
     api.put(`/bundles/${id}/product`, { productId, quantity })

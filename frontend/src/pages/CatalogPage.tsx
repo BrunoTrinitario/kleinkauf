@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { ProductCatalog } from "@/components/product-catalog"
 
-// Catalogo completo (/catalogo) con busqueda, categoria, orden y pagina en la URL. Publico
+// Full catalog (/catalogo) with search, category, sort and page in the URL. Public
 export default function CatalogPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -29,11 +29,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*
-/api/v1/platform/** en products: sin tenant (como en application.properties, kleinkauf.tenant.public-paths)
-y solo SUPERADMIN. El resto de las rutas sigue pidiendo tenant.
+/api/v1/platform/** in products: no tenant (as in application.properties, kleinkauf.tenant.public-paths)
+and SUPERADMIN only. The rest of the routes still require a tenant.
  */
 @WebMvcTest(controllers = {PlatformController.class, ProductController.class})
-// El GlobalExceptionHandler convierte el ApiException del controller en su status (404)
+// GlobalExceptionHandler turns the controller's ApiException into its status (404)
 @Import({SecurityConfig.class, GlobalExceptionHandler.class, PlatformSecurityTest.TenantConfig.class})
 class PlatformSecurityTest {
 
@@ -71,20 +71,20 @@ class PlatformSecurityTest {
 	}
 
 	@Test
-	void usoPorTenant_soloSuperadminYSinTenant() throws Exception {
+	void usagePerTenant_superadminOnlyAndWithoutTenant() throws Exception {
 		mockMvc.perform(get(USAGE)).andExpect(status().isForbidden());
 		mockMvc.perform(as(ADMIN, get(USAGE))).andExpect(status().isForbidden());
 		mockMvc.perform(as(SUPERADMIN, get(USAGE))).andExpect(status().isOk());
 	}
 
 	@Test
-	void usoPorTenant_conTenant_noExiste() throws Exception {
+	void usagePerTenant_withTenant_doesNotExist() throws Exception {
 		mockMvc.perform(as(SUPERADMIN, get(USAGE)).header(Headers.FORWARDED_HOST, "tienda1"))
 				.andExpect(status().isNotFound());
 	}
 
 	@Test
-	void elRestoSigueSinTenant404() throws Exception {
+	void restStillWithoutTenant404() throws Exception {
 		mockMvc.perform(as(ADMIN, get("/api/v1/products"))).andExpect(status().isNotFound());
 	}
 

@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /*
-Encargada de realmente dar el objeto de db connection
+In charge of actually providing the db connection object
  */
 public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnectionProvider<String> {
 
@@ -30,23 +30,23 @@ public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnect
         connection.close();
     }
     /*
-    Busca la conexion y la apunta al schema del tenant. Antes le pide al
-    TenantSchemaManager del servicio que el schema exista y este migrado.
-    El tenantIdentifier lo setea el TenantFilter en el TenantContext y
-    lo resuelve el TenantIdentifierResolver.
+    Gets the connection and points it at the tenant's schema. Before that it asks the
+    service's TenantSchemaManager to make sure the schema exists and is migrated.
+    The tenantIdentifier is set by TenantFilter in TenantContext and
+    resolved by TenantIdentifierResolver.
      */
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
-        // Se prepara antes de tomar la conexion: preparar usa sus propias conexiones, y si se tomara
-        // primero, con varios pedidos a la vez cada uno quedaria con una esperando otra y el pool se traba
+        // Prepared before taking the connection: preparing uses its own connections, and if it took one
+        // first, with several requests at once each would hold one while waiting for another and the pool would lock up
         ensurePrepared(tenantIdentifier);
         Connection connection = getAnyConnection();
         connection.setSchema(tenantIdentifier);
         return connection;
     }
 
-    // Schemas ya preparados en este proceso: se preparan una sola vez (antes era en cada conexion,
-    // y en users eso volvia a correr la migracion completa por cada consulta)
+    // Schemas already prepared in this process: they are prepared only once (it used to be on every connection,
+    // and in users that re-ran the full migration on every query)
     private final Set<String> preparedSchemas = ConcurrentHashMap.newKeySet();
 
     private void ensurePrepared(String tenantIdentifier) {
@@ -55,7 +55,7 @@ public class DatabaseMultiTenantConnectionProvider implements MultiTenantConnect
         }
         synchronized (preparedSchemas) {
             if (!preparedSchemas.contains(tenantIdentifier)) {
-                // Si falla no se marca: el proximo pedido lo vuelve a intentar
+                // If it fails it is not marked: the next request tries again
                 this.schemaManager.prepareSchema(tenantIdentifier);
                 preparedSchemas.add(tenantIdentifier);
             }

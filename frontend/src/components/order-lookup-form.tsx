@@ -10,11 +10,11 @@ import { Label } from "@/components/ui/label"
 interface OrderLookupFormProps {
   initialNumber?: string
   initialEmail?: string
-  // Mensaje arriba del formulario (ej. "no encontramos el pedido")
+  // Message above the form (e.g. "we could not find the order")
   message?: string | null
 }
 
-// Numero + email: lleva a la pantalla del pedido, que hace la consulta (POST, para que el email no vaya en la URL)
+// Number + email: goes to the order screen, which does the lookup (POST, so the email does not go in the URL)
 export function OrderLookupForm({ initialNumber = "", initialEmail = "", message }: OrderLookupFormProps) {
   const navigate = useNavigate()
   const [number, setNumber] = useState(initialNumber)

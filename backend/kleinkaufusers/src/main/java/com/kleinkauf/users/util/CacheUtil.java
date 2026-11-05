@@ -56,7 +56,7 @@ public class CacheUtil {
         }
     }
     public void saveOrUpdateTenantCors(CachedTenant cachedTenant){
-        // Antes usaba set(key, value, long): eso es SETRANGE y la clave nunca vencia
+        // It used to use set(key, value, long): that is SETRANGE and the key never expired
         redisTemplate.opsForValue().set(
                 cachedTenant.getKey(),
                 "true",
@@ -64,7 +64,7 @@ public class CacheUtil {
         );
     }
 
-    // Lo lee el gateway en cada request (por la URL del Origin)
+    // Read by the gateway on every request (by the Origin URL)
     public void saveTenantByUrl(String url, TenantDto tenant) {
         try {
             String key = CacheKeys.CACHE_TENANT_URL + url;
@@ -75,8 +75,8 @@ public class CacheUtil {
         }
     }
 
-    // Al cambiar los permisos de un rol: borra los roles cacheados de todos los usuarios de la tienda
-    // (user:<id>:<tenant>, los lee products). SCAN en vez de KEYS para no bloquear Redis
+    // When a role's permissions change: deletes the cached roles of all the store's users
+    // (user:<id>:<tenant>, read by products). SCAN instead of KEYS so as not to block Redis
     public void deleteTenantUserRoles(String tenant) {
         List<String> keys = new ArrayList<>();
         try (Cursor<String> cursor = redisTemplate.scan(ScanOptions.scanOptions().match("user:*:" + tenant).count(500).build())) {
@@ -87,7 +87,7 @@ public class CacheUtil {
         }
     }
 
-    // Uso por tenant del panel de la plataforma (5 minutos). Si Redis falla devuelve null y se calcula igual
+    // Per-tenant usage for the platform dashboard (5 minutes). If Redis fails it returns null and it is computed anyway
     public List<TenantUsageDto> getPlatformUsage() {
         try {
             Object json = redisTemplate.opsForValue().get(CacheKeys.PLATFORM_USAGE_USERS);
@@ -108,7 +108,7 @@ public class CacheUtil {
         }
     }
 
-    // Refresh tokens: se guarda cada uno que se emite y vence con el (7 dias)
+    // Refresh tokens: each one issued is stored and expires with it (7 days)
     public void saveRefreshToken(String tenantSchema, Long userId, String tokenId, Duration ttl) {
         redisTemplate.opsForValue().set(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId), "1", ttl);
     }
@@ -117,7 +117,7 @@ public class CacheUtil {
         return Boolean.TRUE.equals(redisTemplate.hasKey(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId)));
     }
 
-    // Al rotarlo: sigue sirviendo un rato para que dos pestanas que renuevan a la vez no se corten la sesion
+    // When rotated: it keeps working for a while so two tabs renewing at the same time do not cut each other's session
     public void retireRefreshToken(String tenantSchema, Long userId, String tokenId, Duration grace) {
         redisTemplate.expire(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId), grace);
     }
@@ -126,12 +126,12 @@ public class CacheUtil {
         redisTemplate.delete(CacheKeys.REFRESH_TOKEN(tenantSchema, userId, tokenId));
     }
 
-    // Al desactivar un superadmin: sus roles cacheados dejan de valer (user:<id>:null, sin tenant)
+    // When a superadmin is deactivated: their cached roles stop working (user:<id>:null, no tenant)
     public void deleteUserRoles(Long userId, String tenantSchema) {
         redisTemplate.delete(CacheKeys.CACHE_USER(userId, tenantSchema));
     }
 
-    // Al deshabilitar o borrar un tenant: que el gateway no siga usando datos viejos
+    // When a tenant is disabled or deleted: so the gateway does not keep using stale data
     public void deleteTenant(String schema, String url) {
         redisTemplate.delete(List.of(
                 CacheKeys.CACHE_TENANT + schema,

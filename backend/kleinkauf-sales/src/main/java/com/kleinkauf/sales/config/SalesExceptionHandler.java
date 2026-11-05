@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 /*
-Errores de sales con cuerpo propio. Va antes que el GlobalExceptionHandler de kleinkauf-common,
-que responde solo el mensaje.
+Sales errors with their own body. Goes before kleinkauf-common's GlobalExceptionHandler,
+which only responds with the message.
  */
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SalesExceptionHandler {
 
-    // 409 con los precios nuevos para que el comprador revise el carrito
+    // 409 with the new prices so the buyer reviews the cart
     @ExceptionHandler(PricesChangedException.class)
     public ResponseEntity<PricesChangedDto> handle(PricesChangedException ex) {
         return new ResponseEntity<>(new PricesChangedDto(ErrorMessages.PRICES_CHANGED, ex.getChanges()), HttpStatus.CONFLICT);

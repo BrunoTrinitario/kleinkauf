@@ -17,20 +17,20 @@ class RemoteFailurePredicateTest {
     private final RemoteFailurePredicate predicate = new RemoteFailurePredicate();
 
     @Test
-    void erroresDeRedYServidorCuentanComoFalla() {
+    void networkAndServerErrorsCountAsFailure() {
         assertTrue(predicate.test(new IOException("connection refused")));
         assertTrue(predicate.test(new TimeoutException()));
         assertTrue(predicate.test(WebClientResponseException.create(503, "Service Unavailable", null, null, null)));
     }
 
     @Test
-    void errores4xxNoCuentanComoFalla() {
+    void errors4xxDoNotCountAsFailure() {
         assertFalse(predicate.test(WebClientResponseException.create(404, "Not Found", null, null, null)));
         assertFalse(predicate.test(WebClientResponseException.create(400, "Bad Request", null, null, null)));
     }
 
     @Test
-    void circuitoAbiertoNoSeReintenta() {
+    void openCircuitIsNotRetried() {
         CircuitBreaker circuitBreaker = CircuitBreaker.ofDefaults("users");
         circuitBreaker.transitionToForcedOpenState();
 

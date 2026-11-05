@@ -24,7 +24,7 @@ export default function PlatformSuperadminsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const superadminsQuery = useSuperadmins(ready)
-  // Si la lista falla se muestra vacia (el aviso sale del QueryClient)
+  // If the list fails it shows empty (the notice comes from the QueryClient)
   const superadmins = superadminsQuery.data ?? (superadminsQuery.isError ? [] : null)
   const setActive = useSetSuperadminActive()
   const createSuperadmin = useCreateSuperadmin()
@@ -44,7 +44,7 @@ export default function PlatformSuperadminsPage() {
           : strings.platformSuperadmins.deactivatedToast(target.name)
       )
     } catch (err) {
-      // 409: es el ultimo activo. 400 (desactivarse a si mismo) no llega: el switch esta deshabilitado
+      // 409: it is the last active one. 400 (deactivating yourself) never happens: the switch is disabled
       handleError(err, strings.errors.saveSuperadmin, {
         conflict: strings.platformSuperadmins.lastActive,
         badRequest: strings.platformSuperadmins.selfHint,

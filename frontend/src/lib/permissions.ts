@@ -1,6 +1,6 @@
 import type { RoleDto } from "./types"
 
-// Areas de permisos (mascara de bits por rol, ver docs/permisos.md). El ADMINISTRADOR las tiene todas
+// Permission areas (bit mask per role, see docs/permisos.md). ADMINISTRADOR has all of them
 export const PERMISSIONS = {
   PRODUCTOS: 1,
   PRECIOS: 2,
@@ -11,13 +11,13 @@ export const PERMISSIONS = {
 
 export type PermissionArea = keyof typeof PERMISSIONS
 
-// Las que abren el panel de productos: el backend pide cualquiera de ellas para leer con stock exacto
+// The ones that open the products dashboard: the backend requires any of them to read with exact stock
 export const PRODUCT_PANEL_AREAS: PermissionArea[] = ["PRODUCTOS", "PRECIOS", "STOCK", "COMBOS"]
 
 /*
-Lo que puede hacer el rol activo (el que se elige en "Cambiar rol"). Las rutas y el menu siguen al rol activo, asi
-cambiar de rol sirve para ver la app como ese rol. El backend valida con la union de los roles: la UI nunca muestra
-de mas, a lo sumo de menos.
+What the active role can do (the one chosen in "Cambiar rol"). Routes and the menu follow the active role, so
+switching roles lets you see the app as that role. The backend validates with the union of the roles: the UI never shows
+more, at most less.
  */
 export function roleCan(roles: RoleDto[] | undefined, activeRole: string | null, area: PermissionArea): boolean {
   const role = (roles ?? []).find((item) => item.type === activeRole)

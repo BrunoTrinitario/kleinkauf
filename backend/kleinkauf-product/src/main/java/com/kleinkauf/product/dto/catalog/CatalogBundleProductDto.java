@@ -2,8 +2,8 @@ package com.kleinkauf.product.dto.catalog;
 
 import java.math.BigDecimal;
 
-// Producto dentro de un combo del catalogo: lo justo para mostrar el detalle del combo.
-// price: el del producto suelto (null = consultar). image: su primera imagen (null si no tiene)
+// Product inside a catalog bundle: just enough to show the bundle detail.
+// price: the standalone product's (null = price on request). image: its first image (null if it has none)
 public record CatalogBundleProductDto(
         String slug,
         String name,

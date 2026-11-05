@@ -24,16 +24,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const s = strings.storeActivity
-// El feed vive solo en la pagina: los ultimos FEED_MAX eventos desde que se abrio
+// The feed lives only in the page: the last FEED_MAX events since it was opened
 const FEED_MAX = 50
 const CHANNELS = ["store.activity", "store.usage", "store.users"]
 
 type FeedItem = StoreActivity & { key: string }
 
 /*
-Actividad en vivo de la tienda (solo ADMINISTRADOR): conectados, uso del dia y lo que va pasando (pedidos,
-comprobantes y stock). Uso y conectados se cargan por REST y despues los actualiza el WS cada 10 s; el feed es
-solo en vivo. Un pedido o un stock bajo tambien refresca los contadores del menu.
+Live store activity (ADMINISTRADOR only): connected users, today's usage and what is happening (orders,
+receipts and stock). Usage and connected users load over REST and then the WS updates them every 10 s; the feed is
+live only. An order or a low stock also refreshes the menu counters.
  */
 export default function AdminActivityPage() {
   const { user } = useAuth()
@@ -198,7 +198,7 @@ function Tile({ label, value, icon: Icon, hint }: { label: string; value: ReactN
   )
 }
 
-// Titulo, detalle, icono y link de cada evento del feed
+// Title, detail, icon and link of each feed event
 function describe(item: StoreActivity): { title: string; detail?: string; icon: typeof Users; to?: string } {
   const e = s.events
   switch (item.type) {

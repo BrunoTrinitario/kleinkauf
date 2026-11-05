@@ -25,8 +25,8 @@ import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 
 /*
-Beans comunes a todos los microservicios. Cada uno se crea solo si el servicio
-tiene la dependencia necesaria y no definio su propio bean.
+Beans shared by all microservices. Each one is only created if the service
+has the required dependency and did not define its own bean.
  */
 @AutoConfiguration(before = RedisAutoConfiguration.class)
 public class KleinKaufCoreAutoConfiguration {
@@ -48,7 +48,7 @@ public class KleinKaufCoreAutoConfiguration {
             RedisTemplate<String, Object> template = new RedisTemplate<>();
             template.setConnectionFactory(factory);
 
-            // Serializers para que las keys/values sean legibles
+            // Serializers so keys/values are readable
             template.setKeySerializer(new StringRedisSerializer());
             template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
             template.setHashKeySerializer(new StringRedisSerializer());
@@ -58,7 +58,7 @@ public class KleinKaufCoreAutoConfiguration {
         }
     }
 
-    // Eventos para observability (Redis Streams). Solo servlet: es bloqueante y el gateway no publica
+    // Events for observability (Redis Streams). Servlet only: it is blocking and the gateway does not publish
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass({StringRedisTemplate.class, ObjectMapper.class})
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)

@@ -13,7 +13,7 @@ public record LightProductDto(
         BigDecimal price,
         boolean featured,
         List<String> images,
-        // Stock minimo: el panel lo necesita para editarlo (y para avisar de stock bajo)
+        // Minimum stock: the dashboard needs it to edit it (and to warn about low stock)
         int minStock
 ) {
 }

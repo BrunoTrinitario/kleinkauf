@@ -32,8 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /*
-Reportes contra H2: la consulta de ventas y la agregacion. Las fechas se arman en la zona de la tienda
-(Argentina) y se guardan en la del servidor, como en produccion: el test no depende de la zona de la maquina.
+Reports against H2: the sales query and the aggregation. Dates are built in the store's zone
+(Argentina) and stored in the server's, as in production: the test does not depend on the machine's zone.
  */
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:reports;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
@@ -51,14 +51,14 @@ class ReportServiceTest {
 	private ReportService reportService;
 
 	@Test
-	void resumen_porDiaDeLaTienda_conPeriodosVaciosYDesgloses() throws ApiException {
-		// Lunes 2/11 a las 22 hs en Argentina: en UTC ya es martes, pero cuenta para el lunes
+	void summary_byStoreDay_withEmptyPeriodsAndBreakdowns() throws ApiException {
+		// Monday 11/2 at 10 pm in Argentina: in UTC it is already Tuesday, but it counts for Monday
 		persist(sale("AAAA-AAAA", SalesChannel.ONLINE, PaymentMethod.TRANSFERENCIA, OrderStatus.PAGADO, at(2026, 11, 2, 22), "0",
 				item(ReservationItemType.PRODUCT, 5L, "Mesa", 2, "100.00", "60.00")));
 		persist(sale("BBBB-BBBB", SalesChannel.LOCAL, PaymentMethod.EFECTIVO, OrderStatus.ENTREGADO, at(2026, 11, 4, 10), "10.00",
 				item(ReservationItemType.PRODUCT, 5L, "Mesa", 1, "100.00", "60.00"),
 				item(ReservationItemType.BUNDLE, 9L, "Comedor", 1, "50.00", null)));
-		// No cuentan: sin pagar, cancelado y fuera del rango
+		// These do not count: unpaid, cancelled and out of range
 		persist(sale("CCCC-CCCC", SalesChannel.ONLINE, PaymentMethod.TRANSFERENCIA, OrderStatus.PAGO_EN_REVISION, at(2026, 11, 3, 10), "0",
 				item(ReservationItemType.PRODUCT, 5L, "Mesa", 5, "100.00", "60.00")));
 		persist(sale("DDDD-DDDD", SalesChannel.ONLINE, PaymentMethod.TRANSFERENCIA, OrderStatus.CANCELADO, at(2026, 11, 3, 10), "0",
@@ -90,7 +90,7 @@ class ReportServiceTest {
 	}
 
 	@Test
-	void resumen_porSemanaYMes_yFiltroDeCanal() throws ApiException {
+	void summary_byWeekAndMonth_andChannelFilter() throws ApiException {
 		persist(sale("AAAA-AAAA", SalesChannel.ONLINE, PaymentMethod.TRANSFERENCIA, OrderStatus.PAGADO, at(2026, 10, 30, 12), "0",
 				item(ReservationItemType.PRODUCT, 5L, "Mesa", 1, "100.00", null)));
 		persist(sale("BBBB-BBBB", SalesChannel.LOCAL, PaymentMethod.DEBITO, OrderStatus.PAGADO, at(2026, 11, 3, 12), "0",
@@ -98,7 +98,7 @@ class ReportServiceTest {
 		em.flush();
 		em.clear();
 
-		// Semanas desde el lunes: 26/10 y 2/11
+		// Weeks from Monday: 10/26 and 11/2
 		SalesSummaryDto weeks = reportService.summary("2026-10-28", "2026-11-04", "week", null, null);
 		assertEquals(List.of(LocalDate.of(2026, 10, 26), LocalDate.of(2026, 11, 2)), weeks.periods().stream().map(PeriodDto::start).toList());
 
@@ -108,7 +108,7 @@ class ReportServiceTest {
 	}
 
 	@Test
-	void ranking_porUnidadesFacturadoOGanancia_conElNombreMasReciente() throws ApiException {
+	void ranking_byUnitsRevenueOrProfit_withTheMostRecentName() throws ApiException {
 		persist(sale("AAAA-AAAA", SalesChannel.ONLINE, PaymentMethod.TRANSFERENCIA, OrderStatus.PAGADO, at(2026, 11, 1, 12), "0",
 				item(ReservationItemType.PRODUCT, 5L, "Mesa vieja", 1, "100.00", "90.00"),
 				item(ReservationItemType.PRODUCT, 6L, "Silla", 4, "20.00", "5.00")));
@@ -126,7 +126,7 @@ class ReportServiceTest {
 		assertEquals("Combo con el mismo id", revenue.items().get(0).name());
 		assertEquals(1, revenue.items().get(0).unitsWithoutCost());
 
-		// Ganancia: silla 60, mesa 20 (el combo sin costo aparece con todo como ganancia, avisado en unitsWithoutCost)
+		// Profit: chair 60, table 20 (the bundle without cost shows everything as profit, flagged in unitsWithoutCost)
 		ProductReportDto profit = reportService.products("2026-11-01", "2026-11-02", null, "profit", 2);
 		assertEquals(List.of("Combo con el mismo id", "Silla"), profit.items().stream().map(ProductRankingDto::name).toList());
 
@@ -135,7 +135,7 @@ class ReportServiceTest {
 	}
 
 	@Test
-	void validaRangoYParametros() {
+	void validatesRangeAndParameters() {
 		assertBadRequest(() -> reportService.summary("2026-11-05", "2026-11-01", null, null, null));
 		assertBadRequest(() -> reportService.summary("2025-01-01", "2026-11-01", null, null, null));
 		assertBadRequest(() -> reportService.summary("01/11/2026", null, null, null, null));
@@ -146,7 +146,7 @@ class ReportServiceTest {
 	}
 
 	@Test
-	void sinFechas_losUltimos30Dias() throws ApiException {
+	void withoutDates_theLast30Days() throws ApiException {
 		SalesSummaryDto summary = reportService.summary(null, null, null, null, null);
 		assertEquals(30, summary.periods().size());
 		assertEquals(LocalDate.now(STORE), summary.to());
@@ -161,7 +161,7 @@ class ReportServiceTest {
 		assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
 	}
 
-	// Hora de la tienda -> hora del servidor, como lo guarda LocalDateTime.now()
+	// Store time -> server time, as LocalDateTime.now() stores it
 	private static LocalDateTime at(int year, int month, int day, int hour) {
 		return ZonedDateTime.of(year, month, day, hour, 0, 0, 0, STORE)
 				.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();

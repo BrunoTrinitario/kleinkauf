@@ -32,9 +32,9 @@ public class Parser {
     public static String generateRequestIdentifier(ServerWebExchange exchange) {
         String tenantId = Parser.getTenantIdentifierFromRequest(exchange);
         /*
-        La IP de la conexion, no el X-Forwarded-For del cliente (lo puede inventar y saltearse el limite). Detras de
-        Caddy, server.forward-headers-strategy=framework (docker-compose.prod.yml) arma esta direccion con el
-        X-Forwarded-For que pone Caddy. getHostString y no getAddress: en ese caso la direccion viene sin resolver
+        The connection's IP, not the client's X-Forwarded-For (it can make it up and skip the limit). Behind
+        Caddy, server.forward-headers-strategy=framework (docker-compose.prod.yml) builds this address from the
+        X-Forwarded-For set by Caddy. getHostString and not getAddress: in that case the address comes unresolved
          */
         String ip = exchange.getRequest().getRemoteAddress().getHostString();
         String path = exchange.getRequest().getURI().getPath();

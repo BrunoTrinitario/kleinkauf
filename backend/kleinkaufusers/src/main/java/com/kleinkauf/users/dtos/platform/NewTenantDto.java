@@ -1,8 +1,8 @@
 package com.kleinkauf.users.dtos.platform;
 
 /*
-Alta de un tenant con su dueno.
-identifier: 'mitienda' -> URL https://mitienda.<dominio> y schema 'mitienda' ('-' pasa a '_').
+Sign-up of a tenant with its owner.
+identifier: 'mitienda' -> URL https://mitienda.<domain> and schema 'mitienda' ('-' becomes '_').
  */
 public record NewTenantDto(
         String identifier,

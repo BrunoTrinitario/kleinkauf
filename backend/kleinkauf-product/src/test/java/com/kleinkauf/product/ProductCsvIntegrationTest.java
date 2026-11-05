@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// Importacion real contra H2 (modo PostgreSQL): consulta nativa, metadatos y soft delete
+// Real import against H2 (PostgreSQL mode): native query, metadata and soft delete
 @DataJpaTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:csv;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
 		"spring.jpa.hibernate.ddl-auto=create-drop"
@@ -40,17 +40,17 @@ class ProductCsvIntegrationTest {
 	@Autowired
 	private TestEntityManager em;
 
-	// Redis no esta en el test
+	// Redis is not available in the test
 	@MockitoBean
 	private CatalogCacheService catalogCache;
 
 	@Test
-	void importaYActualizaContraLaBase() {
-		Product silla = new Product();
-		silla.setName("Silla");
-		silla.setCategory("living");
-		silla.setPrice(new BigDecimal("10000.00"));
-		em.persistAndFlush(silla);
+	void importsAndUpdatesAgainstTheDatabase() {
+		Product chair = new Product();
+		chair.setName("Silla");
+		chair.setCategory("living");
+		chair.setPrice(new BigDecimal("10000.00"));
+		em.persistAndFlush(chair);
 
 		ImportResultDto result = service.importCsv(csv(
 				"nombre;categoria;precio;material;alto",
@@ -63,21 +63,21 @@ class ProductCsvIntegrationTest {
 		em.flush();
 		em.clear();
 
-		Product mesa = productRepository.findByName("Mesa").orElseThrow();
-		assertEquals(new BigDecimal("150000.50"), mesa.getPrice());
-		assertEquals("Roble", productMetaDataRepository.findByProduct_Id(mesa.getId()).orElseThrow().getMaterial());
+		Product table = productRepository.findByName("Mesa").orElseThrow();
+		assertEquals(new BigDecimal("150000.50"), table.getPrice());
+		assertEquals("Roble", productMetaDataRepository.findByProduct_Id(table.getId()).orElseThrow().getMaterial());
 
-		Product sillaActualizada = productRepository.findByName("Silla").orElseThrow();
-		assertEquals(new BigDecimal("12500.00"), sillaActualizada.getPrice());
-		assertEquals("living", sillaActualizada.getCategory());
+		Product updatedChair = productRepository.findByName("Silla").orElseThrow();
+		assertEquals(new BigDecimal("12500.00"), updatedChair.getPrice());
+		assertEquals("living", updatedChair.getCategory());
 	}
 
 	@Test
-	void elNombreDeUnProductoBorradoNoSePuedeUsar() {
-		Product lampara = new Product();
-		lampara.setName("Lampara");
-		em.persistAndFlush(lampara);
-		productRepository.deleteById(lampara.getId());
+	void deletedProductNameCannotBeUsed() {
+		Product lamp = new Product();
+		lamp.setName("Lampara");
+		em.persistAndFlush(lamp);
+		productRepository.deleteById(lamp.getId());
 		em.flush();
 		em.clear();
 

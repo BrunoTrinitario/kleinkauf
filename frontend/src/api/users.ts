@@ -3,14 +3,14 @@ import { api } from "@/lib/api"
 import { strings } from "@/lib/strings"
 import type { Page, User, UserRole } from "@/lib/types"
 
-// Usuarios de la tienda (/api/v1/users): solo ADMINISTRADOR
+// Store users (/api/v1/users): ADMINISTRADOR only
 export const userKeys = {
   all: ["users"] as const,
   list: (params: UserListParams) => [...userKeys.all, "list", params] as const,
   permissions: () => [...userKeys.all, "permissions"] as const,
 }
 
-// Mascara de areas de cada rol de la tienda (ver docs/permisos.md)
+// Area mask of each store role (see docs/permisos.md)
 export interface RolePermissions {
   role: UserRole
   permissions: number
@@ -25,8 +25,8 @@ export function useRolePermissions(enabled: boolean) {
   })
 }
 
-// Solo EMPLEADO y CLIENTE, sin USUARIOS (400). products lo aplica en hasta 1 minuto (cache de roles).
-// Los roles de la lista de usuarios traen la mascara: tambien se recargan
+// Only EMPLEADO and CLIENTE, without USUARIOS (400). products applies it within 1 minute (roles cache).
+// The roles in the user list carry the mask: they are reloaded too
 export function useSetRolePermissions() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -81,9 +81,9 @@ export function useDeleteUser() {
 }
 
 /*
-Nombre y roles en varias llamadas: el PATCH solo cambia el nombre (el email no se edita) y cada rol se da o se
-saca por separado (roleName va como query param). Pase lo que pase se recarga la lista, para no mostrar datos que
-no se guardaron si algo fallo a mitad de camino.
+Name and roles in several calls: the PATCH only changes the name (the email cannot be edited) and each role is granted or
+removed separately (roleName goes as a query param). Whatever happens the list is reloaded, so as not to show data that
+was not saved if something failed halfway.
  */
 export function useSaveUser() {
   const queryClient = useQueryClient()

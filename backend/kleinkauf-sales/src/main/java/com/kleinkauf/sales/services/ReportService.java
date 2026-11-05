@@ -39,10 +39,10 @@ import java.util.TreeMap;
 import java.util.function.Function;
 
 /*
-Reportes de ventas del panel. Una venta es un pedido en PAGADO, EN_PREPARACION, LISTO o ENTREGADO
-(los cancelados despues de pagar dejan de contar), con fecha de pago en el rango.
-Los dias son de la tienda (SalesTime). Los montos usan los precios y costos guardados al vender.
-Se calculan al pedirlos, sin cache: leen solo las ventas del rango (hasta 366 dias) de una tienda.
+Dashboard sales reports. A sale is an order in PAGADO, EN_PREPARACION, LISTO or ENTREGADO
+(those cancelled after paying stop counting), with a payment date in the range.
+Days are store days (SalesTime). Amounts use the prices and costs stored at sale time.
+Computed on request, without cache: they only read the store's sales in the range (up to 366 days).
  */
 @Service
 public class ReportService {
@@ -64,7 +64,7 @@ public class ReportService {
     @Autowired
     private SalesTime salesTime;
 
-    // Rango de dias de la tienda, inclusive. Sin fechas: los ultimos 30 dias hasta hoy
+    // Range of store days, inclusive. Without dates: the last 30 days up to today
     private record Range(LocalDate from, LocalDate to) {
     }
 
@@ -105,7 +105,7 @@ public class ReportService {
             throw new ApiException(ErrorMessages.INVALID_FILTER.formatted("limit"), HttpStatus.BAD_REQUEST);
         }
         List<Order> sales = sales(range, parse(SalesChannel.class, channel, null, "channel"), null);
-        // Mas viejas primero: el nombre que queda es el de la venta mas reciente
+        // Oldest first: the name that remains is the one from the most recent sale
         sales.sort(Comparator.comparing(ReportService::saleDate));
 
         Map<String, Ranking> ranking = new LinkedHashMap<>();
@@ -134,7 +134,7 @@ public class ReportService {
                 salesTime.startOfDay(range.to().plusDays(1)), channel, paymentMethod));
     }
 
-    // Pedidos pagos antes de la etapa 3 no tienen paid_at (ver OrderRepository.findSales)
+    // Orders paid before stage 3 have no paid_at (see OrderRepository.findSales)
     private static LocalDateTime saleDate(Order order) {
         return order.getPaidAt() != null ? order.getPaidAt() : order.getCreatedAt();
     }
@@ -191,7 +191,7 @@ public class ReportService {
         }
     }
 
-    // Acumulador de un conjunto de pedidos
+    // Accumulator for a set of orders
     private static class Totals {
         long orders;
         long units;
@@ -219,7 +219,7 @@ public class ReportService {
         }
     }
 
-    // Acumulador de un producto o combo
+    // Accumulator for a product or bundle
     private static class Ranking {
         final ReservationItemType type;
         final Long id;

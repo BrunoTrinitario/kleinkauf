@@ -11,8 +11,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /*
-Deja el tenant y el usuario de la request en el MDC: salen en cada linea de log
-(junto con el traceId) y permiten filtrar los logs de una tienda o de un usuario.
+Puts the request's tenant and user in the MDC: they show up on every log line
+(along with the traceId) and allow filtering the logs of a store or a user.
  */
 public class LogContextFilter extends OncePerRequestFilter {
 

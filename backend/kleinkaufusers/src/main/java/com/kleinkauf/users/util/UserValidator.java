@@ -9,12 +9,12 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /*
-Reglas de los datos de un usuario. Se aplican en todas las altas (registro, alta desde el panel,
-dueno de una tienda nueva) y en los cambios de nombre o contrasena. Son las mismas que muestra el
-frontend (lib/validation.ts); si cambian, cambiar las dos.
-- Nombre: obligatorio, hasta 100 caracteres.
-- Email: formato usuario@dominio.ext, sin espacios, hasta 254 caracteres.
-- Contrasena: 8 a 72 caracteres (bcrypt ignora lo que pasa de 72 bytes), con al menos una letra y un numero.
+Rules for a user's data. Applied on every create (sign-up, creation from the dashboard,
+owner of a new store) and on name or password changes. They are the same ones the
+frontend shows (lib/validation.ts); if they change, change both.
+- Name: required, up to 100 characters.
+- Email: user@domain.ext format, no spaces, up to 254 characters.
+- Password: 8 to 72 characters (bcrypt ignores anything past 72 bytes), with at least one letter and one digit.
  */
 public final class UserValidator {
 
@@ -30,7 +30,7 @@ public final class UserValidator {
     private UserValidator() {
     }
 
-    // Alta completa: los tres datos son obligatorios
+    // Full create: all three fields are required
     public static void validateNewUser(String name, String email, String password) throws ApiException {
         validateName(name);
         validateEmail(email);
@@ -49,7 +49,7 @@ public final class UserValidator {
         }
     }
 
-    // El email no distingue mayusculas: se guarda y se busca en minuscula
+    // The email is case-insensitive: stored and searched in lowercase
     public static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }

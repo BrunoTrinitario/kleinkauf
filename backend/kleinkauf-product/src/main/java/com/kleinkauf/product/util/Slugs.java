@@ -5,8 +5,8 @@ import java.util.Locale;
 import java.util.function.Predicate;
 
 /*
-Slugs para los links del catalogo: 'Mesa de Roble (2 m)' -> 'mesa-de-roble-2-m'.
-Solo a-z, 0-9 y guiones; sin acentos. Si ya existe se agrega un numero: mesa-de-roble-2.
+Slugs for the catalog links: 'Mesa de Roble (2 m)' -> 'mesa-de-roble-2-m'.
+Only a-z, 0-9 and hyphens; no accents. If it already exists a number is added: mesa-de-roble-2.
  */
 public class Slugs {
 
@@ -25,7 +25,7 @@ public class Slugs {
         return slug.isEmpty() ? DEFAULT : slug;
     }
 
-    // exists: si el slug ya esta usado (incluye productos borrados)
+    // exists: whether the slug is already used (deleted products included)
     public static String unique(String name, Predicate<String> exists) {
         String base = slugify(name);
         String candidate = base;

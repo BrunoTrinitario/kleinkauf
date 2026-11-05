@@ -16,7 +16,13 @@ import java.util.*;
 import com.kleinkauf.common.servlet.tenant.TenantContext;
 import com.kleinkauf.users.constants.MailConstants;
 import com.kleinkauf.users.dtos.*;
+import com.kleinkauf.common.files.ImageFiles;
+import com.kleinkauf.users.util.AvatarStorage;
 import com.kleinkauf.users.util.CacheUtil;
+import java.io.IOException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 import com.kleinkauf.users.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,11 +52,13 @@ import jakarta.transaction.Transactional;
  */
 @Service
 public class UserService {
-    // Lo que sigue sirviendo un refresh despues de rotarlo (otra pestana pudo renovar con el mismo a la vez)
+    // How long a refresh token keeps working after rotating it (another tab may have renewed with the same one at once)
     private static final Duration REFRESH_GRACE = Duration.ofSeconds(30);
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AvatarStorage avatarStorage;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -65,7 +73,7 @@ public class UserService {
     private RolePermissionService rolePermissionService;
     @Autowired
     private MailService mailService;
-    // La tabla de tenants esta en public: JPA solo ve el schema de la tienda de la request
+    // The tenants table is in public: JPA only sees the schema of the request's store
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -75,7 +83,7 @@ public class UserService {
     @Value("${platform.domain:localhost:3000}")
     private String platformDomain;
 
-    // Pagina del frontend que pide la contrasena nueva y llama a POST /api/v1/auth/forgot-password/{token}
+    // Frontend page that asks for the new password and calls POST /api/v1/auth/forgot-password/{token}
     static final String RESET_PASSWORD_PATH = "/reset-password?token=";
 
 
@@ -83,8 +91,8 @@ public class UserService {
     public static final int MAX_PAGE_SIZE = 100;
 
     /*
-    Listado paginado del panel, ordenado por nombre. query busca en nombre y email; role filtra por rol.
-    Los roles de toda la pagina salen de una sola consulta y la mascara de cada tipo se calcula una vez.
+    Paginated dashboard listing, ordered by name. query searches name and email; role filters by role.
+    The roles of the whole page come from a single query and each type's mask is computed once.
      */
     public UserPageDto searchUsers(String query, String role, Integer page, Integer size) throws ApiException {
         int pageNumber = page == null ? 0 : page;
@@ -129,14 +137,76 @@ public class UserService {
         }
     }
 
-    // Una tienda sin ADMINISTRADOR no la puede administrar nadie (ni reasignar el rol): el ultimo no se borra
-    // ni pierde el rol, lo haga el mismo o otro administrador. 409, como el ultimo superadmin
+    // A store without an ADMINISTRADOR cannot be managed by anyone (nor the role reassigned): the last one is not deleted
+    // nor does it lose the role, whether done by themselves or another administrator. 409, like the last superadmin
     private void ensureNotLastAdministrator(Long userId) throws ApiException {
         String admin = RolesType.ADMINISTRADOR.name();
         boolean isAdmin = this.roleRepository.findByUser_Id(userId).stream().anyMatch(r -> admin.equals(r.getType()));
         if (isAdmin && this.roleRepository.countActiveUsersWithType(admin) <= 1) {
             throw new ApiException(ErrorMessages.LAST_ADMINISTRATOR, HttpStatus.CONFLICT);
         }
+    }
+
+    public static final long MAX_AVATAR_BYTES = 1024 * 1024; // 1 MB
+
+    // Sets the user's own photo (the previous file is deleted). Up to 1 MB, PNG, JPG, WEBP or GIF by content
+    @Transactional
+    public FullUserDto setAvatar(Long userId, MultipartFile file) throws ApiException {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(ErrorMessages.AVATAR_REQUIRED, HttpStatus.BAD_REQUEST);
+        }
+        if (file.getSize() > MAX_AVATAR_BYTES) {
+            throw new ApiException(ErrorMessages.AVATAR_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE);
+        }
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new ApiException(ErrorMessages.INVALID_AVATAR, HttpStatus.BAD_REQUEST);
+        }
+        String extension = ImageFiles.extension(bytes);
+        if (extension == null) {
+            throw new ApiException(ErrorMessages.INVALID_AVATAR, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        }
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        String previous = user.getAvatar();
+        String saved = avatarStorage.save(bytes, extension);
+        user.setAvatar(saved);
+        this.userRepository.save(user);
+        deleteFilesAfterCompletion(previous, saved);
+        return Parser.fromUserEntityToFullDto(user, getUserRoles(userId));
+    }
+
+    @Transactional
+    public FullUserDto deleteAvatar(Long userId) throws ApiException {
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
+        String previous = user.getAvatar();
+        if (previous != null) {
+            user.setAvatar(null);
+            this.userRepository.save(user);
+            deleteFilesAfterCompletion(previous, null);
+        }
+        return Parser.fromUserEntityToFullDto(user, getUserRoles(userId));
+    }
+
+    /*
+    Files are only touched once the database change is final: on commit the replaced photo is deleted, on rollback
+    the one just saved (so neither an orphan file nor a user pointing to a missing file is left behind)
+     */
+    private void deleteFilesAfterCompletion(String onCommit, String onRollback) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            avatarStorage.delete(onCommit);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                avatarStorage.delete(status == STATUS_COMMITTED ? onCommit : onRollback);
+            }
+        });
     }
 
     @Transactional
@@ -147,7 +217,11 @@ public class UserService {
             for (Role r: rawUser.getRoles()){
                 this.roleRepository.delete(r);
             }
+            // The photo is personal data: it goes with the account
+            String avatar = rawUser.getAvatar();
+            rawUser.setAvatar(null);
             this.userRepository.deleteById(id);
+            deleteFilesAfterCompletion(avatar, null);
             CachedUser cu = new CachedUser(id, TenantContext.getCurrentTenant(), null);
             cacheUtil.deleteUser(cu);
             return true;
@@ -161,7 +235,7 @@ public class UserService {
         name = name.trim();
         email = UserValidator.normalizeEmail(email);
         if (userExistsByEmail(email)){
-            // 409, como en el alta de superadmins
+            // 409, as in the superadmin sign-up
             throw new ApiException(ErrorMessages.EMAIL_ALREADY_IN_USE,HttpStatus.CONFLICT);
         }
         password = passwordEncoder.encode(password);
@@ -171,10 +245,10 @@ public class UserService {
         newUser.setPassword(password);
         newUser = this.userRepository.save(newUser);
         Set<Role> userRoles = new HashSet<>();
-        for (String rol: roles){
-            if (RoleUtility.existsRole(rol)){
+        for (String roleName: roles){
+            if (RoleUtility.existsRole(roleName)){
                 Role newRole = new Role();
-                newRole.setType(rol);
+                newRole.setType(roleName);
                 newRole.setUser(newUser);
                 userRoles.add(newRole);
             }
@@ -204,14 +278,14 @@ public class UserService {
 
     @Transactional
     public FullUserDto addRoleToUser(Long id, String role) throws ApiException {
-        // Rol que viene como parametro (?roleName=): 400, como en el listado. 404 queda para lo que va en la ruta
+        // Role coming as a parameter (?roleName=): 400, as in the listing. 404 is kept for what goes in the path
         if (!RoleUtility.existsRole(role)){
             throw new ApiException(ErrorMessages.INVALID_ROLE,HttpStatus.BAD_REQUEST);
         }
         User user = userRepository.findById(id).orElseThrow(() -> new ApiException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
         Role roleEntity = roleRepository.existDeletedRole(id, role).orElse(null);
 
-        // Si el usuario ya tuvo este rol, se reactiva: el unique (userId, type) no deja insertarlo de nuevo
+        // If the user already had this role, it is reactivated: the unique (userId, type) does not allow inserting it again
         if (roleEntity != null) {
             if (roleEntity.getDeletedAt() != null) {
                 roleEntity.setDeletedAt(null);
@@ -232,7 +306,7 @@ public class UserService {
     }
 
     public boolean deleteRoleFromUser(Long id, String role) throws ApiException {
-        // Rol que viene como parametro (?roleName=): 400, como en el listado. 404 queda para lo que va en la ruta
+        // Role coming as a parameter (?roleName=): 400, as in the listing. 404 is kept for what goes in the path
         if (!RoleUtility.existsRole(role)){
             throw new ApiException(ErrorMessages.INVALID_ROLE,HttpStatus.BAD_REQUEST);
         }
@@ -256,7 +330,7 @@ public class UserService {
         }
     }
 
-    // name o password en null = no se cambian; si vienen, tienen que cumplir las reglas de UserValidator
+    // name or password null = not changed; if present, they must follow UserValidator's rules
     public FullUserDto updateUser(Long id, String name, String password) throws ApiException {
         if (name != null) UserValidator.validateName(name);
         if (password != null) UserValidator.validatePassword(password);
@@ -283,9 +357,9 @@ public class UserService {
     }
 
     /*
-    Renueva la sesion con el refresh token: devuelve tokens nuevos (el refresh tambien) y los roles al dia.
-    No sirve si es de otro tenant, si el usuario se borro, si la contrasena cambio despues de entrar, si se cerro esa
-    sesion o si ya se uso (cada refresh se usa una vez; el viejo dura REFRESH_GRACE por si otra pestana renueva a la vez).
+    Renews the session with the refresh token: returns new tokens (the refresh one too) and up-to-date roles.
+    It does not work if it belongs to another tenant, if the user was deleted, if the password changed after logging in, if that
+    session was closed or if it was already used (each refresh is used once; the old one lasts REFRESH_GRACE in case another tab renews at the same time).
      */
     public LoggedUser refresh(String refreshToken) throws ApiException {
         Long id = refreshUserId(refreshToken);
@@ -301,7 +375,7 @@ public class UserService {
         return session(user);
     }
 
-    // Cerrar sesion: corta el refresh de esa sesion. No falla si ya no servia (el frontend sale igual)
+    // Logout: revokes that session's refresh token. Does not fail if it no longer worked (the frontend logs out anyway)
     public void logout(String refreshToken) {
         Long id = refreshUserId(refreshToken);
         String tokenId = id == null ? null : jwtUtil.getTokenId(refreshToken);
@@ -310,7 +384,7 @@ public class UserService {
         }
     }
 
-    // Id del usuario si el token es un refresh firmado de este tenant; null si no
+    // User id if the token is a refresh token signed for this tenant; null otherwise
     private Long refreshUserId(String refreshToken) {
         Long id = refreshToken == null ? null : jwtUtil.getUserId(refreshToken);
         if (id == null || !currentTenant().equals(jwtUtil.getTenant(refreshToken))
@@ -320,7 +394,7 @@ public class UserService {
         return id;
     }
 
-    // Tokens nuevos y roles del usuario (tambien quedan en la cache de Redis que leen los otros servicios)
+    // New tokens and the user's roles (they also end up in the Redis cache the other services read)
     private LoggedUser session(User user) {
         String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getName(), currentTenant());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), currentTenant(), user.getPassword());
@@ -329,7 +403,7 @@ public class UserService {
         List<RoleDto> roleList = this.getUserRoles(user.getId());
         CachedUser cu = new CachedUser(user.getId(), TenantContext.getCurrentTenant(), roleList);
         cacheUtil.saveOrUpdateUserCache(cu);
-        return new LoggedUser(user.getName(), user.getId(), user.getEmail(), token, refreshToken, roleList);
+        return new LoggedUser(user.getName(), user.getId(), user.getEmail(), token, refreshToken, roleList, user.getAvatar());
     }
 
     public List<RoleDto> getUserRoles(Long id){
@@ -354,7 +428,7 @@ public class UserService {
         String jwt = jwtUtil.generatePasswordToken(u.getId(),u.getEmail(), currentTenant(), u.getPassword());
         String url = resetPasswordLink(jwt);
 
-        // Si el mail falla queda en el log (MailService); la respuesta es la misma, para no decir si el email existe
+        // If the email fails it stays in the log (MailService); the response is the same, so as not to reveal whether the email exists
         mailService.sendMail(
                 u.getEmail(),
                 MailConstants.FORGOT_SUBJECT,
@@ -364,9 +438,9 @@ public class UserService {
     }
 
     /*
-    El token tiene que ser valido, del mismo tenant (los ids de usuario se repiten entre tenants) y de recuperacion:
-    uno de sesion no sirve para cambiar la contrasena sin saber la actual. Si la contrasena ya cambio desde que se
-    mando el mail (el link ya se uso), la huella no coincide y el token no sirve.
+    The token must be valid, from the same tenant (user ids repeat across tenants) and a recovery one:
+    a session token does not work to change the password without knowing the current one. If the password already changed since the
+    email was sent (the link was already used), the fingerprint does not match and the token does not work.
      */
     public FullUserDto refreshPassword(String jwt, String newPassword) throws ApiException {
         Long id = jwtUtil.getUserId(jwt);
@@ -381,7 +455,7 @@ public class UserService {
         return this.updateUser(id, null, newPassword);
     }
 
-    // El link del mail va al frontend de la tienda (su URL); sin tienda, al de la plataforma
+    // The email link goes to the store's frontend (its URL); without a store, to the platform's
     String resetPasswordLink(String jwt) {
         List<String> urls = jdbcTemplate.queryForList(
                 "SELECT url FROM public.tenant WHERE schema = ? AND deleted_at IS NULL", String.class, currentTenant());

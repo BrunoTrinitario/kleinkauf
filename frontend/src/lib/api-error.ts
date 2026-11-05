@@ -22,9 +22,9 @@ const responseText = (error: unknown): string => {
 }
 
 /**
- * Traduce un error de la API a un mensaje para el usuario.
- * `fallback` se usa cuando el estado no tiene un mensaje propio; `overrides`
- * deja que cada pantalla diga algo más específico para un estado.
+ * Turns an API error into a message for the user.
+ * `fallback` is used when the status has no message of its own; `overrides`
+ * lets each screen say something more specific for a status.
  */
 export function getErrorMessage(
   error: unknown,
@@ -81,9 +81,9 @@ export function getErrorMessage(
 }
 
 /**
- * Muestra el error como aviso (toast) y devuelve el mensaje.
- * La sesion vencida ya la avisa el cliente HTTP y la tienda no disponible tiene su pagina; el mismo mensaje no se
- * repite (ej. varios 429 seguidos).
+ * Shows the error as a notice (toast) and returns the message.
+ * The expired session is already announced by the HTTP client and the unavailable store has its own page; the same message is not
+ * repeated (e.g. several 429s in a row).
  */
 export function notifyError(
   error: unknown,

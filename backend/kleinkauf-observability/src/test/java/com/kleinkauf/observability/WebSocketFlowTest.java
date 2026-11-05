@@ -58,7 +58,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
-El servicio levantado de verdad con un cliente WebSocket. Redis (tickets) y users (roles) son mocks.
+The service really started, with a WebSocket client. Redis (tickets) and users (roles) are mocks.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "eureka.client.enabled=false",
@@ -118,7 +118,7 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void conTicketSeSuscribeYRecibeLosEventos() throws Exception {
+    void withTicketSubscribesAndReceivesEvents() throws Exception {
         connect("bueno", null);
 
         send(Map.of("type", "subscribe", "channel", Channels.PLATFORM_HEALTH));
@@ -131,14 +131,14 @@ class WebSocketFlowTest {
         assertThat(event.path("data").path("estado").asText()).isEqualTo("UP");
         assertThat(event.path("at").asText()).endsWith("Z");
 
-        // Lo que no esta suscripto no llega
+        // What is not subscribed does not arrive
         sessions.publish(Channels.PLATFORM_TRAFFIC, Map.of("x", 1));
         send(Map.of("type", "ping"));
         assertThat(next().path("type").asText()).isEqualTo("pong");
     }
 
     @Test
-    void elSuperadminNoPuedeSuscribirseACanalesDeTienda() throws Exception {
+    void superadminCannotSubscribeToStoreChannels() throws Exception {
         connect("bueno", null);
 
         send(Map.of("type", "subscribe", "channel", "store.activity"));
@@ -149,18 +149,18 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void sinTicketValidoNoSeAbre() {
+    void withoutValidTicketItDoesNotOpen() {
         assertThatThrownBy(() -> connect("vencido", null)).isInstanceOf(ExecutionException.class);
         assertThatThrownBy(() -> connect(null, null)).isInstanceOf(ExecutionException.class);
     }
 
     @Test
-    void unTicketDePlataformaNoSirveDesdeUnaTienda() {
+    void platformTicketDoesNotWorkFromAStore() {
         assertThatThrownBy(() -> connect("bueno", "mi_tienda")).isInstanceOf(ExecutionException.class);
     }
 
     @Test
-    void siLeQuitaronElRolSeCortaElWs() throws Exception {
+    void ifTheRoleWasRemovedTheWsIsClosed() throws Exception {
         connect("bueno", null);
         when(usersClient.getUserRoles(eq(1L), any())).thenReturn(List.of());
 
@@ -171,7 +171,7 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void siUsersNoRespondeNoSeCortaANadie() throws Exception {
+    void ifUsersDoesNotAnswerNobodyIsDisconnected() throws Exception {
         connect("bueno", null);
         when(usersClient.getUserRoles(eq(1L), any())).thenReturn(null);
 
@@ -182,7 +182,7 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void elTicketSeEmiteSoloAlSuperadminDeLaPlataforma() {
+    void ticketIsIssuedOnlyToThePlatformSuperadmin() {
         when(usersClient.getUserRoles(eq(4L), any())).thenReturn(SUPERADMIN_ROLES);
         when(tickets.issue(new WsTicket(4L, "public"))).thenReturn("nuevo");
 
@@ -190,7 +190,7 @@ class WebSocketFlowTest {
         assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(ok.getBody()).containsEntry("ticket", "nuevo").containsEntry("expiresIn", 30);
 
-        // Sin usuario, sin el rol o desde una tienda
+        // No user, without the role or from a store
         assertThat(postTicket(null, null).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         when(usersClient.getUserRoles(eq(2L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         assertThat(postTicket("2", null).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -198,8 +198,8 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void elResumenDeLaPlataformaEsSoloParaElSuperadmin() {
-        // Otro usuario: los roles quedan 1 minuto en cache y otro test le saca el rol al usuario 1
+    void platformOverviewIsSuperadminOnly() {
+        // Another user: roles stay cached for 1 minute and another test removes user 1's role
         when(usersClient.getUserRoles(eq(3L), any())).thenReturn(SUPERADMIN_ROLES);
         HttpHeaders headers = new HttpHeaders();
         headers.set(Headers.USER_ID, "3");
@@ -213,13 +213,13 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void elAdministradorAbreElWsDeSuTiendaYVeSoloSuAuditoria() throws Exception {
+    void administratorOpensTheirStoreWsAndSeesOnlyItsAudit() throws Exception {
         when(tickets.redeem("tienda")).thenReturn(Optional.of(new WsTicket(10L, "mi_tienda")));
         connect("tienda", "mi_tienda");
 
         send(Map.of("type", "subscribe", "channel", Channels.STORE_AUDIT));
         assertThat(next().path("type").asText()).isEqualTo("subscribed");
-        // Los canales de la plataforma no son para la tienda
+        // Platform channels are not for the store
         send(Map.of("type", "subscribe", "channel", Channels.PLATFORM_HEALTH));
         assertThat(next().path("type").asText()).isEqualTo("error");
 
@@ -230,7 +230,7 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void elAdministradorSeSuscribeALaActividadElUsoYLosConectadosDeSuTienda() throws Exception {
+    void administratorSubscribesToTheirStoreActivityUsageAndOnlineUsers() throws Exception {
         when(tickets.redeem("tienda")).thenReturn(Optional.of(new WsTicket(10L, "mi_tienda")));
         connect("tienda", "mi_tienda");
 
@@ -248,29 +248,29 @@ class WebSocketFlowTest {
     }
 
     @Test
-    void elAdministradorPideLosConectadosYElUsoDeSuTienda() {
+    void administratorRequestsTheirStoreOnlineUsersAndUsage() {
         when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         when(usersClient.getUserRoles(eq(13L), any())).thenReturn(List.of(new RoleDto("EMPLEADO", 0)));
         when(storeFeeds.users("mi_tienda")).thenReturn(new StoreUsersDto(0, List.of()));
         when(storeFeeds.usage("mi_tienda")).thenReturn(null);
 
         assertThat(get("/api/v1/observability/store/users", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.OK);
-        // Redis caido
+        // Redis down
         assertThat(get("/api/v1/observability/store/usage", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(get("/api/v1/observability/store/users", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        // Sin tienda (desde la plataforma) no hay panel de tienda
+        // No store (from the platform) means no store dashboard
         assertThat(get("/api/v1/observability/store/users", "12", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    void unTicketDeTiendaNoSirveDesdeOtraTiendaNiDesdeLaPlataforma() {
+    void storeTicketDoesNotWorkFromAnotherStoreOrFromThePlatform() {
         when(tickets.redeem("tienda")).thenReturn(Optional.of(new WsTicket(10L, "mi_tienda")));
         assertThatThrownBy(() -> connect("tienda", "otra_tienda")).isInstanceOf(ExecutionException.class);
         assertThatThrownBy(() -> connect("tienda", null)).isInstanceOf(ExecutionException.class);
     }
 
     @Test
-    void elTicketDeLaTiendaEsSoloParaSuAdministrador() {
+    void storeTicketIsOnlyForItsAdministrator() {
         when(usersClient.getUserRoles(eq(10L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         when(usersClient.getUserRoles(eq(11L), any())).thenReturn(List.of(new RoleDto("EMPLEADO", 0)));
         when(tickets.issue(new WsTicket(10L, "mi_tienda"))).thenReturn("de-tienda");
@@ -280,12 +280,12 @@ class WebSocketFlowTest {
         assertThat(ok.getBody()).containsEntry("ticket", "de-tienda");
 
         assertThat(post("/api/v1/observability/ws-ticket", "11", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        // Sin tienda (desde la plataforma) no hay panel de tienda
+        // No store (from the platform) means no store dashboard
         assertThat(post("/api/v1/observability/ws-ticket", "10", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    void cadaAdministradorConsultaLaAuditoriaDeSuTiendaYElSuperadminLaDeLaPlataforma() {
+    void eachAdministratorQueriesTheirStoreAuditAndTheSuperadminThePlatformOne() {
         when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         when(usersClient.getUserRoles(eq(13L), any())).thenReturn(SUPERADMIN_ROLES);
         when(auditStore.page(any(), any(), anyInt(), anyInt())).thenReturn(new PageDto<>(List.of(), 0, 20, 0, 0));
@@ -300,14 +300,14 @@ class WebSocketFlowTest {
         assertThat(get("/api/v1/platform/observability/audit", "13", null).getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(auditStore).page(eq("public"), any(), eq(0), eq(20));
 
-        // El superadmin no ve la de las tiendas, ni el administrador la de la plataforma
+        // The superadmin does not see the stores' audit, nor the administrator the platform's
         assertThat(get("/api/v1/observability/store/audit", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(get("/api/v1/platform/observability/audit", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(get("/api/v1/observability/store/audit?from=ayer", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void exportarLaAuditoriaEnCsv_conLosMismosPermisosQueLaConsulta() {
+    void exportAuditAsCsv_withTheSamePermissionsAsTheQuery() {
         when(usersClient.getUserRoles(eq(12L), any())).thenReturn(List.of(new RoleDto("ADMINISTRADOR", 0)));
         when(usersClient.getUserRoles(eq(13L), any())).thenReturn(SUPERADMIN_ROLES);
         when(auditStore.count(any(), any())).thenReturn(1L);
@@ -324,7 +324,7 @@ class WebSocketFlowTest {
         assertThat(csv.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(csv.getHeaders().getContentType().toString()).startsWith("text/csv");
         assertThat(csv.getHeaders().getContentDisposition().getFilename()).startsWith("auditoria-mi_tienda-");
-        // La 1:30 UTC del 2 es la 22:30 del 1 en Argentina
+        // 1:30 UTC on the 2nd is 22:30 on the 1st in Argentina
         assertThat(csv.getBody()).contains("2026-11-01 22:30:00,Ana,12,ADMINISTRADOR,UPDATE,Product,12,price: 15000.00 -> 18000.00,products,1.2.3.4");
         verify(auditStore).forEach(eq("mi_tienda"), eq(new AuditStore.Query(null, null, null, "Product", null, null)),
                 eq(AuditStore.MAX_EXPORT_ROWS), any());
@@ -334,7 +334,7 @@ class WebSocketFlowTest {
         assertThat(get("/api/v1/observability/store/audit/export", "13", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(get("/api/v1/platform/observability/audit/export", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
-        // Con demasiados eventos no se manda un archivo cortado
+        // With too many events a truncated file is not sent
         when(auditStore.count(any(), any())).thenReturn(AuditStore.MAX_EXPORT_ROWS + 1L);
         assertThat(get("/api/v1/observability/store/audit/export", "12", "mi_tienda").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -385,7 +385,7 @@ class WebSocketFlowTest {
 
     private JsonNode next() throws Exception {
         String message = received.poll(5, TimeUnit.SECONDS);
-        assertThat(message).as("mensaje del servidor").isNotNull();
+        assertThat(message).as("server message").isNotNull();
         return mapper.readTree(message);
     }
 }

@@ -13,11 +13,11 @@ import java.util.Map;
 import java.util.Set;
 
 /*
-A quien lee el recolector:
-- Cada instancia registrada en eureka que publica su puerto de gestion (metadata management.port, lo pone
-  kleinkauf-common): http://<ip>:<puerto de gestion>.
-- Lo que no se registra en eureka (eureka mismo): observability.static-targets=nombre=url,...
-observability.services son los servicios que tienen que estar: sin instancias figuran abajo.
+Who the collector reads:
+- Each instance registered in eureka that publishes its management port (management.port metadata, set by
+  kleinkauf-common): http://<ip>:<management port>.
+- What is not registered in eureka (eureka itself): observability.static-targets=name=url,...
+observability.services are the services that must be present: without instances they show as down.
  */
 @Component
 public class TargetDiscovery {
@@ -55,7 +55,7 @@ public class TargetDiscovery {
         return targets;
     }
 
-    // Los que tienen que estar primero, despues los que aparecieron en eureka
+    // The required ones first, then the ones that showed up in eureka
     public List<String> services(List<Target> targets) {
         Set<String> names = new LinkedHashSet<>(expectedServices);
         names.addAll(staticTargets.keySet());

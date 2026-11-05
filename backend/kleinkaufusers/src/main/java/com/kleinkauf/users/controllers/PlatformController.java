@@ -30,9 +30,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /*
-Plataforma (sin tenant):
-- POST /tenants y POST /auth/login: publicos (alta por autoservicio y login del superadmin).
-- /admin/**: solo SUPERADMIN (ver SecurityConfig).
+Platform (no tenant):
+- POST /tenants and POST /auth/login: public (self-service sign-up and superadmin login).
+- /admin/**: SUPERADMIN only (see SecurityConfig).
  */
 @RestController
 @RequestMapping("/api/v1/platform")
@@ -106,7 +106,7 @@ public class PlatformController {
         return ResponseEntity.noContent().build();
     }
 
-    // Resumen de tenants y altas por periodo. groupBy: DAY (por defecto), WEEK o MONTH
+    // Tenant summary and sign-ups per period. groupBy: DAY (default), WEEK or MONTH
     @GetMapping("/admin/dashboard")
     public ResponseEntity<PlatformDashboardDto> dashboard(
             @RequestParam(required = false) String from,
@@ -117,7 +117,7 @@ public class PlatformController {
         return ResponseEntity.ok(dashboardService.dashboard(from, to, groupBy));
     }
 
-    // Usuarios, activos y ultima actividad por tenant. sort: users (por defecto), activeUsers, lastActivity, createdAt
+    // Users, active users and last activity per tenant. sort: users (default), activeUsers, lastActivity, createdAt
     @GetMapping("/admin/usage")
     public ResponseEntity<List<TenantUsageDto>> usage(@RequestParam(required = false) String sort) throws ApiException {
         platformService.requirePlatformContext();
@@ -144,7 +144,7 @@ public class PlatformController {
         return ResponseEntity.ok(superadminService.setActive(id, dto.active(), currentUser.getId()));
     }
 
-    // Reportes de bugs de las tiendas. status: pending (por defecto), resolved o all. size: 20 por defecto, maximo 100
+    // Bug reports from the stores. status: pending (default), resolved or all. size: 20 by default, max 100
     @GetMapping("/admin/bug-reports")
     public ResponseEntity<BugReportPageDto> listBugReports(
             @RequestParam(required = false) String status,

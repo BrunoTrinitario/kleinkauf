@@ -65,7 +65,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void alta_creaTenantActivoConSuDuenio() throws ApiException {
+	void signUp_createsActiveTenantWithItsOwner() throws ApiException {
 		when(tenantRepository.save(any(Tenant.class))).thenAnswer(invocation -> {
 			Tenant t = invocation.getArgument(0);
 			t.setId(7L);
@@ -91,20 +91,20 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void identificadoresInvalidos_respondenBadRequest() {
-		List<String> invalidos = List.of(
+	void invalidIdentifiers_respondBadRequest() {
+		List<String> invalid = List.of(
 				"ab",                                   // muy corto
-				"a".repeat(31),                         // muy largo
-				"MiTienda",                             // mayusculas
-				"1tienda",                              // empieza con numero
-				"tienda-",                              // termina con guion
-				"mi_tienda",                            // guion bajo
+				"a".repeat(31),                         // too long
+				"MiTienda",                             // uppercase
+				"1tienda",                              // starts with a digit
+				"tienda-",                              // ends with a hyphen
+				"mi_tienda",                            // underscore
 				"mi tienda",                            // espacio
 				"tienda;drop schema public",            // inyeccion
 				""
 		);
 
-		for (String identifier : invalidos) {
+		for (String identifier : invalid) {
 			ApiException ex = assertThrows(ApiException.class, () -> tenantService.createTenant(dto(identifier)), identifier);
 			assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus(), identifier);
 		}
@@ -113,7 +113,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void identificadoresReservados_respondenBadRequest() {
+	void reservedIdentifiers_respondBadRequest() {
 		for (String identifier : List.of("admin", "www", "api", "public", "pg-catalog")) {
 			ApiException ex = assertThrows(ApiException.class, () -> tenantService.createTenant(dto(identifier)), identifier);
 			assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus(), identifier);
@@ -122,7 +122,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void identificadorEnUso_respondeConflicto() {
+	void identifierInUse_respondsConflict() {
 		when(tenantRepository.existsBySchema("mi_tienda")).thenReturn(true);
 
 		ApiException ex = assertThrows(ApiException.class, () -> tenantService.createTenant(dto("mi-tienda")));
@@ -133,7 +133,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void altaSimultaneaConElMismoIdentificador_respondeConflicto() {
+	void simultaneousSignUpWithSameIdentifier_respondsConflict() {
 		when(tenantRepository.save(any(Tenant.class))).thenThrow(new DataIntegrityViolationException("unique schema"));
 
 		ApiException ex = assertThrows(ApiException.class, () -> tenantService.createTenant(dto("mi-tienda")));
@@ -143,7 +143,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void faltanDatosDelDuenio_respondeBadRequest() {
+	void missingOwnerData_respondsBadRequest() {
 		ApiException ex = assertThrows(ApiException.class,
 				() -> tenantService.createTenant(new NewTenantDto("mi-tienda", "Ana", " ", "secreta")));
 
@@ -152,7 +152,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void datosDelDuenioInvalidos_respondeBadRequest() {
+	void invalidOwnerData_respondsBadRequest() {
 		for (NewTenantDto dto : List.of(
 				new NewTenantDto("mi-tienda", "Ana", "r", "secreta12"),
 				new NewTenantDto("mi-tienda", "Ana", "ana@mail.com", "r"))) {
@@ -163,7 +163,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void siFallaCrearAlDuenio_seDeshaceElAlta() {
+	void ifCreatingTheOwnerFails_theSignUpIsRolledBack() {
 		Tenant saved = new Tenant();
 		when(tenantRepository.save(any(Tenant.class))).thenReturn(saved);
 		RuntimeException error = new RuntimeException("db caida");
@@ -177,7 +177,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void deshabilitar_guardaYLimpiaElCache() throws ApiException {
+	void disable_savesAndClearsTheCache() throws ApiException {
 		Tenant tenant = existing();
 
 		PlatformTenantDto result = tenantService.setEnabled(7L, false);
@@ -190,7 +190,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void borrar_esSoftDeleteYLimpiaElCache() throws ApiException {
+	void delete_isSoftDeleteAndClearsTheCache() throws ApiException {
 		Tenant tenant = existing();
 
 		tenantService.deleteTenant(7L);
@@ -202,7 +202,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void tenantInexistenteOBorrado_respondeNotFound() {
+	void unknownOrDeletedTenant_respondsNotFound() {
 		when(tenantRepository.findByIdAndDeletedAtIsNull(9L)).thenReturn(Optional.empty());
 
 		ApiException ex = assertThrows(ApiException.class, () -> tenantService.setEnabled(9L, true));
@@ -211,7 +211,7 @@ class TenantOnboardingTest {
 	}
 
 	@Test
-	void buscarPorUrl_cacheaPorUrlParaElGateway() {
+	void findByUrl_cachesByUrlForTheGateway() {
 		when(tenantRepository.findByUrlAndDeletedAtIsNull("http://mi-tienda.localhost:3000")).thenReturn(Optional.of(tenant()));
 
 		tenantService.getTenantByUrl("http://mi-tienda.localhost:3000");

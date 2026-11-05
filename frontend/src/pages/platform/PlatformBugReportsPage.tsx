@@ -15,7 +15,7 @@ import { Check, Mail, RotateCcw, Store, User as UserIcon } from "lucide-react"
 
 const dateTimeFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" })
 
-// Reportes de "Reportar un problema" del footer de las tiendas. Por defecto, los pendientes
+// Reports from the stores' footer "Report a problem". Pending ones by default
 export default function PlatformBugReportsPage() {
   const { ready, handleError } = usePlatformSession()
   const [status, setStatus] = useState<BugReportStatus>("pending")
@@ -39,7 +39,7 @@ export default function PlatformBugReportsPage() {
     try {
       await setResolved.mutateAsync({ id: report.id, resolved })
       toast.success(resolved ? strings.platformBugReports.resolvedToast : strings.platformBugReports.pendingToast)
-      // Sale de la lista filtrada: si era el ultimo de la pagina, volver a la anterior
+      // It leaves the filtered list: if it was the last one on the page, go back to the previous one
       if (status !== "all" && reports && reports.items.length === 1 && page > 0) {
         setPage(page - 1)
       }
@@ -80,7 +80,7 @@ export default function PlatformBugReportsPage() {
             {reportsQuery.isPending ? (
               <p className="text-sm text-muted-foreground">{strings.platformBugReports.loading}</p>
             ) : !reports || reports.items.length === 0 ? (
-              // Si la lista falla se muestra vacia (el aviso sale del QueryClient)
+              // If the list fails it shows empty (the notice comes from the QueryClient)
               <p className="text-sm text-muted-foreground">{strings.platformBugReports.empty[status]}</p>
             ) : (
               reports.items.map((report) => (

@@ -4,7 +4,7 @@ import com.kleinkauf.common.constants.TenantConstants;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 
 /*
-Define en tiempo de ejecucion a que tenant/db debe consultar
+Decides at runtime which tenant/db to query
  */
 public class TenantIdentifierResolver
         implements CurrentTenantIdentifierResolver<String> {

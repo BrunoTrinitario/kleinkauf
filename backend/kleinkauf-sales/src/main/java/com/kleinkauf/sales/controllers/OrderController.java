@@ -18,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-// Checkout de la tienda: publico (invitado o logueado), salvo mis pedidos (ver SecurityConfig)
+// Store checkout: public (guest or logged in), except my orders (see SecurityConfig)
 @RestController
 @RequestMapping("/api/v1/sales")
 public class OrderController {
@@ -41,7 +41,7 @@ public class OrderController {
         return ResponseEntity.ok(orderService.lookup(dto));
     }
 
-    // multipart: file (JPG, PNG o PDF hasta 5 MB) y email del pedido
+    // multipart: file (JPG, PNG or PDF up to 5 MB) and the order email
     @PostMapping(value = "/orders/{number}/receipt", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<OrderDto> uploadReceipt(@PathVariable String number,
                                                   @RequestParam String email,

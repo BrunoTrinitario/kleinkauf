@@ -1,6 +1,6 @@
 package com.kleinkauf.sales.dto;
 
-// Consulta del invitado: por POST para que el email no quede en la URL ni en los logs
+// Guest lookup: by POST so the email does not end up in the URL or the logs
 public record LookupDto(
         String email,
         String number

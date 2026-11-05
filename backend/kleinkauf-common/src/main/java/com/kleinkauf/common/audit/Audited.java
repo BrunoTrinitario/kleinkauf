@@ -6,8 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /*
-Entidad auditada (docs/auditoria.md): sus altas, cambios y bajas quedan en la auditoria, con los campos que
-cambiaron. value: el nombre de la entidad en la auditoria (por defecto, el de la clase).
+Audited entity (docs/auditoria.md): its creates, updates and deletes go to the audit, with the fields that
+changed. value: the entity name in the audit (defaults to the class name).
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

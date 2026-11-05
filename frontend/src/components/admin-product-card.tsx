@@ -5,14 +5,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { PackagePlus, Pencil, Star, Trash2 } from "lucide-react"
 
-// Cada accion es opcional: sin el handler (falta el permiso del area) el boton no se muestra o queda deshabilitado
+// Each action is optional: without the handler (missing area permission) the button is hidden or disabled
 interface AdminProductCardProps {
   product: Product
   onEdit?: (product: Product) => void
   onDelete?: (product: Product) => void
-  // STOCK: movimientos e historial
+  // STOCK: movements and history
   onStock?: (product: Product) => void
-  // PRODUCTOS: marcar o desmarcar como destacado
+  // PRODUCTOS: mark or unmark as featured
   onToggleFeatured?: (product: Product) => void
 }
 
@@ -23,10 +23,10 @@ export function AdminProductCard({
   onStock,
   onToggleFeatured,
 }: AdminProductCardProps) {
-  // Mismo criterio que el backend: hay alerta solo si el producto tiene minimo
+  // Same criterion as the backend: there is an alert only if the product has a minimum
   const isLowStock = (product.minStock ?? 0) > 0 && product.stock <= product.minStock
 
-  // En mobile: imagen mas chica y categoria y stock en su propia linea, para que el nombre tenga lugar
+  // On mobile: smaller image and category and stock on their own line, so the name has room
   return (
     <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
       <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-md overflow-hidden bg-muted flex-shrink-0">

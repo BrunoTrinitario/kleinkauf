@@ -1,6 +1,6 @@
 import type { BundlePricing, BundlePricingType } from "@/api/bundles"
 
-// Lo que se escribe en el panel: el tipo y un solo campo (precio fijo, porcentaje o monto)
+// What is typed in the dashboard: the type and a single field (fixed price, percentage or amount)
 export interface PricingDraft {
   type: BundlePricingType
   value: string
@@ -8,14 +8,14 @@ export interface PricingDraft {
 
 export const emptyPricing: PricingDraft = { type: "FIXED", value: "" }
 
-// El borrador a partir de un combo guardado (sin pricingType, de antes: precio fijo)
+// The draft from a saved bundle (without pricingType, from before: fixed price)
 export function pricingDraftOf(bundle: BundlePricing): PricingDraft {
   const type = bundle.pricingType ?? "FIXED"
   const value = type === "FIXED" ? bundle.price : bundle.discount
   return { type, value: value != null ? String(value) : "" }
 }
 
-// Lo que se manda al backend; undefined = no es valido. FIXED acepta vacio (sin precio); los descuentos, no
+// What is sent to the backend; undefined = not valid. FIXED accepts empty (no price); discounts do not
 export function parsePricing(draft: PricingDraft): BundlePricing | undefined {
   const text = draft.value.trim()
   if (draft.type === "FIXED") {
@@ -30,8 +30,8 @@ export function parsePricing(draft: PricingDraft): BundlePricing | undefined {
 
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
 
-// Precio final, igual que BundleFactory.price en products (para la vista previa; el que vale es el del backend).
-// list: suma de los productos, null si alguno no tiene precio
+// Final price, same as BundleFactory.price in products (for the preview; the backend's is the one that counts).
+// list: sum of the products, null if any has no price
 export function bundlePrice(pricing: BundlePricing, list: number | null): number | null {
   if (pricing.pricingType === "FIXED") return pricing.price
   if (pricing.discount == null || list == null) return null

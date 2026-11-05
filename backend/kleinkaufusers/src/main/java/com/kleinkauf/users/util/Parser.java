@@ -23,7 +23,8 @@ public class Parser {
             user.getId(),
             user.getName(),
             user.getEmail(),
-            roles
+            roles,
+            user.getAvatar()
         );
     }
 

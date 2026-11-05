@@ -4,9 +4,9 @@ import java.time.Instant;
 import java.util.List;
 
 /*
-Usuarios conectados de una tienda (canal store.users y GET /api/v1/observability/store/users): los que hicieron
-alguna request en los ultimos 5 minutos, del mas reciente al mas viejo. Son todos los logueados, tambien clientes.
-name: null si users no respondio.
+A store's online users (store.users channel and GET /api/v1/observability/store/users): those who made
+some request in the last 5 minutes, most recent to oldest. They are all the logged-in ones, customers too.
+name: null if users did not answer.
  */
 public record StoreUsersDto(long total, List<ConnectedUser> users) {
 

@@ -20,7 +20,7 @@ const pad = (n: number) => String(n).padStart(2, "0")
 const isoDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 const daysBetween = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1
 
-// Por defecto, los ultimos 30 dias hasta hoy (lo mismo que hace el backend sin fechas)
+// By default, the last 30 days up to today (the same the backend does without dates)
 function defaultRange() {
   const today = new Date()
   const from = new Date(today)
@@ -28,7 +28,7 @@ function defaultRange() {
   return { from: isoDate(from), to: isoDate(today) }
 }
 
-// Reportes de ventas (/admin/reports, solo ADMINISTRADOR). Los filtros van en la URL para compartir o volver
+// Sales reports (/admin/reports, ADMINISTRADOR only). Filters go in the URL to share or come back
 export default function AdminReportsPage() {
   const [params, setParams] = useSearchParams()
   const defaults = defaultRange()

@@ -29,11 +29,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
         existsById(id)
     */
    Optional<User> findByName(String name);
-   // IgnoreCase: los usuarios viejos pueden tener el email guardado con mayusculas
+   // IgnoreCase: old users may have their email stored with uppercase letters
    Optional<User> findByEmailIgnoreCase(String email);
    boolean existsByEmailIgnoreCase(String email);
 
-   // Panel de la tienda (UserDashboardService)
+   // Store dashboard (UserDashboardService)
    long countByLastLoginGreaterThanEqual(LocalDateTime since);
 
    @Query("SELECT u.createdAt FROM User u WHERE u.createdAt >= :from AND u.createdAt < :to")

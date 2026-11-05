@@ -8,8 +8,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /*
-Comprobante de transferencia de un pedido. El archivo esta en disco (ReceiptStorage), una carpeta por tienda.
-Puede haber varios si hubo rechazos (hasta 5). No se borran: quedan como respaldo de la venta.
+Transfer receipt of an order. The file is on disk (ReceiptStorage), one folder per store.
+There can be several if there were rejections (up to 5). They are not deleted: they stay as a record of the sale.
  */
 @Entity
 @Table(name = "payment_receipts")
@@ -26,7 +26,7 @@ public class PaymentReceipt {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    // Ruta relativa a receipts.path: <tenant>/<numero>/<uuid>.<ext>
+    // Path relative to receipts.path: <tenant>/<number>/<uuid>.<ext>
     @Column(nullable = false)
     private String path;
 

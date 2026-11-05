@@ -10,10 +10,10 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 /*
-Tabla outbox de la auditoria: public.outbox_events, una sola por servicio con la columna tenant.
-Va en public (y no en el schema de cada tienda) para que el publicador lea una sola tabla; se escribe con la
-misma conexion que el cambio, asi que queda en la misma transaccion (en Postgres los schemas comparten la base).
-SQL comun (sin indices parciales ni jsonb) para que tambien ande en H2 en los tests.
+Audit outbox table: public.outbox_events, a single one per service with a tenant column.
+It lives in public (and not in each store's schema) so the publisher reads a single table; it is written with the
+same connection as the change, so it stays in the same transaction (in Postgres schemas share the database).
+Plain SQL (no partial indexes or jsonb) so it also works on H2 in the tests.
  */
 public class OutboxStore {
 
@@ -40,7 +40,7 @@ public class OutboxStore {
         jdbc.execute(CREATE_INDEX);
     }
 
-    // Con la conexion de la sesion de Hibernate (listener): misma transaccion que el cambio
+    // With the Hibernate session's connection (listener): same transaction as the change
     public void insert(Connection connection, AuditEvent event) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(INSERT)) {
             statement.setString(1, event.id());
@@ -51,7 +51,7 @@ public class OutboxStore {
         }
     }
 
-    // Con JdbcTemplate (AuditLog): se suma a la transaccion en curso si la hay
+    // With JdbcTemplate (AuditLog): joins the current transaction if there is one
     public void insert(JdbcTemplate jdbc, AuditEvent event) {
         jdbc.update(INSERT, event.id(), event.tenant(), Timestamp.from(event.at()), json(event));
     }

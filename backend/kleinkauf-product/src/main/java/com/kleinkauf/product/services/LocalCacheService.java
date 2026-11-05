@@ -15,7 +15,7 @@ public class LocalCacheService {
     @Qualifier("caffeineCache")
     private Cache<String, Object> cache;
 
-    // Roles con sus permisos: 1 minuto (ver CaffeineConfig)
+    // Roles with their permissions: 1 minute (see CaffeineConfig)
     @Autowired
     @Qualifier("userRolesCache")
     private Cache<String, Object> userRolesCache;

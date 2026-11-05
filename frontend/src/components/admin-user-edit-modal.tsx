@@ -101,7 +101,7 @@ export function AdminUserEditModal({
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">{strings.adminUserEdit.email}</label>
-                {/* El backend no permite cambiar el email */}
+                {/* The backend does not allow changing the email */}
                 <Input type="email" value={email} disabled readOnly />
                 <p className="text-xs text-muted-foreground">{strings.adminUserEdit.emailLocked}</p>
               </div>

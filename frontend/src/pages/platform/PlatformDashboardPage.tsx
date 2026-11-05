@@ -15,7 +15,7 @@ import { Ban, CircleCheck, Store, Trash2 } from "lucide-react"
 
 type UsageSort = "products" | "users" | "activeUsers" | "lastActivity" | "createdAt"
 
-// Fila de la tabla de uso: lo de users mas lo de products (null si products no respondio)
+// Usage table row: the users data plus the products data (null if products did not answer)
 interface UsageRow extends TenantUsersUsage {
   products: number | null
   bundles: number | null
@@ -24,7 +24,7 @@ interface UsageRow extends TenantUsersUsage {
 const dateTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" })
 const date = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" })
 
-// Descendente; sin dato (null) al final; empates por identificador
+// Descending; no value (null) last; ties by identifier
 function compareUsage(sort: UsageSort) {
   const value = (row: UsageRow): number | null => {
     switch (sort) {
@@ -58,8 +58,8 @@ export default function PlatformDashboardPage() {
   const [usageSort, setUsageSort] = useState<UsageSort>("products")
   const dashboard = usePlatformDashboard(rangeParams(rangeKey), ready).data ?? null
 
-  // Cada servicio arma su parte: si products falla, la tabla se muestra igual sin productos ni combos
-  // (el error de users se avisa; el de products solo se ve en la tabla)
+  // Each service builds its part: if products fails, the table still shows without products or bundles
+  // (the users error is reported; the products one only shows in the table)
   const usersUsageQuery = usePlatformUsersUsage(ready)
   const productsUsageQuery = usePlatformProductsUsage(ready)
   const usersUsage = usersUsageQuery.data ?? (usersUsageQuery.isError ? [] : null)
@@ -71,7 +71,7 @@ export default function PlatformDashboardPage() {
     return (usersUsage ?? [])
       .map((usage) => {
         const products = bySchema.get(usage.schema)
-        // Sin schema en products (la tienda nunca se abrio) cuenta como 0
+        // Without a schema in products (the store was never opened) it counts as 0
         return {
           ...usage,
           products: productsFailed ? null : (products?.products ?? 0),

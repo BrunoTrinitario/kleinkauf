@@ -13,19 +13,19 @@ import static org.mockito.Mockito.mock;
 
 class ReactiveRedisConfigTest {
 
-    // users guarda el tenant como String JSON con el redisTemplate de kleinkauf-common
-    // (hash values con GenericJackson2JsonRedisSerializer); el template reactivo tiene que leerlo igual
+    // users stores the tenant as a JSON String with kleinkauf-common's redisTemplate
+    // (hash values with GenericJackson2JsonRedisSerializer); the reactive template must read it the same way
     @Test
-    void leeLoQueEscribeElRedisTemplateDeUsers() {
+    void readsWhatTheUsersRedisTemplateWrites() {
         String tenantJson = "{\"id\":1,\"configId\":\"cfg\",\"schema\":\"tienda1\",\"enable\":true}";
-        byte[] guardado = new GenericJackson2JsonRedisSerializer().serialize(tenantJson);
+        byte[] stored = new GenericJackson2JsonRedisSerializer().serialize(tenantJson);
 
         ReactiveRedisTemplate<String, Object> template =
                 new ReactiveRedisConfig().reactiveJsonRedisTemplate(mock(ReactiveRedisConnectionFactory.class));
-        Object leido = template.getSerializationContext()
+        Object read = template.getSerializationContext()
                 .getHashValueSerializationPair()
-                .read(ByteBuffer.wrap(guardado));
+                .read(ByteBuffer.wrap(stored));
 
-        assertEquals(tenantJson, leido);
+        assertEquals(tenantJson, read);
     }
 }

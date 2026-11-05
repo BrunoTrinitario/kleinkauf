@@ -76,7 +76,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void transicionesPermitidas() {
+	void allowedTransitions() {
 		assertTrue(OrderStatus.PAGO_EN_REVISION.canChangeTo(OrderStatus.PAGADO));
 		assertTrue(OrderStatus.PENDIENTE_PAGO.canChangeTo(OrderStatus.PAGADO));
 		assertTrue(OrderStatus.PAGO_EN_REVISION.canChangeTo(OrderStatus.RECHAZADO));
@@ -94,7 +94,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void validar_sumaAVendidosYGuardaElHistorial() throws ApiException {
+	void validate_addsToSoldAndStoresTheHistory() throws ApiException {
 		Order order = order(OrderStatus.PAGO_EN_REVISION);
 
 		service.change(order, OrderStatus.PAGADO, ADMIN, null);
@@ -107,7 +107,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void validar_siOtroCambioElPedido_restaDeVendidosY409() {
+	void validate_ifSomeoneElseChangedTheOrder_subtractsFromSoldAnd409() {
 		Order order = order(OrderStatus.PAGO_EN_REVISION);
 		when(orderRepository.saveAndFlush(any(Order.class))).thenThrow(new ObjectOptimisticLockingFailureException(Order.class, 1L));
 
@@ -118,7 +118,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void rechazar_pideMotivoYRenuevaElPlazo() throws ApiException {
+	void reject_requiresReasonAndRenewsTheDeadline() throws ApiException {
 		Order order = order(OrderStatus.PAGO_EN_REVISION);
 		order.setExpiresAt(LocalDateTime.now().minusHours(5));
 
@@ -130,14 +130,14 @@ class OrderStatusServiceTest {
 		assertEquals(OrderStatus.RECHAZADO, order.getStatus());
 		assertTrue(order.getExpiresAt().isAfter(LocalDateTime.now().plusHours(47)));
 		assertEquals("El monto no coincide", order.getHistory().get(order.getHistory().size() - 1).getReason());
-		// Queda en la auditoria con el estado anterior, el nuevo y el motivo
+		// Stays in the audit with the previous status, the new one and the reason
 		verify(auditLog).record(AuditEvent.STATUS_CHANGE, "Order", order.getNumber(), Map.of(
 				"status", new AuditEvent.Change("PAGO_EN_REVISION", "RECHAZADO"),
 				"reason", new AuditEvent.Change(null, "El monto no coincide")));
 	}
 
 	@Test
-	void cancelarPagado_devuelveStockYRestaDeVendidos() throws ApiException {
+	void cancelPaid_returnsStockAndSubtractsFromSold() throws ApiException {
 		Order order = order(OrderStatus.LISTO);
 
 		service.change(order, OrderStatus.CANCELADO, ADMIN, "Se arrepintio");
@@ -148,7 +148,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void cancelarSinPagar_soloDevuelveStock() throws ApiException {
+	void cancelUnpaid_onlyReturnsStock() throws ApiException {
 		Order order = order(OrderStatus.PENDIENTE_PAGO);
 
 		service.change(order, OrderStatus.CANCELADO, ADMIN, "Sin stock real");
@@ -158,7 +158,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void cancelar_siProductsNoResponde_noCambiaElPedido() {
+	void cancel_ifProductsDoesNotAnswer_doesNotChangeTheOrder() {
 		Order order = order(OrderStatus.PAGADO);
 		doThrow(new ResourceAccessException("timeout")).when(productsClient).release(NUMBER);
 
@@ -170,7 +170,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void transicionInvalida_409SinTocarProducts() {
+	void invalidTransition_409WithoutTouchingProducts() {
 		Order order = order(OrderStatus.ENTREGADO);
 
 		ApiException e = assertThrows(ApiException.class, () -> service.change(order, OrderStatus.CANCELADO, ADMIN, "x"));
@@ -180,7 +180,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void anularVentaDelLocalEntregada_devuelveStockYRestaDeVendidos() throws ApiException {
+	void voidDeliveredInStoreSale_returnsStockAndSubtractsFromSold() throws ApiException {
 		Order order = order(OrderStatus.ENTREGADO);
 		order.setChannel(SalesChannel.LOCAL);
 
@@ -192,7 +192,7 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void ventaDelLocalEntregada_soloSePuedeCancelar() {
+	void deliveredInStoreSale_canOnlyBeCancelled() {
 		assertTrue(OrderStatus.ENTREGADO.canChangeTo(OrderStatus.CANCELADO, SalesChannel.LOCAL));
 		assertFalse(OrderStatus.ENTREGADO.canChangeTo(OrderStatus.CANCELADO, SalesChannel.ONLINE));
 		assertFalse(OrderStatus.ENTREGADO.canChangeTo(OrderStatus.LISTO, SalesChannel.LOCAL));
@@ -200,31 +200,31 @@ class OrderStatusServiceTest {
 	}
 
 	@Test
-	void comprador_cancelaHastaQueSeValidaElPago() throws ApiException {
-		Order pendiente = order(OrderStatus.PAGO_EN_REVISION);
-		service.cancelByBuyer(pendiente, null);
-		assertEquals(OrderStatus.CANCELADO, pendiente.getStatus());
-		assertEquals(OrderStatusService.BUYER_CANCEL_REASON, pendiente.getHistory().get(pendiente.getHistory().size() - 1).getReason());
+	void buyer_cancelsUntilThePaymentIsValidated() throws ApiException {
+		Order unpaidOrder = order(OrderStatus.PAGO_EN_REVISION);
+		service.cancelByBuyer(unpaidOrder, null);
+		assertEquals(OrderStatus.CANCELADO, unpaidOrder.getStatus());
+		assertEquals(OrderStatusService.BUYER_CANCEL_REASON, unpaidOrder.getHistory().get(unpaidOrder.getHistory().size() - 1).getReason());
 
-		Order pagado = order(OrderStatus.PAGADO);
-		assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class, () -> service.cancelByBuyer(pagado, null)).getStatus());
+		Order paidOrder = order(OrderStatus.PAGADO);
+		assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class, () -> service.cancelByBuyer(paidOrder, null)).getStatus());
 	}
 
 	@Test
-	void vencer_soloSiPasoElPlazoYEsperaElComprobante() throws ApiException {
+	void expire_onlyIfTheDeadlinePassedAndItAwaitsTheReceipt() throws ApiException {
 		LocalDateTime now = LocalDateTime.now();
-		Order vencido = order(OrderStatus.RECHAZADO);
-		vencido.setExpiresAt(now.minusMinutes(1));
-		Order enPlazo = order(OrderStatus.PENDIENTE_PAGO);
-		enPlazo.setExpiresAt(now.plusMinutes(1));
-		Order enRevision = order(OrderStatus.PAGO_EN_REVISION);
-		enRevision.setExpiresAt(now.minusMinutes(1));
+		Order expiredOrder = order(OrderStatus.RECHAZADO);
+		expiredOrder.setExpiresAt(now.minusMinutes(1));
+		Order withinDeadline = order(OrderStatus.PENDIENTE_PAGO);
+		withinDeadline.setExpiresAt(now.plusMinutes(1));
+		Order underReview = order(OrderStatus.PAGO_EN_REVISION);
+		underReview.setExpiresAt(now.minusMinutes(1));
 
-		assertTrue(service.expire(vencido, now));
-		assertFalse(service.expire(enPlazo, now));
-		assertFalse(service.expire(enRevision, now));
+		assertTrue(service.expire(expiredOrder, now));
+		assertFalse(service.expire(withinDeadline, now));
+		assertFalse(service.expire(underReview, now));
 
-		assertEquals(OrderStatus.VENCIDO, vencido.getStatus());
+		assertEquals(OrderStatus.VENCIDO, expiredOrder.getStatus());
 		verify(productsClient).release(NUMBER);
 	}
 

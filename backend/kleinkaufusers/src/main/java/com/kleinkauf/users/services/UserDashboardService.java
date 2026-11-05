@@ -17,13 +17,13 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Panel de la tienda (docs/panel-admin.md): usuarios, activos, por rol y altas por periodo. Siempre al dia (sin cache).
-Las consultas van contra el schema de la tienda de la request; los borrados (soft delete) no cuentan.
+Store dashboard (docs/panel-admin.md): users, active, by role and sign-ups per period. Always up to date (no cache).
+Queries go against the schema of the request's store; deleted ones (soft delete) do not count.
  */
 @Service
 public class UserDashboardService {
 
-    // Los roles de una tienda: SUPERADMIN solo existe en public
+    // A store's roles: SUPERADMIN only exists in public
     private static final List<String> STORE_ROLES = List.of(
             RolesType.ADMINISTRADOR.name(), RolesType.EMPLEADO.name(), RolesType.CLIENTE.name());
 

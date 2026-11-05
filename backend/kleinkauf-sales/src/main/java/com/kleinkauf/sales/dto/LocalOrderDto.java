@@ -8,8 +8,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /*
-Venta del local (ya cobrada). status: PAGADO (para preparar o enviar despues) o ENTREGADO.
-discount: monto en pesos sobre el subtotal (null = 0). buyer opcional (consumidor final).
+In-store sale (already charged). status: PAGADO (to prepare or ship later) or ENTREGADO.
+discount: amount in pesos over the subtotal (null = 0). buyer is optional (final consumer).
 deliveryType null = RETIRO.
  */
 public record LocalOrderDto(

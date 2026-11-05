@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Acceso revocado (docs/observabilidad.md): cada observability.ws.revalidate-interval (1 minuto) se piden de
-nuevo los roles de los conectados y se corta el WS de quien ya no tiene el rol (superadmin desactivado).
-Es el mismo minuto en que se le corta el REST. Si users no responde nadie se desconecta: no se echa a todos
-por una caida. El frontend, al cortarse, pide otro ticket y ya no se lo dan.
+Revoked access (docs/observabilidad.md): every observability.ws.revalidate-interval (1 minute) the roles of the
+online users are requested again and the WS of whoever no longer has the role (deactivated superadmin) is closed.
+It is the same minute in which their REST access is cut. If users does not answer nobody is disconnected: we do not kick everyone
+out because of an outage. The frontend, when cut off, asks for another ticket and no longer gets one.
  */
 @Component
 public class AccessRevalidator {
@@ -30,7 +30,7 @@ public class AccessRevalidator {
     }
 
     public void revalidate() {
-        // Un solo pedido por usuario aunque tenga varias pestanas abiertas. HashMap admite el null de "no se sabe"
+        // A single request per user even with several tabs open. HashMap accepts the "unknown" null
         Map<WsTicket, Boolean> allowed = new HashMap<>();
         for (SessionRegistry.Client client : sessions.clients()) {
             if (!allowed.containsKey(client.ticket())) {
@@ -42,7 +42,7 @@ public class AccessRevalidator {
         }
     }
 
-    // null: no se sabe (users no respondio)
+    // null: unknown (users did not answer)
     private Boolean stillAllowed(WsTicket ticket) {
         List<RoleDto> current = roles.fresh(ticket.userId(), ticket.tenant());
         if (current == null) {

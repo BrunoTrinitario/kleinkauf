@@ -47,19 +47,19 @@ class KleinKaufEventPublisherTest {
     }
 
     @Test
-    void elEventoIdaYVueltaPorLosCamposDelStream() {
+    void eventRoundTripsThroughTheStreamFields() {
         KleinKaufEvent event = new KleinKaufEvent(KleinKaufEvent.TENANT_CREATED, "public", NOW, Map.of("schema", "mi_tienda", "id", 7));
 
         KleinKaufEvent back = KleinKaufEvent.fromFields(event.toFields(mapper), mapper);
 
         assertThat(back).isEqualTo(event);
         assertThat(KleinKaufEvent.fromFields(Map.of("type", "x"), mapper)).isNull();
-        assertThat(KleinKaufEvent.fromFields(Map.of("type", "x", "tenant", "t", "at", "no es fecha"), mapper)).isNull();
+        assertThat(KleinKaufEvent.fromFields(Map.of("type", "x", "tenant", "t", "at", "not a date"), mapper)).isNull();
     }
 
     @Test
-    void unDatoNull_seMandaComoNullYNoFrenaLaOperacion() {
-        // Un movimiento de stock sin motivo: antes Map.copyOf tiraba NullPointerException y el movimiento fallaba
+    void nullValue_isSentAsNullAndDoesNotStopTheOperation() {
+        // A stock movement without a reason: Map.copyOf used to throw NullPointerException and the movement failed
         Map<String, Object> data = new java.util.LinkedHashMap<>();
         data.put("productId", 12);
         data.put("reason", null);
@@ -73,7 +73,7 @@ class KleinKaufEventPublisherTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void publicaEnElStreamConRecorte() {
+    void publishesToStreamWithTrimming() {
         publisher.publish(KleinKaufEvent.TENANT_CREATED, "public", Map.of("schema", "mi_tienda"));
 
         verify(stream).add(any(MapRecord.class), any(XAddOptions.class));
@@ -81,7 +81,7 @@ class KleinKaufEventPublisherTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void enUnaTransaccionPublicaRecienDespuesDelCommit() {
+    void insideTransactionPublishesOnlyAfterCommit() {
         TransactionSynchronizationManager.initSynchronization();
 
         publisher.publish(KleinKaufEvent.TENANT_DELETED, "public", Map.of());
@@ -93,7 +93,7 @@ class KleinKaufEventPublisherTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void siRedisFallaLaOperacionSigue() {
+    void ifRedisFailsTheOperationGoesOn() {
         when(stream.add(any(MapRecord.class), any(XAddOptions.class)))
                 .thenThrow(new RedisConnectionFailureException("caido"));
 

@@ -7,7 +7,7 @@ import com.kleinkauf.sales.entities.SalesChannel;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Fila de las listas de pedidos (mis pedidos y panel); units es la suma de las cantidades
+// Row of the order lists (my orders and dashboard); units is the sum of the quantities
 public record OrderSummaryDto(
         String number,
         OrderStatus status,

@@ -17,14 +17,14 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /*
-Registra las altas, cambios y bajas de las entidades @Audited (docs/auditoria.md).
-- Corre en el flush, con la sesion de Hibernate: la fila de la outbox se inserta con la misma conexion, en la
-  misma transaccion que el cambio. Si el cambio se deshace, la auditoria tambien.
-- El "antes" sale del estado que Hibernate tenia cargado (oldState) y los campos que cambiaron, de los que
-  Hibernate marco como sucios.
-- Un borrado logico (deletedAt de null a una fecha) se registra como DELETE.
-- Las colecciones no se registran (se audita la entidad hija, ej. las imagenes de un producto). Una relacion
-  a otra entidad se guarda con su id.
+Records creates, updates and deletes of @Audited entities (docs/auditoria.md).
+- Runs on flush, with the Hibernate session: the outbox row is inserted with the same connection, in the
+  same transaction as the change. If the change is rolled back, so is the audit.
+- The "before" comes from the state Hibernate had loaded (oldState), and the changed fields from the ones
+  Hibernate marked as dirty.
+- A soft delete (deletedAt from null to a date) is recorded as DELETE.
+- Collections are not recorded (the child entity is audited instead, e.g. a product's images). A relation
+  to another entity is stored as its id.
  */
 public class AuditHibernateListener implements PostInsertEventListener, PostUpdateEventListener, PostDeleteEventListener {
 
@@ -75,7 +75,7 @@ public class AuditHibernateListener implements PostInsertEventListener, PostUpda
                 action = AuditEvent.DELETE;
             }
         }
-        // Solo cambiaron campos ignorados (ej. el ultimo login): no hay nada que contar
+        // Only ignored fields changed (e.g. the last login): nothing to record
         if (changes.isEmpty()) return;
         write(event.getSession(), action, entity, event.getId(), changes);
     }
@@ -99,7 +99,7 @@ public class AuditHibernateListener implements PostInsertEventListener, PostUpda
         session.doWork(connection -> outbox.insert(connection, event));
     }
 
-    // null si la entidad no es @Audited
+    // null if the entity is not @Audited
     private String entityName(EntityPersister persister) {
         Class<?> type = persister.getMappedClass();
         String name = entityNames.computeIfAbsent(type, c -> {

@@ -24,13 +24,13 @@ import java.time.Clock;
 import java.time.Duration;
 
 /*
-Auditoria de los servicios con base (users, products, sales), docs/auditoria.md:
-- AuditHibernateListener: altas, cambios y bajas de las entidades @Audited (lo engancha KleinKaufServletAutoConfiguration).
-- AuditLog: el registro a mano.
-- La tabla public.outbox_events se crea al arrancar y OutboxPublisher la vacia hacia Redis Streams.
-kleinkauf.audit.enabled=false la apaga entera; kleinkauf.audit.publisher.enabled=false, solo el envio.
-No exige una app web: sin request no se registra nada (AuditRequest), y asi tambien esta en los tests de
-@DataJpaTest (ver META-INF/spring/...AutoConfigureDataJpa.imports), donde los servicios necesitan AuditLog.
+Audit for the services with a database (users, products, sales), docs/auditoria.md:
+- AuditHibernateListener: creates, updates and deletes of @Audited entities (hooked by KleinKaufServletAutoConfiguration).
+- AuditLog: manual recording.
+- The public.outbox_events table is created at startup and OutboxPublisher drains it into Redis Streams.
+kleinkauf.audit.enabled=false turns it off entirely; kleinkauf.audit.publisher.enabled=false, only the sending.
+It does not require a web app: without a request nothing is recorded (AuditRequest), so it is also present in
+@DataJpaTest tests (see META-INF/spring/...AutoConfigureDataJpa.imports), where services need AuditLog.
  */
 @AutoConfiguration(after = {DataSourceAutoConfiguration.class, RedisAutoConfiguration.class})
 @ConditionalOnClass(name = {"org.hibernate.event.spi.PostInsertEventListener", "org.springframework.jdbc.core.JdbcTemplate"})
@@ -64,7 +64,7 @@ public class KleinKaufAuditAutoConfiguration {
         return new AuditLog(events, outbox, new JdbcTemplate(dataSource));
     }
 
-    // Si la base no esta al arrancar, el servicio no arranca igual; aca solo se loguea por las dudas
+    // If the database is down at startup the service does not start anyway; here it is only logged just in case
     @Bean
     public InitializingBean outboxTable(OutboxStore outbox, DataSource dataSource) {
         return () -> {

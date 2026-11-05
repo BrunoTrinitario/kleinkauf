@@ -33,13 +33,13 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /*
-Panel de la plataforma (superadmin): resumen de tenants y uso por tenant.
-- El resumen lee la tabla de tenants de public (incluidos los borrados: es la historia de altas).
-- El uso recorre el schema de cada tenant no borrado con SQL directo (sin Hibernate, que solo ve el schema
-  del tenant actual) y se guarda 5 minutos en Redis. Si Redis falla, se calcula igual.
-- lastActivity: lo mas reciente entre el ultimo login y la ultima request que marco el gateway (RecentActivity),
-  porque un usuario con la sesion abierta no vuelve a loguearse.
-Las columnas son las que crea hbm2ddl sin la estrategia de nombres de Spring: lastLogin quedo como "lastlogin".
+Platform dashboard (superadmin): tenant summary and per-tenant usage.
+- The summary reads the tenants table in public (deleted ones included: it is the sign-up history).
+- Usage walks the schema of each non-deleted tenant with plain SQL (without Hibernate, which only sees the
+  current tenant's schema) and is kept for 5 minutes in Redis. If Redis fails, it is computed anyway.
+- lastActivity: the most recent of the last login and the last request marked by the gateway (RecentActivity),
+  because a user with an open session does not log in again.
+The columns are the ones hbm2ddl creates without Spring's naming strategy: lastLogin ended up as "lastlogin".
  */
 @Slf4j
 @Service
@@ -47,7 +47,7 @@ public class PlatformDashboardService {
 
     public static final int ACTIVE_WINDOW_DAYS = 30;
 
-    // Mismo formato que arma TenantService.toSchema; se valida igual antes de meterlo en el SQL
+    // Same format TenantService.toSchema builds; validated the same way before putting it in the SQL
     private static final Pattern SCHEMA = Pattern.compile("^[a-z][a-z0-9_]*$");
 
     public enum UsageSort { USERS, ACTIVEUSERS, LASTACTIVITY, CREATEDAT }
@@ -84,7 +84,7 @@ public class PlatformDashboardService {
         return new PlatformDashboardDto(counts, Periods.series(range, createdDates));
     }
 
-    // sort: users (por defecto), activeUsers, lastActivity o createdAt; siempre de mayor a menor
+    // sort: users (default), activeUsers, lastActivity or createdAt; always descending
     public List<TenantUsageDto> usage(String sort) throws ApiException {
         UsageSort usageSort = parseSort(sort);
         List<TenantUsageDto> usage = cacheUtil.getPlatformUsage();
@@ -99,7 +99,7 @@ public class PlatformDashboardService {
 
     private List<TenantUsageDto> computeUsage() {
         LocalDateTime activeSince = LocalDateTime.now().minusDays(ACTIVE_WINDOW_DAYS);
-        // users crea el schema del tenant en el alta, pero un tenant viejo podria no tener la tabla todavia
+        // users creates the tenant's schema on sign-up, but an old tenant might not have the table yet
         Set<String> withUsersTable = new HashSet<>(jdbcTemplate.queryForList(
                 "SELECT table_schema FROM information_schema.tables WHERE table_name = 'usuarios'", String.class));
         Map<String, LocalDateTime> recent = recentActivity.byTenant();
@@ -150,7 +150,7 @@ public class PlatformDashboardService {
         }
     }
 
-    // Descendente; los empates y las fechas vacias (nadie entro todavia) van al final, por identificador
+    // Descending; ties and empty dates (nobody logged in yet) go last, by identifier
     private static Comparator<TenantUsageDto> comparator(UsageSort sort) {
         Comparator<TenantUsageDto> primary = switch (sort) {
             case USERS -> Comparator.comparingLong(TenantUsageDto::users).reversed();

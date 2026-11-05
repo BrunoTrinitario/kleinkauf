@@ -13,6 +13,6 @@ public enum RolesType {
     ADMINISTRADOR,
     EMPLEADO,
     CLIENTE,
-    // Administrador de la plataforma: solo existe en el schema public, no se asigna desde una tienda
+    // Platform administrator: only exists in the public schema, cannot be assigned from a store
     SUPERADMIN
 }

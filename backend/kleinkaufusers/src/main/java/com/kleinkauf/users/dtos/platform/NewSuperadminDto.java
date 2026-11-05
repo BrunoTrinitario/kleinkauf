@@ -1,6 +1,6 @@
 package com.kleinkauf.users.dtos.platform;
 
-// La contrasena es temporal: se la pasa quien lo crea, pero no hay que cambiarla en el primer login
+// The password is temporary: whoever creates the account hands it over, but it does not have to be changed on first login
 public record NewSuperadminDto(
         String name,
         String email,

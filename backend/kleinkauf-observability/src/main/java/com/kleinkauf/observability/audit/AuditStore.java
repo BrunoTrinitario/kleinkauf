@@ -29,25 +29,25 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /*
-La auditoria guardada (docs/auditoria.md): <schema>.audit_events en la base observability, una tabla por
-tienda y la de public para la plataforma. Se guarda para siempre y nadie la edita ni la borra.
-- Particionada por mes (occurred_at, en UTC): audit_events_2026_11, etc. Las consultas por fecha leen solo los meses
-  del rango, y un mes viejo se puede archivar o mover sin tocar el resto. La particion del mes se crea antes de
-  guardar el primer evento de ese mes.
-- El schema y la tabla se crean con el primer evento de cada tienda. Una tabla de antes (sin particiones) se pasa a
-  particionada la primera vez que se usa, en una transaccion.
-- Un evento repetido (la outbox puede mandarlo dos veces) no se guarda de nuevo: ON CONFLICT con (id, occurred_at),
-  la clave unica (en una tabla particionada tiene que incluir la columna de la particion; el repetido trae la misma
-  fecha).
-- changes va como texto JSON: no se filtra por su contenido.
-Los nombres de schema se validan antes de meterlos en el SQL (no se pueden pasar como parametro).
+The stored audit (docs/auditoria.md): <schema>.audit_events in the observability database, one table per
+store plus public's for the platform. Kept forever and nobody edits or deletes it.
+- Partitioned by month (occurred_at, in UTC): audit_events_2026_11, etc. Date queries only read the months
+  in the range, and an old month can be archived or moved without touching the rest. The month's partition is created before
+  storing the first event of that month.
+- The schema and table are created with each store's first event. An older table (without partitions) is converted to
+  partitioned the first time it is used, in a transaction.
+- A repeated event (the outbox may send it twice) is not stored again: ON CONFLICT on (id, occurred_at),
+  the unique key (in a partitioned table it must include the partition column; the repeated one carries the same
+  date).
+- changes goes as JSON text: it is not filtered by its content.
+Schema names are validated before putting them in the SQL (they cannot be passed as a parameter).
  */
 @Slf4j
 @Component
 public class AuditStore {
 
     public static final int MAX_PAGE_SIZE = 100;
-    // Tope de la exportacion a CSV: con mas, hay que acotar las fechas
+    // Cap of the CSV export: with more, the dates have to be narrowed
     public static final int MAX_EXPORT_ROWS = 50_000;
 
     private static final Pattern SCHEMA = Pattern.compile("^[a-z][a-z0-9_]{0,62}$");
@@ -59,7 +59,7 @@ public class AuditStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
     private final Set<String> ready = ConcurrentHashMap.newKeySet();
-    // <schema>:<mes> de las particiones que ya se crearon
+    // <schema>:<month> of the partitions already created
     private final Set<String> partitions = ConcurrentHashMap.newKeySet();
 
     public AuditStore(JdbcTemplate jdbc, ObjectMapper mapper) {
@@ -67,7 +67,7 @@ public class AuditStore {
         this.mapper = mapper;
     }
 
-    // Filtros de las consultas; los null no filtran
+    // Query filters; nulls do not filter
     public record Query(Instant from, Instant to, Long userId, String entity, String entityId, String action) {
     }
 
@@ -75,7 +75,7 @@ public class AuditStore {
         return schema != null && SCHEMA.matcher(schema).matches();
     }
 
-    // true si se guardo; false si ya estaba
+    // true if it was stored; false if it was already there
     public boolean insert(AuditEvent event) throws Exception {
         String table = table(event.tenant());
         partition(event.tenant(), YearMonth.from(event.at().atZone(ZoneOffset.UTC)));
@@ -113,7 +113,7 @@ public class AuditStore {
         return total == null ? 0 : total;
     }
 
-    // Todos los eventos que cumplen los filtros (para exportar), de lo mas nuevo a lo mas viejo, hasta limit
+    // All events matching the filters (for export), newest to oldest, up to limit
     public void forEach(String schema, Query query, int limit, Consumer<AuditEvent> each) {
         String table = table(schema);
         List<Object> args = new ArrayList<>();
@@ -171,7 +171,7 @@ public class AuditStore {
         return schema + ".audit_events";
     }
 
-    // Crea la tabla particionada (o pasa la vieja a particionada) con sus indices y la particion del mes actual
+    // Creates the partitioned table (or converts the old one to partitioned) with its indexes and the current month's partition
     private void prepare(Connection con, String schema) throws SQLException {
         try (Statement st = con.createStatement()) {
             st.execute("CREATE SCHEMA IF NOT EXISTS " + schema);
@@ -211,18 +211,18 @@ public class AuditStore {
                 }
                 int moved = st.executeUpdate("INSERT INTO " + schema + ".audit_events (" + COLUMNS + ") SELECT " + COLUMNS
                         + " FROM " + schema + ".audit_events_legacy");
-                // Se borra despues de copiar: sus indices tienen los nombres que usa la tabla nueva
+                // Dropped after copying: its indexes have the names the new table uses
                 st.execute("DROP TABLE " + schema + ".audit_events_legacy");
                 log.info("Auditoria de {}: {} eventos pasados a la tabla particionada ({} meses)", schema, moved, months.size());
             }
-            // Las consultas: lo ultimo, por usuario y por una cosa puntual. Se crean en cada particion
+            // The queries: latest, by user and by one specific thing. Created on each partition
             st.execute("CREATE INDEX IF NOT EXISTS audit_events_at ON " + schema + ".audit_events (occurred_at)");
             st.execute("CREATE INDEX IF NOT EXISTS audit_events_actor ON " + schema + ".audit_events (actor_user_id, occurred_at)");
             st.execute("CREATE INDEX IF NOT EXISTS audit_events_entity ON " + schema + ".audit_events (entity, entity_id, occurred_at)");
         }
     }
 
-    // r: tabla comun (la de antes), p: particionada, null: no existe
+    // r: plain table (the old one), p: partitioned, null: does not exist
     private static String relkind(Connection con, String schema) throws SQLException {
         try (PreparedStatement ps = con.prepareStatement("SELECT c.relkind FROM pg_class c "
                 + "JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = ? AND c.relname = 'audit_events'")) {
@@ -242,7 +242,7 @@ public class AuditStore {
         partitions.add(key);
     }
 
-    // audit_events_2026_11: de 2026-11-01 a 2026-12-01 en UTC. IF NOT EXISTS: otra instancia pudo haberla creado
+    // audit_events_2026_11: from 2026-11-01 to 2026-12-01 in UTC. IF NOT EXISTS: another instance may have created it
     static String partitionDdl(String schema, YearMonth month) {
         return "CREATE TABLE IF NOT EXISTS " + schema + ".audit_events_" + month.getYear() + "_"
                 + String.format("%02d", month.getMonthValue()) + " PARTITION OF " + schema + ".audit_events"

@@ -49,8 +49,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /*
-De punta a punta con H2 y Hibernate de verdad: el cambio, la fila de la outbox en la misma transaccion y
-el envio a Redis (mock).
+End to end with H2 and real Hibernate: the change, the outbox row in the same transaction and
+the send to Redis (mock).
  */
 class AuditFlowTest {
 
@@ -101,7 +101,7 @@ class AuditFlowTest {
     }
 
     @Test
-    void elAltaQuedaConQuienDesdeDondeYLosCampos() throws Exception {
+    void createKeepsWhoFromWhereAndTheFields() throws Exception {
         Long id = create("Mesa", "15000.00");
 
         JsonNode event = single();
@@ -115,12 +115,12 @@ class AuditFlowTest {
         assertThat(event.path("actor").path("role").asText()).isEqualTo("ADMINISTRADOR");
         assertThat(event.path("at").asText()).endsWith("Z");
         assertThat(event.path("changes").path("price").path("to").asText()).isEqualTo("15000.00");
-        // Nunca la contrasena, aunque no este marcada
+        // Never the password, even if it is not marked
         assertThat(event.path("changes").has("password")).isFalse();
     }
 
     @Test
-    void enUnCambioVanSoloLosCamposQueCambiaron() throws Exception {
+    void onUpdateOnlyChangedFieldsAreSent() throws Exception {
         Long id = create("Mesa", "15000.00");
         clearOutbox();
 
@@ -137,7 +137,7 @@ class AuditFlowTest {
     }
 
     @Test
-    void siSoloCambiaronCamposIgnoradosNoSeRegistra() {
+    void ifOnlyIgnoredFieldsChangedNothingIsRecorded() {
         Long id = create("Mesa", "1");
         clearOutbox();
 
@@ -150,7 +150,7 @@ class AuditFlowTest {
     }
 
     @Test
-    void elBorradoLogicoEsUnDelete() throws Exception {
+    void softDeleteIsADelete() throws Exception {
         Long id = create("Mesa", "1");
         clearOutbox();
 
@@ -160,7 +160,7 @@ class AuditFlowTest {
     }
 
     @Test
-    void siLaTransaccionSeDeshaceTampocoQuedaLaAuditoria() {
+    void ifTransactionRollsBackTheAuditIsGoneToo() {
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
             EntityManager em = emf.createEntityManager();
             AuditedThing thing = new AuditedThing();
@@ -168,14 +168,14 @@ class AuditFlowTest {
             em.joinTransaction();
             em.persist(thing);
             em.flush();
-            throw new IllegalStateException("fallo despues del cambio");
+            throw new IllegalStateException("failure after the change");
         })).isInstanceOf(IllegalStateException.class);
 
         assertThat(count()).isZero();
     }
 
     @Test
-    void lasLlamadasInternasLoQueNoEsAuditadoYLasImportacionesNoSeRegistran() {
+    void internalCallsNonAuditedEntitiesAndImportsAreNotRecorded() {
         request(r -> r.addHeader(Headers.INTERNAL_REQUEST, "true"));
         create("Interna", "1");
 
@@ -183,7 +183,7 @@ class AuditFlowTest {
         tx.executeWithoutResult(status -> {
             EntityManager em = em();
             PlainThing plain = new PlainThing();
-            plain.name = "sin auditar";
+            plain.name = "not audited";
             em.persist(plain);
         });
         AuditSuppression.run(() -> create("Importada", "1"));
@@ -192,7 +192,7 @@ class AuditFlowTest {
     }
 
     @Test
-    void elAltaPorAutoservicioNoTieneActorYEnLaPlataformaElTenantEsPublic() throws Exception {
+    void selfServiceSignUpHasNoActorAndOnThePlatformTheTenantIsPublic() throws Exception {
         request(r -> r.setRemoteAddr("10.0.0.9"));
         SecurityContextHolder.clearContext();
         TenantContext.clear();
@@ -206,7 +206,7 @@ class AuditFlowTest {
     }
 
     @Test
-    void elRegistroAManoSeSumaALaTransaccion() throws Exception {
+    void manualRecordJoinsTheTransaction() throws Exception {
         auditLog.read("ProductPricing", 12);
         assertThat(single().path("action").asText()).isEqualTo("READ");
         clearOutbox();
@@ -218,7 +218,7 @@ class AuditFlowTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void elPublicadorMandaLosPendientesYLosMarca() throws Exception {
+    void publisherSendsPendingRowsAndMarksThem() throws Exception {
         create("Mesa", "1");
         create("Silla", "2");
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
@@ -234,12 +234,12 @@ class AuditFlowTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void siRedisFallaQuedanPendientes() {
+    void ifRedisFailsRowsStayPending() {
         create("Mesa", "1");
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         StreamOperations<String, Object, Object> stream = mock(StreamOperations.class);
         when(redis.opsForStream()).thenReturn(stream);
-        when(stream.add(any(MapRecord.class), any(XAddOptions.class))).thenThrow(new IllegalStateException("redis caido"));
+        when(stream.add(any(MapRecord.class), any(XAddOptions.class))).thenThrow(new IllegalStateException("redis down"));
         OutboxPublisher publisher = new OutboxPublisher(db, redis, Duration.ofSeconds(2), Clock.systemUTC());
 
         assertThatThrownBy(publisher::publishPending).isInstanceOf(IllegalStateException.class);

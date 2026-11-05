@@ -3,8 +3,8 @@ package com.kleinkauf.common.dto.stock;
 import java.util.List;
 
 /*
-Respuesta de la reserva: un item por cada linea pedida, en el mismo orden.
-shortages: productos a los que les falto stock en una venta del local (se ajustaron); vacio si no falto nada.
+Reservation response: one item per requested line, in the same order.
+shortages: products that ran short of stock in an in-store sale (they were adjusted); empty if nothing was short.
  */
 public record ReservationDto(
         String reference,

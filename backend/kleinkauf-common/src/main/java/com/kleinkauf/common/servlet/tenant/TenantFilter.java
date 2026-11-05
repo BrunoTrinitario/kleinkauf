@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.util.List;
 
 /*
-Toma el tenant del header que agrega el gateway y lo deja en el TenantContext.
-Si tenantRequired es true y el header no viene, responde 404.
-publicPaths: prefijos que no pertenecen a ningun tenant (ej. /products/images/): pasan sin el header.
+Takes the tenant from the header added by the gateway and puts it in TenantContext.
+If tenantRequired is true and the header is missing, responds 404.
+publicPaths: prefixes that do not belong to any tenant (e.g. /products/images/): they pass without the header.
  */
 public class TenantFilter extends OncePerRequestFilter {
 
@@ -28,7 +28,7 @@ public class TenantFilter extends OncePerRequestFilter {
 
     public TenantFilter(boolean tenantRequired, List<String> publicPaths) {
         this.tenantRequired = tenantRequired;
-        // Sin vacios: un prefijo "" volveria publicas todas las rutas
+        // No empty ones: a "" prefix would make every route public
         this.publicPaths = publicPaths == null ? List.of()
                 : publicPaths.stream().map(String::trim).filter(p -> !p.isEmpty()).toList();
     }

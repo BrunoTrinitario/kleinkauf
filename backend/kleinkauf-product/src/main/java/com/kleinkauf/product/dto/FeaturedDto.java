@@ -1,8 +1,8 @@
 package com.kleinkauf.product.dto;
 
 /*
-featured: si el producto se muestra como destacado.
-order: posicion entre los destacados (opcional, 0 o mas). Se ignora si featured es false.
+featured: whether the product is shown as featured.
+order: position among the featured products (optional, 0 or more). Ignored if featured is false.
  */
 public record FeaturedDto(
         boolean featured,

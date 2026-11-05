@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicReference;
 
 /*
-Ultima lectura del recolector, en memoria. Con mas de una instancia de observability cada una tiene la suya
-(todas leen lo mismo, asi que dan lo mismo salvo por unos segundos).
+The collector's last reading, in memory. With more than one observability instance each one has its own
+(they all read the same thing, so they match except for a few seconds).
  */
 @Component
 public class PlatformState {

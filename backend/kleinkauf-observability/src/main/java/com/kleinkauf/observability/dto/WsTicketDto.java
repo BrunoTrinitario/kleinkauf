@@ -1,5 +1,5 @@
 package com.kleinkauf.observability.dto;
 
-// Ticket para abrir el WS: /ws?ticket=... Sirve una sola vez y vence en expiresIn segundos
+// Ticket to open the WS: /ws?ticket=... Works only once and expires in expiresIn seconds
 public record WsTicketDto(String ticket, long expiresIn) {
 }

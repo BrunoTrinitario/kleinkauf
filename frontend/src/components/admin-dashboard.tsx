@@ -34,14 +34,14 @@ function StatTile({ label, value, hint }: { label: string; value: ReactNode; hin
   )
 }
 
-// Cada bloque carga por separado: mientras carga o si falla, solo ese bloque lo muestra
+// Each block loads separately: while it loads or if it fails, only that block shows it
 function BlockState({ isPending, isError }: { isPending: boolean; isError: boolean }) {
   if (isError) return <p className="text-sm text-destructive">{strings.admin.blockError}</p>
   if (isPending) return <p className="text-sm text-muted-foreground">{strings.admin.loading}</p>
   return null
 }
 
-// Resumen del panel de la tienda (solo ADMINISTRADOR): ventas, productos, stock y usuarios
+// Store dashboard overview (ADMINISTRADOR only): sales, products, stock and users
 export function AdminDashboard() {
   const { user } = useAuth()
   const enabled = !!user?.token
@@ -208,7 +208,7 @@ function ProductsBlock({ enabled }: { enabled: boolean }) {
 }
 
 function StockBlock({ enabled }: { enabled: boolean }) {
-  // La misma consulta que el bloque de productos (una sola request al backend)
+  // The same query as the products block (a single request to the backend)
   const dashboard = useProductsDashboard(enabled)
   const stock = dashboard.data?.stock
   const st = strings.admin.stock

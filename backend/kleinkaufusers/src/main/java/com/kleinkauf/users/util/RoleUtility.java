@@ -3,7 +3,7 @@ package com.kleinkauf.users.util;
 import com.kleinkauf.users.constants.RolesType;
 
 public class RoleUtility {
-    // Roles que se pueden asignar dentro de una tienda (SUPERADMIN queda afuera)
+    // Roles that can be assigned inside a store (SUPERADMIN is left out)
     public static boolean existsRole(String role) {
         try {
             return RolesType.valueOf(role) != RolesType.SUPERADMIN;
