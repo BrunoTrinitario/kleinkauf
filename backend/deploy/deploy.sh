@@ -35,10 +35,13 @@ esac
 
 echo "== Desplegando $PART ($(git rev-parse --short HEAD))"
 
-#De a uno: con varios gradle en paralelo el VPS se queda sin memoria
+#De a uno: con varios gradle en paralelo el VPS se queda sin memoria.
+#--no-cache: cada deploy compila desde cero y no reusa capas de otro deploy (al final se borra toda la cache).
+#Dentro del mismo deploy los servicios del backend comparten la cache de gradle (mount de Dockerfile.service), asi
+#que las dependencias se bajan una sola vez por deploy
 for s in $BUILD; do
   echo "== build $s"
-  compose build "$s"
+  compose build --no-cache "$s"
 done
 
 #--wait espera a que los servicios queden healthy: si alguno no arranca, el deploy falla
@@ -50,15 +53,13 @@ if [ "$PART" = backend ]; then
   compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 fi
 
-#Limpieza: sin esto el disco crece varios GB por semana solo con deploys.
+#Limpieza: no se guarda nada de un deploy para el siguiente (con cache quedaban mas de 13 GB en dos dias).
 #- Las imagenes viejas quedan sin tag despues de cada build.
-#- La cache de build (capas y la cache de gradle y npm) que no se uso en CACHE_KEEP (24 h): lo que se uso hace
-#  poco queda, asi el proximo deploy del dia sigue siendo rapido. Con 72 h quedaban mas de 13 GB.
+#- Toda la cache de build: capas y las caches de gradle y npm.
 #- Contenedores parados y redes sin uso. Los volumenes (base, imagenes, certificados) no se tocan nunca.
-CACHE_KEEP=${DOCKER_CACHE_KEEP:-24h}
 echo "== limpieza"
 docker image prune -f >/dev/null
-docker builder prune -f --filter "until=$CACHE_KEEP" >/dev/null
+docker builder prune -af >/dev/null
 docker container prune -f >/dev/null
 docker network prune -f >/dev/null
 docker system df

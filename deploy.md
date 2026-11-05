@@ -254,13 +254,14 @@ cuántos se emiten por semana.
 
 ### Espacio en disco
 
-Cada deploy compila imágenes nuevas, así que sin limpieza el disco crece varios GB por semana. `deploy.sh` limpia al
-final de cada deploy, y el log del job de GitHub Actions muestra cuánto ocupa Docker (`docker system df`):
+Cada deploy compila imágenes nuevas, así que sin limpieza el disco crece varios GB por semana (con caché quedaban más
+de 13 GB en dos días). Por eso **no se guarda nada de un deploy para el siguiente**:
 
-- Las imágenes viejas (sin tag) y los contenedores parados.
-- La caché de build que no se usó en las últimas 24 horas (`DOCKER_CACHE_KEEP` en el entorno, por defecto `24h`;
-  con 72 h quedaban más de 13 GB). La que se usó hace poco queda, así el siguiente deploy del día sigue siendo rápido
-  (las dependencias de gradle y npm están ahí).
+- `deploy.sh` compila cada imagen con `--no-cache`. Dentro del mismo deploy los servicios del backend comparten la
+  caché de gradle, así que las dependencias se bajan una sola vez por deploy; el de backend tarda unos minutos más
+  que con caché.
+- Al final borra las imágenes viejas (sin tag), **toda** la caché de build, los contenedores parados y las redes sin
+  uso. El log del job de GitHub Actions muestra cuánto ocupa Docker (`docker system df`).
 - Los volúmenes no se tocan nunca.
 
 Los logs de los contenedores rotan solos: hasta 3 archivos de 10 MB por contenedor (`x-logging` en
@@ -271,7 +272,7 @@ Para ver qué ocupa y liberar a mano, en el server:
 ```bash
 df -h /                      # disco del server
 docker system df             # imágenes, contenedores, volúmenes y caché de build
-docker builder prune -af     # toda la caché de build (el próximo deploy tarda más: baja las dependencias de nuevo)
+docker builder prune -af     # toda la caché de build (deploy.sh ya lo hace al final de cada deploy)
 docker image prune -af       # todas las imágenes sin contenedor (también las de servicios frenados)
 ```
 
