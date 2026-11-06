@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 /*
-Catalog usage of each store in Redis (docs/observabilidad.md, store.usage channel): one hash per store and day,
+Catalog usage of each store in Redis (docs/features/observability.md, store.usage channel): one hash per store and day,
 usage:<tenant>:<yyyy-MM-dd>, with
 - visits: times the catalog listing was opened (the first page),
 - product:<slug>: times that product's detail was opened.

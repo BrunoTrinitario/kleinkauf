@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /*
-GET /api/v1/products/dashboard: store dashboard (ADMINISTRADOR only, docs/panel-admin.md).
+GET /api/v1/products/dashboard: store dashboard (ADMINISTRADOR only, docs/features/admin-dashboards.md).
 Always up to date: not cached.
  */
 public record ProductDashboardDto(

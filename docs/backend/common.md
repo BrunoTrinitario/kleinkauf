@@ -1,126 +1,131 @@
 # kleinkauf-common
 
-Librería compartida, **no es un servicio**. Es un build compuesto de Gradle: cada servicio la incluye con
-`includeBuild('../kleinkauf-common')` en su `settings.gradle` y la usa como dependencia, sin publicarla. Casi todo se
-autoconfigura: el servicio la agrega y los beans aparecen solos (cada uno se puede reemplazar definiendo el propio).
+Shared library, **not a service**. It is a Gradle composite build: each service includes it with
+`includeBuild('../kleinkauf-common')` in its `settings.gradle` and uses it as a dependency, without publishing it.
+Almost everything is auto-configured: the service adds the dependency and the beans show up (each one can be replaced
+by defining your own).
 
-Convenciones comunes: [README](README.md).
+Shared conventions: [README](README.md).
 
-## Qué trae y quién lo usa
+## What it provides and who uses it
 
-| Paquete | Qué hay | gateway | users | products | sales | observability |
+| Package | What is in it | gateway | users | products | sales | observability |
 |---|---|---|---|---|---|---|
-| `constants` | `Headers`, `TenantConstants` (`public`, el claim `tenant`), `ActivityKeys`, `UsageKeys` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `dto` | `TenantDto`, `RoleDto` y los de reservas de stock (`dto.stock`) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `security` | `InternalTokenService` (token entre servicios), `PermissionArea` (áreas y máscaras) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `servlet.tenant` | `TenantFilter`, `TenantContext`, Hibernate multi-tenant por schema (`TenantIdentifierResolver`, `DatabaseMultiTenantConnectionProvider`), `TenantSchemaManager` | | ✓ | ✓ | ✓ | |
-| `servlet.security` | `CustomUserDetails`: authorities `ROLE_<rol>` y `PERM_<área>` | | ✓ | ✓ | ✓ | ✓ |
-| `servlet.exceptions` | `ApiException` (mensaje + código) y `GlobalExceptionHandler` | | ✓ | ✓ | ✓ | |
-| `events` | `KleinKaufEvent` y `KleinKaufEventPublisher` (Redis Streams `kleinkauf:events`) | | ✓ | ✓ | ✓ | ✓ (lee) |
-| `audit` | `@Audited`, `@AuditIgnore`, `AuditLog`, outbox y `AuditEvent` | | ✓ | ✓ | ✓ | ✓ (lee) |
-| `observability` | Actuator en el puerto de gestión, trazas, logs con `tenant` y `userId`, etiqueta `tenant` (`TenantTag`) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `autoconfigure` | `RedisTemplate<String,Object>` (JSON), caché Caffeine (`caffeineCache`, 10 min) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `constants` | `Headers`, `TenantConstants` (`public`, the `tenant` claim), `ActivityKeys`, `UsageKeys` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `dto` | `TenantDto`, `RoleDto` and the stock reservation DTOs (`dto.stock`) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `security` | `InternalTokenService` (service-to-service token), `PermissionArea` (areas and masks) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `servlet.tenant` | `TenantFilter`, `TenantContext`, schema-based Hibernate multi-tenancy (`TenantIdentifierResolver`, `DatabaseMultiTenantConnectionProvider`), `TenantSchemaManager` | | ✓ | ✓ | ✓ | |
+| `servlet.security` | `CustomUserDetails`: `ROLE_<role>` and `PERM_<area>` authorities | | ✓ | ✓ | ✓ | ✓ |
+| `servlet.exceptions` | `ApiException` (message + status) and `GlobalExceptionHandler` | | ✓ | ✓ | ✓ | |
+| `events` | `KleinKaufEvent` and `KleinKaufEventPublisher` (Redis Streams `kleinkauf:events`) | | ✓ | ✓ | ✓ | ✓ (reads) |
+| `audit` | `@Audited`, `@AuditIgnore`, `AuditLog`, outbox and `AuditEvent` | | ✓ | ✓ | ✓ | ✓ (reads) |
+| `observability` | Actuator on the management port, traces, logs with `tenant` and `userId`, `tenant` tag (`TenantTag`) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `autoconfigure` | `RedisTemplate<String,Object>` (JSON), Caffeine cache (`caffeineCache`, 10 min) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `ImageFiles` | Detects an image type (JPG, PNG, WEBP, GIF) from its first bytes | | ✓ | | | |
 
-## Cómo usarla en un servicio nuevo
+## Using it in a new service
 
-1. **Gradle:** `includeBuild('../kleinkauf-common')` en `settings.gradle` y la dependencia en `build.gradle` (copiar de
-   `kleinkauf-sales`). Sumarlo también al `backend/settings.gradle` para importarlo con el resto.
-2. **Propiedades mínimas:**
+1. **Gradle:** `includeBuild('../kleinkauf-common')` in `settings.gradle` and the dependency in `build.gradle` (copy
+   from `kleinkauf-sales`). Also add it to `backend/settings.gradle` to import it with the rest.
+2. **Minimum properties:**
 
-| Propiedad | Para qué |
+| Property | Purpose |
 |---|---|
-| `spring.application.name` | Nombre en Eureka y en métricas y auditoría |
-| `server.port` | El puerto de gestión queda en este + 6000 si no se fija `management.server.port` |
-| `api.internal.key` | Crea el `InternalTokenService` (la misma clave en todos los servicios) |
-| `spring.data.redis.*` | Activa `RedisTemplate`, eventos y el publicador de la auditoría |
-| `kleinkauf.tenant.required` | `true` por defecto: sin `X-Forwarded-Host` responde 404. `false` = sin tienda trabaja en `public` |
-| `kleinkauf.tenant.public-paths` | Prefijos que pasan sin tienda (ej. `/products/images/,/api/v1/platform/`) |
+| `spring.application.name` | Name in Eureka, metrics and audit log |
+| `server.port` | The management port becomes this + 6000 unless `management.server.port` is set |
+| `api.internal.key` | Creates the `InternalTokenService` (same key in every service) |
+| `spring.data.redis.*` | Enables `RedisTemplate`, events and the audit publisher |
+| `kleinkauf.tenant.required` | `true` by default: without `X-Forwarded-Host` it answers 404. `false` = without a store it works on `public` |
+| `kleinkauf.tenant.public-paths` | Prefixes allowed without a store (e.g. `/products/images/,/api/v1/platform/`) |
 
-3. **Multi-tenant:** implementar un bean `TenantSchemaManager` (ver `TenantDataSource` de products o sales) que cree y
-   migre el schema de una tienda la primera vez que se usa. Con eso `KleinKaufServletAutoConfiguration` arma el
-   `EntityManagerFactory` multi-tenant: cada request usa el schema de `TenantContext`.
-4. **Seguridad:** un `HeaderAuthFilter` propio que lea `X-User-Id`, pida los roles a users y arme
-   `CustomUserDetails`; y un `SecurityConfig` con el `TenantFilter` antes. Copiar el de sales o products.
-5. **Errores:** tirar `ApiException(mensaje, HttpStatus)`; `GlobalExceptionHandler` responde el mensaje en texto
-   con ese código. Los errores del pedido responden su código: ruta inexistente 404 (`Not found`), método que la
-   ruta no tiene 405 (`Method not allowed`), parámetro con otro tipo 400 (`Invalid value for <parámetro>`) y cuerpo
-   que no es JSON 400. Cualquier otra excepción responde 500 y se loguea con la traza (`Unhandled error`).
-6. **Auditoría:** marcar las entidades con `@Audited` (y los campos que no se registran con `@AuditIgnore`). Para lo
-   que no es un alta, cambio o baja, inyectar `AuditLog` y llamar a `record(...)` o `read(entidad, id)`. Se apaga con
-   `kleinkauf.audit.enabled=false`.
-7. **Eventos para el panel en vivo:** inyectar `KleinKaufEventPublisher` y `publish(tipo, tenant, datos)`. Dentro de una
-   transacción sale después del commit; si Redis falla se loguea y sigue. Sumar el tipo a `KleinKaufEvent` y su ruteo en
-   el `EventStreamListener` de observability.
-8. **Gateway:** la ruta en `GatewayRoutes` y, si hay rutas públicas, en `PermittedUrls`.
+3. **Multi-tenancy:** implement a `TenantSchemaManager` bean (see products' or sales' `TenantDataSource`) that creates
+   and migrates a store's schema the first time it is used. With it, `KleinKaufServletAutoConfiguration` builds the
+   multi-tenant `EntityManagerFactory`: each request uses the schema in `TenantContext`.
+4. **Security:** your own `HeaderAuthFilter` that reads `X-User-Id`, asks users for the roles and builds
+   `CustomUserDetails`; and a `SecurityConfig` with the `TenantFilter` before it. Copy the one from sales or products.
+5. **Errors:** throw `ApiException(message, HttpStatus)`; `GlobalExceptionHandler` answers the message as text with
+   that status. Request errors answer with their own status: unknown route 404 (`Not found`), a method the route does
+   not have 405 (`Method not allowed`), a parameter of the wrong type 400 (`Invalid value for <parameter>`) and a body
+   that is not JSON 400. Any other exception answers 500 and is logged with its stack trace (`Unhandled error`).
+6. **Audit:** mark entities with `@Audited` (and fields that should not be recorded with `@AuditIgnore`). For anything
+   that is not a create, update or delete, inject `AuditLog` and call `record(...)` or `read(entity, id)`. Turned off
+   with `kleinkauf.audit.enabled=false`.
+7. **Events for the live panel:** inject `KleinKaufEventPublisher` and call `publish(type, tenant, data)`. Inside a
+   transaction it goes out after commit; if Redis fails it is logged and the call goes on. Add the type to
+   `KleinKaufEvent` and its routing to observability's `EventStreamListener`.
+8. **Gateway:** the route in `GatewayRoutes` and, if there are public routes, in `PermittedUrls`.
 
-## Contratos entre servicios
+## Contracts between services
 
 ### Headers
 
-| Header | Lo pone | Qué lleva |
+| Header | Set by | Contents |
 |---|---|---|
-| `X-Forwarded-Host` | gateway (y el servicio que llama a otro, el mismo valor) | Schema de la tienda |
-| `X-User-Id` | gateway | Id del usuario del JWT |
-| `X-Open-Path` | gateway | `true` en rutas públicas |
-| `X-Client-Ip` | gateway | IP de la conexión (para la auditoría) |
-| `X-internal-request` | El servicio que llama | `true` en llamadas internas |
-| `X-Internal-Token` | El servicio que llama | JWT interno |
+| `X-Forwarded-Host` | gateway (and a service calling another, with the same value) | Store schema |
+| `X-User-Id` | gateway | User id from the JWT |
+| `X-Open-Path` | gateway | `true` on public routes |
+| `X-Client-Ip` | gateway | Connection IP (for the audit log) |
+| `X-internal-request` | The calling service | `true` on internal calls |
+| `X-Internal-Token` | The calling service | Internal JWT |
 
-El gateway borra `X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name` y `X-Client-Ip` si los manda el
-cliente.
+The gateway removes `X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name` and `X-Client-Ip` if the client
+sends them.
 
-### Token interno
+### Internal token
 
-JWT firmado con `api.internal.key` (distinta a `jwt.secret` de los usuarios), con el nombre del servicio como
-subject y **10 segundos** de vida: se genera uno por llamada con `generateMicroServiceToken(nombre)` y se valida
-con `validateInternalToken(token)`. products les da el rol `INTERNAL` (lo piden sus `/api/internal/**`); users solo
-lo valida cuando viene `X-internal-request: true`.
+A JWT signed with `api.internal.key` (different from the users' `jwt.secret`), with the service name as subject and a
+**10-second** lifetime: one is generated per call with `generateMicroServiceToken(name)` and validated with
+`validateInternalToken(token)`. products gives it the `INTERNAL` role (required by its `/api/internal/**`); users
+requires it on all of `/api/internal/**`.
 
-### JWT de usuario
+### User JWT
 
-Lo emite users (`jwt.secret`) con `id`, `email`, `name` y `tenant` (el schema, o `public`). Dura 1 hora. El gateway
-lo valida y compara el `tenant` con la tienda de la request.
+Issued by users (`jwt.secret`) with `id`, `email`, `name`, `tenant` (the schema, or `public`) and its type (`access`,
+`refresh` or `password`, so a session token cannot change a password and the email token cannot be used to log in).
+The access token lasts 1 hour. The gateway validates it and compares `tenant` with the request's store.
 
-### Roles y permisos
+### Roles and permissions
 
-`RoleDto { type, permissions }`: `permissions` es la máscara de `PermissionArea` (`PRODUCTOS`=1, `PRECIOS`=2,
-`STOCK`=4, `COMBOS`=8, `USUARIOS`=16). `CustomUserDetails` da `ROLE_<type>` por cada rol y `PERM_<área>` por la
-unión de las máscaras: en `SecurityConfig` se usa `hasRole("ADMINISTRADOR")` o
-`hasAuthority(PermissionArea.STOCK.authority())`.
+`RoleDto { type, permissions }`: `permissions` is the `PermissionArea` mask (`PRODUCTOS`=1, `PRECIOS`=2, `STOCK`=4,
+`COMBOS`=8, `USUARIOS`=16). `CustomUserDetails` grants `ROLE_<type>` for each role and `PERM_<area>` for the union of
+the masks: `SecurityConfig` uses `hasRole("ADMINISTRADOR")` or `hasAuthority(PermissionArea.STOCK.authority())`.
 
-### Redis compartido
+### Shared Redis
 
-| Key / stream | Escribe | Lee | Contenido |
+| Key / stream | Written by | Read by | Contents |
 |---|---|---|---|
-| `user:<id>:<schema>` (hash `roles`) | users | gateway, products, sales, observability | Roles del usuario (1 h) |
+| `user:<id>:<schema>` (hash `roles`) | users | gateway, products, sales, observability | User roles (1 h) |
 | `tenant:<schema>`, `tenant:url:<url>` (hash `data`) | users | gateway, products, sales | `TenantDto` (1 h) |
-| `gateway:cors:<url>` | users | gateway | Origen permitido |
-| `activity:<schema>:<userId>` | gateway | users, observability | Hora de la última request en ms (5 min). `ActivityKeys` |
-| `usage:<schema>:<yyyy-MM-dd>` (hash) | products | observability | Visitas al catálogo y vistas por producto (8 días). `UsageKeys` |
-| `kleinkauf:events` (stream) | users, products, sales | observability | `KleinKaufEvent`: `type`, `tenant`, `at` (UTC), `data` (JSON). Recortado a ~10.000 |
-| `kleinkauf:audit` (stream) | outbox de users, products, sales | observability | `AuditEvent` |
+| `gateway:cors:<url>` | users | gateway | Allowed origin |
+| `activity:<schema>:<userId>` | gateway | users, observability | Time of the last request in ms (5 min). `ActivityKeys` |
+| `visitor:<schema>:<id>` | gateway | observability | Anonymous visitor of a store (5 min; the id is a hash of IP and browser) |
+| `usage:<schema>:<yyyy-MM-dd>` (hash) | products | observability | Catalog visits and views per product (8 days). `UsageKeys` |
+| `kleinkauf:events` (stream) | users, products, sales | observability | `KleinKaufEvent`: `type`, `tenant`, `at` (UTC), `data` (JSON). Trimmed to ~10,000 |
+| `kleinkauf:audit` (stream) | outbox of users, products, sales | observability | `AuditEvent` |
 
-### Eventos (`KleinKaufEvent`)
+The gateway also keeps the rate limit counters and users the refresh tokens (`jti`) in Redis.
 
-| Tipo | Publica | `tenant` | `data` |
+### Events (`KleinKaufEvent`)
+
+| Type | Published by | `tenant` | `data` |
 |---|---|---|---|
 | `tenant.created`, `tenant.enabled`, `tenant.disabled`, `tenant.deleted` | users | `public` | `id`, `identifier`, `schema` |
-| `order.created`, `order.receipt-uploaded` | sales | La tienda | `number`, `channel`, `status`, `total`, `buyerName` |
-| `stock.movement` | products | La tienda | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
-| `stock.low` | products | La tienda | `productId`, `productName`, `stock`, `minStock` |
+| `order.created`, `order.receipt-uploaded` | sales | The store | `number`, `channel`, `status`, `total`, `buyerName` |
+| `stock.movement` | products | The store | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
+| `stock.low` | products | The store | `productId`, `productName`, `stock`, `minStock` |
 
-Un dato puede ser `null` (ej. el `reason` de un movimiento sin motivo): va como `null` en el JSON.
+A value can be `null` (e.g. the `reason` of a movement without one): it goes as `null` in the JSON.
 
-Son para el panel en vivo: si Redis falla se pierden. La auditoría, que no se puede perder, va por la tabla
-`public.outbox_events` de cada base y un publicador que la vacía hacia `kleinkauf:audit` (cada 2 s,
-`kleinkauf.audit.publish-interval`). Formato en [observability.md](observability.md#formato-de-la-auditoría).
+They are for the live panel: if Redis fails they are lost. The audit log, which must not be lost, goes through each
+database's `public.outbox_events` table and a publisher that drains it into `kleinkauf:audit` (every 2 s,
+`kleinkauf.audit.publish-interval`). Format in [observability.md](observability.md#audit-format).
 
-### Observabilidad
+### Observability
 
-`ObservabilityEnvironmentPostProcessor` pone valores por defecto (lo que defina el servicio gana):
+`ObservabilityEnvironmentPostProcessor` sets defaults (whatever the service defines wins):
 
-- Actuator en el puerto de gestión (`server.port + 6000`) con `/health`, `/ready`, `/metrics` y `/status`; el
-  puerto se publica en Eureka (`management.port` en la metadata).
-- Histograma de latencias de las requests HTTP y la etiqueta `application`.
-- Trazas con OpenTelemetry (el envío por OTLP lo prende el stack de Docker) y logs con `traceId`, `spanId`,
-  `tenant` y `userId`.
+- Actuator on the management port (`server.port + 6000`) with `/health`, `/ready`, `/metrics` and `/status`; the port
+  is published in Eureka (`management.port` in the metadata).
+- Latency histogram for HTTP requests and the `application` tag.
+- Traces with OpenTelemetry (OTLP export is turned on by the Docker stack) and logs with `traceId`, `spanId`, `tenant`
+  and `userId`.

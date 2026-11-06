@@ -5,7 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Map;
 
 /*
-Manual recording of what is not a create, update or delete of an @Audited entity (docs/auditoria.md):
+Manual recording of what is not a create, update or delete of an @Audited entity (docs/features/audit.md):
 sensitive reads, status changes, imports and whatever is written with plain SQL.
 Goes to the outbox with JdbcTemplate: inside a transaction it joins it (same connection as the changes);
 outside one, it is written right away.

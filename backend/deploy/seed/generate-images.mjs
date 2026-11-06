@@ -11,7 +11,7 @@ const H = 600
 const SS = 2 // supersampling por eje para suavizar bordes
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "images")
 
-// Paleta de STYLES.md (stone + cyan) y algunos tonos calidos de muebles
+// Paleta de docs/style-reference.md (stone + cyan) y algunos tonos calidos de muebles
 const BG_TOP = [250, 250, 249]
 const BG_BOTTOM = [232, 230, 229]
 const SHADOW = [214, 211, 209]

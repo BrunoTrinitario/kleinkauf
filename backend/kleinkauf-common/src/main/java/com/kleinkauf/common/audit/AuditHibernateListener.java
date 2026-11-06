@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /*
-Records creates, updates and deletes of @Audited entities (docs/auditoria.md).
+Records creates, updates and deletes of @Audited entities (docs/features/audit.md).
 - Runs on flush, with the Hibernate session: the outbox row is inserted with the same connection, in the
   same transaction as the change. If the change is rolled back, so is the audit.
 - The "before" comes from the state Hibernate had loaded (oldState), and the changed fields from the ones

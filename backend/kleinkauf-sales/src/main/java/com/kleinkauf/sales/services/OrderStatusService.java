@@ -35,7 +35,7 @@ public class OrderStatusService {
     public static final String BUYER_CANCEL_REASON = "Cancelado por el comprador";
     public static final String EXPIRED_REASON = "Vencio el plazo para pagar";
 
-    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/features/audit.md)
     @Autowired
     private AuditLog auditLog;
 

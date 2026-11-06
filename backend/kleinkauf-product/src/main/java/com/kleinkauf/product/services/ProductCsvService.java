@@ -76,7 +76,7 @@ public class ProductCsvService {
     private static final Map<String, Column> BY_HEADER = Arrays.stream(Column.values())
             .collect(Collectors.toMap(Column::header, Function.identity()));
 
-    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/features/audit.md)
     @Autowired
     private AuditLog auditLog;
 

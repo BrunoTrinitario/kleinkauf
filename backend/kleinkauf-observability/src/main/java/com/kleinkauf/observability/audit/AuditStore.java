@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /*
-The stored audit (docs/auditoria.md): <schema>.audit_events in the observability database, one table per
+The stored audit (docs/features/audit.md): <schema>.audit_events in the observability database, one table per
 store plus public's for the platform. Kept forever and nobody edits or deletes it.
 - Partitioned by month (occurred_at, in UTC): audit_events_2026_11, etc. Date queries only read the months
   in the range, and an old month can be archived or moved without touching the rest. The month's partition is created before

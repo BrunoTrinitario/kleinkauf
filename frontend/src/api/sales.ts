@@ -144,7 +144,7 @@ export function useMyOrders(page: number, enabled: boolean) {
 }
 
 /*
-Sales dashboard (ADMINISTRADOR only, docs/ventas.md). The keys hang from ["sales"], so a status change also
+Sales dashboard (ADMINISTRADOR only, docs/features/sales.md). The keys hang from ["sales"], so a status change also
 updates the dashboard overview (/admin) and "my orders".
  */
 

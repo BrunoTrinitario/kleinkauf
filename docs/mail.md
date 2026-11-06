@@ -1,7 +1,7 @@
-# Mails (Resend)
+# Email (Resend)
 
-Los mails de la plataforma (recupero de contraseña y confirmación de compra) salen por **Resend**, desde el
-subdominio `mail.kleinkauf.site`. Cada mail lleva el nombre de la tienda como remitente y su mail de contacto como
+Platform emails (password recovery and order confirmation) are sent through **Resend**, from the
+`mail.kleinkauf.site` subdomain. Each email carries the store's name as sender and the store's contact address as
 `Reply-To`:
 
 ```
@@ -9,114 +9,69 @@ From:     "Tienda Lucía Deco" <no-reply@mail.kleinkauf.site>
 Reply-To: contacto@tiendalucia.com
 ```
 
-- Cuenta: Resend, dominio `mail.kleinkauf.site` (id `1b6c1fb8-8378-44d7-b4d4-4992c9271869`), región `sa-east-1`
-  (São Paulo). La región no se puede cambiar.
-- Panel del dominio: <https://resend.com/domains/1b6c1fb8-8378-44d7-b4d4-4992c9271869>
-- DNS de `kleinkauf.site`: **Hostmar** (`ns3.hostmar.com`, `ns4.hostmar.com`).
+- Account: Resend, domain `mail.kleinkauf.site` (id `1b6c1fb8-8378-44d7-b4d4-4992c9271869`), region `sa-east-1`
+  (São Paulo). The region cannot be changed.
+- Domain panel: <https://resend.com/domains/1b6c1fb8-8378-44d7-b4d4-4992c9271869>
+- DNS for `kleinkauf.site`: **Hostmar** (`ns3.hostmar.com`, `ns4.hostmar.com`).
 
-## DNS en Hostmar
+## DNS records
 
-Se hace una sola vez. Mientras falte, Resend no deja mandar desde `mail.kleinkauf.site`.
+Already set up and verified. Kept here in case the domain or the DNS provider changes.
 
-### 1. Entrar a la zona DNS
+| Type | Name | Value | Priority | Purpose |
+|---|---|---|---|---|
+| TXT | `resend._domainkey.mail.kleinkauf.site` | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDwY62jLWM0zRbMwXXBgOo/4OSK3K3jXh9M35eK52KT9sUllUv894ZNT8DLyQ/BSiXMh+DfzMN/1h2Jh9azAP3PaKU5f/OzlF6jL/sYhl/dSrESTgAZWO8jihc/CJ5O3CGIueRNtI1LecJxtW3In1AUIw01rs5GgjD3SaGaJyE9QIDAQAB` | — | **DKIM**: signs the emails |
+| MX | `send.mail.kleinkauf.site` | `feedback-smtp.sa-east-1.amazonses.com` | 10 | Return-Path: where bounces go |
+| TXT | `send.mail.kleinkauf.site` | `v=spf1 include:amazonses.com ~all` | — | **SPF**: authorizes Resend to send for us |
+| CNAME | `rsend.mail.kleinkauf.site` | `send.forge.rmta.net` | — | Required by Resend for sending |
+| TXT | `_dmarc.kleinkauf.site` | `v=DMARC1; p=none;` | — | **DMARC**: required by Gmail and Yahoo |
 
-1. Entrar al panel de Hostmar (área de clientes o cPanel).
-2. Abrir **Editor de zona** (o "Zone Editor" / "Administrar DNS") del dominio `kleinkauf.site`.
-3. Antes de tocar nada, fijarse que no exista ya un registro con los nombres de abajo. Si hay uno con el mismo nombre y
-   tipo, editarlo en vez de agregar otro.
-
-### 2. Cargar los registros
-
-Hostmar pide el **nombre completo** (con `kleinkauf.site` al final). TTL: el que venga por defecto (o 3600).
-
-| # | Tipo | Nombre | Valor | Prioridad | Para qué |
-|---|---|---|---|---|---|
-| 1 | TXT | `resend._domainkey.mail.kleinkauf.site` | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDwY62jLWM0zRbMwXXBgOo/4OSK3K3jXh9M35eK52KT9sUllUv894ZNT8DLyQ/BSiXMh+DfzMN/1h2Jh9azAP3PaKU5f/OzlF6jL/sYhl/dSrESTgAZWO8jihc/CJ5O3CGIueRNtI1LecJxtW3In1AUIw01rs5GgjD3SaGaJyE9QIDAQAB` | — | **DKIM**: firma los mails; prueba que salen de nosotros |
-| 2 | MX | `send.mail.kleinkauf.site` | `feedback-smtp.sa-east-1.amazonses.com` | 10 | Return-Path: adonde vuelven los rebotes |
-| 3 | TXT | `send.mail.kleinkauf.site` | `v=spf1 include:amazonses.com ~all` | — | **SPF**: autoriza a Resend a mandar por nosotros |
-| 4 | CNAME | `rsend.mail.kleinkauf.site` | `send.forge.rmta.net` | — | Lo pide Resend para el envío |
-| 5 | TXT | `_dmarc.kleinkauf.site` | `v=DMARC1; p=none;` | — | **DMARC**: Gmail y Yahoo lo exigen |
-
-Campos del formulario de Hostmar:
-
-- **Nombre**: a qué (sub)dominio se le pega el registro. Es la "dirección" que van a consultar Gmail, Outlook, etc.
-- **Tipo**: qué clase de dato es. `TXT` es texto libre (ahí van DKIM, SPF y DMARC); `MX` dice qué servidor recibe
-  mails para ese nombre; `CNAME` dice "este nombre es un alias de otro".
-- **Valor / Contenido / Destino**: el dato en sí (la clave, el servidor o el alias).
-- **Prioridad** (solo MX): si hay varios servidores, se prueba primero el de número más bajo. Acá hay uno solo: 10.
-- **TTL**: cuántos segundos pueden guardar en caché la respuesta los demás servidores. Más bajo = los cambios se ven
-  antes. El de por defecto está bien.
-
-Cuidados:
-
-- **DKIM (1)**: el valor va en una sola línea, sin espacios, saltos ni comillas de más. Si el panel lo parte en
-  pedazos entre comillas, está bien; si le agrega espacios en el medio, no.
-- **MX (2)**: la prioridad va en su propio campo, no pegada al valor.
-- **SPF (3)**: va en `send.mail.kleinkauf.site`, no en la raíz. No toca el SPF de `kleinkauf.site` si lo hubiera.
-- **DMARC (5)**: va en la raíz (`_dmarc.kleinkauf.site`) y vale para todos los subdominios. Hoy no existe ninguno.
-  Si ya hubiera uno, no agregar otro (solo puede haber uno): dejar el que está.
-- **No tocar** los registros que ya están (A, `*`, MX del dominio, etc.).
-
-### 3. Avisar y verificar
-
-Cuando estén cargados, se verifica el dominio en Resend (desde el panel, botón **Verify**, o con
-`npx resend-cli@latest domains verify 1b6c1fb8-8378-44d7-b4d4-4992c9271869`). La propagación tarda de minutos a unas
-horas; se puede comprobar cada registro con:
+To check a record:
 
 ```bash
 nslookup -type=TXT resend._domainkey.mail.kleinkauf.site 8.8.8.8
 ```
 
-```bash
-nslookup -type=MX send.mail.kleinkauf.site 8.8.8.8
-```
+If a record does not show up, it is almost always the name: the panel may have appended the domain twice
+(`send.mail.kleinkauf.site.kleinkauf.site`). See
+[Resend's guide](https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying).
 
-```bash
-nslookup -type=TXT _dmarc.kleinkauf.site 8.8.8.8
-```
-
-Si después de unas horas alguno sigue sin aparecer, casi siempre es el nombre: está escrito distinto o el panel le
-agregó el dominio dos veces (`send.mail.kleinkauf.site.kleinkauf.site`). Ver la
-[guía de Resend](https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying).
-
-### 4. Más adelante: endurecer DMARC
-
-Con `p=none` los servidores solo informan; no bloquean nada. Cuando los mails lleguen bien durante unas semanas, se
-puede pasar a `v=DMARC1; p=quarantine;` para que los mails falsos con nuestro dominio vayan a spam. Para recibir
-informes, agregar `rua=mailto:<un mail nuestro>`.
+**Hardening DMARC later:** with `p=none` servers only report and block nothing. Once emails have been arriving fine for
+a few weeks, switch to `v=DMARC1; p=quarantine;` so forged emails with our domain go to spam. To receive reports, add
+`rua=mailto:<an address of ours>`.
 
 ## Backend
 
-Todos los mails los manda **users** (`MailService`), por SMTP a `smtp.resend.com:587`:
+Every email is sent by **users** (`MailService`), over SMTP to `smtp.resend.com:587`:
 
-| Mail | Quién lo pide | Cuándo |
+| Email | Requested by | When |
 |---|---|---|
-| Recupero de contraseña | users (`POST /api/v1/auth/forgot-password`) | El usuario lo pide en `/recuperar` |
-| Confirmación de compra | sales, por `POST /api/internal/mail/order-confirmation` | Al crear un pedido online (no las ventas presenciales) |
+| Password recovery | users (`POST /api/v1/auth/forgot-password`) | The user asks for it at `/recuperar` |
+| Order confirmation | sales, through `POST /api/internal/mail/order-confirmation` | When an online order is created (not in-store sales) |
 
-- **Remitente** (`StoreMailIdentity`): el nombre de la tienda sale de sus ajustes en products
-  (`GET /api/v1/catalog/store`). Si products no responde, se usa el derivado del identificador ("mi_tienda" →
-  "Mi tienda"). Sin tienda, `KleinKauf`. La dirección siempre es `mail.from.address`.
-- **Reply-To:** el mail del dueño de la tienda (su primer `ADMINISTRADOR` activo). Así, si el comprador responde, le
-  llega a la tienda.
-- **Confirmación de compra:** número, ítems, descuento, total, entrega, datos para transferir, vencimiento (en hora
-  argentina) y el link `<url de la tienda>/pedido/<número>`. sales la pide en segundo plano (no demora el checkout)
-  y sin reintentos. users la manda **una sola vez por pedido**: guarda la marca `mail:order:<schema>:<número>` en
-  Redis por 2 días y la borra si el envío falla.
-- Si el servidor de mail falla, queda en el log como `ERROR` y la request sigue igual.
+- **Sender** (`StoreMailIdentity`): the store name comes from its settings in products (`GET /api/v1/catalog/store`).
+  If products does not answer, the name derived from the identifier is used ("mi_tienda" → "Mi tienda"). Without a
+  store, `KleinKauf`. The address is always `mail.from.address`.
+- **Reply-To:** the store owner's email (its first active `ADMINISTRADOR`). If the buyer replies, it reaches the
+  store.
+- **Order confirmation:** number, items, discount, total, delivery, transfer details, expiration (Argentina time) and
+  the link `<store url>/pedido/<number>`. sales requests it in the background (it does not slow the checkout down) and
+  without retries. users sends it **only once per order**: it keeps a `mail:order:<schema>:<number>` mark in Redis for
+  2 days and deletes it if sending fails.
+- If the mail server fails, it is logged as `ERROR` and the request carries on.
 
 ### Variables
 
-| Variable | Valor |
+| Variable | Value |
 |---|---|
-| `MAIL_PASSWORD` | Clave de Resend **solo de envío** limitada a `mail.kleinkauf.site` (nombre "kleinkauf-backend (send only)", id `b2792571-09ce-4f00-ba9d-befad14463ab`). Sin ella no sale ningún mail |
-| `MAIL_FROM` | Opcional. Por defecto `no-reply@mail.kleinkauf.site` |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` | Opcionales. Por defecto `smtp.resend.com`, `587`, `resend` |
+| `MAIL_PASSWORD` | Resend **send-only** key restricted to `mail.kleinkauf.site` (name "kleinkauf-backend (send only)", id `b2792571-09ce-4f00-ba9d-befad14463ab`). Without it no email goes out |
+| `MAIL_FROM` | Optional. Defaults to `no-reply@mail.kleinkauf.site` |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` | Optional. Default to `smtp.resend.com`, `587`, `resend` |
 
-En desarrollo, sin `MAIL_PASSWORD` los mails fallan y quedan en el log, como antes. Para probarlos de verdad, cargar
-la clave en el entorno del contenedor `user-service`.
+In development, without `MAIL_PASSWORD` emails fail and are only logged. To really test them, set the key in the
+`user-service` container's environment.
 
-### Límites del plan gratis de Resend
+### Resend free plan limits
 
-3.000 mails por mes y 100 por día. Si se pasa, Resend responde error y el mail queda en el log. El uso se ve con
-`npx resend-cli@latest usage`.
+3,000 emails per month and 100 per day. Beyond that Resend answers with an error and the email is only logged. Usage
+can be checked with `npx resend-cli@latest usage`.

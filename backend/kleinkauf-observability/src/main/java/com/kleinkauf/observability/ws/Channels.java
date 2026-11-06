@@ -3,7 +3,7 @@ package com.kleinkauf.observability.ws;
 import java.util.Set;
 
 /*
-WS channels (docs/observabilidad.md).
+WS channels (docs/features/observability.md).
 Platform (superadmin, public ticket):
 - platform.health: the services' health, when some status changes.
 - platform.traffic: traffic, resources and online users, on each collector reading.

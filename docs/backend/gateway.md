@@ -1,153 +1,153 @@
 # gateway
 
-Spring Cloud Gateway (WebFlux, reactivo) en el puerto **3000**, registrado en Eureka como `gateway-microservice`.
-Es la **única entrada pública**: el frontend nunca le habla directo a un servicio. No tiene endpoints propios:
-rutea, reconoce la tienda, valida el login y protege.
+Spring Cloud Gateway (WebFlux, reactive) on port **3000**, registered in Eureka as `gateway-microservice`. It is the
+**only public entry point**: the frontend never talks to a service directly. It has no endpoints of its own: it
+routes, recognizes the store, validates the login and protects.
 
-Convenciones comunes (headers, errores, fechas): [README](README.md). Cómo se reconoce la tienda en detalle:
-[tenants.md](../tenants.md).
+Shared conventions (headers, errors, dates): [README](README.md). How the store is recognized, in detail:
+[tenants.md](../features/tenants.md).
 
-## Qué hace
+## What it does
 
-- **Rutea** cada prefijo al servicio que corresponde, por Eureka (`lb://...`).
-- **Reconoce la tienda** por el header `Origin` y le pasa el schema a los servicios en `X-Forwarded-Host`.
-- **Valida el JWT** en las rutas con login y le pasa el usuario a los servicios en `X-User-Id`. El token tiene que
-  ser de la tienda de la request.
-- **Protege**: borra los headers internos que mande el cliente, rate limit por IP y origen, CORS solo para las URLs
-  de las tiendas y de la plataforma, token interno en `/api/internal/**`.
-- **Observabilidad**: marca la última actividad de cada usuario logueado en Redis, pasa la IP del cliente en
-  `X-Client-Ip` (para la auditoría) y etiqueta las métricas HTTP con la tienda.
+- **Routes** each prefix to its service, through Eureka (`lb://...`).
+- **Recognizes the store** by the `Origin` header and passes the schema to the services in `X-Forwarded-Host`.
+- **Validates the JWT** on routes that need login and passes the user to the services in `X-User-Id`. The token must
+  belong to the request's store.
+- **Protects**: removes internal headers sent by the client, rate limits by IP and origin, allows CORS only for store
+  and platform URLs, requires the internal token on `/api/internal/**`.
+- **Observability**: marks the last activity of each logged-in user and anonymous store visitors in Redis, passes the
+  client IP in `X-Client-Ip` (for the audit log) and tags HTTP metrics with the store.
 
-Los servicios **confían** en `X-Forwarded-Host` y `X-User-Id` porque solo los pone el gateway.
+The services **trust** `X-Forwarded-Host` and `X-User-Id` because only the gateway sets them.
 
-## Recorrido de una request
+## A request's path
 
-Los filtros corren en este orden. Cada uno puede cortar la request; lo que responde está a la derecha.
+Filters run in this order. Each one can stop the request; what it answers is on the right.
 
-| # | Filtro | Qué hace | Si corta |
+| # | Filter | What it does | If it stops the request |
 |---|---|---|---|
-| 1 | `ClientHeadersFilter` | Borra `X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name` y `X-Client-Ip` que mande el cliente. Pone `X-Client-Ip` con la IP de la conexión | — |
-| 2 | `CorsConfig` | CORS (ver abajo). Va antes de los filtros que cortan, así sus 401, 404/403 y 429 salen con las cabeceras CORS y el navegador deja leer el código. Responde los preflight sin seguir | **403** sin cabeceras CORS si el origen no se acepta |
-| — | `UnknownRouteFilter` | Si la ruta no es de ninguna de las [rutas](#rutas) del gateway, corta antes de Spring Security. Un endpoint inexistente dentro de un servicio sigue pidiendo login | **404**, cuerpo vacío |
-| 3 | `RequestFilter` | Rate limit por tipo de ruta, IP y origen (ver abajo) | **429**, cuerpo vacío |
-| 4 | `MsFilter` | `/api/internal/**`: valida el token interno (`X-Internal-Token`) | **401**, cuerpo vacío |
-| 5 | `TenantGatewayFilter` | Busca la tienda por el `Origin` y agrega `X-Forwarded-Host: <schema>`. Se saltea en `/api/v1/platform/**`, `/products/images/**`, `/users/avatars/**` y el `/ws` del frontend de la plataforma | **404** `The tenant was not found.` (no existe o está borrada) · **403** `The tenant is disabled.` · **503** `Error de respuesta` si users no responde |
-| 6 | `JwtFilter` | En las rutas con login valida el `Authorization: Bearer`, que sea un token de sesión (claim `type`: ni el de recuperación de contraseña ni el refresh), que el claim `tenant` del token sea el schema de la request (`public` en `/api/v1/platform/**`) y agrega `X-User-Id`. En las públicas agrega `X-Open-Path: true`; en las de login opcional, si viene token lo valida igual | **401**, cuerpo vacío (sin token, vencido, inválido o de otra tienda) |
-| 7 | `ActivityFilter` | Marca `activity:<tenant>:<userId>` en Redis (TTL 5 min, como mucho cada 30 s por usuario). No frena la request | — |
-| — | Ruteo | Manda la request al servicio | **503** si el servicio no está en Eureka |
+| 1 | `ClientHeadersFilter` | Removes `X-User-Id`, `X-Forwarded-Host`, `X-Open-Path`, `X-Tenant-Name` and `X-Client-Ip` sent by the client. Sets `X-Client-Ip` to the connection's IP | — |
+| 2 | `CorsConfig` | CORS (see below). Runs before the filters that stop requests, so their 401, 404/403 and 429 carry CORS headers and the browser lets the code be read. Answers preflights without going further | **403** without CORS headers if the origin is not accepted |
+| — | `UnknownRouteFilter` | If the path does not match any of the gateway's [routes](#routes), stops it before Spring Security. A missing endpoint inside a service still requires login | **404**, empty body |
+| 3 | `RequestFilter` | Rate limit by route type, IP and origin (see below) | **429**, empty body |
+| 4 | `MsFilter` | `/api/internal/**`: validates the internal token (`X-Internal-Token`) | **401**, empty body |
+| 5 | `TenantGatewayFilter` | Looks up the store by `Origin` and adds `X-Forwarded-Host: <schema>`. Skipped on `/api/v1/platform/**`, `/products/images/**`, `/users/avatars/**` and the platform frontend's `/ws` | **404** `The tenant was not found.` (missing or deleted) · **403** `The tenant is disabled.` · **503** if users does not answer |
+| 6 | `JwtFilter` | On routes that need login, validates `Authorization: Bearer`, that it is a session token (`type` claim: neither the password recovery token nor the refresh token), that the token's `tenant` claim is the request's schema (`public` on `/api/v1/platform/**`), and adds `X-User-Id`. On public routes it adds `X-Open-Path: true`; on optional-login routes it still validates a token if present | **401**, empty body (no token, expired, invalid or from another store) |
+| 7 | `ActivityFilter` | Marks `activity:<tenant>:<userId>` in Redis (5 min TTL, at most every 30 s per user), or `visitor:<tenant>:<id>` for anonymous visitors. Does not hold the request | — |
+| — | Routing | Sends the request to the service | **503** if the service is not in Eureka |
 
-`OPTIONS` siempre pasa el filtro de JWT. Las requests del puerto de gestión (9000) se saltean todos los filtros.
+`OPTIONS` always passes the JWT filter. Requests on the management port (9000) skip every filter.
 
-## Rutas
+## Routes
 
-| Prefijo | Servicio | Tienda |
+| Prefix | Service | Store |
 |---|---|---|
-| `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**` | products | Sí |
+| `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**`, `/api/v1/store/**` | products | Yes |
 | `/products/images/**` | products | No |
 | `/users/avatars/**` | users | No |
-| `GET /share/{tienda}/products/{slug}` | products (`/share/products/{slug}`) | Sí, por la **ruta** y no por el `Origin` (lo abre un crawler). Sin login. Tienda inexistente 404, deshabilitada 403 |
+| `GET /share/{store}/products/{slug}`, `GET /share/{store}/sitemap.xml` | products (`/share/products/{slug}`, `/share/sitemap.xml`) | Yes, from the **path** instead of `Origin` (a crawler opens it). No login. Missing store 404, disabled 403 |
 | `/api/v1/platform/products/**` | products | No |
-| `/api/v1/sales/**` | sales | Sí |
-| `/api/v1/users/**`, `/api/v1/auth/**` | users | Sí |
-| `POST /api/v1/bug-reports` | users | Sí (la tienda desde la que se reporta) |
-| `/api/v1/observability/**` | observability | Sí |
+| `/api/v1/sales/**` | sales | Yes |
+| `/api/v1/users/**`, `/api/v1/auth/**` | users | Yes |
+| `POST /api/v1/bug-reports` | users | Yes (the store it is reported from) |
+| `/api/v1/observability/**` | observability | Yes |
 | `/api/v1/platform/observability/**` | observability | No |
-| `/ws` | observability (WebSocket) | Según el ticket |
-| `/api/v1/platform/**` (el resto) | users | No |
+| `/ws` | observability (WebSocket) | Depends on the ticket |
+| `/api/v1/platform/**` (the rest) | users | No |
 
-Las rutas de plataforma de products y observability tienen `order(-1)` para ganarle a `/api/v1/platform/**`.
-`/api/internal/**` no se rutea: lo llaman los servicios entre ellos por Eureka.
+The products and observability platform routes have `order(-1)` to win over `/api/v1/platform/**`. `/api/internal/**`
+is not routed: services call each other through Eureka.
 
-### Públicas (sin token)
+### Public (no token)
 
-Están en `PermittedUrls.getExcludedPaths()`. Sin método valen para cualquiera; `{id}` es un número, `{code}` un
-segmento y `{any}` cualquier cosa.
+Listed in `PermittedUrls.getExcludedPaths()`. Without a method they apply to any; `{id}` is a number, `{code}` one
+segment and `{any}` anything.
 
-| Ruta |
+| Path |
 |---|
 | `/api/v1/auth/login`, `/api/v1/auth/register`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout` |
 | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/forgot-password/{any}` |
 | `POST /api/v1/platform/tenants`, `POST /api/v1/platform/auth/login`, `POST /api/v1/platform/auth/refresh`, `POST /api/v1/platform/auth/logout` |
 | `GET /api/v1/products/{id}/metadata` |
-| `GET /api/v1/catalog/products`, `GET /api/v1/catalog/featured`, `GET /api/v1/catalog/products/{any}`, `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/bundles` |
+| `GET /api/v1/catalog/products`, `GET /api/v1/catalog/featured`, `GET /api/v1/catalog/products/{any}`, `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/bundles`, `GET /api/v1/catalog/store` |
 | `GET /api/v1/sales/checkout`, `POST /api/v1/sales/orders`, `POST /api/v1/sales/orders/lookup`, `POST /api/v1/sales/orders/{code}/receipt`, `POST /api/v1/sales/orders/{code}/cancel` |
 | `POST /api/v1/bug-reports` |
 | `/products/images/{any}` |
 | `GET:/users/avatars/{any}` |
-| `GET /share/{code}/products/{code}` (link para compartir, ver [products.md](products.md#link-para-compartir)) |
-| `GET /ws` (entra con un ticket, ver [observability.md](observability.md#websocket)) |
+| `GET /share/{code}/products/{code}`, `GET /share/{code}/sitemap.xml` (see [products.md](products.md#share-link)) |
+| `GET /ws` (uses a ticket, see [observability.md](observability.md#websocket)) |
 
-Que una ruta sea pública en el gateway no quiere decir que el servicio la deje pasar sin login: el servicio
-aplica sus propias reglas. Todo lo que no está en la lista pide token.
+A route being public at the gateway does not mean the service lets it through without login: the service applies its
+own rules. Everything not on the list requires a token.
 
-**Login opcional:** `POST /api/v1/sales/orders` y `POST /api/v1/bug-reports`. Sin token pasan como invitado; con
-token el pedido o el reporte queda asociado al usuario, y un token inválido responde 401.
+**Optional login:** `POST /api/v1/sales/orders` and `POST /api/v1/bug-reports`. Without a token they go through as a
+guest; with a token the order or report is linked to the user, and an invalid token answers 401.
 
 ## Rate limit
 
-Ventanas de **1 minuto** por tipo de ruta, IP de la conexión y `Origin`. El `X-Forwarded-For` que mande el cliente no
-cuenta; detrás de Caddy, `server.forward-headers-strategy=framework` arma la IP de la conexión con el que pone Caddy. Se cuenta en **Redis**
-(`RateLimitCounter`: `INCR` de `rate_limit:<tipo>:<origen>_<ip>:<minuto>`, que vence a los 2 minutos), así que todas
-las instancias del gateway comparten el contador. Si Redis falla o tarda más de 300 ms, cuenta en la memoria de esa
-instancia (Caffeine) y lo avisa en el log una vez por minuto: el límite sigue, pero por gateway.
+**1-minute** windows per route type, connection IP and `Origin`. An `X-Forwarded-For` sent by the client does not
+count; behind Caddy, `server.forward-headers-strategy=framework` builds the connection IP from the header Caddy sets.
+It is counted in **Redis** (`RateLimitCounter`: `INCR` of `rate_limit:<type>:<origin>_<ip>:<minute>`, expiring after
+2 minutes), so every gateway instance shares the counter. If Redis fails or takes more than 300 ms, it counts in that
+instance's memory (Caffeine) and logs it once a minute: the limit still applies, but per gateway.
 
-| Tipo | Rutas | Límite por minuto | Propiedad |
+| Type | Routes | Limit per minute | Property |
 |---|---|---|---|
-| login | `/api/v1/auth/login`, `/api/v1/platform/auth/login` y los dos `/auth/refresh` | 5 | `limit.login` |
-| signup | `/api/v1/platform/tenants`, `/api/v1/auth/register`, `/api/v1/auth/forgot-password/**`, `/api/v1/bug-reports` (mandan mails o le llegan a los superadmins) | 3 | `limit.signup` |
-| order | `/api/v1/sales/orders` (crear) | 5 | `limit.order` |
+| login | `/api/v1/auth/login`, `/api/v1/platform/auth/login` and both `/auth/refresh` | 5 | `limit.login` |
+| signup | `/api/v1/platform/tenants`, `/api/v1/auth/register`, `/api/v1/auth/forgot-password/**`, `/api/v1/bug-reports` (they send emails or reach the superadmins) | 3 | `limit.signup` |
+| order | `/api/v1/sales/orders` (create) | 5 | `limit.order` |
 | lookup | `/api/v1/sales/orders/lookup`, `/api/v1/sales/orders/{code}/cancel` | 10 | `limit.lookup` |
 | receipt | `/api/v1/sales/orders/{code}/receipt` | 5 | `limit.receipt` |
-| global | Todo lo demás | 300 | `limit.global` |
-| image | `/products/images/**`, `/users/avatars/**` | Sin límite | — |
+| global | Everything else | 300 | `limit.global` |
+| image | `/products/images/**`, `/users/avatars/**` | No limit | — |
 
-Con el límite en 5 pasan 5 requests y la sexta recibe **429** con el cuerpo vacío.
+With a limit of 5, 5 requests pass and the sixth gets **429** with an empty body.
 
 ## CORS
 
-- Se acepta un `Origin` si es:
-  - la URL de una tienda que existe (aunque esté deshabilitada);
-  - `platform.url` (el frontend de la plataforma);
-  - un **subdominio de la plataforma** con forma de identificador (`<identificador>.<host de platform.url>`, mismo
-    esquema y puerto, ej. `http://mitienda.localhost:2999`), **aunque la tienda no exista o esté borrada**. Así el
-    404 de `TenantGatewayFilter` llega legible y el frontend muestra "esta tienda no existe". No consulta a users.
+- An `Origin` is accepted if it is:
+  - the URL of an existing store (even a disabled one);
+  - `platform.url` (the platform frontend);
+  - a **platform subdomain** shaped like an identifier (`<identifier>.<host of platform.url>`, same scheme and port,
+    e.g. `http://mystore.localhost:2999`), **even if the store does not exist or was deleted**. That way the 404 from
+    `TenantGatewayFilter` arrives readable and the frontend shows "this store does not exist". It does not ask users.
 
-  Cualquier otro recibe **403** sin cabeceras CORS y el navegador corta la request.
-- `CorsConfig` corre segundo (`@Order(-150)`), antes del rate limit, del tenant y del JWT: las respuestas que cortan
-  esos filtros ya llevan las cabeceras CORS. Los preflight se responden ahí y no cuentan para el rate limit.
-- Con origen aceptado: credenciales permitidas, todos los headers y métodos.
-- La consulta va a la caché local, después Redis y por último a users; solo se cachean los orígenes permitidos.
-- El CORS propio de Spring está apagado (`spring.webflux.cors.enabled=false`): lo hace `CorsConfig`.
+  Any other gets **403** without CORS headers and the browser blocks the request.
+- `CorsConfig` runs second (`@Order(-150)`), before rate limit, tenant and JWT: the responses those filters cut short
+  already carry CORS headers. Preflights are answered there and do not count towards the rate limit.
+- With an accepted origin: credentials allowed, every header and method.
+- The lookup goes to the local cache, then Redis and finally users; only allowed origins are cached.
+- Spring's own CORS is off (`spring.webflux.cors.enabled=false`): `CorsConfig` does it.
 
-## Configuración y resiliencia
+## Configuration and resilience
 
-| Propiedad | Valor en desarrollo | Para qué |
+| Property | Development value | Purpose |
 |---|---|---|
 | `server.port` | `3000` | |
-| `management.server.port` | `9000` | `/health`, `/ready`, `/metrics` (interno) |
-| `jwt.secret` | — | Valida los JWT que emite users. **Cambiarlo fuera de desarrollo** |
-| `api.internal.key` | — | Token interno entre servicios. **Cambiarlo fuera de desarrollo** |
-| `platform.url` | `http://localhost:2999` | Frontend de la plataforma: CORS y `/ws` del superadmin |
-| `tenant.url` | `lb://users-microservice/api/internal/tenants` | Dónde busca las tiendas |
-| `users.url`, `products.url`, `sales.url`, `observability.url`, `observability.ws-url` | `lb://...` | Destinos de las rutas |
-| `spring.data.redis.host` / `.port` | `localhost:6379` | Tiendas, CORS y última actividad |
-| `limit.*` | ver arriba | Rate limit |
-| `http.client.timeout` | `3s` | Timeout de las llamadas a users |
-| `resilience4j.*.instances.users.*` | ver abajo | Circuit breaker y reintentos hacia users |
+| `management.server.port` | `9000` | `/health`, `/ready`, `/metrics` (internal) |
+| `jwt.secret` | — | Validates the JWTs issued by users. **Change it outside development** |
+| `api.internal.key` | — | Internal token between services. **Change it outside development** |
+| `platform.url` | `http://localhost:2999` | Platform frontend: CORS and the superadmin's `/ws` |
+| `tenant.url` | `lb://users-microservice/api/internal/tenants` | Where stores are looked up |
+| `users.url`, `products.url`, `sales.url`, `observability.url`, `observability.ws-url` | `lb://...` | Route targets |
+| `spring.data.redis.host` / `.port` | `localhost:6379` | Stores, CORS, rate limit and last activity |
+| `limit.*` | see above | Rate limit |
+| `http.client.timeout` | `3s` | Timeout of calls to users |
+| `resilience4j.*.instances.users.*` | see below | Circuit breaker and retries towards users |
 
-- **Búsqueda de la tienda:** caché local (Caffeine, 1 minuto) → Redis (`tenant:url:<url>`, lo escribe users) →
-  `GET /api/internal/tenants/id?url=` en users. Deshabilitar o borrar una tienda tarda hasta 1 minuto en aplicarse.
-- **Hacia users:** circuit breaker (si falla el 50 % de las últimas 10 llamadas corta 10 s y después prueba con 3),
-  hasta 3 intentos con 200 ms de espera y timeout de 3 s. Los 4xx no cuentan como falla ni se reintentan.
-- **Métricas:** las HTTP llevan la etiqueta `tenant` (el schema, `none` sin tienda) y el WS va con `uri="/ws"`.
-  observability usa esa etiqueta para el tráfico por tienda.
-- Logs de cada request por consola (`LoggingFilter`, `ForwardTimingFilter`).
+- **Store lookup:** local cache (Caffeine, 1 minute) → Redis (`tenant:url:<url>`, written by users) →
+  `GET /api/internal/tenants/id?url=` in users. Disabling or deleting a store takes up to 1 minute to apply.
+- **Towards users:** circuit breaker (if 50% of the last 10 calls fail it opens for 10 s and then tries 3), up to 3
+  attempts 200 ms apart and a 3 s timeout. 4xx responses do not count as failures and are not retried.
+- **Metrics:** HTTP metrics carry the `tenant` tag (the schema, `none` without a store) and the WS uses `uri="/ws"`.
+  observability uses that tag for per-store traffic.
+- Each request is logged to the console (`LoggingFilter`, `ForwardTimingFilter`).
 
-## Límites conocidos
+## Known limitations
 
-- Las respuestas que corta el gateway (401, 404/403 de la tienda, 429) tienen el cuerpo vacío o en texto: el
-  frontend tiene que decidir por el código.
-- Con Redis caído el rate limit cuenta por instancia (memoria) hasta que vuelve.
-- La IP del rate limit y de `X-Client-Ip` es la de la conexión. Detrás de otro proxy que no sea Caddy hay que dejar
-  `server.forward-headers-strategy=framework` (si no, sería la del proxy) y que el proxy pise el `X-Forwarded-For` del
-  cliente.
+- Responses cut by the gateway (401, store 404/403, 429) have an empty or plain-text body: the frontend has to decide
+  by the status code.
+- With Redis down the rate limit counts per instance (in memory) until it comes back.
+- The IP for the rate limit and `X-Client-Ip` is the connection's. Behind a proxy other than Caddy, keep
+  `server.forward-headers-strategy=framework` (otherwise it would be the proxy's) and make the proxy overwrite the
+  client's `X-Forwarded-For`.

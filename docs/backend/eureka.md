@@ -1,14 +1,14 @@
 # eureka
 
-Spring Cloud Netflix Eureka Server en el puerto **8761**. Es el registro de servicios: cada uno se registra con su
-nombre y los demás lo encuentran por ahí (`lb://<nombre>` en el gateway, `http://<nombre>/` en los `RestTemplate`
-con balanceo). No tiene endpoints de la app.
+Spring Cloud Netflix Eureka Server on port **8761**. It is the service registry: each service registers under its name
+and the others find it there (`lb://<name>` in the gateway, `http://<name>/` in load-balanced `RestTemplate`s). It has
+no application endpoints.
 
-Convenciones comunes: [README](README.md).
+Shared conventions: [README](README.md).
 
-## Quién se registra
+## Who registers
 
-| Servicio | Nombre en Eureka | Puerto | Gestión |
+| Service | Name in Eureka | Port | Management |
 |---|---|---|---|
 | gateway | `gateway-microservice` | 3000 | 9000 |
 | users | `users-microservice` | 3001 | 9001 |
@@ -16,34 +16,33 @@ Convenciones comunes: [README](README.md).
 | sales | `sales-microservice` | 3003 | 9003 |
 | observability | `observability-microservice` | 3004 | 9004 |
 
-- Se registran con la IP (`eureka.instance.prefer-ip-address=true`).
-- Cada instancia publica su puerto de gestión en la metadata (`management.port`): con eso Prometheus y observability
-  encuentran `/ready` y `/metrics` de cada una sin configurar nada. Una instancia nueva aparece sola.
-- Eureka no se registra en sí mismo: observability lo lee aparte (`observability.static-targets`) y Prometheus
-  también.
+- They register by IP (`eureka.instance.prefer-ip-address=true`).
+- Each instance publishes its management port in its metadata (`management.port`): that is how Prometheus and
+  observability find each one's `/ready` and `/metrics` without any configuration. A new instance shows up on its own.
+- Eureka does not register itself: observability reads it separately (`observability.static-targets`), and so does
+  Prometheus.
 
-## Qué se ve
+## What you can see
 
-- Panel: http://localhost:8761 (instancias registradas y su estado).
-- Salud: `/health`, `/ready`, `/metrics` y `/status` en el puerto de gestión **9761**.
+- Dashboard: http://localhost:8761 (registered instances and their status).
+- Health: `/health`, `/ready`, `/metrics` and `/status` on management port **9761**.
 
-## Configuración
+## Configuration
 
-| Propiedad | Valor | Para qué |
+| Property | Value | Purpose |
 |---|---|---|
 | `server.port` | `8761` | |
-| `eureka.client.register-with-eureka` / `fetch-registry` | `false` | Es el servidor, no un cliente |
-| `management.server.port` | `9761` | Puerto de gestión |
+| `eureka.client.register-with-eureka` / `fetch-registry` | `false` | It is the server, not a client |
+| `management.server.port` | `9761` | Management port |
 
-En los clientes: `eureka.client.service-url.defaultZone=http://localhost:8761/eureka/` (en Docker, el nombre del
-contenedor). En el compose de desarrollo los tiempos de descubrimiento están bajados para que un servicio que
-arranca se vea antes; observability pide el registro cada 10 s
-(`eureka.client.registry-fetch-interval-seconds`).
+In the clients: `eureka.client.service-url.defaultZone=http://localhost:8761/eureka/` (in Docker, the container name).
+The development compose lowers the discovery timings so a starting service shows up sooner; observability fetches the
+registry every 10 s (`eureka.client.registry-fetch-interval-seconds`).
 
-Levantarlo solo: `cd backend/eureka && ./gradlew bootRun`. Va primero: los demás servicios reintentan hasta
-encontrarlo.
+Running it alone: `cd backend/eureka && ./gradlew bootRun`. It goes first: the other services keep retrying until they
+find it.
 
-## Límites conocidos
+## Known limitations
 
-- Una sola instancia, sin réplica: si se cae, los servicios siguen con el último registro que tenían en memoria,
-  pero no ven instancias nuevas.
+- A single instance, no replica: if it goes down, the services keep the last registry they had in memory but do not
+  see new instances.

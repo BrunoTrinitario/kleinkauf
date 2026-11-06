@@ -23,7 +23,7 @@ const toForm = (settings: SalesSettings | undefined): Form => ({
   expirationHours: settings?.expirationHours != null ? String(settings.expirationHours) : "",
 })
 
-// Same rules as SalesSettingsService (docs/ventas.md, "Configuracion de ventas")
+// Same rules as SalesSettingsService (docs/features/sales.md, "Configuracion de ventas")
 function validate(form: Form): string | null {
   if (form.alias && !/^[A-Za-z0-9.-]{6,20}$/.test(form.alias)) return strings.salesSettings.invalidAlias
   if (form.cbu && !/^\d{22}$/.test(form.cbu)) return strings.salesSettings.invalidCbu

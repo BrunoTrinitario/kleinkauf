@@ -18,7 +18,7 @@ Publishes events to Redis Streams (KleinKaufEvent.STREAM) for observability.
 - Inside a transaction it publishes after the commit: if the operation is rolled back, there is no event.
 - The stream is trimmed to about MAX_LENGTH events: it is for what happens live, not a history.
 - If Redis fails it is logged and the operation goes on: for now events are only for the live dashboard.
-  The audit (stage 3, docs/auditoria.md) cannot lose them and goes through an outbox table.
+  The audit (stage 3, docs/features/audit.md) cannot lose them and goes through an outbox table.
  */
 public class KleinKaufEventPublisher {
 

@@ -1,61 +1,59 @@
 # observability (kleinkauf-observability)
 
-Spring Boot (servlet) en el puerto **3004**, registrado en Eureka como `observability-microservice`. Base Postgres
-`observability` (un schema por tienda y `public`) con JDBC, sin Hibernate.
+Spring Boot (servlet) on port **3004**, registered in Eureka as `observability-microservice`. Postgres database
+`observability` (one schema per store plus `public`) with JDBC, no Hibernate.
 
-Convenciones comunes: [README](README.md). Diseño y decisiones: [observabilidad.md](../observabilidad.md) y
-[auditoria.md](../auditoria.md).
+Shared conventions: [README](README.md). Design and decisions: [observability.md](../features/observability.md) and
+[audit.md](../features/audit.md).
 
-## Qué hace
+## What it does
 
-- **Salud y tráfico de la plataforma:** cada 10 s lee `/ready` y `/metrics` de cada instancia registrada en Eureka
-  y arma el estado de cada servicio, el tráfico (requests, errores, latencias), los recursos y los usuarios
-  conectados.
-- **Auditoría:** guarda los eventos que mandan users, products y sales (quién hizo qué) y deja consultarlos.
-- **Tiempo real por WebSocket** para el panel de la plataforma (superadmin) y el de cada tienda (administrador):
-  salud, tráfico, altas de tiendas, auditoría en vivo, actividad de la tienda (pedidos y stock), uso del catálogo y
-  usuarios conectados.
+- **Platform health and traffic:** every 10 s it reads `/ready` and `/metrics` from every instance registered in
+  Eureka and builds each service's status, traffic (requests, errors, latencies), resources and connected users.
+- **Audit log:** stores the events sent by users, products and sales (who did what) and lets them be queried.
+- **Real time over WebSocket** for the platform panel (superadmin) and each store's panel (admin): health, traffic,
+  store sign-ups, live audit, store activity (orders and stock), catalog usage and connected users.
 
-## Salud y métricas
+## Health and metrics
 
-Todos los servicios exponen en su **puerto de gestión** (el del servicio + 6000), que el gateway no publica:
+Every service exposes on its **management port** (service port + 6000), which the gateway does not publish:
 
-| Ruta | Qué responde | Lo usa |
+| Path | What it answers | Used by |
 |---|---|---|
-| `/health` | Liveness: el proceso está vivo | Docker (healthchecks) |
-| `/ready` | Readiness: base, Redis, Eureka y lo que necesite el servicio (no mira a los otros servicios) | observability |
-| `/metrics` | Formato Prometheus, con la etiqueta `tenant` en las métricas HTTP | Prometheus y observability |
-| `/status` | El detalle de la salud por componente | A mano |
+| `/health` | Liveness: the process is alive | Docker (healthchecks) |
+| `/ready` | Readiness: database, Redis, Eureka and whatever the service needs (not the other services) | observability |
+| `/metrics` | Prometheus format, with the `tenant` tag on HTTP metrics | Prometheus and observability |
+| `/status` | Health detail per component | By hand |
 
-Puertos: gateway 9000, users 9001, products 9002, sales 9003, observability 9004, eureka 9761.
+Ports: gateway 9000, users 9001, products 9002, sales 9003, observability 9004, eureka 9761.
 
-## Panel de la plataforma
+## Platform panel
 
-Solo `SUPERADMIN`, desde el frontend de la plataforma (sin tienda). Con tienda responden **404**.
+`SUPERADMIN` only, from the platform frontend (no store). With a store they answer **404**.
 
 ### POST /api/v1/platform/observability/ws-ticket
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Ticket para abrir el WebSocket. Se emite con los roles **actuales** (los pide a users en el momento).
+Ticket to open the WebSocket. It is issued with the **current** roles (asked to users at that moment).
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/platform/observability/ws-ticket \
   -H 'Origin: http://localhost:2999' -H 'Authorization: Bearer <token>'
 ```
 
-Respuesta **200**: `{ "ticket": "f3a9...", "expiresIn": 30 }`
+Response **200**: `{ "ticket": "f3a9...", "expiresIn": 30 }`
 
-| Código | Cuándo |
+| Status | When |
 |---|---|
-| 403 | Ya no es superadmin (por ejemplo, lo desactivaron) |
-| 503 | users no responde (`No se pudo verificar el acceso`) |
+| 403 | No longer a superadmin (for example, deactivated) |
+| 503 | users does not answer (`No se pudo verificar el acceso`) |
 
 ### GET /api/v1/platform/observability/overview
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-La última lectura del recolector, para mostrar algo antes del primer mensaje del WS.
+The collector's last read, to show something before the first WS message.
 
 ```json
 {
@@ -78,54 +76,53 @@ La última lectura del recolector, para mostrar algo antes del primer mensaje de
 }
 ```
 
-- `status` de un servicio: `UP` (todas sus instancias listas), `DEGRADED` (algunas) o `DOWN` (ninguna, o sin
-  instancias en Eureka).
-- Las tasas y los percentiles son `null` hasta la segunda lectura (salen de restar dos). Los recursos son la suma
-  de las instancias (la CPU, el promedio).
-- Antes de la primera lectura: `at: null` y listas vacías.
+- A service's `status`: `UP` (all instances ready), `DEGRADED` (some) or `DOWN` (none, or no instances in Eureka).
+- Rates and percentiles are `null` until the second read (they come from subtracting two). Resources are the sum over
+  instances (CPU is the average).
+- Before the first read: `at: null` and empty lists.
 
 ### GET /api/v1/platform/observability/audit
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Auditoría de la plataforma (tiendas y superadmins), paginada, la más nueva primero. No incluye la de las tiendas.
+The platform audit log (stores and superadmins), paginated, newest first. It does not include the stores' logs.
 
-| Parámetro | Qué hace |
+| Parameter | What it does |
 |---|---|
-| `from`, `to` | Fecha **con zona** ISO-8601 (`2026-11-02T03:00:00Z`); `to` no se incluye. El frontend decide qué es "un día" para quien mira |
-| `userId` | Quién lo hizo |
-| `entity`, `entityId` | Qué cosa (`Tenant`, `7`) |
+| `from`, `to` | Date **with zone**, ISO-8601 (`2026-11-02T03:00:00Z`); `to` is exclusive. The frontend decides what "a day" is for the viewer |
+| `userId` | Who did it |
+| `entity`, `entityId` | Which thing (`Tenant`, `7`) |
 | `action` | `CREATE`, `UPDATE`, `DELETE`, `READ`, `STATUS_CHANGE`, `IMPORT`, `ACTIVATE`, `DEACTIVATE` |
-| `page`, `size` | 0 y 20 |
+| `page`, `size` | 0 and 20 |
 
-Respuesta **200**: `{ "items": [AuditEvent], "page", "size", "totalItems", "totalPages" }` (ver
-[formato](#formato-de-la-auditoría)). Error: 400 si `from` o `to` no son fechas con zona.
+Response **200**: `{ "items": [AuditEvent], "page", "size", "totalItems", "totalPages" }` (see
+[format](#audit-format)). Error: 400 if `from` or `to` are not dates with a zone.
 
 ### GET /api/v1/platform/observability/audit/export
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-La misma auditoría en **CSV** (`auditoria-plataforma-<fecha>.csv`), con los mismos filtros sin `page` ni `size`.
-Formato en [auditoria.md](../auditoria.md#consultas). 400 si hay más de 50.000 eventos (hay que acotar las fechas).
+The same audit log as **CSV** (`auditoria-plataforma-<date>.csv`), with the same filters minus `page` and `size`.
+Format in [audit.md](../features/audit.md#queries). 400 if there are more than 50,000 events (narrow the dates).
 
-## Panel de la tienda
+## Store panel
 
-Solo `ADMINISTRADOR` de la tienda. Sin tienda (desde la plataforma) responden **404**; el superadmin no ve la
-auditoría de las tiendas.
+The store's `ADMINISTRADOR` only. Without a store (from the platform) they answer **404**; the superadmin does not see
+the stores' audit logs.
 
 ### POST /api/v1/observability/ws-ticket
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Igual que el de la plataforma, para el WS de la tienda. Respuesta **200**: `{ "ticket": "...", "expiresIn": 30 }`.
-403 si ya no es administrador, 503 si users no responde.
+Same as the platform one, for the store's WS. Response **200**: `{ "ticket": "...", "expiresIn": 30 }`. 403 if no
+longer an admin, 503 if users does not answer.
 
 ### GET /api/v1/observability/store/audit
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Auditoría de la tienda, paginada. Mismos parámetros que la de la plataforma salvo `entityId` (para una cosa
-puntual, el endpoint de abajo).
+The store's audit log, paginated. Same parameters as the platform one except `entityId` (for a single thing, use the
+endpoint below).
 
 ```bash
 curl 'http://localhost:3000/api/v1/observability/store/audit?entity=Product&action=update&from=2026-11-01T03:00:00Z' \
@@ -134,30 +131,30 @@ curl 'http://localhost:3000/api/v1/observability/store/audit?entity=Product&acti
 
 ### GET /api/v1/observability/store/audit/{entity}/{entityId}
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Historial de una cosa (`/store/audit/Product/12`, `/store/audit/Order/K7QM-4X2P`). Paginado.
+History of one thing (`/store/audit/Product/12`, `/store/audit/Order/K7QM-4X2P`). Paginated.
 
 ### GET /api/v1/observability/store/audit/export
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-La auditoría de la tienda en **CSV** (`auditoria-<tienda>-<fecha>.csv`), con los mismos filtros que
-`/store/audit` sin `page` ni `size`. 400 si hay más de 50.000 eventos.
+The store's audit log as **CSV** (`auditoria-<store>-<date>.csv`), with the same filters as `/store/audit` minus `page`
+and `size`. 400 if there are more than 50,000 events.
 
 ```bash
-curl -o auditoria.csv 'http://localhost:3000/api/v1/observability/store/audit/export?from=2026-11-01T03:00:00Z' \
+curl -o audit.csv 'http://localhost:3000/api/v1/observability/store/audit/export?from=2026-11-01T03:00:00Z' \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
 ```
 
 ### GET /api/v1/observability/store/users
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Usuarios conectados de la tienda (alguna request en los últimos 5 minutos), del más reciente al más viejo. Son
-todos los logueados, también clientes. `name` es `null` si users no respondió. `visitors`: cuántos visitantes sin
-sesión hubo en los mismos 5 minutos (solo el número: el gateway los marca con un hash de la IP y el navegador, sin
-guardar la IP; dos personas con la misma conexión y el mismo navegador cuentan como una).
+The store's connected users (some request in the last 5 minutes), most recent first. It includes every logged-in user,
+customers too. `name` is `null` if users did not answer. `visitors`: how many anonymous visitors there were in the same
+5 minutes (only the number: the gateway marks them with a hash of IP and browser, without storing the IP; two people on
+the same connection and browser count as one).
 
 ```json
 { "total": 2,
@@ -166,13 +163,13 @@ guardar la IP; dos personas con la misma conexión y el mismo navegador cuentan 
   "visitors": 14 }
 ```
 
-Error: 503 si no se pudo leer Redis.
+Error: 503 if Redis could not be read.
 
 ### GET /api/v1/observability/store/usage
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Uso de la tienda en el día.
+The store's usage for the day.
 
 ```json
 {
@@ -184,41 +181,41 @@ Uso de la tienda en el día.
 }
 ```
 
-- `date`: el día en Buenos Aires. `catalogVisits`: veces que se abrió la primera página del catálogo sin búsqueda.
-  `topProducts`: los 5 detalles más vistos, por slug.
-- `traffic`: requests y errores por segundo de la tienda en el gateway, de la última lectura. `null` hasta la
-  segunda lectura del gateway.
+- `date`: the day in Buenos Aires. `catalogVisits`: times the first page of the catalog was opened without a search.
+  `topProducts`: the 5 most viewed product pages, by slug.
+- `traffic`: the store's requests and errors per second at the gateway, from the last read. `null` until the gateway's
+  second read.
 
-Error: 503 si no se pudo leer Redis.
+Error: 503 if Redis could not be read.
 
 ## WebSocket
 
-### Guía del cliente
+### Client guide
 
-1. **Pedir un ticket** con el JWT: `POST /api/v1/platform/observability/ws-ticket` (superadmin) o
-   `POST /api/v1/observability/ws-ticket` (administrador). Dura **30 s** y sirve **una sola vez**.
-2. **Conectar** a `ws://localhost:3000/ws?ticket=<ticket>` desde el frontend (el navegador manda el `Origin`). El
-   JWT nunca va en la URL.
-   - Ticket ausente, vencido o usado: el handshake falla con **401**.
-   - Ticket de otra tienda (o de tienda abierto desde la plataforma, y al revés): **403**.
-3. **Suscribirse** a los canales que muestre la página. Un ticket de plataforma solo puede `platform.*`; uno de
-   tienda solo `store.*`, siempre de su tienda.
-4. **Ping cada 30 s** para mantener la conexión.
-5. **Cargar lo anterior por REST** (overview, auditoría, usuarios, uso): el WS solo manda lo nuevo desde que se
-   suscribió.
-6. **Si se corta**, pedir un ticket nuevo y reconectar (con espera creciente). Si el ticket responde **403**, perdió
-   el acceso: no reintentar.
+1. **Ask for a ticket** with the JWT: `POST /api/v1/platform/observability/ws-ticket` (superadmin) or
+   `POST /api/v1/observability/ws-ticket` (admin). It lasts **30 s** and works **only once**.
+2. **Connect** to `ws://localhost:3000/ws?ticket=<ticket>` from the frontend (the browser sends `Origin`). The JWT
+   never goes in the URL.
+   - Missing, expired or used ticket: the handshake fails with **401**.
+   - Ticket from another store (or a store ticket opened from the platform, and vice versa): **403**.
+3. **Subscribe** to the channels the page shows. A platform ticket can only use `platform.*`; a store ticket only
+   `store.*`, always for its own store.
+4. **Ping every 30 s** to keep the connection alive.
+5. **Load what came before over REST** (overview, audit log, users, usage): the WS only sends what is new since the
+   subscription.
+6. **If it drops**, ask for a new ticket and reconnect (with growing back-off). If the ticket request answers **403**,
+   access was lost: do not retry.
 
-| Cierre | Motivo | Qué hacer |
+| Close | Reason | What to do |
 |---|---|---|
-| 1008 `Acceso revocado` | Cada minuto se revisan los roles de los conectados; ya no tiene el rol | No reconectar; cerrar la sesión o volver al inicio |
-| 4500 (sesión no confiable) | El cliente no leyó a tiempo (más de 5 s o 512 KB pendientes) | Reconectar con ticket nuevo |
-| Otros | Red, reinicio del servicio | Reconectar con ticket nuevo |
+| 1008 `Acceso revocado` | Roles of connected users are checked every minute; the user lost the role | Do not reconnect; log out or go back home |
+| 4500 (untrusted session) | The client did not read in time (more than 5 s or 512 KB pending) | Reconnect with a new ticket |
+| Others | Network, service restart | Reconnect with a new ticket |
 
 ```js
 async function connectWs(ticketUrl, token, channels, onEvent) {
   const res = await fetch(ticketUrl, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
-  if (res.status === 403) throw new Error("Sin acceso")
+  if (res.status === 403) throw new Error("No access")
   const { ticket } = await res.json()
 
   const ws = new WebSocket(`ws://localhost:3000/ws?ticket=${encodeURIComponent(ticket)}`)
@@ -240,46 +237,48 @@ async function connectWs(ticketUrl, token, channels, onEvent) {
 }
 ```
 
-### Mensajes
+The real client is `frontend/src/hooks/use-live-channels.ts`.
 
-Del cliente (JSON de hasta 1.024 caracteres):
+### Messages
 
-| Mensaje | Respuesta |
+From the client (JSON up to 1,024 characters):
+
+| Message | Answer |
 |---|---|
 | `{ "type": "subscribe", "channel": "store.activity" }` | `{ "type": "subscribed", "channel": "store.activity" }` |
 | `{ "type": "unsubscribe", "channel": "store.activity" }` | `{ "type": "unsubscribed", "channel": "store.activity" }` |
 | `{ "type": "ping" }` | `{ "type": "pong" }` |
 
-Un error no corta la conexión: `{ "type": "error", "message": "Canal no permitido: platform.health" }` (también
+An error does not close the connection: `{ "type": "error", "message": "Canal no permitido: platform.health" }` (also
 `JSON invalido`, `Mensaje demasiado largo`, `Tipo de mensaje desconocido: …`).
 
-Del servidor, en cada canal suscripto:
+From the server, on each subscribed channel:
 
 ```json
 { "type": "event", "channel": "store.activity", "data": { ... }, "at": "2026-11-03T13:00:00Z" }
 ```
 
-### Canales
+### Channels
 
-| Canal | Quién | Cuándo manda | `data` |
+| Channel | Who | When it sends | `data` |
 |---|---|---|---|
-| `platform.health` | Superadmin | Cuando cambia el estado de algún servicio, instancia o circuit breaker | Lista de servicios (como `services` del overview) |
-| `platform.traffic` | Superadmin | En cada lectura (10 s) | `{ at, traffic, connectedUsers }` (como el overview) |
-| `platform.business` | Superadmin | Alta, habilitación, deshabilitación o baja de una tienda | `{ type: "tenant.created", at, id, identifier, schema }` |
-| `platform.audit` | Superadmin | Cada evento de auditoría de la plataforma, apenas se guarda | `AuditEvent` |
-| `store.audit` | Administrador | Cada evento de auditoría de su tienda | `AuditEvent` |
-| `store.activity` | Administrador | Pedidos, comprobantes y stock, apenas pasan | Ver abajo |
-| `store.usage` | Administrador | En cada lectura (10 s) | Como `GET /store/usage` |
-| `store.users` | Administrador | En cada lectura (10 s) | Como `GET /store/users` |
+| `platform.health` | Superadmin | When the state of a service, instance or circuit breaker changes | List of services (like the overview's `services`) |
+| `platform.traffic` | Superadmin | On each read (10 s) | `{ at, traffic, connectedUsers }` (like the overview) |
+| `platform.business` | Superadmin | A store is created, enabled, disabled or deleted | `{ type: "tenant.created", at, id, identifier, schema }` |
+| `platform.audit` | Superadmin | Each platform audit event, as soon as it is stored | `AuditEvent` |
+| `store.audit` | Admin | Each audit event of their store | `AuditEvent` |
+| `store.activity` | Admin | Orders, receipts and stock, as they happen | See below |
+| `store.usage` | Admin | On each read (10 s) | Like `GET /store/usage` |
+| `store.users` | Admin | On each read (10 s) | Like `GET /store/users` |
 
-`store.activity` manda `{ type, at, ...datos }`:
+`store.activity` sends `{ type, at, ...data }`:
 
-| `type` | Cuándo | Datos |
+| `type` | When | Data |
 |---|---|---|
-| `order.created` | Pedido online nuevo o venta del local | `number`, `channel` (`ONLINE`/`LOCAL`), `status`, `total`, `buyerName` |
-| `order.receipt-uploaded` | El comprador subió un comprobante | Los mismos |
-| `stock.movement` | Movimiento de stock cargado a mano (los de los pedidos no) | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
-| `stock.low` | Un producto pasa a stock bajo (una vez, al cruzar el mínimo) | `productId`, `productName`, `stock`, `minStock` |
+| `order.created` | New online order or in-store sale | `number`, `channel` (`ONLINE`/`LOCAL`), `status`, `total`, `buyerName` |
+| `order.receipt-uploaded` | The buyer uploaded a receipt | Same |
+| `stock.movement` | Stock movement entered by hand (not the ones from orders) | `productId`, `productName`, `movementType`, `quantity`, `stockAfter`, `reason`, `userId` |
+| `stock.low` | A product drops to low stock (once, when crossing the minimum) | `productId`, `productName`, `stock`, `minStock` |
 
 ```json
 { "type": "event", "channel": "store.activity",
@@ -288,9 +287,9 @@ Del servidor, en cada canal suscripto:
   "at": "2026-11-03T13:00:00.120Z" }
 ```
 
-`store.activity` es solo en vivo: lo que pasó con el panel cerrado está en la auditoría y en la lista de pedidos.
+`store.activity` is live only: what happened while the panel was closed is in the audit log and the order list.
 
-## Formato de la auditoría
+## Audit format
 
 ```json
 {
@@ -308,81 +307,82 @@ Del servidor, en cada canal suscripto:
 }
 ```
 
-- `action`: `CREATE`, `UPDATE`, `DELETE` (también el borrado lógico), `READ` (lecturas sensibles),
-  `STATUS_CHANGE` (pedidos), `IMPORT` (CSV), `ACTIVATE` / `DEACTIVATE` (superadmins).
-- `actor`: `null` en el alta de tienda por autoservicio. `role` es el rol más alto; `name` lo completa
-  observability al guardar (queda aunque después borren al usuario).
-- `changes`: en un alta, los campos con valor; en un cambio, solo los que cambiaron. Valores como texto (hasta 500).
-  Nunca contraseñas, tokens ni campos ignorados (como el último login).
-- `traceId` une el evento con la traza y los logs en Grafana.
+- `action`: `CREATE`, `UPDATE`, `DELETE` (soft delete too), `READ` (sensitive reads), `STATUS_CHANGE` (orders),
+  `IMPORT` (CSV), `ACTIVATE` / `DEACTIVATE` (superadmins).
+- `actor`: `null` on self-service store sign-up. `role` is the highest role; `name` is filled in by observability when
+  saving (it stays even if the user is deleted later).
+- `changes`: on a create, the fields with a value; on an update, only the changed ones. Values as text (up to 500).
+  Never passwords, tokens or ignored fields (such as last login).
+- `traceId` links the event to the trace and logs in Grafana.
 
-Qué se registra en cada servicio: [auditoria.md](../auditoria.md#qué-se-registra). Llega por un **outbox**: no se
-pierde aunque observability o Redis estén caídos.
+What each service records: [audit.md](../features/audit.md#what-is-recorded). It arrives through an **outbox**: nothing
+is lost even if observability or Redis are down.
 
-## Cómo se comunica
+## How it communicates
 
-- **Recolector:** cada `observability.poll.interval` (10 s) lee `/ready` y `/metrics` de cada instancia de Eureka
-  que publica `management.port`, todas a la vez, con 2 s de timeout. Eureka se lee aparte
-  (`observability.static-targets`). El estado queda en memoria.
-- **Tráfico por tienda:** de las métricas del gateway (`observability.gateway-service`), por la etiqueta `tenant`.
+- **Collector:** every `observability.poll.interval` (10 s) it reads `/ready` and `/metrics` from every Eureka
+  instance that publishes `management.port`, all at once, with a 2 s timeout. Eureka is read separately
+  (`observability.static-targets`). The state lives in memory.
+- **Per-store traffic:** from the gateway's metrics (`observability.gateway-service`), by the `tenant` tag.
 - **Redis:**
 
-| Key / stream | Para qué |
+| Key / stream | Purpose |
 |---|---|
-| `ws-ticket:<id>` | Tickets del WS (30 s, se leen y borran con `GETDEL`) |
-| `activity:<tenant>:<userId>` | Última request de cada usuario (la escribe el gateway). Usuarios conectados |
-| `usage:<tenant>:<día>` | Uso del catálogo (lo escribe products) |
-| `kleinkauf:events` | Eventos de los servicios (tiendas, pedidos, stock). Se leen sin grupo de consumidores: cada instancia los ve todos |
-| `kleinkauf:audit` | Auditoría. Se consume con un grupo: cada evento se guarda una vez y se confirma |
+| `ws-ticket:<id>` | WS tickets (30 s, read and deleted with `GETDEL`) |
+| `activity:<tenant>:<userId>` | Each user's last request (written by the gateway). Connected users |
+| `visitor:<tenant>:<id>` | Anonymous visitors (written by the gateway) |
+| `usage:<tenant>:<day>` | Catalog usage (written by products) |
+| `kleinkauf:events` | Service events (stores, orders, stock). Read without a consumer group: each instance sees all of them |
+| `kleinkauf:audit` | Audit log. Consumed with a group: each event is stored once and acknowledged |
 
-- **users:** roles actuales para los tickets y la revisión de cada minuto, y nombres para la auditoría (caché de
-  10 minutos). Con circuit breaker y reintentos. Si users no responde, no se desconecta a nadie.
-- **Base:** la auditoría, un schema por tienda y `public`, creados con el primer evento.
+- **users:** current roles for tickets and the minute-by-minute check, and names for the audit log (10-minute cache).
+  With circuit breaker and retries. If users does not answer, nobody is disconnected.
+- **Database:** the audit log, one schema per store plus `public`, created with the first event.
 
-## Stack de Docker y Grafana
+## Docker stack and Grafana
 
 ```bash
 docker compose -f backend/deploy/docker-compose.dev.yml -f backend/deploy/docker-compose.observability.yml up -d
 ```
 
-El segundo archivo suma Prometheus, Grafana, Tempo, Loki y Alloy; sin él todo anda igual pero sin ese stack.
+The second file adds Prometheus, Grafana, Tempo, Loki and Alloy; without it everything works the same but without
+that stack.
 
-| Qué | Dónde |
+| What | Where |
 |---|---|
-| Grafana (sin login en desarrollo) | http://localhost:3300 → carpeta **KleinKauf**, dashboard **KleinKauf - Servicios** |
+| Grafana (no login in development) | http://localhost:3300 → **KleinKauf** folder, **KleinKauf - Servicios** dashboard |
 | Prometheus | http://localhost:9090 (Status → Targets) |
-| Trazas | Grafana → Explore → Tempo |
-| Logs | Grafana → Explore → Loki, por ejemplo `{service="product-service", level="ERROR"}` |
+| Traces | Grafana → Explore → Tempo |
+| Logs | Grafana → Explore → Loki, e.g. `{service="product-service", level="ERROR"}` |
 
-- Con el stack, los servicios loguean en JSON y mandan trazas a Alloy; sin él, logs en texto con
-  `[servicio,traceId,spanId,tenant]`.
-- Desde un log se abre su traza y desde una traza sus logs.
-- Los datos del stack no tienen volumen. Detalle en [observabilidad.md](../observabilidad.md#cómo-se-usa).
+- With the stack, services log JSON and send traces to Alloy; without it, plain-text logs with
+  `[service,traceId,spanId,tenant]`.
+- From a log you can open its trace, and from a trace its logs.
+- The stack's data has no volume. Details in [observability.md](../features/observability.md#how-to-use-it).
 
-## Configuración
+## Configuration
 
-| Propiedad | Valor en desarrollo | Para qué |
+| Property | Development value | Purpose |
 |---|---|---|
 | `server.port` / `management.server.port` | `3004` / `9004` | |
-| `spring.datasource.*` | `jdbc:postgresql://localhost:5432/observability` | Auditoría |
-| `spring.data.redis.*` | `localhost:6379` | Tickets, actividad, eventos |
-| `users.url` | `http://users-microservice/` | Roles y nombres |
-| `observability.poll.interval` / `poll.timeout` | `10s` / `2s` | Recolector |
-| `observability.services` | Los 5 servicios | Los que tienen que estar (sin instancias figuran `DOWN`) |
-| `observability.static-targets` | `eureka=http://localhost:9761` | Lo que no se registra en Eureka |
-| `observability.gateway-service` | `gateway-microservice` | De dónde sale el tráfico por tienda |
-| `observability.ticket.ttl` | `30s` | Duración de los tickets |
-| `observability.ws.revalidate-interval` | `60s` | Revisión de los roles de los conectados |
-| `observability.scheduling.enabled`, `events.enabled`, `audit.enabled` | `true` | Los tests los apagan |
-| `audit.export.zone` | `America/Argentina/Buenos_Aires` | Hora de las fechas del CSV de auditoría |
+| `spring.datasource.*` | `jdbc:postgresql://localhost:5432/observability` | Audit log |
+| `spring.data.redis.*` | `localhost:6379` | Tickets, activity, events |
+| `users.url` | `http://users-microservice/` | Roles and names |
+| `observability.poll.interval` / `poll.timeout` | `10s` / `2s` | Collector |
+| `observability.services` | The 5 services | The ones that must be present (without instances they show as `DOWN`) |
+| `observability.static-targets` | `eureka=http://localhost:9761` | Whatever does not register in Eureka |
+| `observability.gateway-service` | `gateway-microservice` | Source of per-store traffic |
+| `observability.ticket.ttl` | `30s` | Ticket lifetime |
+| `observability.ws.revalidate-interval` | `60s` | Role check of connected users |
+| `observability.scheduling.enabled`, `events.enabled`, `audit.enabled` | `true` | Turned off by the tests |
+| `audit.export.zone` | `America/Argentina/Buenos_Aires` | Time zone of the dates in the audit CSV |
 
-Sin Docker necesita Postgres (base `observability`; con un volumen viejo:
-`docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"`), Redis y Eureka.
+Without Docker it needs Postgres (`observability` database; with an old volume:
+`docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"`), Redis and Eureka.
 
-## Límites conocidos
+## Known limitations
 
-- El estado del recolector está en memoria: con varias instancias cada una tiene el suyo.
-- "Conectado" es aproximado: alguien que cerró el navegador figura hasta 5 minutos.
-- Las visitas al catálogo cuentan cualquier request a la primera página (recargas, bots) y se guardan 8 días.
-- La etiqueta `tenant` en las métricas aguanta cientos de tiendas; con miles conviene contar el uso solo acá.
-- Pendientes y decisiones abiertas: [observabilidad.md](../observabilidad.md#pendiente).
+- The collector state lives in memory: with several instances each one has its own.
+- "Connected" is approximate: someone who closed the browser shows up for up to 5 minutes.
+- Catalog visits count any request to the first page (reloads, bots) and are kept for 8 days.
+- The `tenant` tag on metrics handles hundreds of stores; with thousands, usage should be counted only here.

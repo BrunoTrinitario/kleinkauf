@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /*
-Stock events for the store's live dashboard (store.activity channel, docs/observabilidad.md):
+Stock events for the store's live dashboard (store.activity channel, docs/features/observability.md):
 - stock.movement: a movement entered manually from the dashboard. Order movements are not: order.created already arrives.
 - stock.low: a product went into low stock (minStock > 0 and stock <= minStock) with any
   movement, order ones included. Only when crossing the limit, not on every movement while it stays low.

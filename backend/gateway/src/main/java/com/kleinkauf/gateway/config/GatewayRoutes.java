@@ -90,7 +90,7 @@ public class GatewayRoutes {
                 .route("observability", r -> r
                         .path("/api/v1/observability/**")
                         .uri(observabilityUrl))
-                // Real-time dashboard WebSocket (entered with a ticket, see docs/observabilidad.md)
+                // Real-time dashboard WebSocket (entered with a ticket, see docs/features/observability.md)
                 .route("observability ws", r -> r
                         .path("/ws")
                         .uri(observabilityWsUrl))

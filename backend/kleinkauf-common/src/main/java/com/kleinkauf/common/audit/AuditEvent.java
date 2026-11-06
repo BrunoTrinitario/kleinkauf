@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /*
-An audit record (format in docs/auditoria.md). Travels as JSON through the outbox and Redis Streams
+An audit record (format in docs/features/audit.md). Travels as JSON through the outbox and Redis Streams
 (stream kleinkauf:audit) to observability, which stores it.
 - tenant: the store's schema, or "public" for the platform.
 - actor: null if there is no logged-in user (self-service store sign-up). Observability fills in the name.

@@ -68,7 +68,7 @@ public class AdminOrderService {
     @Value("${sales.local.max-quantity:999}")
     private int maxQuantity;
 
-    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/features/audit.md)
     @Autowired
     private AuditLog auditLog;
 

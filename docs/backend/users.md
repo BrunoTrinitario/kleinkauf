@@ -1,114 +1,118 @@
 # users (kleinkaufusers)
 
-Spring Boot (servlet) en el puerto **3001**, registrado en Eureka como `users-microservice`. Base Postgres `users`:
-un schema por tienda y `public` para la plataforma.
+Spring Boot (servlet) on port **3001**, registered in Eureka as `users-microservice`. Postgres database `users`: one
+schema per store and `public` for the platform.
 
-Convenciones comunes (headers, errores, paginación, fechas): [README](README.md). Temas de fondo:
-[tenants.md](../tenants.md), [permisos.md](../permisos.md), [panel-admin.md](../panel-admin.md).
+Shared conventions (headers, errors, pagination, dates): [README](README.md). Background:
+[tenants.md](../features/tenants.md), [permissions.md](../features/permissions.md),
+[admin-dashboards.md](../features/admin-dashboards.md).
 
-## Qué hace
+## What it does
 
-- **Autenticación de las tiendas:** login, registro de clientes, perfil propio y recupero de contraseña por mail.
-  Emite los JWT, atados a la tienda.
-- **Usuarios de la tienda:** el administrador los lista, crea, edita, borra y les da o saca roles.
-- **Permisos por rol:** qué áreas del panel puede usar `EMPLEADO` y `CLIENTE` en cada tienda.
-- **Panel de la tienda:** resumen de usuarios (total, activos, por rol, altas por período).
-- **Plataforma:** alta de tiendas (autoservicio y superadmin), habilitar, deshabilitar y borrar tiendas, login de
-  superadmins, su gestión y el panel de la plataforma (resumen y uso por tienda).
-- **Para los demás servicios:** busca tiendas (por URL o schema) y roles de un usuario, y deja en Redis tiendas y
-  roles para que no tengan que preguntarle cada vez.
+- **Store authentication:** login, customer sign-up, own profile and password recovery by email. Issues the JWTs,
+  bound to the store.
+- **Store users:** the admin lists, creates, edits and deletes them, and grants or removes roles.
+- **Permissions per role:** which panel areas `EMPLEADO` and `CLIENTE` can use in each store.
+- **Store panel:** user summary (total, active, by role, sign-ups per period).
+- **Platform:** store sign-up (self-service and superadmin), enabling, disabling and deleting stores, superadmin login
+  and management, and the platform panel (summary and usage per store).
+- **Bug reports** sent from the stores.
+- **Email:** password recovery and order confirmation.
+- **For the other services:** looks up stores (by URL or schema) and a user's roles, and keeps stores and roles in Redis
+  so they do not have to ask every time.
 
-### Conceptos
+### Concepts
 
-| Concepto | Qué es |
+| Concept | What it is |
 |---|---|
-| Rol | `ADMINISTRADOR` (el dueño, tiene todo), `EMPLEADO`, `CLIENTE`. Un usuario puede tener varios. `SUPERADMIN` existe solo en `public` y no se asigna desde una tienda |
-| Área | `PRODUCTOS`=1, `PRECIOS`=2, `STOCK`=4, `COMBOS`=8, `USUARIOS`=16. Los permisos de un rol son una máscara de bits (`5` = PRODUCTOS + STOCK) |
-| Permisos por defecto | `ADMINISTRADOR`: todo (31, no se configura). `EMPLEADO`: `STOCK` (4). `CLIENTE`: nada (0). `USUARIOS` no se delega |
-| Dueño de una tienda | Se crea con el alta de la tienda, con los roles `ADMINISTRADOR` y `EMPLEADO` |
-| Borrado | Lógico (`deleted_at`): un usuario o rol borrado no aparece en ningún lado, pero su email sigue ocupado |
-| Activo | Entró (login) en los últimos 30 días |
+| Role | `ADMINISTRADOR` (the owner, has everything), `EMPLEADO`, `CLIENTE`. A user can have several. `SUPERADMIN` exists only in `public` and cannot be granted from a store |
+| Area | `PRODUCTOS`=1, `PRECIOS`=2, `STOCK`=4, `COMBOS`=8, `USUARIOS`=16. A role's permissions are a bit mask (`5` = PRODUCTOS + STOCK) |
+| Default permissions | `ADMINISTRADOR`: everything (31, not configurable). `EMPLEADO`: `STOCK` (4). `CLIENTE`: nothing (0). `USUARIOS` cannot be delegated |
+| Store owner | Created with the store, with the `ADMINISTRADOR` and `EMPLEADO` roles. A store always keeps at least one `ADMINISTRADOR` |
+| Deletion | Soft (`deleted_at`): a deleted user or role shows up nowhere, but its email stays taken |
+| Active | Logged in during the last 30 days |
 
-### Reglas de validación
+### Validation rules
 
-Las mismas para registro, alta desde el panel, dueño de una tienda nueva, superadmins y cambios de perfil. El
-frontend tiene una copia (`frontend/src/lib/validation.ts`): si cambian, cambiar las dos.
+The same for sign-up, creation from the panel, a new store's owner, superadmins and profile changes. The frontend has
+a copy (`frontend/src/lib/validation.ts`): if they change, change both.
 
-| Dato | Regla | Error (400) |
+| Field | Rule | Error (400) |
 |---|---|---|
-| Nombre | Obligatorio, hasta 100 caracteres (sin contar espacios de los bordes) | `The name is required and can have up to 100 characters.` |
-| Email | `usuario@dominio.ext`, sin espacios, hasta 254 caracteres | `The email is not valid.` |
-| Contraseña | 8 a 72 caracteres (72 bytes), con al menos una letra y un número | `The password must have 8 to 72 characters, with at least one letter and one number.` |
-| Identificador de tienda | 3 a 30 caracteres: empieza con letra, minúsculas, números y guiones, no termina en guion (`^[a-z][a-z0-9-]{1,28}[a-z0-9]$`) | `The identifier must have 3 to 30 characters, start with a letter and only use lowercase letters, numbers and hyphens.` |
-| Identificador reservado | `www`, `api`, `app`, `admin`, `platform`, `public`, `mail`, `static`, `assets`, `cdn`, `status`, `help`, `support`, `blog`, `dev`, `test`, `staging`, `root`, `information-schema` y todo lo que empieza con `pg-` | `The identifier is reserved.` |
+| Name | Required, up to 100 characters (not counting surrounding spaces) | `The name is required and can have up to 100 characters.` |
+| Email | `user@domain.ext`, no spaces, up to 254 characters | `The email is not valid.` |
+| Password | 8 to 72 characters (72 bytes), with at least one letter and one digit | `The password must have 8 to 72 characters, with at least one letter and one number.` |
+| Store identifier | 3 to 30 characters: starts with a letter, lower case, digits and hyphens, does not end with a hyphen (`^[a-z][a-z0-9-]{1,28}[a-z0-9]$`) | `The identifier must have 3 to 30 characters, start with a letter and only use lowercase letters, numbers and hyphens.` |
+| Reserved identifier | `www`, `api`, `app`, `admin`, `platform`, `public`, `mail`, `static`, `assets`, `cdn`, `status`, `help`, `support`, `blog`, `dev`, `test`, `staging`, `root`, `information-schema` and anything starting with `pg-` | `The identifier is reserved.` |
 
-El email de un usuario tiene que ser único **dentro de la tienda** (otro usuario en otra tienda puede usar el mismo).
+A user's email must be unique **within the store** (a user in another store can use the same one).
 
-## Flujos
+## Flows
 
-### Login y uso del token
+### Login and using the token
 
-1. `POST /api/v1/auth/login` desde la tienda (con su `Origin`) → `{ name, id, email, token, refreshToken, roles }`.
-   El email no distingue mayúsculas.
-2. Mandar `Authorization: Bearer <token>` en cada request. El token dura **1 hora** y sirve solo en esa tienda.
-3. `roles` trae cada rol con su máscara de permisos: el frontend arma el menú con eso (por ejemplo, mostrar
-   "Stock" si algún rol tiene el bit 4).
-4. Vencido: `POST /api/v1/auth/refresh` con el `refreshToken` (dura **7 días**) devuelve tokens nuevos sin pedir la
-   contraseña. El frontend lo hace solo ante un 401 y repite la llamada.
-5. Cada refresh se usa **una vez**: renovar devuelve uno nuevo y el viejo deja de servir a los 30 segundos (por si
-   otra pestaña renueva a la vez). Se guardan en Redis (`refresh:<tenant>:<userId>:<jti>`, 7 días).
-6. El refresh deja de servir si se cierra esa sesión (`POST /auth/logout`), si la contraseña cambia (lleva una huella
-   de la contraseña) o si el usuario se borra. Con un refresh vencido o que ya no sirve, hay que volver a loguearse.
+1. `POST /api/v1/auth/login` from the store (with its `Origin`) → `{ name, id, email, token, refreshToken, roles }`.
+   The email is case-insensitive.
+2. Send `Authorization: Bearer <token>` on each request. The token lasts **1 hour** and only works in that store.
+3. `roles` carries each role with its permission mask: the frontend builds the menu from it (for example, show "Stock"
+   if some role has bit 4).
+4. Expired: `POST /api/v1/auth/refresh` with the `refreshToken` (lasts **7 days**) returns new tokens without asking for
+   the password. The frontend does it on its own on a 401 and repeats the call.
+5. Each refresh token is used **once**: renewing returns a new one and the old one stops working 30 seconds later (in
+   case another tab renews at the same time). They are kept in Redis (`refresh:<tenant>:<userId>:<jti>`, 7 days).
+6. A refresh token stops working if that session is closed (`POST /auth/logout`), if the password changes (it carries a
+   fingerprint of the password) or if the user is deleted. With an expired or no longer valid refresh token, the user
+   has to log in again.
 
-Cada token lleva su tipo en el claim `type` (`access`, `refresh` o `password`, ver `TokenConstants` en common): el
-gateway solo deja entrar con el de sesión, y cada endpoint de users acepta solo el suyo.
+Each token carries its type in the `type` claim (`access`, `refresh` or `password`, see `TokenConstants` in common): the
+gateway only lets the session one through, and each users endpoint accepts only its own.
 
-Los superadmins hacen lo mismo con `POST /api/v1/platform/auth/login` desde el frontend de la plataforma (sin tienda).
+Superadmins do the same with `POST /api/v1/platform/auth/login` from the platform frontend (no store).
 
-### Alta de una tienda
+### Creating a store
 
-`POST /api/v1/platform/tenants` (autoservicio, sin login) o `POST /api/v1/platform/admin/tenants` (superadmin):
+`POST /api/v1/platform/tenants` (self-service, no login) or `POST /api/v1/platform/admin/tenants` (superadmin):
 
-1. Valida el identificador y los datos del dueño.
-2. Crea el tenant en `public.tenant`: schema `mi_tienda` (los guiones pasan a `_`), URL
-   `<platform.scheme>://mi-tienda.<platform.domain>` (`http://mi-tienda.localhost:2999`), habilitado.
-3. Crea el schema de la tienda en la base `users` con sus tablas y el dueño con los roles `ADMINISTRADOR` y
-   `EMPLEADO`. Si falla, se deshace el alta.
-4. Publica el evento `tenant.created` (lo ve el panel de la plataforma en vivo).
+1. Validates the identifier and the owner's data.
+2. Creates the tenant in `public.tenant`: schema `my_store` (hyphens become `_`), URL
+   `<platform.scheme>://my-store.<platform.domain>` (`http://my-store.localhost:2999`), enabled.
+3. Creates the store's schema in the `users` database with its tables, and the owner with the `ADMINISTRADOR` and
+   `EMPLEADO` roles. If it fails, the sign-up is rolled back.
+4. Publishes the `tenant.created` event (seen live on the platform panel).
 
-products y sales crean su schema solos con la primera request de la tienda. Después del alta, el dueño entra en la
-URL de su tienda con el email y la contraseña que cargó.
+products and sales create their schema on their own with the store's first request. After sign-up, the owner logs in
+at their store's URL with the email and password they entered.
 
-### Recupero de contraseña
+### Password recovery
 
-1. `POST /api/v1/auth/forgot-password` con el email, desde la tienda. Responde siempre `true` (no dice si el email
-   existe).
-2. Si el usuario existe, users manda un mail con el link
-   `<URL de la tienda>/reset-password?token=<token>`. El token dura **15 minutos**, es de esa tienda y sirve **una
-   sola vez**: lleva una huella de la contraseña actual y deja de servir cuando la contraseña cambia. Es de tipo
-   `password` (claim `type`): no sirve para entrar, y uno de sesión no sirve para cambiar la contraseña.
-3. La página `/reset-password` **del frontend** lee el token, pide la contraseña nueva y llama a
-   `POST /api/v1/auth/forgot-password/{token}` con `{ "newPassword": "..." }`.
+1. `POST /api/v1/auth/forgot-password` with the email, from the store. It always answers `true` (it does not reveal
+   whether the email exists).
+2. If the user exists, users sends an email with the link `<store URL>/reset-password?token=<token>`. The token lasts
+   **15 minutes**, belongs to that store and works **only once**: it carries a fingerprint of the current password and
+   stops working when the password changes. It is a `password` token (`type` claim): it cannot be used to log in, and a
+   session token cannot change the password.
+3. The **frontend's** `/reset-password` page reads the token, asks for the new password and calls
+   `POST /api/v1/auth/forgot-password/{token}` with `{ "newPassword": "..." }`.
 
-En el frontend: "¿Olvidaste tu contraseña?" en el login lleva a `/recuperar`, que pide el mail. Solo en las tiendas: el
-gateway no atiende `/api/v1/auth/**` sin tienda, así que la plataforma no tiene recupero.
+In the frontend: "¿Olvidaste tu contraseña?" on the login leads to `/recuperar`, which asks for the email. Stores only:
+the gateway does not serve `/api/v1/auth/**` without a store, so the platform has no recovery.
 
-Si el mail no se puede mandar, el error se ignora (no hay reintentos). El mail sale por Resend con el nombre de la
-tienda como remitente y el dueño como `Reply-To`; ver [mail.md](../mail.md).
+If the email cannot be sent, the error is logged and not retried. It goes out through Resend with the store's name as
+sender and the owner as `Reply-To`; see [mail.md](../mail.md).
 
-### Alta y baja de superadmins
+### Creating and deactivating superadmins
 
-El primer superadmin se crea al arrancar si están `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`. Los demás los crea otro
-superadmin con una contraseña temporal. Desactivar no borra: marca `deleted_at` en el usuario y en su rol, y se puede
-reactivar. No se puede desactivar uno mismo ni al último activo.
+The first superadmin is created at startup if `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD` are set. The rest are created
+by another superadmin with a temporary password. Deactivating does not delete: it sets `deleted_at` on the user and its
+role, and can be reverted. Nobody can deactivate themselves or the last active one.
 
-## Autenticación
+## Authentication
 
 ### POST /api/v1/auth/login
 
-**Acceso:** Público · **Rate limit:** 5 por minuto
+**Access:** Public · **Rate limit:** 5 per minute
 
-Loguea a un usuario de la tienda y devuelve el token.
+Logs in a store user and returns the token.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
@@ -117,7 +121,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email":"admin@demo.local","password":"demo1234"}'
 ```
 
-Respuesta **200**:
+Response **200**:
 
 ```json
 {
@@ -129,37 +133,39 @@ Respuesta **200**:
   "roles": [
     { "type": "ADMINISTRADOR", "permissions": 31 },
     { "type": "EMPLEADO", "permissions": 4 }
-  ]
+  ],
+  "avatar": null
 }
 ```
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 401 | Email o contraseña incorrectos (o el usuario está borrado) | `Invalid username or password.` |
+| 401 | Wrong email or password (or the user is deleted) | `Invalid username or password.` |
 
-Actualiza el último login (`lastLogin`), que usan los paneles para "activos".
+Updates the last login (`lastLogin`), which the dashboards use for "active".
 
 ### POST /api/v1/auth/refresh
 
-**Acceso:** Público (con el refresh token) · **Rate limit:** el del login, 5 por minuto
+**Access:** Public (with the refresh token) · **Rate limit:** the login one, 5 per minute
 
-Renueva la sesión: devuelve lo mismo que el login, con tokens nuevos (también el refresh) y los roles al día. No
-actualiza el último login. El refresh que se manda deja de servir a los 30 segundos: hay que guardar el nuevo.
+Renews the session: returns the same as login, with new tokens (the refresh token too) and up-to-date roles. It does
+not update the last login. The refresh token sent stops working 30 seconds later: keep the new one.
 
 ```json
 { "refreshToken": "eyJhbGciOiJIUzI1NiJ9..." }
 ```
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 401 | Token inválido, vencido, de otra tienda, de otro tipo, ya usado, de una sesión cerrada, de un usuario borrado o de antes de cambiar la contraseña | `The access token is invalid.` |
+| 401 | Invalid, expired, from another store, of another type, already used, from a closed session, of a deleted user or from before a password change | `The access token is invalid.` |
 
 ### POST /api/v1/auth/logout
 
-**Acceso:** Público (con el refresh token)
+**Access:** Public (with the refresh token)
 
-Cierra la sesión: el refresh deja de servir. El token de 1 hora sigue valiendo hasta que vence (el gateway no los
-guarda). Responde **204** siempre, aunque el refresh ya no sirviera, así el frontend sale igual.
+Closes the session: the refresh token stops working. The 1-hour token remains valid until it expires (the gateway does
+not store them). Always answers **204**, even if the refresh token was already invalid, so the frontend logs out
+anyway.
 
 ```json
 { "refreshToken": "eyJhbGciOiJIUzI1NiJ9..." }
@@ -167,36 +173,36 @@ guarda). Responde **204** siempre, aunque el refresh ya no sirviera, así el fro
 
 ### POST /api/v1/auth/register
 
-**Acceso:** Público
+**Access:** Public · **Rate limit:** 3 per minute
 
-Registra un cliente (rol `CLIENTE`) en la tienda y lo deja logueado.
+Signs up a customer (`CLIENTE` role) in the store and leaves them logged in.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H 'Origin: http://demo.localhost:2999' \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Ana Pérez","email":"ana@mail.com","password":"secreta123"}'
+  -d '{"name":"Ana Pérez","email":"ana@mail.com","password":"secret123"}'
 ```
 
-Respuesta **201**: igual que el login, con `roles: [{ "type": "CLIENTE", "permissions": 0 }]`.
+Response **201**: like login, with `roles: [{ "type": "CLIENTE", "permissions": 0 }]`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Nombre, email o contraseña inválidos | Ver [reglas](#reglas-de-validación) |
-| 409 | Email usado en la tienda | `The email is already in use.` |
+| 400 | Invalid name, email or password | See [rules](#validation-rules) |
+| 409 | Email used in the store | `The email is already in use.` |
 
 ### GET /api/v1/auth/me
 
-**Acceso:** Login
+**Access:** Login
 
-Los datos del usuario logueado.
+The logged-in user's data.
 
 ```bash
 curl http://localhost:3000/api/v1/auth/me \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
 ```
 
-Respuesta **200** (`FullUserDto`, el mismo formato que los usuarios del panel):
+Response **200** (`FullUserDto`, the same format as the panel's users):
 
 ```json
 { "id": 1, "name": "Dueño Demo", "email": "admin@demo.local",
@@ -204,19 +210,19 @@ Respuesta **200** (`FullUserDto`, el mismo formato que los usuarios del panel):
   "avatar": "0b6f…e2.png" }
 ```
 
-`avatar` es la foto de perfil (archivo en [`/users/avatars/`](#get-usersavatarsarchivo)) o `null`. Viene también
-en el login, el refresh y los usuarios del panel.
+`avatar` is the profile photo (a file in [`/users/avatars/`](#get-usersavatarsfile)) or `null`. It also comes with
+login, refresh and the panel's users.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 404 | El usuario se borró después de loguearse | `The user was not found.` |
+| 404 | The user was deleted after logging in | `The user was not found.` |
 
 ### PATCH /api/v1/auth/me
 
-**Acceso:** Login
+**Access:** Login
 
-Cambia el nombre o la contraseña propios (lo usa la página de ajustes del frontend). Los campos en `null` no se
-cambian; el email no se edita.
+Changes your own name or password (used by the frontend's settings page). `null` fields do not change; the email cannot
+be edited.
 
 ```bash
 curl -X PATCH http://localhost:3000/api/v1/auth/me \
@@ -225,64 +231,63 @@ curl -X PATCH http://localhost:3000/api/v1/auth/me \
   -d '{"name":"Ana P.","password":null}'
 ```
 
-Respuesta **200**: `FullUserDto`. Errores: 400 por [validación](#reglas-de-validación), 404
-`The user was not found.`
+Response **200**: `FullUserDto`. Errors: 400 for [validation](#validation-rules), 404 `The user was not found.`
 
 ### DELETE /api/v1/auth/me
 
-**Acceso:** Login
+**Access:** Login
 
-El usuario se borra a sí mismo (borrado lógico, con sus roles). Lo usa la página de ajustes ("Eliminar mi
-cuenta"). Respuesta **200** con el texto `The user has been deleted`.
+Users delete themselves (soft delete, roles included). Used by the settings page ("Eliminar mi cuenta"). Response
+**200** with the text `The user has been deleted`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 404 | Usuario inexistente | `The user was not found.` |
-| 409 | Es el último `ADMINISTRADOR` de la tienda | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
+| 404 | User does not exist | `The user was not found.` |
+| 409 | They are the store's last `ADMINISTRADOR` | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
 
 ### POST /api/v1/auth/me/avatar
 
-**Acceso:** Login (cualquier rol)
+**Access:** Login (any role)
 
-Sube la foto de perfil propia y reemplaza la anterior, cuyo archivo se borra. Multipart con el campo `file`: PNG, JPG,
-WEBP o GIF de hasta 1 MB. El tipo se valida por el contenido, no por el nombre ni el `Content-Type`; no se aceptan
-SVG porque pueden traer scripts.
+Uploads your own profile photo and replaces the previous one, whose file is deleted. Multipart with the `file` field:
+PNG, JPG, WEBP or GIF up to 1 MB. The type is checked by content, not by name or `Content-Type`; SVG is not accepted
+because it can carry scripts.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/me/avatar \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>' \
-  -F 'file=@foto.png'
+  -F 'file=@photo.png'
 ```
 
-Respuesta **200**: `FullUserDto` con el `avatar` nuevo.
+Response **200**: `FullUserDto` with the new `avatar`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Sin archivo o vacío | `The photo file is required.` |
-| 413 | Más de 1 MB | `The photo must be 1 MB or smaller.` |
-| 415 | No es PNG, JPG, WEBP ni GIF | `Only JPG, PNG, WEBP or GIF photos are allowed.` |
+| 400 | No file or empty | `The photo file is required.` |
+| 413 | Larger than 1 MB | `The photo must be 1 MB or smaller.` |
+| 415 | Not PNG, JPG, WEBP or GIF | `Only JPG, PNG, WEBP or GIF photos are allowed.` |
 
 ### DELETE /api/v1/auth/me/avatar
 
-**Acceso:** Login
+**Access:** Login
 
-Quita la foto propia y borra el archivo. Respuesta **200**: `FullUserDto` con `avatar: null` (también si no tenía).
+Removes your own photo and deletes the file. Response **200**: `FullUserDto` with `avatar: null` (also if there was
+none).
 
-### GET /users/avatars/{archivo}
+### GET /users/avatars/{file}
 
-**Acceso:** Público, sin tienda (el navegador no manda `Origin` al cargar un `<img>`), igual que las imágenes de
-productos. Los nombres son aleatorios y cada foto nueva tiene uno nuevo, así que se sirven con caché de 30 días.
+**Access:** Public, without a store (browsers do not send `Origin` when loading an `<img>`), like product images. File
+names are random and each new photo gets a new one, so they are served with a 30-day cache.
 
-Las fotos están en disco en `avatar.path` (`uploads/users/avatars`), una carpeta para todas las tiendas. Los archivos
-solo se tocan cuando el cambio en la base es definitivo: al confirmarse se borra la foto reemplazada y, si la
-transacción falla, la que se acababa de guardar. Al borrar una cuenta (`DELETE /auth/me` o `DELETE /users/{id}`) se
-borra también su foto.
+Photos live on disk at `avatar.path` (`uploads/users/avatars`), one folder for every store. Files are only touched once
+the database change is final: on commit the replaced photo is deleted and, if the transaction fails, the one just saved
+is. Deleting an account (`DELETE /auth/me` or `DELETE /users/{id}`) also deletes its photo. Superadmins have no photo.
 
 ### POST /api/v1/auth/forgot-password
 
-**Acceso:** Público
+**Access:** Public · **Rate limit:** 3 per minute
 
-Pide el mail de recupero. Ver [flujo](#recupero-de-contraseña).
+Requests the recovery email. See the [flow](#password-recovery).
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
@@ -290,170 +295,170 @@ curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
   -d '{"email":"ana@mail.com"}'
 ```
 
-Respuesta **200**: `true`, exista o no el email.
+Response **200**: `true`, whether the email exists or not.
 
 ### POST /api/v1/auth/forgot-password/{token}
 
-**Acceso:** Público (con el token del mail)
+**Access:** Public (with the email's token)
 
-Cambia la contraseña con el token del mail.
+Changes the password with the email's token.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/forgot-password/eyJhbGciOi... \
   -H 'Origin: http://demo.localhost:2999' -H 'Content-Type: application/json' \
-  -d '{"newPassword":"nueva1234"}'
+  -d '{"newPassword":"newpass1234"}'
 ```
 
-Respuesta **200**: `FullUserDto` del usuario.
+Response **200**: the user's `FullUserDto`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 401 | Token inválido, vencido, de otra tienda, de sesión o ya usado | `The access token is invalid.` |
-| 400 | Contraseña inválida | `The password must have 8 to 72 characters, with at least one letter and one number.` |
+| 401 | Invalid, expired, from another store, a session token or already used | `The access token is invalid.` |
+| 400 | Invalid password | `The password must have 8 to 72 characters, with at least one letter and one number.` |
 
-## Usuarios de la tienda
+## Store users
 
-Todo `/api/v1/users/**` es **solo `ADMINISTRADOR`** (el área `USUARIOS` no se delega).
+All of `/api/v1/users/**` is **`ADMINISTRADOR` only** (the `USUARIOS` area cannot be delegated).
 
 ### GET /api/v1/users
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Listado paginado del panel, por nombre.
+The panel's paginated list, by name.
 
-| Parámetro | Default | Qué hace |
+| Parameter | Default | What it does |
 |---|---|---|
-| `q` | — | Busca en nombre y email |
-| `role` | — | `ADMINISTRADOR`, `EMPLEADO` o `CLIENTE` (sin distinguir mayúsculas) |
+| `q` | — | Searches name and email |
+| `role` | — | `ADMINISTRADOR`, `EMPLEADO` or `CLIENTE` (case-insensitive) |
 | `page` | 0 | |
-| `size` | 20 | Máximo 100 |
+| `size` | 20 | At most 100 |
 
 ```bash
 curl 'http://localhost:3000/api/v1/users?q=rios&role=CLIENTE&page=0&size=20' \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
 ```
 
-Respuesta **200**:
+Response **200**:
 
 ```json
 {
   "items": [
     { "id": 12, "name": "Valentina Ríos", "email": "valentina.rios@demo.local",
-      "roles": [ { "type": "CLIENTE", "permissions": 0 } ] }
+      "roles": [ { "type": "CLIENTE", "permissions": 0 } ], "avatar": null }
   ],
   "page": 0, "size": 20, "totalItems": 1, "totalPages": 1
 }
 ```
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | `page` < 0 o `size` fuera de 1–100 | `Invalid page: page must be 0 or more and size between 1 and 100.` |
-| 400 | Rol inexistente | `The role provided is invalid.` |
+| 400 | `page` < 0 or `size` outside 1–100 | `Invalid page: page must be 0 or more and size between 1 and 100.` |
+| 400 | Unknown role | `The role provided is invalid.` |
 
 ### POST /api/v1/users
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Crea un usuario con los roles que se le pasen. Los roles inexistentes (o `SUPERADMIN`) se ignoran.
+Creates a user with the given roles. Unknown roles (and `SUPERADMIN`) are ignored.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/users \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Juan Gómez","email":"juan@demo.local","password":"empleado1","roles":["EMPLEADO"]}'
+  -d '{"name":"Juan Gómez","email":"juan@demo.local","password":"employee1","roles":["EMPLEADO"]}'
 ```
 
-Respuesta **201**: `FullUserDto`.
+Response **201**: `FullUserDto`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Datos inválidos | Ver [reglas](#reglas-de-validación) |
-| 409 | Email usado en la tienda | `The email is already in use.` |
+| 400 | Invalid data | See [rules](#validation-rules) |
+| 409 | Email used in the store | `The email is already in use.` |
 
 ### GET /api/v1/users/{id}
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Respuesta **200**: `FullUserDto`. Error: 404 `The user was not found.`
+Response **200**: `FullUserDto`. Error: 404 `The user was not found.` (The sales panel uses it to show who made each
+change.)
 
 ### PATCH /api/v1/users/{id}
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Cambia el nombre o la contraseña de un usuario. Los campos en `null` no se cambian; el email no se puede cambiar.
+Changes a user's name or password. `null` fields do not change; the email cannot be changed.
 
 ```json
-{ "name": "Juan G.", "password": "otra1234" }
+{ "name": "Juan G.", "password": "other1234" }
 ```
 
-Respuesta **200**: `FullUserDto`. Errores: 400 por [validación](#reglas-de-validación), 404
-`The user was not found.`
+Response **200**: `FullUserDto`. Errors: 400 for [validation](#validation-rules), 404 `The user was not found.`
 
 ### DELETE /api/v1/users/{id}
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Borra (lógico) el usuario y sus roles, y saca sus roles de Redis. Respuesta **200** con el texto
-`The user has been deleted`. Errores: 404 `The user was not found.` · 409 si es el último `ADMINISTRADOR` de la
-tienda (mismo mensaje que `DELETE /auth/me`).
+Soft-deletes the user and their roles, and removes their roles from Redis. Response **200** with the text
+`The user has been deleted`. Errors: 404 `The user was not found.` · 409 if they are the store's last `ADMINISTRADOR`
+(same message as `DELETE /auth/me`).
 
 ### GET /api/v1/users/{id}/roles
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Respuesta **200**: `[ { "type": "EMPLEADO", "permissions": 4 } ]`.
+Response **200**: `[ { "type": "EMPLEADO", "permissions": 4 } ]`.
 
 ### POST /api/v1/users/{id}/roles?roleName=
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Le da un rol (`ADMINISTRADOR`, `EMPLEADO` o `CLIENTE`). Si ya lo tuvo y se lo sacaron, lo reactiva; si ya lo tiene,
-no hace nada.
+Grants a role (`ADMINISTRADOR`, `EMPLEADO` or `CLIENTE`). If they had it and it was removed, it is reactivated; if they
+already have it, nothing happens.
 
 ```bash
 curl -X POST 'http://localhost:3000/api/v1/users/12/roles?roleName=EMPLEADO' \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
 ```
 
-Respuesta **200**: `FullUserDto` con los roles nuevos.
+Response **200**: `FullUserDto` with the new roles.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Rol inexistente | `The role provided is invalid.` |
-| 404 | Usuario inexistente | `The user was not found.` |
+| 400 | Unknown role | `The role provided is invalid.` |
+| 404 | User does not exist | `The user was not found.` |
 
 ### DELETE /api/v1/users/{id}/roles?roleName=
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Le saca un rol. Respuesta **200**: `FullUserDto`.
+Removes a role. Response **200**: `FullUserDto`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Rol inexistente | `The role provided is invalid.` |
-| 404 | Usuario inexistente o sin ese rol | `The user was not found.` |
-| 409 | Se le saca `ADMINISTRADOR` al último administrador de la tienda | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
+| 400 | Unknown role | `The role provided is invalid.` |
+| 404 | User does not exist or does not have that role | `The user was not found.` |
+| 409 | Removing `ADMINISTRADOR` from the store's last admin | `The store needs at least one ADMINISTRADOR: the last one cannot be deleted or lose the role.` |
 
 ### GET /api/v1/users/dashboard
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Panel de la tienda: usuarios, activos, por rol y altas por período. Siempre al día.
+Store panel: users, active, by role and sign-ups per period. Always up to date.
 
-| Parámetro | Default | Qué hace |
+| Parameter | Default | What it does |
 |---|---|---|
-| `from`, `to` | Últimos 30 días hasta hoy | `yyyy-MM-dd`, inclusive |
-| `groupBy` | `DAY` | `DAY`, `WEEK` o `MONTH` |
+| `from`, `to` | Last 30 days up to today | `yyyy-MM-dd`, inclusive |
+| `groupBy` | `DAY` | `DAY`, `WEEK` or `MONTH` |
 
-Los días son en hora argentina (`users.dashboard.zone`): un alta del lunes a las 22 hs es del lunes aunque en UTC ya
-sea martes.
+Days are in Argentina time (`users.dashboard.zone`): a sign-up on Monday at 10 pm belongs to Monday even if in UTC it is
+already Tuesday.
 
 ```bash
 curl 'http://localhost:3000/api/v1/users/dashboard?from=2026-10-01&to=2026-10-31&groupBy=WEEK' \
   -H 'Origin: http://demo.localhost:2999' -H 'Authorization: Bearer <token>'
 ```
 
-Respuesta **200**:
+Response **200**:
 
 ```json
 {
@@ -468,21 +473,21 @@ Respuesta **200**:
 }
 ```
 
-- `byRole` trae los tres roles siempre; un usuario con varios roles cuenta en cada uno.
-- `registrations` cuenta los usuarios que siguen en la tienda; `period` es el primer día del período.
+- `byRole` always has the three roles; a user with several roles counts in each.
+- `registrations` counts users still in the store; `period` is the period's first day.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Fecha mal formada o `groupBy` inválido | `Invalid value for from.` (o `to`, `groupBy`) |
-| 400 | `from` > `to` o más de 1.000 períodos | `Invalid range: from must not be after to, with up to 1000 periods.` |
+| 400 | Malformed date or invalid `groupBy` | `Invalid value for from.` (or `to`, `groupBy`) |
+| 400 | `from` > `to` or more than 1,000 periods | `Invalid range: from must not be after to, with up to 1000 periods.` |
 
-## Permisos por rol
+## Permissions per role
 
 ### GET /api/v1/users/roles/permissions
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Respuesta **200**:
+Response **200**:
 
 ```json
 [
@@ -494,10 +499,9 @@ Respuesta **200**:
 
 ### PUT /api/v1/users/roles/{role}/permissions
 
-**Acceso:** ADMINISTRADOR
+**Access:** ADMINISTRADOR
 
-Configura los permisos de `EMPLEADO` o `CLIENTE` en la tienda. Se aplica en hasta 1 minuto (caché de roles de los
-servicios).
+Configures the `EMPLEADO` or `CLIENTE` permissions in the store. Applies within 1 minute (the services' role cache).
 
 ```bash
 curl -X PUT http://localhost:3000/api/v1/users/roles/EMPLEADO/permissions \
@@ -505,102 +509,101 @@ curl -X PUT http://localhost:3000/api/v1/users/roles/EMPLEADO/permissions \
   -H 'Content-Type: application/json' -d '{"permissions":5}'
 ```
 
-Respuesta **200**: `{ "role": "EMPLEADO", "permissions": 5 }`.
+Response **200**: `{ "role": "EMPLEADO", "permissions": 5 }`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Sin `permissions`, o con bits fuera de 1–8 (incluye `USUARIOS`=16) | `Invalid permissions: use PRODUCTOS=1, PRECIOS=2, STOCK=4 and COMBOS=8 (USUARIOS cannot be delegated).` |
-| 400 | `ADMINISTRADOR` o `SUPERADMIN` | `Only the EMPLEADO and CLIENTE permissions can be configured.` |
-| 404 | Rol inexistente | `The role provided is invalid.` |
+| 400 | No `permissions`, or bits outside 1–8 (including `USUARIOS`=16) | `Invalid permissions: use PRODUCTOS=1, PRECIOS=2, STOCK=4 and COMBOS=8 (USUARIOS cannot be delegated).` |
+| 400 | `ADMINISTRADOR` or `SUPERADMIN` | `Only the EMPLEADO and CLIENTE permissions can be configured.` |
+| 404 | Unknown role | `The role provided is invalid.` |
 
-## Plataforma
+## Platform
 
-Rutas sin tienda: se llaman desde el frontend de la plataforma (`http://localhost:2999`). Si una request llega con
-tienda, responden **404** `This endpoint is only available on the platform.` Las fechas van con offset.
+Routes without a store: called from the platform frontend (`http://localhost:2999`). If a request arrives with a store,
+they answer **404** `This endpoint is only available on the platform.` Dates carry an offset.
 
 ### POST /api/v1/platform/tenants
 
-**Acceso:** Público · **Rate limit:** 3 por minuto
+**Access:** Public · **Rate limit:** 3 per minute
 
-Alta de una tienda por autoservicio. Ver [flujo](#alta-de-una-tienda).
+Self-service store sign-up. See the [flow](#creating-a-store).
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/platform/tenants \
   -H 'Origin: http://localhost:2999' -H 'Content-Type: application/json' \
-  -d '{"identifier":"mi-tienda","ownerName":"Ana Pérez","ownerEmail":"ana@mail.com","ownerPassword":"secreta123"}'
+  -d '{"identifier":"my-store","ownerName":"Ana Pérez","ownerEmail":"ana@mail.com","ownerPassword":"secret123"}'
 ```
 
-Respuesta **201**:
+Response **201**:
 
 ```json
 {
   "id": 7,
-  "identifier": "mi-tienda",
-  "schema": "mi_tienda",
-  "url": "http://mi-tienda.localhost:2999",
+  "identifier": "my-store",
+  "schema": "my_store",
+  "url": "http://my-store.localhost:2999",
   "configId": "3f1c6a2e-...",
   "enabled": true,
   "createdAt": "2026-11-03T13:00:00Z"
 }
 ```
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Identificador inválido | `The identifier must have 3 to 30 characters, start with a letter and only use lowercase letters, numbers and hyphens.` |
-| 400 | Identificador reservado | `The identifier is reserved.` |
-| 400 | Falta un dato del dueño | `The owner name, email and password are required.` |
-| 400 | Datos del dueño inválidos | Ver [reglas](#reglas-de-validación) |
-| 409 | Identificador usado (también por una tienda borrada) | `The identifier is already in use.` |
+| 400 | Invalid identifier | `The identifier must have 3 to 30 characters, start with a letter and only use lowercase letters, numbers and hyphens.` |
+| 400 | Reserved identifier | `The identifier is reserved.` |
+| 400 | Missing owner data | `The owner name, email and password are required.` |
+| 400 | Invalid owner data | See [rules](#validation-rules) |
+| 409 | Identifier in use (also by a deleted store) | `The identifier is already in use.` |
 
 ### POST /api/v1/platform/auth/login
 
-**Acceso:** Público · **Rate limit:** 5 por minuto
+**Access:** Public · **Rate limit:** 5 per minute
 
-Login del superadmin. Mismo body y respuesta que [el de las tiendas](#post-apiv1authlogin), con
-`roles: [{ "type": "SUPERADMIN", "permissions": 0 }]` y un token de `public`.
+Superadmin login. Same body and response as [the store one](#post-apiv1authlogin), with
+`roles: [{ "type": "SUPERADMIN", "permissions": 0 }]` and a `public` token.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 401 | Credenciales incorrectas, superadmin desactivado o usuario sin rol `SUPERADMIN` | `Invalid username or password.` |
+| 401 | Wrong credentials, deactivated superadmin or user without the `SUPERADMIN` role | `Invalid username or password.` |
 
 ### POST /api/v1/platform/auth/refresh
 
-**Acceso:** Público (con el refresh token) · **Rate limit:** el del login
+**Access:** Public (with the refresh token) · **Rate limit:** the login one
 
-Igual que [el de las tiendas](#post-apiv1authrefresh), con un refresh de `public`. Un superadmin desactivado ya no
-tiene el rol, así que no se renueva: 401 `The access token is invalid.`
+Same as [the store one](#post-apiv1authrefresh), with a `public` refresh token. A deactivated superadmin no longer has
+the role, so it is not renewed: 401 `The access token is invalid.`
 
 ### POST /api/v1/platform/auth/logout
 
-**Acceso:** Público (con el refresh token)
+**Access:** Public (with the refresh token)
 
-Igual que [el de las tiendas](#post-apiv1authlogout), con un refresh de `public`. **204**.
+Same as [the store one](#post-apiv1authlogout), with a `public` refresh token. **204**.
 
 ### GET /api/v1/platform/admin/tenants
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Las tiendas no borradas, de la más nueva a la más vieja. Respuesta **200**: lista de `PlatformTenantDto` (el
-formato del alta).
+Non-deleted stores, newest first. Response **200**: list of `PlatformTenantDto` (the sign-up format).
 
 ### GET /api/v1/platform/admin/tenants/{id}
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Respuesta **200**: `PlatformTenantDto`. Error: 404 `The tenant was not found.` (no existe o está borrada).
+Response **200**: `PlatformTenantDto`. Error: 404 `The tenant was not found.` (missing or deleted).
 
 ### POST /api/v1/platform/admin/tenants
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Igual que el alta por autoservicio, pero sin rate limit de alta. Mismo body, respuesta y errores.
+Same as self-service sign-up, but without the sign-up rate limit. Same body, response and errors.
 
 ### PUT /api/v1/platform/admin/tenants/{id}/enabled
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Habilita o deshabilita una tienda. Deshabilitada, el gateway responde 403 a todo lo de esa tienda (tarda hasta 1
-minuto). Publica `tenant.enabled` o `tenant.disabled`.
+Enables or disables a store. While disabled, the gateway answers 403 to everything for that store (takes up to 1
+minute). Publishes `tenant.enabled` or `tenant.disabled`.
 
 ```bash
 curl -X PUT http://localhost:3000/api/v1/platform/admin/tenants/7/enabled \
@@ -608,21 +611,21 @@ curl -X PUT http://localhost:3000/api/v1/platform/admin/tenants/7/enabled \
   -H 'Content-Type: application/json' -d '{"enabled":false}'
 ```
 
-Respuesta **200**: `PlatformTenantDto`. Error: 404 `The tenant was not found.`
+Response **200**: `PlatformTenantDto`. Error: 404 `The tenant was not found.`
 
 ### DELETE /api/v1/platform/admin/tenants/{id}
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Borra (lógico) la tienda: los datos quedan, el gateway responde 404 y el identificador no se puede volver a usar.
-Publica `tenant.deleted`. Respuesta **204**. Error: 404 `The tenant was not found.`
+Soft-deletes the store: the data stays, the gateway answers 404 and the identifier cannot be reused. Publishes
+`tenant.deleted`. Response **204**. Error: 404 `The tenant was not found.`
 
 ### GET /api/v1/platform/admin/dashboard
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Tiendas por estado y altas por período (incluidas las borradas). Mismos parámetros y errores que
-[el panel de la tienda](#get-apiv1usersdashboard).
+Stores by state and sign-ups per period (deleted ones included). Same parameters and errors as
+[the store panel](#get-apiv1usersdashboard).
 
 ```json
 {
@@ -632,40 +635,40 @@ Tiendas por estado y altas por período (incluidas las borradas). Mismos paráme
 }
 ```
 
-`total`, `enabled` y `disabled` son de las tiendas no borradas.
+`total`, `enabled` and `disabled` are about non-deleted stores.
 
 ### GET /api/v1/platform/admin/usage?sort=
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Usuarios, activos y última actividad de cada tienda no borrada, de mayor a menor. Se guarda 5 minutos en Redis.
+Users, active users and last activity of each non-deleted store, highest first. Kept 5 minutes in Redis.
 
-| `sort` | Ordena por |
+| `sort` | Sorts by |
 |---|---|
-| `users` (default) | Usuarios |
-| `activeUsers` | Activos (login en 30 días) |
-| `lastActivity` | Última actividad (las tiendas sin actividad al final) |
-| `createdAt` | Fecha de alta |
+| `users` (default) | Users |
+| `activeUsers` | Active users (login in 30 days) |
+| `lastActivity` | Last activity (stores without activity last) |
+| `createdAt` | Sign-up date |
 
 ```json
 [
-  { "id": 7, "identifier": "mi-tienda", "schema": "mi_tienda", "enabled": true,
+  { "id": 7, "identifier": "my-store", "schema": "my_store", "enabled": true,
     "createdAt": "2026-10-01T10:00:00Z", "users": 14, "activeUsers": 9,
     "lastActivity": "2026-11-03T12:58:00Z" }
 ]
 ```
 
-`lastActivity` es lo más reciente entre el último login y la última request (marcas del gateway, últimos 5
-minutos); `null` si nadie entró. Los productos por tienda los da products (`/api/v1/platform/products/usage`): el
-frontend junta las dos listas por `schema`.
+`lastActivity` is the most recent of the last login and the last request (gateway marks, last 5 minutes); `null` if
+nobody ever logged in. Products per store come from products (`/api/v1/platform/products/usage`): the frontend joins
+both lists by `schema`.
 
 Error: 400 `Invalid sort: use users, activeUsers, lastActivity or createdAt.`
 
 ### GET /api/v1/platform/admin/superadmins
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Todos los superadmins, también los desactivados, por fecha de alta.
+Every superadmin, deactivated ones included, by creation date.
 
 ```json
 [ { "id": 1, "name": "Superadmin", "email": "superadmin@kleinkauf.local", "active": true,
@@ -674,182 +677,180 @@ Todos los superadmins, también los desactivados, por fecha de alta.
 
 ### POST /api/v1/platform/admin/superadmins
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Crea un superadmin con contraseña temporal (no se le pide cambiarla).
+Creates a superadmin with a temporary password (they are not asked to change it).
 
 ```json
-{ "name": "Lucía", "email": "lucia@kleinkauf.local", "password": "temporal123" }
+{ "name": "Lucía", "email": "lucia@kleinkauf.local", "password": "temporary123" }
 ```
 
-Respuesta **201**: `SuperadminDto`.
+Response **201**: `SuperadminDto`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Datos inválidos o faltantes | Ver [reglas](#reglas-de-validación) |
-| 409 | Email usado, también por un superadmin desactivado | `The email is already in use.` |
+| 400 | Invalid or missing data | See [rules](#validation-rules) |
+| 409 | Email in use, also by a deactivated superadmin | `The email is already in use.` |
 
 ### PUT /api/v1/platform/admin/superadmins/{id}/active
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Desactiva (`{"active": false}`) o reactiva (`true`) un superadmin. Desactivado no puede loguearse, y su token deja
-de servir en hasta 1 minuto. Si ya estaba así no cambia nada.
+Deactivates (`{"active": false}`) or reactivates (`true`) a superadmin. Once deactivated they cannot log in, and their
+token stops working within 1 minute. If it was already in that state, nothing changes.
 
-Respuesta **200**: `SuperadminDto`.
+Response **200**: `SuperadminDto`.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Desactivarse a sí mismo | `You cannot deactivate yourself.` |
-| 409 | Es el último activo | `The last active superadmin cannot be deactivated.` |
-| 404 | No existe o no es superadmin | `The superadmin was not found.` |
+| 400 | Deactivating yourself | `You cannot deactivate yourself.` |
+| 409 | It is the last active one | `The last active superadmin cannot be deactivated.` |
+| 404 | Does not exist or is not a superadmin | `The superadmin was not found.` |
 
-## Reportes de bugs
+## Bug reports
 
-"Reportar un problema" del footer de las tiendas. Se guardan en `public.bug_reports` y los leen los superadmins en el
-panel de la plataforma (`/bug-reports`).
+"Reportar un problema" in the stores' footer. Stored in `public.bug_reports` and read by the superadmins on the platform
+panel (`/bug-reports`).
 
 ### POST /api/v1/bug-reports
 
-**Acceso:** Público, con login opcional (rate limit de 3 por minuto)
+**Access:** Public, optional login (rate limit of 3 per minute)
 
-La tienda sale del `Origin` (el gateway la resuelve como en cualquier ruta de tienda). Con la sesión abierta queda el
-usuario, y si no se manda `email` se usa el de su cuenta. `pageUrl` se recorta a 500 caracteres y el `User-Agent` a 300.
+The store comes from `Origin` (the gateway resolves it like any store route). With an open session the user is kept,
+and if no `email` is sent the account's is used. `pageUrl` is cut to 500 characters and the `User-Agent` to 300.
 
 ```json
-{ "description": "El carrito no suma bien el envío", "email": "ana@mail.com", "pageUrl": "https://demo.kleinkauf.site/carrito" }
+{ "description": "The cart does not add the shipping correctly", "email": "ana@mail.com", "pageUrl": "https://demo.kleinkauf.site/carrito" }
 ```
 
-Respuesta **201** sin cuerpo.
+Response **201** with no body.
 
-| Código | Cuándo | Mensaje |
+| Status | When | Message |
 |---|---|---|
-| 400 | Descripción de menos de 10 o más de 2000 caracteres | `The description must have 10 to 2000 characters.` |
-| 400 | Email inválido | `The email is not valid.` |
+| 400 | Description shorter than 10 or longer than 2000 characters | `The description must have 10 to 2000 characters.` |
+| 400 | Invalid email | `The email is not valid.` |
 
 ### GET /api/v1/platform/admin/bug-reports?status=&page=&size=
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Los más nuevos primero. `status`: `pending` (por defecto), `resolved` o `all`. `size`: 20 por defecto, máximo 100.
-`pending` es cuántos quedan sin resolver en total, sea cual sea el filtro.
+Newest first. `status`: `pending` (default), `resolved` or `all`. `size`: 20 by default, at most 100. `pending` is how
+many are unresolved in total, whatever the filter.
 
 ```json
 { "items": [ { "id": 4, "store": "demo", "storeUrl": "https://demo.kleinkauf.site", "userId": 7,
-    "reporterName": "Ana", "email": "ana@mail.com", "description": "El carrito no suma bien el envío",
+    "reporterName": "Ana", "email": "ana@mail.com", "description": "The cart does not add the shipping correctly",
     "pageUrl": "https://demo.kleinkauf.site/carrito", "userAgent": "Mozilla/5.0 ...",
     "createdAt": "2026-11-04T12:30:00Z", "resolvedAt": null } ],
   "page": 0, "size": 20, "totalItems": 1, "totalPages": 1, "pending": 1 }
 ```
 
-Errores: 400 `Invalid value for status.` y 400 `Invalid page: page must be 0 or more and size between 1 and 100.`
+Errors: 400 `Invalid value for status.` and 400 `Invalid page: page must be 0 or more and size between 1 and 100.`
 
 ### PUT /api/v1/platform/admin/bug-reports/{id}/resolved
 
-**Acceso:** SUPERADMIN
+**Access:** SUPERADMIN
 
-Marca el reporte como resuelto (`{"resolved": true}`) o lo vuelve a pendiente (`false`). Marcar de nuevo uno resuelto
-no cambia la fecha en que se resolvió.
+Marks the report as resolved (`{"resolved": true}`) or back to pending (`false`). Marking an already resolved one again
+does not change its resolution date.
 
-Respuesta **200**: el reporte. **404** `The bug report was not found.`
+Response **200**: the report. **404** `The bug report was not found.`
 
-## Internos
+## Internal
 
-No los llama el frontend ni pasan por el gateway: los llaman los servicios directo por Eureka, con
-`X-Internal-Token` (ver [common.md](common.md)). users pide el token en todo `/api/internal/**`.
+Not called by the frontend and not routed by the gateway: the services call them directly through Eureka, with
+`X-Internal-Token` (see [common.md](common.md)). users requires the token on all of `/api/internal/**`.
 
-| Método | Ruta | Quién lo usa | Qué devuelve |
+| Method | Path | Used by | Returns |
 |---|---|---|---|
-| GET | `/api/internal/tenants/id?url=` | gateway | `TenantDto` de la tienda con esa URL, o vacío si no existe o está borrada |
-| GET | `/api/internal/tenants/id?schema=` | products, sales | `TenantDto` por schema. Sin `url` ni `schema`: 400 `Falta el parametro url o schema` |
-| GET | `/api/internal/tenants/cors?url=` | gateway | `true` si la URL es de una tienda no borrada (aunque esté deshabilitada) |
-| GET | `/api/internal/tenants/all` | products y sales (migran los schemas al arrancar; sales también para el vencimiento) | Todas las tiendas no borradas |
-| GET | `/api/internal/users/{id}` | observability (nombres para la auditoría) | `FullUserDto`; 404 `The user was not found.` |
-| GET | `/api/internal/users/roles/{id}` | products, sales, observability | `[{ "type", "permissions" }]` del usuario en la tienda de `X-Forwarded-Host` (sin tienda: `public`) |
-| POST | `/api/internal/mail/order-confirmation` | sales | Manda al comprador el mail de confirmación de un pedido online (`OrderConfirmationMailDto`). Una sola vez por pedido (marca en Redis `mail:order:<schema>:<número>`, 2 días). 204 aunque el mail falle; 400 si falta el número o el email es inválido |
+| GET | `/api/internal/tenants/id?url=` | gateway | `TenantDto` of the store with that URL, or empty if it does not exist or was deleted |
+| GET | `/api/internal/tenants/id?schema=` | products, sales | `TenantDto` by schema. Without `url` or `schema`: 400 `Falta el parametro url o schema` |
+| GET | `/api/internal/tenants/cors?url=` | gateway | `true` if the URL belongs to a non-deleted store (even a disabled one) |
+| GET | `/api/internal/tenants/all` | products and sales (they migrate the schemas at startup; sales also for expiration) | Every non-deleted store |
+| GET | `/api/internal/users/{id}` | observability (names for the audit log) | `FullUserDto`; 404 `The user was not found.` |
+| GET | `/api/internal/users/roles/{id}` | products, sales, observability | `[{ "type", "permissions" }]` of the user in the `X-Forwarded-Host` store (without a store: `public`) |
+| POST | `/api/internal/mail/order-confirmation` | sales | Sends the buyer the confirmation email of an online order (`OrderConfirmationMailDto`). Only once per order (Redis mark `mail:order:<schema>:<number>`, 2 days). 204 even if the email fails; 400 if the number is missing or the email is invalid |
 
 `TenantDto`:
 
 ```json
-{ "id": 7, "configId": "3f1c6a2e-...", "schema": "mi_tienda", "enable": true,
+{ "id": 7, "configId": "3f1c6a2e-...", "schema": "my_store", "enable": true,
   "createdAt": "2026-10-01T10:00:00", "deletedAt": null }
 ```
 
-## Cómo se comunica
+## How it communicates
 
-- **Recibe** del gateway `X-Forwarded-Host` (la tienda; sin él trabaja en `public`) y `X-User-Id`. Arma los roles
-  del usuario con la tabla `roles` y su máscara de permisos.
-- **Redis** (lo leen el gateway, products, sales y observability):
+- **Receives** from the gateway `X-Forwarded-Host` (the store; without it, it works on `public`) and `X-User-Id`. It
+  builds the user's roles from the `roles` table and their permission mask.
+- **Redis** (read by the gateway, products, sales and observability):
 
-| Key | Contenido | Dura | Se borra |
+| Key | Contents | TTL | Removed |
 |---|---|---|---|
-| `user:<id>:<schema>` (hash `roles`) | Roles del usuario con su máscara | 1 hora | Al cambiar sus roles, borrarlo o cambiar los permisos de la tienda |
-| `tenant:<schema>` (hash `data`) | `TenantDto` | 1 hora | Al habilitar, deshabilitar o borrar la tienda |
-| `tenant:url:<url>` (hash `data`) | `TenantDto` por URL (el gateway) | 1 hora | Igual |
-| `gateway:cors:<url>` | URL permitida por CORS | 5 horas | Igual |
-| `platform:usage:users` | Uso por tienda del panel de la plataforma | 5 minutos | — |
-| `activity:<schema>:<id>` | Última request (la escribe el gateway; users solo la lee) | 5 minutos | — |
+| `user:<id>:<schema>` (hash `roles`) | The user's roles with their mask | 1 hour | When their roles change, they are deleted or the store's permissions change |
+| `tenant:<schema>` (hash `data`) | `TenantDto` | 1 hour | When the store is enabled, disabled or deleted |
+| `tenant:url:<url>` (hash `data`) | `TenantDto` by URL (for the gateway) | 1 hour | Same |
+| `gateway:cors:<url>` | URL allowed by CORS | 5 hours | Same |
+| `platform:usage:users` | Usage per store for the platform panel | 5 minutes | — |
+| `refresh:<schema>:<userId>:<jti>` | Valid refresh tokens | 7 days | On use (30 s grace), logout or password change |
+| `mail:order:<schema>:<number>` | Order confirmation already sent | 2 days | If sending fails |
+| `activity:<schema>:<id>` | Last request (written by the gateway; users only reads it) | 5 minutes | — |
 
-- **Eventos** (Redis Streams `kleinkauf:events`): `tenant.created`, `tenant.enabled`, `tenant.disabled`,
-  `tenant.deleted`, con `{ id, identifier, schema }`.
-- **Auditoría:** `User`, `Role`, `RolePermission` y `Tenant` son `@Audited` (altas, cambios y bajas van al outbox;
-  el último login no cuenta). Desactivar y reactivar superadmins se registra a mano. Lo de tiendas y superadmins
-  queda con tenant `public`. Ver [auditoria.md](../auditoria.md).
-- **Mail:** SMTP (Resend) para el recupero de contraseña y la confirmación de compra. Ver [mail.md](../mail.md).
-- **Llama a products** (`GET /api/v1/catalog/store`) para el nombre de la tienda que va de remitente en los mails.
-  Si products no responde, usa el nombre derivado del identificador.
+- **Events** (Redis Streams `kleinkauf:events`): `tenant.created`, `tenant.enabled`, `tenant.disabled`,
+  `tenant.deleted`, with `{ id, identifier, schema }`.
+- **Audit log:** `User`, `Role`, `RolePermission` and `Tenant` are `@Audited` (creates, updates and deletes go to the
+  outbox; last login does not count). Deactivating and reactivating superadmins is recorded by hand. Store and
+  superadmin actions are stored with tenant `public`. See [audit.md](../features/audit.md).
+- **Email:** SMTP (Resend) for password recovery and order confirmation. See [mail.md](../mail.md).
+- **Calls products** (`GET /api/v1/catalog/store`) for the store name used as email sender. If products does not answer,
+  it uses the name derived from the identifier.
 
-## Modelo de datos
+## Data model
 
-Base `users`. Hibernate crea las tablas con `hbm2ddl` (sin Flyway). Los nombres de columnas sin `@Column` quedan en
-minúsculas sin guion bajo (`lastlogin`, `userid`).
+`users` database. Hibernate creates the tables with `hbm2ddl` (no Flyway). Column names without `@Column` stay lower
+case without underscores (`lastlogin`, `userid`).
 
-Al arrancar, `TenantDataSource` migra `public` y el schema de cada tienda no borrada (como products y sales), así un
-cambio en las entidades llega a todas en el deploy. Una tienda nueva crea su schema en la primera conexión.
+At startup, `TenantDataSource` migrates `public` and the schema of each non-deleted store (like products and sales), so
+an entity change reaches all of them on deploy. A new store creates its schema on the first connection.
 
-**En el schema de cada tienda:**
+**In each store's schema:**
 
-| Tabla | Columnas | Notas |
+| Table | Columns | Notes |
 |---|---|---|
-| `usuarios` | `id`, `name`, `email` (único), `password` (bcrypt), `created_at`, `lastlogin`, `deleted_at` | Borrado lógico |
-| `roles` | `id`, `type`, `userid`, `deleted_at` | Único (`userid`, `type`); borrado lógico |
-| `role_permissions` | `id`, `type` (único), `permissions` | Solo las filas que configuró el administrador; sin fila = permisos por defecto |
+| `usuarios` | `id`, `name`, `email` (unique), `password` (bcrypt), `avatar`, `created_at`, `lastlogin`, `deleted_at` | Soft delete |
+| `roles` | `id`, `type`, `userid`, `deleted_at` | Unique (`userid`, `type`); soft delete |
+| `role_permissions` | `id`, `type` (unique), `permissions` | Only the rows the admin configured; no row = default permissions |
 
-**En `public`:** `bug_reports` (`id`, `tenant_schema`, `user_id`, `reporter_name`, `email`, `description`,
-`page_url`, `user_agent`, `created_at`, `resolved_at`), `tenant` (`id`, `schema`, `url`, `config_id`, `enable`, `created_at`, `deleted_at`) y los superadmins
-en `usuarios` y `roles` con el rol `SUPERADMIN`. Ver [tenants.md](../tenants.md#datos-de-un-tenant-tabla-tenant-en-users-schema-public).
+**In `public`:** `bug_reports` (`id`, `tenant_schema`, `user_id`, `reporter_name`, `email`, `description`, `page_url`,
+`user_agent`, `created_at`, `resolved_at`), `tenant` (`id`, `schema`, `url`, `config_id`, `enable`, `created_at`,
+`deleted_at`) and the superadmins in `usuarios` and `roles` with the `SUPERADMIN` role. See
+[tenants.md](../features/tenants.md#tenant-data-tenant-table-in-users-public-schema).
 
-## Configuración
+## Configuration
 
-| Propiedad | Valor en desarrollo | Para qué |
+| Property | Development value | Purpose |
 |---|---|---|
 | `server.port` / `management.server.port` | `3001` / `9001` | |
-| `spring.datasource.*` | `jdbc:postgresql://localhost:5432/users` | Base |
-| `spring.data.redis.*` | `localhost:6379` | Caché y eventos |
-| `jwt.secret` | — | Firma los JWT. Tiene que ser el mismo que el del gateway. **Cambiarlo fuera de desarrollo** |
-| `api.internal.key` | — | Token interno. **Cambiarlo fuera de desarrollo** |
-| `kleinkauf.tenant.required` | `false` | Sin tienda trabaja en `public` (plataforma e internos) |
-| `users.dashboard.zone` | `America/Argentina/Buenos_Aires` | Zona de los días de los paneles (altas por período) |
-| `platform.scheme`, `platform.domain` | `http`, `localhost:2999` | Arman la URL de cada tienda nueva y el link del recupero |
-| `platform.superadmin.email` / `.password` | `${SUPERADMIN_EMAIL}` / `${SUPERADMIN_PASSWORD}` | Primer superadmin, al arrancar |
-| `spring.mail.*` | `smtp.resend.com:587`, usuario `resend`, contraseña `${MAIL_PASSWORD}` | Servidor de mail (Resend). Sin `MAIL_PASSWORD` no sale ningún mail |
-| `mail.from.address` | `${MAIL_FROM:no-reply@mail.kleinkauf.site}` | Dirección de todos los mails |
-| `mail.from.platform-name` | `KleinKauf` | Remitente de los mails sin tienda |
-| `products.url` | `http://products-microservice/` | Nombre de la tienda para el remitente |
+| `spring.datasource.*` | `jdbc:postgresql://localhost:5432/users` | Database |
+| `spring.data.redis.*` | `localhost:6379` | Cache and events |
+| `jwt.secret` | — | Signs the JWTs. Must match the gateway's. **Change it outside development** |
+| `api.internal.key` | — | Internal token. **Change it outside development** |
+| `kleinkauf.tenant.required` | `false` | Without a store it works on `public` (platform and internal) |
+| `users.dashboard.zone` | `America/Argentina/Buenos_Aires` | Time zone of the dashboard days (sign-ups per period) |
+| `platform.scheme`, `platform.domain` | `http`, `localhost:2999` | Build each new store's URL and the recovery link |
+| `platform.superadmin.email` / `.password` | `${SUPERADMIN_EMAIL}` / `${SUPERADMIN_PASSWORD}` | First superadmin, at startup |
+| `avatar.path` | `uploads/users/avatars` | Profile photo folder |
+| `spring.mail.*` | `smtp.resend.com:587`, user `resend`, password `${MAIL_PASSWORD}` | Mail server (Resend). Without `MAIL_PASSWORD` no email goes out |
+| `mail.from.address` | `${MAIL_FROM:no-reply@mail.kleinkauf.site}` | Address of every email |
+| `mail.from.platform-name` | `KleinKauf` | Sender of emails without a store |
+| `products.url` | `http://products-microservice/` | Store name for the sender |
 
-Levantarlo solo: `cd backend/kleinkaufusers && ./gradlew bootRun` (con Postgres, Redis y Eureka arriba). Ver el
-[README del proyecto](../../README.md#cómo-correrlo).
+Running it alone: `cd backend/kleinkaufusers && ./gradlew bootRun` (with Postgres, Redis and Eureka up). See
+[getting started](../getting-started.md).
 
-## Límites conocidos
+## Known limitations
 
-- Cerrar sesión corta el refresh pero no el token de 1 hora, que sigue valiendo hasta que vence. No hay "cerrar
-  todas mis sesiones" (cambiar la contraseña lo hace).
-- Los refresh emitidos antes de guardarlos en Redis (sin `jti`) ya no sirven: esas sesiones vuelven a loguearse.
-- Si el mail del recupero falla, queda en el log como `ERROR` (`MailService`) pero no se reintenta.
-- Un rol inexistente responde 400 si viene como parámetro (`?roleName=`, `?role=`) y 404 si viene en la ruta
+- Logging out cuts the refresh token but not the 1-hour token, which stays valid until it expires. There is no "log out
+  all my sessions" (changing the password does it).
+- If the recovery email fails, it is logged as `ERROR` (`MailService`) but not retried.
+- An unknown role answers 400 when it comes as a parameter (`?roleName=`, `?role=`) and 404 when it is in the path
   (`/roles/{role}/permissions`).
-
-## Para limpiar
-
-Nada por ahora. El 2026-11-03 se borraron `GET /api/v1/users/all` y `GET /api/internal/users/all` (sin uso), y
-`PUT /auth/update` y `DELETE /auth/delete` pasaron a `PATCH /auth/me` y `DELETE /auth/me`.

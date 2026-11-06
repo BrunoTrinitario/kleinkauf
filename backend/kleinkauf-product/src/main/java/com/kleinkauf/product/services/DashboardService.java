@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /*
-Store dashboard (docs/panel-admin.md): products and stock with today's data, always up to date (no cache).
+Store dashboard (docs/features/admin-dashboards.md): products and stock with today's data, always up to date (no cache).
 Each value is a count or sum query in the database: products are not loaded.
  */
 @Service

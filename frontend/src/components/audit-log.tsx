@@ -21,7 +21,7 @@ const a = strings.audit
 const dateTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "medium" })
 const ACTIONS = Object.keys(a.actions)
 
-// What is audited on each side (docs/auditoria.md#qué-se-registra)
+// What is audited on each side (docs/features/audit.md#what-is-recorded)
 const STORE_ENTITIES = [
   "Product",
   "ProductPricing",

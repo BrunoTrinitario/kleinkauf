@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Store dashboard (docs/panel-admin.md): users, active, by role and sign-ups per period. Always up to date (no cache).
+Store dashboard (docs/features/admin-dashboards.md): users, active, by role and sign-ups per period. Always up to date (no cache).
 Queries go against the schema of the request's store; deleted ones (soft delete) do not count.
  */
 @Service

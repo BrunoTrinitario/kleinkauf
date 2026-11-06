@@ -3,7 +3,7 @@ package com.kleinkauf.common.constants;
 import java.time.Duration;
 
 /*
-Last activity in Redis (docs/observabilidad.md), written by the gateway and read by observability.
+Last activity in Redis (docs/features/observability.md), written by the gateway and read by observability.
 Online = some request within the last TTL: the key expires on its own.
 - Logged-in users: activity:<tenant>:<userId> with the time of their last request (epoch in milliseconds).
   tenant: the store's schema, or "public" for superadmins.

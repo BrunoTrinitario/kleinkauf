@@ -21,7 +21,7 @@ x-service: &service
     #durante las pausas de bootRun y activa la autopreservacion de eureka
     EUREKA_CLIENT_REGISTRYFETCHINTERVALSECONDS: "5"
 
-#Healthcheck: /health (liveness) en el puerto de gestion, que es interno y no se publica (docs/observabilidad.md)
+#Healthcheck: /health (liveness) en el puerto de gestion, que es interno y no se publica (docs/features/observability.md)
 #start_period largo porque bootRun compila antes de levantar
 x-healthcheck: &healthcheck
   interval: 10s
@@ -131,7 +131,7 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:9001/health"]
 
-  #Observabilidad: recolector, eventos, auditoria y WS del panel en tiempo real (docs/observabilidad.md).
+  #Observabilidad: recolector, eventos, auditoria y WS del panel en tiempo real (docs/features/observability.md).
   #La base observability la crea init.sql; con un volumen de postgres de antes hay que crearla a mano:
   #  docker exec postgres-dev psql -U postgres -c "CREATE DATABASE observability"
   observability-service:

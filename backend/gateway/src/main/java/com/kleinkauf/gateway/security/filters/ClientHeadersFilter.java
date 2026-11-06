@@ -15,7 +15,7 @@ import java.util.List;
 /*
 First filter: removes the headers only the gateway may set. If a client sends them
 (e.g. X-User-Id or X-Forwarded-Host) they would reach the microservices as is, and those trust them.
-Sets X-Client-Ip with the connection's IP, for the audit (docs/auditoria.md). It is the connection's and not
+Sets X-Client-Ip with the connection's IP, for the audit (docs/features/audit.md). It is the connection's and not
 the one in X-Forwarded-For, which the client can make up; behind a proxy it would have to be taken from the proxy.
  */
 @Component

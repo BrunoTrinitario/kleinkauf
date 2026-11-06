@@ -26,7 +26,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 
 /*
-Last activity (docs/observabilidad.md): activity:<tenant>:<userId> in Redis for logged-in users and
+Last activity (docs/features/observability.md): activity:<tenant>:<userId> in Redis for logged-in users and
 visitor:<tenant>:<visitorId> for anonymous visitors of a store, expiring after 5 minutes. observability uses them for
 online users. The visitor is a hash of the IP and the User-Agent: the IP itself is not stored.
 - Runs after JwtFilter (Order 3): X-User-Id is already the token's (ClientHeadersFilter removes the client's).

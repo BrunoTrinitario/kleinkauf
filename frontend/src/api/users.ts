@@ -10,7 +10,7 @@ export const userKeys = {
   permissions: () => [...userKeys.all, "permissions"] as const,
 }
 
-// Area mask of each store role (see docs/permisos.md)
+// Area mask of each store role (see docs/features/permissions.md)
 export interface RolePermissions {
   role: UserRole
   permissions: number

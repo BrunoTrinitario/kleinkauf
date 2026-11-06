@@ -4,7 +4,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /*
-Order statuses (see docs/ventas.md). It counts as a sale from PAGADO on.
+Order statuses (see docs/features/sales.md). It counts as a sale from PAGADO on.
 Stock is reserved when the order is created and returned on CANCELADO and VENCIDO.
  */
 public enum OrderStatus {

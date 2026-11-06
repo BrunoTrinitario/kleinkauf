@@ -7,7 +7,7 @@ import { productKeys } from "./products"
 import { userKeys } from "./users"
 
 /*
-Store dashboard overview (ADMINISTRADOR only, docs/panel-admin.md). Each service builds its part and each block
+Store dashboard overview (ADMINISTRADOR only, docs/features/admin-dashboards.md). Each service builds its part and each block
 loads separately: if one fails, the rest of the dashboard keeps working. The keys hang from each domain, so a change to
 products, users or sales also updates the overview.
  */

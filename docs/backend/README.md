@@ -1,170 +1,173 @@
-# Backend de kleinkauf
+# KleinKauf backend
 
-Referencia del backend para integrar el frontend o empezar a trabajar en un servicio: qué hace cada microservicio,
-todos sus endpoints con ejemplos y cómo se comunican. Un archivo por servicio:
+Backend reference for integrating the frontend or starting work on a service: what each microservice does, every
+endpoint with examples, and how they talk to each other. One file per service:
 
-| Servicio | Doc | Puerto | Qué hace |
+| Service | Doc | Port | What it does |
 |---|---|---|---|
-| gateway | [gateway.md](gateway.md) | 3000 | Única entrada: rutea, reconoce la tienda, valida el login, rate limit y CORS |
-| users | [users.md](users.md) | 3001 | Login, usuarios, roles y permisos de cada tienda; alta de tiendas y panel de la plataforma |
-| products | [products.md](products.md) | 3002 | Productos, stock, combos, CSV, catálogo público y panel de la tienda |
-| sales | [sales.md](sales.md) | 3003 | Pedidos online, pagos por transferencia, ventas del local y reportes |
-| observability | [observability.md](observability.md) | 3004 | Salud, métricas, auditoría y WebSocket de los paneles en tiempo real |
-| kleinkauf-common | [common.md](common.md) | — | Librería compartida (no es un servicio) |
-| eureka | [eureka.md](eureka.md) | 8761 | Registro de servicios |
+| gateway | [gateway.md](gateway.md) | 3000 | Single entry point: routing, store recognition, login validation, rate limit and CORS |
+| users | [users.md](users.md) | 3001 | Login, users, roles and permissions of each store; store sign-up and platform panel |
+| products | [products.md](products.md) | 3002 | Products, stock, bundles, CSV, public catalog and store panel |
+| sales | [sales.md](sales.md) | 3003 | Online orders, bank transfer payments, in-store sales and reports |
+| observability | [observability.md](observability.md) | 3004 | Health, metrics, audit log and the WebSocket for the real-time panels |
+| kleinkauf-common | [common.md](common.md) | — | Shared library (not a service) |
+| eureka | [eureka.md](eureka.md) | 8761 | Service registry |
 
-Los docs por tema explican cómo funciona algo que cruza varios servicios; desde acá se enlazan cuando hace falta:
-[tenants](../tenants.md), [permisos](../permisos.md), [ventas](../ventas.md), [panel-admin](../panel-admin.md),
-[observabilidad](../observabilidad.md) y [auditoría](../auditoria.md). Cómo levantar todo: [README del
-proyecto](../../README.md#cómo-correrlo).
+The feature docs explain things that cross several services and are linked from here when needed:
+[tenants](../features/tenants.md), [permissions](../features/permissions.md), [sales](../features/sales.md),
+[admin dashboards](../features/admin-dashboards.md), [observability](../features/observability.md) and
+[audit](../features/audit.md). How to run everything: [getting started](../getting-started.md).
 
-## Arquitectura
+## Architecture
 
 ```
-                    Frontend de cada tienda (http://<tienda>.localhost:2999)
-                    Frontend de la plataforma (http://localhost:2999)
+                    Each store's frontend (http://<store>.localhost:2999)
+                    Platform frontend (http://localhost:2999)
                                        │
                                        ▼
                             ┌──────────────────────┐
-                            │  gateway  :3000      │  única entrada pública
+                            │  gateway  :3000      │  single public entry point
                             └──────────┬───────────┘
                          Eureka (lb://) │
           ┌─────────────────────────────┼─────────────────────────────┐
           ▼                             ▼                             ▼
-┌──────────────────┐  tokens  ┌──────────────────┐  tokens  ┌───────────────────┐
+┌──────────────────┐ internal ┌──────────────────┐ internal ┌───────────────────┐
 │ kleinkaufusers   │ ◄─────── │ products         │ ◄─────── │ kleinkauf-sales   │
-│ :3001            │          │ :3002            │          │ :3003             │
-└────────┬─────────┘ internos └────────┬─────────┘ internos └─────────┬─────────┘
-         │  ▲        (Resilience4j)    │      (stock y vendidos)      │
-         │  └─────────────────── roles y tenants ─────────────────────┤
+│ :3001            │  tokens  │ :3002            │  tokens  │ :3003             │
+└────────┬─────────┘          └────────┬─────────┘          └─────────┬─────────┘
+         │  ▲        (Resilience4j)    │      (stock and sold)        │
+         │  └─────────────────── roles and tenants ───────────────────┤
          │                             │                              │
  Postgres "users"     Redis    Postgres "products"            Postgres "sales"
- (schema por tenant + public)  (schema por tenant)            (schema por tenant)
+ (schema per tenant + public)  (schema per tenant)            (schema per tenant)
 
-          kleinkauf-observability :3004  ─  salud, métricas, eventos, auditoría y WS (Postgres "observability")
-          eureka :8761  ─  registro de servicios
-          kleinkauf-common  ─  librería compartida (no es un servicio)
+          kleinkauf-observability :3004  ─  health, metrics, events, audit log and WS (Postgres "observability")
+          eureka :8761  ─  service registry
+          kleinkauf-common  ─  shared library (not a service)
 ```
 
-- **Multi-tenant:** cada tienda (tenant) tiene su propio schema de Postgres en cada base. El gateway reconoce la
-  tienda por el header `Origin` y se la pasa a los servicios. Ver [tenants.md](../tenants.md).
-- **Plataforma:** lo que no es de ninguna tienda (alta de tiendas, superadmins, panel de la plataforma) vive en el
-  schema `public` y en las rutas `/api/v1/platform/**`.
-- **Entre servicios:** HTTP síncrono por Eureka con un token interno, protegido con Resilience4j (circuit breaker,
-  reintentos y timeout). Los eventos para los paneles en vivo y la auditoría van por Redis Streams.
-- **Caché:** Caffeine (local) + Redis (compartida) para tenants, roles y catálogo.
+- **Multi-tenancy:** each store (tenant) has its own Postgres schema in every database. The gateway recognizes the
+  store by the `Origin` header and passes it to the services. See [tenants.md](../features/tenants.md).
+- **Platform:** whatever does not belong to a store (store sign-up, superadmins, platform panel) lives in the `public`
+  schema and under `/api/v1/platform/**`.
+- **Between services:** synchronous HTTP through Eureka with an internal token, protected by Resilience4j (circuit
+  breaker, retries and timeout). Events for the live panels and the audit log go through Redis Streams.
+- **Cache:** Caffeine (local) + Redis (shared) for tenants, roles and catalog.
 
-## Mapa de rutas
+## Route map
 
-Todo se llama al gateway (`http://localhost:3000` en desarrollo). Detalle de cada ruta en el doc del servicio.
+Everything is called on the gateway (`http://localhost:3000` in development). Each route is detailed in its service's
+doc.
 
-| Prefijo | Servicio | Tienda | Doc |
+| Prefix | Service | Store | Doc |
 |---|---|---|---|
-| `/api/v1/auth/**` | users | Sí | [users.md](users.md#autenticación) |
-| `/api/v1/users/**` | users | Sí | [users.md](users.md#usuarios-de-la-tienda) |
-| `/api/v1/platform/**` (salvo lo de abajo) | users | No | [users.md](users.md#plataforma) |
-| `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**` | products | Sí | [products.md](products.md) |
-| `/products/images/**` | products | No | [products.md](products.md#imágenes) |
-| `/api/v1/platform/products/**` | products | No | [products.md](products.md#plataforma) |
-| `/api/v1/sales/**` | sales | Sí | [sales.md](sales.md) |
-| `/api/v1/observability/**` | observability | Sí | [observability.md](observability.md#panel-de-la-tienda) |
-| `/api/v1/platform/observability/**` | observability | No | [observability.md](observability.md#panel-de-la-plataforma) |
-| `/ws` | observability | Según el ticket | [observability.md](observability.md#websocket) |
-| `/api/internal/**` | users, products | — | Solo entre servicios (sección "Internos" de cada doc) |
+| `/api/v1/auth/**` | users | Yes | [users.md](users.md#authentication) |
+| `/api/v1/users/**` | users | Yes | [users.md](users.md#store-users) |
+| `/api/v1/bug-reports` | users | Yes | [users.md](users.md#bug-reports) |
+| `/users/avatars/**` | users | No | [users.md](users.md#authentication) |
+| `/api/v1/platform/**` (except below) | users | No | [users.md](users.md#platform) |
+| `/api/v1/products/**`, `/api/v1/bundles/**`, `/api/v1/catalog/**`, `/api/v1/store/**` | products | Yes | [products.md](products.md) |
+| `/products/images/**`, `/share/**` | products | No | [products.md](products.md#images) |
+| `/api/v1/platform/products/**` | products | No | [products.md](products.md#platform) |
+| `/api/v1/sales/**` | sales | Yes | [sales.md](sales.md) |
+| `/api/v1/observability/**` | observability | Yes | [observability.md](observability.md#store-panel) |
+| `/api/v1/platform/observability/**` | observability | No | [observability.md](observability.md#platform-panel) |
+| `/ws` | observability | Depends on the ticket | [observability.md](observability.md#websocket) |
+| `/api/internal/**` | users, products | — | Service to service only (the "Internal" section of each doc) |
 
-"Tienda: Sí" quiere decir que la request tiene que salir del frontend de una tienda (su `Origin`); "No", que es de
-la plataforma o pública sin tienda.
+"Store: Yes" means the request must come from a store's frontend (its `Origin`); "No" means it belongs to the platform
+or is public without a store.
 
-## Convenciones
+## Conventions
 
-### Cómo llamar
+### Calling the API
 
-| Header | Cuándo | Ejemplo |
+| Header | When | Example |
 |---|---|---|
-| `Origin` | Siempre en las rutas de una tienda: el gateway reconoce la tienda por ahí. El navegador lo manda solo; con curl o Postman hay que ponerlo | `Origin: http://demo.localhost:2999` |
-| `Authorization` | Rutas con login | `Authorization: Bearer <token>` |
-| `Content-Type` | Bodies JSON / archivos | `application/json` o `multipart/form-data` |
+| `Origin` | Always on store routes: the gateway recognizes the store by it. Browsers send it on their own; with curl or Postman it must be set | `Origin: http://demo.localhost:2999` |
+| `Authorization` | Routes that need login | `Authorization: Bearer <token>` |
+| `Content-Type` | JSON bodies / files | `application/json` or `multipart/form-data` |
 
-El token sale del login (`POST /api/v1/auth/login` o `/api/v1/platform/auth/login`), dura **1 hora** y está atado a
-la tienda donde se logueó: con el token de una tienda no se puede llamar a otra (401). No hay refresh: vencido,
-hay que volver a loguearse.
+The access token comes from login (`POST /api/v1/auth/login` or `/api/v1/platform/auth/login`), lasts **1 hour** and is
+bound to the store where the user logged in: a token from one store cannot call another (401). Login also returns a
+**refresh token** (7 days) to renew the session with `POST /api/v1/auth/refresh`; see [users.md](users.md#authentication).
 
-Los headers `X-User-Id`, `X-Forwarded-Host`, `X-Client-Ip` y los internos los pone el gateway; si los manda el
-cliente, se borran.
+The `X-User-Id`, `X-Forwarded-Host`, `X-Client-Ip` and internal headers are set by the gateway; if the client sends
+them, they are removed.
 
-### Acceso
+### Access
 
-En la ficha de cada endpoint, **Acceso** es uno de:
+On each endpoint's card, **Access** is one of:
 
-| Valor | Significa |
+| Value | Meaning |
 |---|---|
-| Público | Sin token |
-| Público (email) | Sin token; pide el email del pedido (sales). Si no coincide responde 404 |
-| Login | Cualquier usuario logueado en la tienda |
-| `PRODUCTOS`, `PRECIOS`, `STOCK`, `COMBOS` | Permiso de esa área. El `ADMINISTRADOR` las tiene todas; las de `EMPLEADO` y `CLIENTE` las configura el administrador. Ver [permisos.md](../permisos.md) |
-| ADMINISTRADOR | Solo el rol administrador de la tienda (no se delega) |
-| SUPERADMIN | Superadmin de la plataforma (token de `public`, sin tienda) |
-| Interno | Entre servicios, con el token interno (`X-internal-request: true` y `X-Internal-Token`) |
+| Public | No token |
+| Public (email) | No token; requires the order's email (sales). If it does not match, 404 |
+| Login | Any user logged into the store |
+| `PRODUCTOS`, `PRECIOS`, `STOCK`, `COMBOS` | Permission for that area. `ADMINISTRADOR` has all of them; `EMPLEADO` and `CLIENTE` get what the admin configures. See [permissions.md](../features/permissions.md) |
+| ADMINISTRADOR | Only the store's admin role (cannot be delegated) |
+| SUPERADMIN | Platform superadmin (token for `public`, no store) |
+| Internal | Service to service, with the internal token (`X-internal-request: true` and `X-Internal-Token`) |
 
-Roles de una tienda: `ADMINISTRADOR` (el dueño), `EMPLEADO` y `CLIENTE`. Un usuario puede tener varios.
+Store roles: `ADMINISTRADOR` (the owner), `EMPLEADO` (employee) and `CLIENTE` (customer). A user can have several.
 
-### Errores
+### Errors
 
-**El formato no es uniforme**; casi todo es el código HTTP con el mensaje en **texto plano, en inglés**:
+**The format is not uniform**; almost everything is the HTTP status with the message as **plain English text**:
 
 ```
 HTTP/1.1 404
 Product not found
 ```
 
-| Caso | Cuerpo |
+| Case | Body |
 |---|---|
-| Errores de negocio (400, 404, 409...) | Texto plano con el mensaje. Cada doc lista los mensajes literales |
-| 401 del gateway (sin token, vencido o de otra tienda) | Vacío |
-| 404 / 403 del gateway por la tienda | Texto: `The tenant was not found.` / `The tenant is disabled.` |
-| 429 (rate limit) | Vacío |
-| 403 de Spring Security (falta el rol o el área) | Vacío o el JSON por defecto de Spring |
-| Archivo más grande que el límite | 413, `The file exceeds the maximum upload size` |
-| Excepciones | Algunos casos devuelven JSON propio: la importación de CSV (errores por fila), crear un pedido con precios viejos (los precios nuevos) y observability (el JSON por defecto de Spring: `timestamp`, `status`, `error`, `path`). Están en la ficha de cada endpoint |
-| Error inesperado | 500 con el mensaje de la excepción |
+| Business errors (400, 404, 409...) | Plain text with the message. Each doc lists the literal messages |
+| Gateway 401 (no token, expired or from another store) | Empty |
+| Gateway 404 / 403 for the store | Text: `The tenant was not found.` / `The tenant is disabled.` |
+| 429 (rate limit) | Empty |
+| Spring Security 403 (missing role or area) | Empty or Spring's default JSON |
+| File larger than the limit | 413, `The file exceeds the maximum upload size` |
+| Exceptions | A few cases return their own JSON: CSV import (errors per row), creating an order with stale prices (the new prices) and observability (Spring's default JSON: `timestamp`, `status`, `error`, `path`). They are on each endpoint's card |
+| Unknown route / method / bad parameter | 404 `Not found` / 405 `Method not allowed` / 400 |
+| Unexpected error | 500 |
 
-Para el frontend: tomar el código HTTP como fuente de verdad y el texto solo para mostrarlo o mapearlo.
+For the frontend: treat the HTTP status as the source of truth and the text only for display or mapping.
 
-### Paginación
+### Pagination
 
-Los listados paginados reciben `page` (desde 0) y `size`, y devuelven siempre:
+Paginated lists take `page` (from 0) and `size`, and always return:
 
 ```json
 { "items": [ ... ], "page": 0, "size": 20, "totalItems": 134, "totalPages": 7 }
 ```
 
-El tamaño por defecto y el máximo cambian por endpoint (en general 20 y 100; el catálogo 24 y 100). Fuera de rango:
-400.
+Default and maximum size vary per endpoint (usually 20 and 100; the catalog 24 and 100). Out of range: 400.
 
-### Fechas
+### Dates
 
-- Fechas sin hora: `yyyy-MM-dd` (`2026-11-03`), en parámetros (`from`, `to`) y respuestas.
-- Fechas con hora de las tiendas: **sin zona** (`2026-11-03T10:15:00`), en la hora del servidor (UTC en Docker).
-- Plataforma (`/api/v1/platform/**`): **con offset** (`2026-11-03T10:15:00Z`), para que el navegador no las corra.
-- observability y los eventos del WS: instantes en UTC con `Z`.
-- Los reportes de ventas cuentan los días en la zona de la tienda (Argentina, configurable).
-- Los períodos de los paneles usan `groupBy` = `DAY`, `WEEK` (empieza el lunes) o `MONTH`; cada período se nombra
-  por su primer día y se devuelven todos, también los que tienen 0.
+- Dates without time: `yyyy-MM-dd` (`2026-11-03`), in parameters (`from`, `to`) and responses.
+- Store date-times: **no zone** (`2026-11-03T10:15:00`), in server time (UTC in Docker).
+- Platform (`/api/v1/platform/**`): **with offset** (`2026-11-03T10:15:00Z`), so the browser does not shift them.
+- observability and WS events: UTC instants with `Z`.
+- Sales reports and dashboard periods count days in Argentina time (configurable).
+- Dashboard periods use `groupBy` = `DAY`, `WEEK` (starts on Monday) or `MONTH`; each period is named by its first day
+  and all of them are returned, including those with 0.
 
-### Importes y cantidades
+### Amounts and quantities
 
-- Precios, costos y totales son números decimales en JSON (`15000.50`), con 2 decimales. Sin precio = `null`
-  ("consultar precio").
-- El stock es un entero. Solo cambia con movimientos de stock, nunca con un `PUT` del producto.
+- Prices, costs and totals are decimal numbers in JSON (`15000.50`), with 2 decimals. No price = `null` ("ask for
+  price").
+- Stock is an integer. It only changes through stock movements, never through a product `PUT`.
 
-### Ids y otros
+### Ids and others
 
-- Los ids son numéricos y **se repiten entre tiendas** (el producto 5 de una tienda no es el de otra).
-- Los pedidos se identifican por su **número** (`K7QM-4X2P`, sin distinguir mayúsculas), no por el id.
-- Los productos tienen un **slug** (`mesa-de-roble`) para los links públicos.
+- Ids are numeric and **repeat across stores** (product 5 of one store is not another store's product 5).
+- Orders are identified by their **number** (`K7QM-4X2P`, case-insensitive), not by id.
+- Products have a **slug** (`mesa-de-roble`) for public links.
 
-### Salud de los servicios
+### Service health
 
-Cada servicio expone `/health`, `/ready`, `/metrics` y `/status` en un **puerto de gestión** interno (el del
-servicio + 6000: users 9001, products 9002, sales 9003, observability 9004, gateway 9000, eureka 9761). El gateway
-no los expone. Ver [observability.md](observability.md#salud-y-métricas).
+Each service exposes `/health`, `/ready`, `/metrics` and `/status` on an internal **management port** (the service
+port + 6000: users 9001, products 9002, sales 9003, observability 9004, gateway 9000, eureka 9761). The gateway does
+not expose them. See [observability.md](observability.md#health-and-metrics).

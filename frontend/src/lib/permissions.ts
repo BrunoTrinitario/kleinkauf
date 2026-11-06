@@ -1,6 +1,6 @@
 import type { RoleDto } from "./types"
 
-// Permission areas (bit mask per role, see docs/permisos.md). ADMINISTRADOR has all of them
+// Permission areas (bit mask per role, see docs/features/permissions.md). ADMINISTRADOR has all of them
 export const PERMISSIONS = {
   PRODUCTOS: 1,
   PRECIOS: 2,

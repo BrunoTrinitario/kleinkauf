@@ -24,7 +24,7 @@ import java.time.Clock;
 import java.time.Duration;
 
 /*
-Audit for the services with a database (users, products, sales), docs/auditoria.md:
+Audit for the services with a database (users, products, sales), docs/features/audit.md:
 - AuditHibernateListener: creates, updates and deletes of @Audited entities (hooked by KleinKaufServletAutoConfiguration).
 - AuditLog: manual recording.
 - The public.outbox_events table is created at startup and OutboxPublisher drains it into Redis Streams.

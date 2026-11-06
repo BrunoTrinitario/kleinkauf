@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Theme based on STYLES.md: warm stone canvas, neutrals from the stone scale
+ * Theme based on docs/style-reference.md: warm stone canvas, neutrals from the stone scale
  * and a single cyan accent. This is the OCEAN theme: the other store themes (including the dark one, NIGHT)
  * override these variables from lib/store-themes.ts.
  */

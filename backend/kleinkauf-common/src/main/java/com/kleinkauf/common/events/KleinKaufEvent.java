@@ -11,7 +11,7 @@ import java.util.Map;
 
 /*
 Event a service publishes to Redis Streams (stream kleinkauf:events) for observability, which forwards it
-live over WebSocket (docs/observabilidad.md). In the stream each event is a record with the fields
+live over WebSocket (docs/features/observability.md). In the stream each event is a record with the fields
 type, tenant, at (UTC, ISO-8601) and data (JSON).
 tenant: the store's schema, or "public" if it belongs to the platform.
  */

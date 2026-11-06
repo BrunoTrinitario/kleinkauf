@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /*
-Revoked access (docs/observabilidad.md): every observability.ws.revalidate-interval (1 minute) the roles of the
+Revoked access (docs/features/observability.md): every observability.ws.revalidate-interval (1 minute) the roles of the
 online users are requested again and the WS of whoever no longer has the role (deactivated superadmin) is closed.
 It is the same minute in which their REST access is cut. If users does not answer nobody is disconnected: we do not kick everyone
 out because of an outage. The frontend, when cut off, asks for another ticket and no longer gets one.

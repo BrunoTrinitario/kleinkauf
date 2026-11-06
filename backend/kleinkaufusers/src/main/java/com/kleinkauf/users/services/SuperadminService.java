@@ -43,7 +43,7 @@ public class SuperadminService {
 
     private static final String SUPERADMIN = RolesType.SUPERADMIN.name();
 
-    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/features/audit.md)
     @Autowired
     private AuditLog auditLog;
 

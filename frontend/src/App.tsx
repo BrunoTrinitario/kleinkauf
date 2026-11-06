@@ -94,7 +94,7 @@ function StoreRoutes() {
       <Route element={<RequireAuth />}>
         <Route path="/user/settings" element={<SettingsPage />} />
         <Route path="/mis-pedidos" element={<MyOrdersPage />} />
-        {/* The store dashboard is ADMINISTRADOR-only (docs/panel-admin.md); users requires USUARIOS, which is not delegable */}
+        {/* The store dashboard is ADMINISTRADOR-only (docs/features/admin-dashboards.md); users requires USUARIOS, which is not delegable */}
         <Route element={<RequireRole role="ADMINISTRADOR" />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />

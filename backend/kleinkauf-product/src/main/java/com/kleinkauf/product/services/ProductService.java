@@ -37,7 +37,7 @@ public class ProductService {
 
     public static final long MAX_IMAGE_BYTES = 1024 * 1024; // 1 MB
 
-    // Manual recording of what is not a change to an @Audited entity (docs/auditoria.md)
+    // Manual recording of what is not a change to an @Audited entity (docs/features/audit.md)
     @Autowired
     private AuditLog auditLog;
 

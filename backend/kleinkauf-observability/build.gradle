@@ -1,9 +1,9 @@
 /*
-Observability microservice (docs/observabilidad.md):
+Observability microservice (docs/features/observability.md):
 - Collector: every few seconds reads /ready and /metrics from the management port of each Eureka instance.
 - Events: reads the services' events from Redis Streams and forwards them live.
 - WebSocket (/ws) with a short-lived ticket: the platform and store real-time dashboards.
-- Audit (docs/auditoria.md): stores it in the observability database (one schema per store plus public) with JDBC.
+- Audit (docs/features/audit.md): stores it in the observability database (one schema per store plus public) with JDBC.
   No Hibernate on purpose: that way kleinkauf-common's multi-tenancy and audit, which are meant for
   the services that send it, are not activated. The collector's state stays in memory.
  */
