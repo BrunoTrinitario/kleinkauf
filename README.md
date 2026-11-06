@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/icon.svg" alt="KleinKauf" width="96" height="96">
+</p>
+
 # KleinKauf
 
 Free management software for small businesses (furniture and home decor shops, for example): an online store with
@@ -100,3 +104,4 @@ Everything else (running without Docker, tests, the end-to-end check) is in
 | [Observability](docs/features/observability.md) · [Audit log](docs/features/audit.md) | Health, metrics, traces, logs, live panels and auditing |
 | [Deployment](docs/deployment.md) · [Email](docs/mail.md) | Server setup, operations and Resend |
 | [Style reference](docs/style-reference.md) | The visual style the frontend follows |
+| [Next features](docs/next-features.md) · [Server tasks](docs/server-tasks.md) | What is still to be built, and pending server work and technical debt |

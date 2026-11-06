@@ -89,6 +89,8 @@ kleinkauf/
 └── docs/                         Documentation
     ├── features/                 How each feature works across services
     ├── backend/                  API reference, one file per service
+    ├── next-features.md          What is still to be built
+    ├── server-tasks.md           Pending server work and technical debt
     └── images/                   Screenshots
 ```
 
