@@ -162,6 +162,7 @@ class WebSocketFlowTest {
     @Test
     void ifTheRoleWasRemovedTheWsIsClosed() throws Exception {
         connect("bueno", null);
+        awaitRegistered();
         when(usersClient.getUserRoles(eq(1L), any())).thenReturn(List.of());
 
         revalidator.revalidate();
@@ -173,6 +174,7 @@ class WebSocketFlowTest {
     @Test
     void ifUsersDoesNotAnswerNobodyIsDisconnected() throws Exception {
         connect("bueno", null);
+        awaitRegistered();
         when(usersClient.getUserRoles(eq(1L), any())).thenReturn(null);
 
         revalidator.revalidate();
@@ -377,6 +379,13 @@ class WebSocketFlowTest {
                 closed.complete(status);
             }
         }, headers, URI.create("ws://localhost:" + port + "/ws" + query)).get(5, TimeUnit.SECONDS);
+    }
+
+    // The client sees the handshake finish before the server registers the session (afterConnectionEstablished).
+    // A ping answered with pong means the server already knows the session, so revalidate() will find it
+    private void awaitRegistered() throws Exception {
+        send(Map.of("type", "ping"));
+        assertThat(next().path("type").asText()).isEqualTo("pong");
     }
 
     private void send(Map<String, Object> message) throws Exception {
