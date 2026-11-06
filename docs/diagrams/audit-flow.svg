@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480" role="img" aria-label="How audit events travel">
+<title>How audit events travel</title>
+<style>
+svg{--bg:#fafaf9;--card:#ffffff;--border:#d6d3d1;--ink:#1c1917;--muted:#78716c;--line:#a8a29e;--accent:#1677bd;--wash:#e8f2fa;--wash-border:#9cc6e6;--data:#f5f5f4;--paid:#e7f5ec;--paid-border:#8cc9a2;--final:#f1f0ef}
+@media (prefers-color-scheme: dark){svg{--bg:#0f1419;--card:#1a2027;--border:#3a434d;--ink:#e6edf3;--muted:#9aa4af;--line:#5f6b77;--accent:#2b7fc4;--wash:#13283a;--wash-border:#2f5f88;--data:#1f262e;--paid:#14291d;--paid-border:#2f6b45;--final:#22282f}}
+text{font-family:-apple-system,"Segoe UI",Inter,Helvetica,Arial,sans-serif;fill:var(--ink)}
+.bg{fill:var(--bg)}
+.box{fill:var(--card);stroke:var(--border);stroke-width:1}
+.accent{fill:var(--accent);stroke:none}
+.data{fill:var(--data);stroke:var(--border);stroke-width:1}
+.client{fill:var(--wash);stroke:var(--wash-border);stroke-width:1}
+.note{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:4 4}
+.paid{fill:var(--paid);stroke:var(--paid-border);stroke-width:1}
+.final{fill:var(--final);stroke:var(--muted);stroke-width:1.5}
+.head{fill:var(--wash)}
+.sep{stroke:var(--border);stroke-width:1}
+.t{font-size:14px;font-weight:600}
+.s{font-size:12px;fill:var(--muted)}
+.m{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12px}
+.mt{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12.5px;font-weight:600}
+.r{font-size:12.5px}
+.on-accent{fill:#ffffff}
+.on-accent-s{fill:#dbeaf7;font-size:12px}
+.lane{font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.badge{fill:var(--accent)}
+.e{fill:none;stroke:var(--line);stroke-width:1.5}
+.dash{stroke-dasharray:5 4}
+.ah{fill:var(--line)}
+.l{font-size:11.5px;fill:var(--muted);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.lp{stroke:var(--card)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="bg" width="960" height="480" rx="12"/>
+<text x="40" y="36" class="lane" text-anchor="start">products · users · sales</text>
+<text x="460" y="36" class="lane" text-anchor="middle">Redis</text>
+<text x="640" y="36" class="lane" text-anchor="start">kleinkauf-observability</text>
+<line class="sep" x1="40" x2="300" y1="46" y2="46"/>
+<line class="sep" x1="380" x2="540" y1="46" y2="46"/>
+<line class="sep" x1="640" x2="920" y1="46" y2="46"/>
+<rect class="box" x="40" y="70" width="260" height="60" rx="8"/>
+<text x="170" y="89.5" class="t" text-anchor="middle">change + outbox row</text>
+<text x="170" y="106.5" class="s" text-anchor="middle">public.outbox_events</text>
+<text x="170" y="121.5" class="s" text-anchor="middle">same transaction</text>
+<path class="e" d="M170 130 L170 180" marker-end="url(#a)"/>
+<rect class="box" x="40" y="180" width="260" height="60" rx="8"/>
+<text x="170" y="199.5" class="t" text-anchor="middle">OutboxPublisher</text>
+<text x="170" y="216.5" class="s" text-anchor="middle">every 2 s</text>
+<text x="170" y="231.5" class="s" text-anchor="middle">marks the row as sent</text>
+<path class="e" d="M300 210 L380 210" marker-end="url(#a)"/>
+<rect class="data" x="380" y="180" width="160" height="60" rx="8"/>
+<text x="460" y="207" class="t" text-anchor="middle">Redis Streams</text>
+<text x="460" y="224" class="s" text-anchor="middle">kleinkauf:audit</text>
+<path class="e" d="M540 210 L640 210" marker-end="url(#a)"/>
+<rect class="box" x="640" y="180" width="280" height="60" rx="8"/>
+<text x="780" y="207" class="t" text-anchor="middle">AuditConsumer</text>
+<text x="780" y="224" class="s" text-anchor="middle">group observability-audit</text>
+<path class="e" d="M780 240 L780 290" marker-end="url(#a)"/>
+<rect class="data" x="640" y="290" width="280" height="56" rx="8"/>
+<text x="780" y="322.5" class="mt" text-anchor="middle">&lt;schema&gt;.audit_events</text>
+<path class="e" d="M780 346 L780 396" marker-end="url(#a)"/>
+<rect class="client" x="640" y="396" width="280" height="56" rx="8"/>
+<text x="780" y="421" class="t" text-anchor="middle">WebSocket</text>
+<text x="780" y="438" class="s" text-anchor="middle">store.audit · platform.audit</text>
+</svg>

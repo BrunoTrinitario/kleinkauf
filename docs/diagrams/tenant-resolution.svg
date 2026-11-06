@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="690" viewBox="0 0 960 690" role="img" aria-label="How the tenant is recognized on each request">
+<title>How the tenant is recognized on each request</title>
+<style>
+svg{--bg:#fafaf9;--card:#ffffff;--border:#d6d3d1;--ink:#1c1917;--muted:#78716c;--line:#a8a29e;--accent:#1677bd;--wash:#e8f2fa;--wash-border:#9cc6e6;--data:#f5f5f4;--paid:#e7f5ec;--paid-border:#8cc9a2;--final:#f1f0ef}
+@media (prefers-color-scheme: dark){svg{--bg:#0f1419;--card:#1a2027;--border:#3a434d;--ink:#e6edf3;--muted:#9aa4af;--line:#5f6b77;--accent:#2b7fc4;--wash:#13283a;--wash-border:#2f5f88;--data:#1f262e;--paid:#14291d;--paid-border:#2f6b45;--final:#22282f}}
+text{font-family:-apple-system,"Segoe UI",Inter,Helvetica,Arial,sans-serif;fill:var(--ink)}
+.bg{fill:var(--bg)}
+.box{fill:var(--card);stroke:var(--border);stroke-width:1}
+.accent{fill:var(--accent);stroke:none}
+.data{fill:var(--data);stroke:var(--border);stroke-width:1}
+.client{fill:var(--wash);stroke:var(--wash-border);stroke-width:1}
+.note{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:4 4}
+.paid{fill:var(--paid);stroke:var(--paid-border);stroke-width:1}
+.final{fill:var(--final);stroke:var(--muted);stroke-width:1.5}
+.head{fill:var(--wash)}
+.sep{stroke:var(--border);stroke-width:1}
+.t{font-size:14px;font-weight:600}
+.s{font-size:12px;fill:var(--muted)}
+.m{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12px}
+.mt{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12.5px;font-weight:600}
+.r{font-size:12.5px}
+.on-accent{fill:#ffffff}
+.on-accent-s{fill:#dbeaf7;font-size:12px}
+.lane{font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.badge{fill:var(--accent)}
+.e{fill:none;stroke:var(--line);stroke-width:1.5}
+.dash{stroke-dasharray:5 4}
+.ah{fill:var(--line)}
+.l{font-size:11.5px;fill:var(--muted);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.lp{stroke:var(--card)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="bg" width="960" height="690" rx="12"/>
+<rect class="client" x="310" y="30" width="340" height="50" rx="8"/>
+<text x="480" y="52" class="t" text-anchor="middle">Browser</text>
+<text x="480" y="69" class="s" text-anchor="middle">Origin: http://my-store.localhost:2999</text>
+<path class="e" d="M480 80 L480 110" marker-end="url(#a)"/>
+<rect class="box" x="40" y="110" width="880" height="384" rx="10"/>
+<path class="head" d="M41 120a9 9 0 0 1 9-9h860a9 9 0 0 1 9 9v16h-878z"/>
+<line class="sep" x1="40" x2="920" y1="136" y2="136"/>
+<text x="56" y="128" class="mt" text-anchor="start">gateway</text>
+<circle class="badge" cx="67" cy="150" r="10"/>
+<text x="67" y="154" class="s on-accent" text-anchor="middle">1</text>
+<text x="88" y="154" class="mt" text-anchor="start">ClientHeadersFilter</text>
+<text x="340" y="154" class="r" text-anchor="start">removes the internal headers sent by the client</text>
+<text x="340" y="172" class="r" text-anchor="start">(X-User-Id, X-Forwarded-Host, X-Open-Path, X-Tenant-Name)</text>
+<line class="sep" x1="56" x2="904" y1="185" y2="185"/>
+<circle class="badge" cx="67" cy="202" r="10"/>
+<text x="67" y="206" class="s on-accent" text-anchor="middle">2</text>
+<text x="88" y="206" class="mt" text-anchor="start">CorsConfig</text>
+<text x="340" y="206" class="r" text-anchor="start">CORS for store origins, platform subdomains and the platform frontend.</text>
+<text x="340" y="224" class="r" text-anchor="start">Runs before the filters that reject requests, so their</text>
+<text x="340" y="242" class="r" text-anchor="start">401 / 404 / 403 / 429 responses carry the CORS headers</text>
+<line class="sep" x1="56" x2="904" y1="255" y2="255"/>
+<circle class="badge" cx="67" cy="272" r="10"/>
+<text x="67" y="276" class="s on-accent" text-anchor="middle">3</text>
+<text x="88" y="276" class="mt" text-anchor="start">RequestFilter</text>
+<text x="340" y="276" class="r" text-anchor="start">rate limit by IP and origin (1-minute windows)</text>
+<line class="sep" x1="56" x2="904" y1="289" y2="289"/>
+<circle class="badge" cx="67" cy="306" r="10"/>
+<text x="67" y="310" class="s on-accent" text-anchor="middle">4</text>
+<text x="88" y="310" class="mt" text-anchor="start">MsFilter</text>
+<text x="340" y="310" class="r" text-anchor="start">/api/internal/**: validates the internal token</text>
+<line class="sep" x1="56" x2="904" y1="323" y2="323"/>
+<circle class="badge" cx="67" cy="340" r="10"/>
+<text x="67" y="344" class="s on-accent" text-anchor="middle">5</text>
+<text x="88" y="344" class="mt" text-anchor="start">TenantGatewayFilter</text>
+<text x="340" y="344" class="r" text-anchor="start">looks up the tenant by Origin:</text>
+<text x="340" y="362" class="r" text-anchor="start">local cache (1 min) → Redis tenant:url:&lt;url&gt; → users</text>
+<text x="340" y="380" class="r" text-anchor="start">missing or deleted → 404 · disabled → 403</text>
+<text x="340" y="398" class="r" text-anchor="start">adds X-Forwarded-Host: &lt;schema&gt; (skipped on /api/v1/platform/**)</text>
+<line class="sep" x1="56" x2="904" y1="411" y2="411"/>
+<circle class="badge" cx="67" cy="428" r="10"/>
+<text x="67" y="432" class="s on-accent" text-anchor="middle">6</text>
+<text x="88" y="432" class="mt" text-anchor="start">JwtFilter</text>
+<text x="340" y="432" class="r" text-anchor="start">non-public routes: validates the JWT and that its &quot;tenant&quot; claim matches</text>
+<text x="340" y="450" class="r" text-anchor="start">the request's schema (&quot;public&quot; on /api/v1/platform/**); adds X-User-Id.</text>
+<text x="340" y="468" class="r" text-anchor="start">On POST /api/v1/sales/orders the token is optional, but validated if present</text>
+<path class="e" d="M480 494 L480 538" marker-end="url(#a)"/>
+<rect class="box" x="40" y="538" width="880" height="122" rx="10"/>
+<path class="head" d="M41 548a9 9 0 0 1 9-9h860a9 9 0 0 1 9 9v16h-878z"/>
+<line class="sep" x1="40" x2="920" y1="564" y2="564"/>
+<text x="56" y="556" class="mt" text-anchor="start">users · products · sales</text>
+<text x="58" y="582" class="mt" text-anchor="start">TenantFilter</text>
+<text x="340" y="582" class="r" text-anchor="start">kleinkauf-common: reads X-Forwarded-Host and stores it in TenantContext</text>
+<line class="sep" x1="56" x2="904" y1="595" y2="595"/>
+<text x="58" y="616" class="mt" text-anchor="start">Hibernate multi-tenancy</text>
+<text x="340" y="616" class="r" text-anchor="start">TenantIdentifierResolver → schema from TenantContext</text>
+<text x="340" y="634" class="r" text-anchor="start">DatabaseMultiTenantConnectionProvider → connection on that schema</text>
+</svg>

@@ -4,27 +4,7 @@ KleinKauf is a set of Spring Boot microservices behind a single gateway, a React
 schema per store, and Redis for caching, rate limiting and events. Why each piece is the way it is:
 [decisions.md](decisions.md).
 
-```
-                         ┌────────────┐
-   Browser ────────────▶ │  Frontend  │  Vite + React (port 2999)
-                         └─────┬──────┘
-                               │ HTTP / WebSocket
-                         ┌─────▼──────┐        ┌──────────┐
-                         │  Gateway   │◀──────▶│  Redis   │  cache, rate limit, events
-                         │   :3000    │        └──────────┘
-                         └─────┬──────┘
-          ┌──────────────────┬─┴─────────────────┬────────────────────┐
-  ┌───────▼────────┐ ┌───────▼────────┐ ┌────────▼──────────┐ ┌───────▼─────────┐
-  │ kleinkaufusers │◀│    products    │◀│  kleinkauf-sales  │ │  observability  │
-  │     :3001      │ │     :3002      │ │       :3003       │ │      :3004      │
-  └───────┬────────┘ └───────┬────────┘ └────────┬──────────┘ └───────┬─────────┘
-          └──────────────────┴─────────┬─────────┴────────────────────┘
-                     ┌─────────────────▼─────────────────┐      ┌──────────────┐
-                     │            PostgreSQL             │      │    Eureka    │
-                     │ users, products, sales, observab. │      │    :8761     │
-                     │      (one schema per store)       │      │  (discovery) │
-                     └───────────────────────────────────┘      └──────────────┘
-```
+<p align="center"><img src="diagrams/architecture.svg" alt="Architecture: browser, frontend, gateway, services and databases"></p>
 
 Arrows between services are internal calls (`/api/internal/**`, signed token, Resilience4j): sales calls products to
 reserve stock, and products and sales ask users for roles.
@@ -89,6 +69,7 @@ kleinkauf/
 └── docs/                         Documentation
     ├── features/                 How each feature works across services
     ├── backend/                  API reference, one file per service
+    ├── diagrams/                 SVG diagrams and the script that builds them (build.mjs)
     ├── next-features.md          What is still to be built
     ├── server-tasks.md           Pending server work and technical debt
     └── images/                   Screenshots

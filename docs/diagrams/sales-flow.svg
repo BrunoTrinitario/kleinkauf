@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="740" viewBox="0 0 960 740" role="img" aria-label="How a sales request flows">
+<title>How a sales request flows</title>
+<style>
+svg{--bg:#fafaf9;--card:#ffffff;--border:#d6d3d1;--ink:#1c1917;--muted:#78716c;--line:#a8a29e;--accent:#1677bd;--wash:#e8f2fa;--wash-border:#9cc6e6;--data:#f5f5f4;--paid:#e7f5ec;--paid-border:#8cc9a2;--final:#f1f0ef}
+@media (prefers-color-scheme: dark){svg{--bg:#0f1419;--card:#1a2027;--border:#3a434d;--ink:#e6edf3;--muted:#9aa4af;--line:#5f6b77;--accent:#2b7fc4;--wash:#13283a;--wash-border:#2f5f88;--data:#1f262e;--paid:#14291d;--paid-border:#2f6b45;--final:#22282f}}
+text{font-family:-apple-system,"Segoe UI",Inter,Helvetica,Arial,sans-serif;fill:var(--ink)}
+.bg{fill:var(--bg)}
+.box{fill:var(--card);stroke:var(--border);stroke-width:1}
+.accent{fill:var(--accent);stroke:none}
+.data{fill:var(--data);stroke:var(--border);stroke-width:1}
+.client{fill:var(--wash);stroke:var(--wash-border);stroke-width:1}
+.note{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:4 4}
+.paid{fill:var(--paid);stroke:var(--paid-border);stroke-width:1}
+.final{fill:var(--final);stroke:var(--muted);stroke-width:1.5}
+.head{fill:var(--wash)}
+.sep{stroke:var(--border);stroke-width:1}
+.t{font-size:14px;font-weight:600}
+.s{font-size:12px;fill:var(--muted)}
+.m{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12px}
+.mt{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12.5px;font-weight:600}
+.r{font-size:12.5px}
+.on-accent{fill:#ffffff}
+.on-accent-s{fill:#dbeaf7;font-size:12px}
+.lane{font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.badge{fill:var(--accent)}
+.e{fill:none;stroke:var(--line);stroke-width:1.5}
+.dash{stroke-dasharray:5 4}
+.ah{fill:var(--line)}
+.l{font-size:11.5px;fill:var(--muted);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.lp{stroke:var(--card)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="bg" width="960" height="740" rx="12"/>
+<rect class="client" x="330" y="30" width="300" height="50" rx="8"/>
+<text x="480" y="52" class="t" text-anchor="middle">Store frontend</text>
+<text x="480" y="69" class="s" text-anchor="middle">Origin: http://my-store.localhost:2999</text>
+<path class="e" d="M480 80 L480 110" marker-end="url(#a)"/>
+<rect class="box" x="160" y="110" width="640" height="164" rx="10"/>
+<path class="head" d="M161 120a9 9 0 0 1 9-9h620a9 9 0 0 1 9 9v16h-638z"/>
+<line class="sep" x1="160" x2="800" y1="136" y2="136"/>
+<text x="176" y="128" class="mt" text-anchor="start">gateway :3000</text>
+<text x="178" y="154" class="r" text-anchor="start">public routes: GET /checkout, POST /orders, POST /orders/lookup,</text>
+<text x="178" y="178" class="r" text-anchor="start">and POST /orders/{number}/receipt, POST /orders/{number}/cancel</text>
+<text x="178" y="202" class="r" text-anchor="start">POST /orders: a valid JWT adds X-User-Id; an invalid one → 401</text>
+<text x="178" y="226" class="r" text-anchor="start">rate limit by IP: 5 orders/min, 10 lookups or cancellations/min, 5 receipts/min</text>
+<text x="178" y="250" class="r" text-anchor="start">adds X-Forwarded-Host (the store's schema)</text>
+<path class="e" d="M480 274 L480 318" marker-end="url(#a)"/>
+<rect class="box" x="160" y="318" width="640" height="138" rx="10"/>
+<path class="head" d="M161 328a9 9 0 0 1 9-9h620a9 9 0 0 1 9 9v16h-638z"/>
+<line class="sep" x1="160" x2="800" y1="344" y2="344"/>
+<text x="176" y="336" class="mt" text-anchor="start">kleinkauf-sales :3003</text>
+<text x="178" y="362" class="mt" text-anchor="start">TenantFilter</text>
+<text x="340" y="362" class="r" text-anchor="start">X-Forwarded-Host → schema (without it, 404)</text>
+<line class="sep" x1="176" x2="784" y1="375" y2="375"/>
+<text x="178" y="396" class="mt" text-anchor="start">HeaderAuthFilter</text>
+<text x="340" y="396" class="r" text-anchor="start">X-User-Id → roles (cache 1 min → Redis → users)</text>
+<line class="sep" x1="176" x2="784" y1="409" y2="409"/>
+<text x="178" y="430" class="mt" text-anchor="start">ExpirationJob</text>
+<text x="340" y="430" class="r" text-anchor="start">every hour, per store: expires orders and returns their stock</text>
+<path class="e" d="M330 456 L330 491 L255 491 L255 526" marker-end="url(#a)"/>
+<path class="e" d="M630 456 L630 491 L710 491 L710 526" marker-end="url(#a)"/>
+<rect class="box" x="40" y="526" width="430" height="140" rx="10"/>
+<path class="head" d="M41 536a9 9 0 0 1 9-9h410a9 9 0 0 1 9 9v16h-428z"/>
+<line class="sep" x1="40" x2="470" y1="552" y2="552"/>
+<text x="56" y="544" class="mt" text-anchor="start">products :3002</text>
+<text x="58" y="570" class="m" text-anchor="start">POST /api/internal/products/reservations</text>
+<text x="58" y="594" class="m" text-anchor="start">POST …/reservations/{number}/release</text>
+<text x="58" y="618" class="m" text-anchor="start">POST …/reservations/{number}/sold</text>
+<text x="58" y="642" class="m" text-anchor="start">POST …/reservations/{number}/unsold</text>
+<rect class="box" x="500" y="526" width="420" height="116" rx="10"/>
+<path class="head" d="M501 536a9 9 0 0 1 9-9h400a9 9 0 0 1 9 9v16h-418z"/>
+<line class="sep" x1="500" x2="920" y1="552" y2="552"/>
+<text x="516" y="544" class="mt" text-anchor="start">users :3001</text>
+<text x="518" y="570" class="m" text-anchor="start">GET /api/internal/users/roles/{id}</text>
+<text x="518" y="594" class="m" text-anchor="start">POST /api/internal/mail/order-confirmation</text>
+<text x="518" y="618" class="m" text-anchor="start">(order email: in the background, no retries)</text>
+<text x="480" y="698" class="s" text-anchor="middle">Internal calls carry X-Internal-Token and the store's X-Forwarded-Host, go through Eureka with 2 s / 3 s timeouts,</text>
+<text x="480" y="716" class="s" text-anchor="middle">and the ones to products use Resilience4j “products” (circuit breaker and retries).</text>
+</svg>

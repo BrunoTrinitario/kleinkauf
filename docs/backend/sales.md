@@ -31,17 +31,7 @@ communication with products: [sales.md](../features/sales.md).
 
 ### States
 
-```
-                ┌──────────── cancelled by buyer / admin ───────────┐
-                │                                                    ▼
-PENDIENTE_PAGO ──uploads receipt──► PAGO_EN_REVISION ──validates──► PAGADO ──► EN_PREPARACION ──► LISTO ──► ENTREGADO
-   │    ▲                                 │
-   │    └──── uploads again ─── RECHAZADO ◄┘ rejects
-   │
-   └── deadline passes without receipt ──► VENCIDO
-
-In-store sale: starts as PAGADO or ENTREGADO
-```
+<p align="center"><img src="../diagrams/order-states.svg" alt="Order states and their transitions"></p>
 
 | State | Meaning | Stock | Sale | Receipt | Buyer can cancel |
 |---|---|---|---|---|---|
@@ -500,24 +490,12 @@ shorter`.
 
 ## How it communicates
 
-```
-gateway ──► sales :3003
-              TenantFilter      X-Forwarded-Host → schema (required: without it, 404)
-              HeaderAuthFilter  X-User-Id → roles (cache 1 min → Redis → users)
-              │
-              ├── products :3002   reservations, releases and sold counters (internal endpoints)
-              │     internal token + the store's X-Forwarded-Host, Eureka, 2 s / 3 s timeouts,
-              │     Resilience4j "products" (circuit breaker and retries)
-              └── users :3001      user roles (GET /api/internal/users/roles/{id}) and the order
-                                   confirmation email (POST /api/internal/mail/order-confirmation,
-                                   in the background, no retries)
-
-ExpirationJob (every hour, starts after a minute) ── for each store: expires orders and returns their stock
-```
+<p align="center"><img src="../diagrams/sales-flow.svg" alt="How a sales request flows through the gateway, sales, products and users"></p>
 
 - **Creating an order:** reserve in products (all or nothing) → compare prices (if they changed, release and 409) →
   save. If saving fails, the stock is released. If products does not answer, it asks to release just in case and
   answers 503.
+- **Expiration:** `ExpirationJob` runs every hour, the first time a minute after the service starts.
 - **State changes:** products first (sold, release), then the order. Calls are idempotent by order number: retrying
   never applies anything twice. Details in [sales.md](../features/sales.md#creating-an-order-step-by-step).
 - **Optimistic locking:** the order has `@Version`; if two people change it, the second gets 409.

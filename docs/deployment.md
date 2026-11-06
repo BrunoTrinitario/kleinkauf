@@ -24,19 +24,7 @@ A push to either one triggers the `.github/workflows/deploy.yml` workflow, which
 If a service is not healthy within 10 minutes, the run fails and shows up in GitHub's **Actions** tab. Two pushes to
 the same branch do not overlap: the second waits for the first to finish.
 
-```
-                    Internet
-                       │  80 / 443
-                ┌──────▼──────┐
-                │    Caddy    │  HTTPS (Let's Encrypt) and routing by host
-                └──┬───────┬──┘
-   <domain>        │       │  api.<domain>
-   <store>.<domain>        │
-          ┌────────▼─┐   ┌─▼─────────┐
-          │ frontend │   │  gateway  │──► users, products, sales, observability
-          │  (nginx) │   │   :3000   │    Eureka, Postgres, Redis
-          └──────────┘   └───────────┘
-```
+<p align="center"><img src="diagrams/deployment.svg" alt="Server layout: Caddy, frontend, gateway and the internal network"></p>
 
 - `<domain>` is the platform frontend (store sign-up and superadmin panel).
 - `api.<domain>` is the gateway.

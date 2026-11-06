@@ -128,22 +128,7 @@ Content-Type: application/json
 
 ## How it works internally
 
-```
-users                                   products and sales
-─────                                   ──────────────────
-role_permissions (per schema)
-  │ RolePermissionService.maskFor(role)
-  ▼
-RoleDto { type, permissions }  ──►  Redis  user:<id>:<tenant>  ──►      local cache (1 minute)
-  │                                                                       │
-  ▼                                                                       ▼
-HeaderAuthFilter                                                  HeaderAuthFilter
-  │                                                                       │
-  └─► CustomUserDetails (kleinkauf-common): ROLE_<role> + PERM_<area> ◄──┘
-                     │
-                     ▼
-              SecurityConfig: hasRole(...) / hasAuthority("PERM_STOCK")
-```
+<p align="center"><img src="../diagrams/permissions-flow.svg" alt="How role permissions reach each service"></p>
 
 1. **Where it is stored:** in the `role_permissions` table of each store's schema, one row per role (`type`,
    `permissions`). A role without a row uses its default.

@@ -100,16 +100,7 @@ Reading the platform panel (summary, usage per store, superadmin list) is **not*
 
 ## How it works
 
-```
-products / users / sales                                 kleinkauf-observability
-────────────────────────                                 ───────────────────────
-change + row in public.outbox_events  (same transaction)
-        │
-        ▼
-OutboxPublisher (every 2 s) ──► Redis Streams ──► AuditConsumer ──► <schema>.audit_events
-   marks the row as sent          kleinkauf:audit     (group observability-audit)  │
-                                                                                   └──► WS store.audit / platform.audit
-```
+<p align="center"><img src="../diagrams/audit-flow.svg" alt="Audit events: outbox, Redis Streams, consumer, audit_events and WebSocket"></p>
 
 1. **Capture** (`kleinkauf-common`, `com.kleinkauf.common.audit`): `AuditHibernateListener` listens to `PostInsert`,
    `PostUpdate` and `PostDelete`. The "before" comes from the state Hibernate had loaded, and the changed fields from

@@ -31,34 +31,7 @@ platform manages them.
 
 ## How the tenant is recognized on each request
 
-```
-Browser (Origin: http://my-store.localhost:2999)
-   │
-   ▼
-gateway
-   1. ClientHeadersFilter   removes the internal headers sent by the client
-                            (X-User-Id, X-Forwarded-Host, X-Open-Path, X-Tenant-Name)
-   2. CorsConfig            CORS: tenant origins, platform subdomains and the platform
-                            frontend. Runs before the filters that reject requests so that
-                            their 401/404/403/429 responses carry the CORS headers
-   3. RequestFilter         rate limit by IP and origin (1-minute windows)
-   4. MsFilter              /api/internal/**: validates the internal token
-   5. TenantGatewayFilter   looks up the tenant by Origin:
-                              local cache (1 min) → Redis tenant:url:<url> → users
-                            missing or deleted → 404 · disabled → 403
-                            adds X-Forwarded-Host: <schema>
-                            (/api/v1/platform/** routes have no tenant and are skipped)
-   6. JwtFilter             non-public routes: validates the JWT and that its "tenant" claim
-                            matches the request's schema (or "public" on /api/v1/platform/**);
-                            adds X-User-Id. On POST /api/v1/sales/orders the token is
-                            optional, but it is validated if present
-   │
-   ▼
-users / products / sales
-   TenantFilter (kleinkauf-common)   reads X-Forwarded-Host and stores it in TenantContext
-   Hibernate multi-tenancy           TenantIdentifierResolver → schema from TenantContext
-                                     DatabaseMultiTenantConnectionProvider → connection on that schema
-```
+<p align="center"><img src="../diagrams/tenant-resolution.svg" alt="How the gateway and the services recognize the tenant on each request"></p>
 
 - In **products** and **sales** the tenant is required (without `X-Forwarded-Host` they answer 404). In **users** it
   is optional (`kleinkauf.tenant.required=false`): without a tenant it works on `public` (platform and internal

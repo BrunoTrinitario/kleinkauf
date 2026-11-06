@@ -259,17 +259,7 @@ store does not sell online.
 
 ## Order states
 
-```
-                ┌──────────── cancelled by buyer / admin ───────────┐
-                │                                                    ▼
-PENDIENTE_PAGO ──uploads receipt──► PAGO_EN_REVISION ──validates──► PAGADO ──► EN_PREPARACION ──► LISTO ──► ENTREGADO
-   │    ▲                                 │
-   │    └──── uploads again ─── RECHAZADO ◄┘ rejects
-   │
-   └── deadline passes without receipt ──► VENCIDO
-
-In-store sale: starts as PAGADO or ENTREGADO
-```
+<p align="center"><img src="../diagrams/order-states.svg" alt="Order states and their transitions"></p>
 
 | State | Meaning | Stock | Counts as a sale |
 |---|---|---|---|
@@ -285,32 +275,7 @@ In-store sale: starts as PAGADO or ENTREGADO
 
 ## How it communicates
 
-```
-Store (Origin: http://my-store.localhost:2999)
-   │
-   ▼
-gateway :3000
-   - public routes: GET /checkout, POST /orders, POST /orders/lookup,
-     POST /orders/{number}/receipt, POST /orders/{number}/cancel
-   - POST /orders: with a valid JWT adds X-User-Id; with an invalid JWT → 401
-   - rate limit by IP: 5 orders/min, 10 lookups or cancellations/min, 5 receipts/min
-     (everything else, the general limit)
-   - adds X-Forwarded-Host (tenant schema)
-   │
-   ▼
-kleinkauf-sales :3003
-   TenantFilter      X-Forwarded-Host → schema
-   HeaderAuthFilter  X-User-Id → roles from users (cache 1 min → Redis → users)
-   │
-   ├── POST /api/internal/products/reservations                ──► products :3002
-   ├── POST /api/internal/products/reservations/{n}/release
-   ├── POST /api/internal/products/reservations/{n}/sold
-   └── POST /api/internal/products/reservations/{n}/unsold
-         internal token (X-Internal-Token) + the tenant's X-Forwarded-Host
-         RestTemplate with Eureka, 2s/3s timeouts, Resilience4j "products"
-
-ExpirationJob (every hour) ── for each store: expires orders and returns their stock
-```
+<p align="center"><img src="../diagrams/sales-flow.svg" alt="How a sales request flows through the gateway, sales, products and users"></p>
 
 ### products internal endpoints
 

@@ -63,11 +63,7 @@ The interface is in Spanish (the target market is Argentina); code and documenta
 
 ## Architecture
 
-```
-   Browser ──▶ Frontend (Vite + React) ──▶ Gateway (Spring Cloud Gateway) ──▶ users · products · sales · observability
-                                                     │                                   │
-                                                   Redis                        PostgreSQL (schema per store)
-```
+<p align="center"><img src="docs/diagrams/architecture.svg" alt="Architecture: browser, frontend, gateway, services and databases"></p>
 
 Java 21 and Spring Boot microservices behind a single gateway, service discovery with Eureka, PostgreSQL with one
 schema per store, Redis for caching, rate limiting and events, and a React + TypeScript single-page app. Details in

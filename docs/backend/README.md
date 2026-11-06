@@ -20,31 +20,7 @@ The feature docs explain things that cross several services and are linked from 
 
 ## Architecture
 
-```
-                    Each store's frontend (http://<store>.localhost:2999)
-                    Platform frontend (http://localhost:2999)
-                                       │
-                                       ▼
-                            ┌──────────────────────┐
-                            │  gateway  :3000      │  single public entry point
-                            └──────────┬───────────┘
-                         Eureka (lb://) │
-          ┌─────────────────────────────┼─────────────────────────────┐
-          ▼                             ▼                             ▼
-┌──────────────────┐ internal ┌──────────────────┐ internal ┌───────────────────┐
-│ kleinkaufusers   │ ◄─────── │ products         │ ◄─────── │ kleinkauf-sales   │
-│ :3001            │  tokens  │ :3002            │  tokens  │ :3003             │
-└────────┬─────────┘          └────────┬─────────┘          └─────────┬─────────┘
-         │  ▲        (Resilience4j)    │      (stock and sold)        │
-         │  └─────────────────── roles and tenants ───────────────────┤
-         │                             │                              │
- Postgres "users"     Redis    Postgres "products"            Postgres "sales"
- (schema per tenant + public)  (schema per tenant)            (schema per tenant)
-
-          kleinkauf-observability :3004  ─  health, metrics, events, audit log and WS (Postgres "observability")
-          eureka :8761  ─  service registry
-          kleinkauf-common  ─  shared library (not a service)
-```
+<p align="center"><img src="../diagrams/backend-overview.svg" alt="Backend services and how they talk to each other"></p>
 
 - **Multi-tenancy:** each store (tenant) has its own Postgres schema in every database. The gateway recognizes the
   store by the `Origin` header and passes it to the services. See [tenants.md](../features/tenants.md).
